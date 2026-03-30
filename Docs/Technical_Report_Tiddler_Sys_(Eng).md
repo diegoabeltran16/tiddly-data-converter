@@ -151,7 +151,7 @@ A session tiddler may share domain, axis, or channel tags with a core nucleus wh
 ##### System special roles table
 | Role             | Meaning                                                             | Tiddler example              | Restriction                                                       |
 | ---------------- | ------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------- |
-| `orchestrator`   | Node that coordinates, grounds, and redirects the work of a topic   | `# 1_Nombre del Tema`        | Reserved for infrastructure nodes; do not use on common nodes     |
+| `orchestrator`   | Node that coordinates, grounds, and redirects the work of a topic   | `# 1_Tema_raiz`              | Reserved for infrastructure nodes; do not use on common nodes     |
 
 ##### Allowed content table for tags
 | Allowed tag type                       | Meaning                                                                                   | When to use it                                                              | Why it's important                                                   |
@@ -1011,7 +1011,7 @@ Consequently, the relations between specialized content and context constitute a
 - "-- 🧭🧱 Protocolo de Sesión.md"
 - "-- 🧰🧱 Elementos específicos.md"
 - "-- 🧾🧱 Procedencia epistemológica.md"
-- "# 1_Nombre del Tema"
+- "# 1_Tema_raiz"
 - "# 2_🧾 Procedencia inicial"
 - "# 3_🧪 Hipótesis inicial"
 - "## 🌀🧱 Desarrollo y Evolución"
@@ -1052,7 +1052,7 @@ The minimum operational tiddlers define the base set of nodes necessary for a to
 
 In the outermost part of this organization sits the human documentary reference layer. There reside the markdown tiddlers that already come with the template and whose function is to serve as reading support, orientation, and general comprehension of the system. These documents are not edited topic by topic, as they act as a stable reference for understanding the purpose of each block and the correct way to use it. The only exception is _Nombre_del_tema.md, which is adjusted to the specific topic because it accompanies the landing of the specific orchestrator node. In this way, the architecture preserves a pedagogical entry layer without turning it into a second source of truth.
 
-Next appears the topic startup layer, which constitutes the first editable zone of the system. Here one works on # 1_Nombre del Tema, # 2_🧾 Procedencia inicial, and # 3_🧪 Hipótesis inicial. These nodes do not yet develop the topic in depth, but they do establish its identity, its genealogy, and its initial direction. The first acts as a pedagogical and structural orchestrator; the second records where the topic originates from, what triggered it, and what its initial inputs were; and the third preserves the foundational conjectures that guide the beginning of work. Thanks to this layer, the topic does not appear as a neutral object, but as something that already possesses context of emergence and initial lines of orientation.
+Next appears the topic startup layer, which constitutes the first editable zone of the system. Here one works on # 1_Tema_raiz, # 2_🧾 Procedencia inicial, and # 3_🧪 Hipótesis inicial. These nodes do not yet develop the topic in depth, but they do establish its identity, its genealogy, and its initial direction. The first acts as a pedagogical and structural orchestrator; the second records where the topic originates from, what triggered it, and what its initial inputs were; and the third preserves the foundational conjectures that guide the beginning of work. Thanks to this layer, the topic does not appear as a neutral object, but as something that already possesses context of emergence and initial lines of orientation.
 
 Once the topic is activated, the reusable mother nuclei of the system come into play. These blocks already come with the template and are not rewritten during startup or ordinary sessions. Their function is to offer a permanent infrastructure for use, traceability, and methodological stability. Among them are found development and evolution, topic details, glossary and conventions, hypotheses, session protocol, specific elements, and epistemological provenance. Added to them is the transversal normative layer, composed of reusable principles that act as stable references for quality, design, structure, and work governance. Within this family, Principios de Gestion fulfills the function of mother node for the other principles, articulating the general normative framework of the system.
 
@@ -1089,11 +1089,11 @@ Consequently, the documentary tiddlers in markdown should not be understood as a
 Once a new topic is opened, the first editable layer of the system begins. At this point, the template is not redone nor are the mother blocks that already form part of the base architecture modified, but rather the structuring of the specific topic begins from a minimum set of startup nodes. This layer fulfills the function of converting a still diffuse intention into a first operable configuration, capable of giving identity, context, and initial direction to subsequent work.
 
 **Editable startup nodes**
-- "# 1_Nombre del Tema"
+- "# 1_Tema_raiz"
 - "# 2_🧾 Procedencia inicial"
 - "# 3_🧪 Hipótesis inicial"
 
-These nodes fulfill distinct and complementary functions. # 1_Nombre del Tema acts as a pedagogical and structural orchestrator: it helps to land the topic, clarify the starting point, and push the content toward the correct structure of the system. # 2_🧾 Procedencia inicial records where the topic originates from, what triggered it, and what its initial inputs were, providing an explicit genealogy of the startup. For its part, # 3_🧪 Hipótesis inicial preserves the foundational conjectures or early intuitions that guide the beginning of work and allow formulating a first direction of exploration.
+These nodes fulfill distinct and complementary functions. # 1_Tema_raiz acts as a pedagogical and structural orchestrator: it helps to land the topic, clarify the starting point, and push the content toward the correct structure of the system. # 2_🧾 Procedencia inicial records where the topic originates from, what triggered it, and what its initial inputs were, providing an explicit genealogy of the startup. For its part, # 3_🧪 Hipótesis inicial preserves the foundational conjectures or early intuitions that guide the beginning of work and allow formulating a first direction of exploration.
 
 This layer does not yet develop the topic in depth, but it does establish three decisive conditions for its subsequent development: its identity, its provenance, and its initial orientation. Thanks to this, the topic does not appear as an isolated or neutral object, but as a work unit that already has context of emergence, a first structural formulation, and a minimum base to begin deploying within the system.
 
@@ -1147,7 +1147,7 @@ Once the topic's startup has been sufficiently clarified, the editable thematic 
 - "### 🎯 7. Algoritmos y matematicas 🌀"
 - "### 🎯 8. Ingeniería asistida por IA 🌀"
 
-These eight tiddlers constitute the minimum body of thematic development. Their drafting is done with AI assistance, but already within the system's architecture and not as a diffuse or unanchored conversation. In other words, the AI does not produce content in a vacuum here, but rather helps formalize the topic from the work already done in # 1_Nombre del Tema, # 2_🧾 Procedencia inicial, and # 3_🧪 Hipótesis inicial, additionally building upon the reusable mother nuclei and the transversal normative layer that have already established usage rules, quality criteria, and methodological guidelines.
+These eight tiddlers constitute the minimum body of thematic development. Their drafting is done with AI assistance, but already within the system's architecture and not as a diffuse or unanchored conversation. In other words, the AI does not produce content in a vacuum here, but rather helps formalize the topic from the work already done in # 1_Tema_raiz, # 2_🧾 Procedencia inicial, and # 3_🧪 Hipótesis inicial, additionally building upon the reusable mother nuclei and the transversal normative layer that have already established usage rules, quality criteria, and methodological guidelines.
 
 The first four tiddlers primarily establish the topic's scope, as they allow declaring its purpose, its conditions, its main tensions, and its general work sequence. The last four, additionally marked by 🌀, represent zones most prone to refinement during the actual development of the topic, especially when it involves design, modeling, implementation, or continuous use of AI. This difference does not imply a rigid separation between static and dynamic blocks, but rather a functional distinction between those that stabilize the initial scope and those that tend to mature as the work progresses.
 

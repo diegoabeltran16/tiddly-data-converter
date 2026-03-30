@@ -151,7 +151,7 @@ Un tiddler de sesión puede compartir tags de dominio, eje o canal con un núcle
 ##### Tabla de roles especiales de sistema
 | Rol              | Significado                                                             | Ejemplo de tiddler               | Restricción                                                       |
 | ---------------- | ----------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------- |
-| `orquestador`    | Nodo que coordina, aterriza y redirige el trabajo de un tema            | `# 1_Nombre del Tema`            | Reservado para nodos de infraestructura; no usar en nodos comunes |
+| `orquestador`    | Nodo que coordina, aterriza y redirige el trabajo de un tema            | `# 1_Tema_raiz`                  | Reservado para nodos de infraestructura; no usar en nodos comunes |
 
 ##### Tabla de contenidos permitidos para tags
 | Tipo de tag permitido                 | Significado                                                                                | Cuándo usarlo                                                               | Por qué es importante                                                |
@@ -1011,7 +1011,7 @@ En consecuencia, las relaciones entre contenido especializado y contexto constit
 - "-- 🧭🧱 Protocolo de Sesión.md"
 - "-- 🧰🧱 Elementos específicos.md"
 - "-- 🧾🧱 Procedencia epistemológica.md"
-- "# 1_Nombre del Tema"
+- "# 1_Tema_raiz"
 - "# 2_🧾 Procedencia inicial"
 - "# 3_🧪 Hipótesis inicial"
 - "## 🌀🧱 Desarrollo y Evolución"
@@ -1052,7 +1052,7 @@ Los tiddlers mínimos operativos definen el conjunto base de nodos necesarios pa
 
 En la parte más externa de esta organización se sitúa la capa documental humana de referencia. Allí se ubican los tiddlers en markdown que ya vienen con la plantilla y cuya función es servir como apoyo de lectura, orientación y comprensión general del sistema. Estos documentos no se editan tema por tema, ya que actúan como referencia estable para entender la finalidad de cada bloque y la forma correcta de usarlo. La única excepción es _Nombre_del_tema.md, que sí se ajusta al tema concreto porque acompaña el aterrizaje del nodo orquestador específico. De este modo, la arquitectura conserva una capa pedagógica de entrada sin convertirla en una segunda fuente de verdad.
 
-A continuación aparece la capa de arranque del tema, que constituye la primera zona editable del sistema. Aquí se trabaja sobre # 1_Nombre del Tema, # 2_🧾 Procedencia inicial y # 3_🧪 Hipótesis inicial. Estos nodos no desarrollan todavía el tema en profundidad, pero sí fijan su identidad, su genealogía y su dirección inicial. El primero actúa como orquestador pedagógico y estructural; el segundo registra de dónde nace el tema, qué lo detonó y cuáles fueron sus insumos iniciales; y el tercero conserva las conjeturas fundacionales que orientan el inicio del trabajo. Gracias a esta capa, el tema no aparece como un objeto neutro, sino como algo que ya posee contexto de surgimiento y primeras líneas de orientación.
+A continuación aparece la capa de arranque del tema, que constituye la primera zona editable del sistema. Aquí se trabaja sobre # 1_Tema_raiz, # 2_🧾 Procedencia inicial y # 3_🧪 Hipótesis inicial. Estos nodos no desarrollan todavía el tema en profundidad, pero sí fijan su identidad, su genealogía y su dirección inicial. El primero actúa como orquestador pedagógico y estructural; el segundo registra de dónde nace el tema, qué lo detonó y cuáles fueron sus insumos iniciales; y el tercero conserva las conjeturas fundacionales que orientan el inicio del trabajo. Gracias a esta capa, el tema no aparece como un objeto neutro, sino como algo que ya posee contexto de surgimiento y primeras líneas de orientación.
 
 Una vez activado el tema, entran en juego los núcleos madre reutilizables del sistema. Estos bloques ya vienen con la plantilla y no se reescriben en el arranque ni en las sesiones ordinarias. Su función es ofrecer una infraestructura permanente de uso, trazabilidad y estabilidad metodológica. Aquí se encuentran, entre otros, desarrollo y evolución, detalles del tema, glosario y convenciones, hipótesis, protocolo de sesión, elementos específicos y procedencia epistemológica. A ellos se suma la capa normativa transversal, compuesta por principios reutilizables que actúan como referencias estables de calidad, diseño, estructura y gobernanza del trabajo. Dentro de esta familia, Principios de Gestion cumple la función de nodo madre de los demás principios, articulando el marco normativo general del sistema.
 
@@ -1089,11 +1089,11 @@ En consecuencia, los tiddlers documentales en markdown no deben entenderse como 
 Una vez abierto un tema nuevo, comienza la primera capa editable del sistema. En este punto no se rehace la plantilla ni se modifican los bloques madre que ya forman parte de la arquitectura base, sino que se inicia la estructuración del tema concreto a partir de un conjunto mínimo de nodos de arranque. Esta capa cumple la función de convertir una intención todavía difusa en una primera configuración operable, capaz de dar identidad, contexto y dirección inicial al trabajo posterior.
 
 **Nodos de arranque editables**
-- "# 1_Nombre del Tema"
+- "# 1_Tema_raiz"
 - "# 2_🧾 Procedencia inicial"
 - "# 3_🧪 Hipótesis inicial"
 
-Estos nodos cumplen funciones distintas y complementarias. # 1_Nombre del Tema actúa como orquestador pedagógico y estructural: ayuda a aterrizar el tema, aclarar el punto de partida y empujar el contenido hacia la estructura correcta del sistema. # 2_🧾 Procedencia inicial registra de dónde nace el tema, qué lo detonó y cuáles fueron sus insumos iniciales, proporcionando una genealogía explícita del arranque. Por su parte, # 3_🧪 Hipótesis inicial conserva las conjeturas fundacionales o intuiciones tempranas que orientan el inicio del trabajo y permiten formular una primera dirección de exploración.
+Estos nodos cumplen funciones distintas y complementarias. # 1_Tema_raiz actúa como orquestador pedagógico y estructural: ayuda a aterrizar el tema, aclarar el punto de partida y empujar el contenido hacia la estructura correcta del sistema. # 2_🧾 Procedencia inicial registra de dónde nace el tema, qué lo detonó y cuáles fueron sus insumos iniciales, proporcionando una genealogía explícita del arranque. Por su parte, # 3_🧪 Hipótesis inicial conserva las conjeturas fundacionales o intuiciones tempranas que orientan el inicio del trabajo y permiten formular una primera dirección de exploración.
 
 Esta capa no desarrolla todavía el tema en profundidad, pero sí fija tres condiciones decisivas para su desarrollo posterior: su identidad, su procedencia y su orientación inicial. Gracias a ello, el tema no aparece como un objeto aislado o neutro, sino como una unidad de trabajo que ya cuenta con contexto de surgimiento, una primera formulación estructural y una base mínima para comenzar a desplegarse dentro del sistema.
 
@@ -1147,7 +1147,7 @@ Una vez que el arranque del tema ha sido suficientemente aclarado, comienza la c
 - "### 🎯 7. Algoritmos y matematicas 🌀"
 - "### 🎯 8. Ingeniería asistida por IA 🌀"
 
-Estos ocho tiddlers constituyen el cuerpo mínimo del desarrollo temático. Su redacción se realiza con asistencia de la IA, pero ya dentro de la arquitectura del sistema y no como una conversación difusa o desanclada. En otras palabras, la IA no produce aquí contenido en vacío, sino que ayuda a formalizar el tema a partir del trabajo ya realizado en # 1_Nombre del Tema, # 2_🧾 Procedencia inicial y # 3_🧪 Hipótesis inicial, apoyándose además en los núcleos madre reutilizables y en la capa normativa transversal que ya han fijado reglas de uso, criterios de calidad y directrices metodológicas.
+Estos ocho tiddlers constituyen el cuerpo mínimo del desarrollo temático. Su redacción se realiza con asistencia de la IA, pero ya dentro de la arquitectura del sistema y no como una conversación difusa o desanclada. En otras palabras, la IA no produce aquí contenido en vacío, sino que ayuda a formalizar el tema a partir del trabajo ya realizado en # 1_Tema_raiz, # 2_🧾 Procedencia inicial y # 3_🧪 Hipótesis inicial, apoyándose además en los núcleos madre reutilizables y en la capa normativa transversal que ya han fijado reglas de uso, criterios de calidad y directrices metodológicas.
 
 Los cuatro primeros tiddlers fijan principalmente el alcance del tema, ya que permiten declarar su propósito, sus condiciones, sus tensiones principales y su secuencia general de trabajo. Los cuatro últimos, marcados además por 🌀, representan las zonas más propensas a refinamiento durante el desarrollo real del tema, especialmente cuando este involucra diseño, modelado, implementación o uso continuo de IA. Esta diferencia no implica una separación rígida entre bloques estáticos y dinámicos, sino una distinción funcional entre aquellos que estabilizan el scope inicial y aquellos que suelen madurar a medida que el trabajo avanza.
 
