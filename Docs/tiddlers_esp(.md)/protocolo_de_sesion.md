@@ -62,6 +62,7 @@ No debe confundirse con:
 - `## 🧾🧱 Procedencia epistemológica`, porque parte del trabajo de sesión consiste en hacer explícito el origen local de ideas, recursos o interpretaciones;
 - `## 🧰🧱 Elementos específicos`, porque las sesiones pueden incorporar materiales concretos que todavía no son plenamente operables;
 - `## 📚🧱 Glosario y Convenciones`, porque el trabajo de sesión puede exigir estabilizar términos, definiciones o usos.
+- `## 🧠🧱 Política de Memoria Activa`, porque una sesión puede declarar preferencias de memoria y necesita una regla externa que defina cómo esas preferencias se interpretan y aplican entre sesiones;
 
 Gracias a esta articulación, el protocolo no queda reducido a una rutina aislada, sino que funciona como una bisagra entre el trabajo situado y la arquitectura general del tema.
 
@@ -86,9 +87,77 @@ Un mismo tema puede requerir ambos modos en momentos distintos. Por esta razón,
 
 ## Uso
 Usa este tiddler como referencia permanente para:
-- Orientar la apertura de nuevas sesiones.
-- Decidir qué debe registrarse como producción situada.
-- Distinguir entre conversación útil y producción integrable al sistema.
-- Ayudar a que la IA y el humano trabajen con un marco común al momento de convertir una interacción en tiddlers concretos.
+- abrir una sesión con marco local, propósito, modo y producción esperable;
+- registrar durante la sesión qué se produjo, qué quedó abierto y qué relaciones relevantes aparecieron;
+- cerrar la sesión de forma que lo trabajado pueda pasar al convertidor sin perder contexto humano.
 
 El protocolo de sesión no sustituye la evolución del tema, pero hace posible que esa evolución pueda registrarse con orden y continuidad.
+
+## Organización mínima de una sesión
+
+Esta sección consolida las condiciones mínimas para abrir, conducir y cerrar una sesión de modo que lo producido siga siendo inteligible para el humano y formalizable por el convertidor. Su función es regular la sesión como evento situado, no definir la política de memoria ni especificar el motor técnico.
+
+Las políticas de continuidad, retención e interpretación de memoria pertenecen a `## 🧠🧱 Política de Memoria Activa`. El convertidor, por su parte, resuelve la formalización computable necesaria para llevar lo trabajado al Canon.
+
+Checklist de metadatos de sesión (campos mínimos recomendados)
+- `session_title`: Título corto y legible de la sesión.
+- `session_id` / `session_tag`: identificador humano-canónico de la sesión (ej. `session:2026-04-01-s07`).
+- `session_date`: fecha/hora de apertura (ISO8601).
+- `local_frame`: ámbito temático trabajado en la sesión.
+- `purpose`: propósito local (qué se busca lograr).
+- `mode`: `teorico` | `desarrollo_pragmatico`.
+- `expected_output`: tipo de producto esperado (ej. `tiddler:hipotesis`, `tiddler:procedimiento`, `report`).
+- `produced_nodes` (lista): títulos provisionales o `provisional_id` de los tiddlers creados durante la sesión (se completará con UUIDs tras la conversión).
+- `notes_summary`: resumen breve de decisiones y pendientes.
+
+Preferencias de memoria declarables desde la sesión
+- `memory_policy`: preferencia opcional de retención o prioridad.
+- `memory_ttl`: preferencia opcional de duración o vigencia.
+- `memory_tags`: etiquetas opcionales para recuperación o indexación.
+
+Estas preferencias pueden declararse en la sesión o en los nodos producidos por ella, pero su significado conceptual, su interpretación operativa y su eventual aplicación están gobernados por `## 🧠🧱 Política de Memoria Activa`.
+
+Reglas mínimas de autoría y formalización
+- El humano declara `session_*`, `local_frame`, `purpose`, `mode`, `expected_output`, `produced_nodes`, y el contenido de los tiddlers trabajados.
+- Durante la sesión deben quedar registradas, cuando existan, confirmaciones, contradicciones, refinamientos y nodos producidos.
+- La sesión puede declarar preferencias de memoria, pero no define su semántica ni su aplicación operativa.
+- La autoridad semántica es humana; la IA sugiere y ayuda a estructurar, pero no decide por sí sola las relaciones finales.
+- La generación de IDs, historiales, validaciones automáticas, resolución de referencias y demás operaciones de canonización pertenecen al convertidor y deben documentarse allí.
+
+Plantilla recomendada para tiddler de sesión (usar como base en TiddlyWiki)
+```yaml
+title: "🌀 Sesión — Título breve"
+tags: ["session:2026-04-01-s07", "session", "topic:mi-tema"]
+session_id: "session:2026-04-01-s07"
+session_date: "2026-04-01T10:00:00Z"
+local_frame: "Ámbito específico sobre X"
+purpose: "Reformular hipótesis Y y decidir next-steps"
+mode: "desarrollo_pragmatico"
+expected_output: ["tiddler:hipotesis", "tiddler:procedimiento"]
+produced_nodes: []
+notes_summary: "Puntos clave y decisiones tomadas"
+memory_policy: "active"
+memory_ttl: "P30D"
+memory_tags: ["project-x", "hypothesis"]
+---
+# Notas de la sesión
+
+- Registro de acciones, decisiones y resultados.
+- Para cada tiddler creado, añadir tag `session:2026-04-01-s07` y, si procede, `provisional_id: <slug>`.
+```
+
+Los tres campos de memoria de esta plantilla son opcionales. Se incluyen como preferencias declarables desde la sesión; su definición y tratamiento pertenecen a `## 🧠🧱 Política de Memoria Activa`.
+
+Flujo operativo humano recomendado
+1. Apertura: crear tiddler de sesión con la plantilla; fijar `local_frame`, `purpose`, `mode` y `expected_output`.
+2. Trabajo: para cada tiddler nuevo o modificado indicar `tags` incluyendo `session:...`, registrar confirmaciones, contradicciones o refinamientos cuando aparezcan, y completar `epistemic_state` y `metacognition` si procede.
+3. Pre-conversión: revisar lo producido, verificar que el registro de sesión sea inteligible y que las referencias humanas estén suficientemente claras para pasar al convertidor.
+4. Conversión: ejecutar `tiddly-data-converter`, que se encargará de la validación técnica, la resolución canónica y la emisión de informes.
+5. Cierre: actualizar el tiddler de sesión con los nodos producidos, pendientes abiertos y, si corresponde, con las referencias canónicas devueltas por el proceso de conversión.
+
+Frontera entre protocolo, política y convertidor
+- `## 🧭🧱 Protocolo de Sesión` regula cómo una sesión entra, trabaja y sale del sistema.
+- `## 🧠🧱 Política de Memoria Activa` regula qué de lo producido debe seguir vivo entre sesiones y cómo se interpreta esa continuidad.
+- `tiddly-data-converter` materializa la parte computable de esa continuidad: canoniza, valida, registra y reporta.
+
+Este tiddler debe mantenerse en ese nivel. Si en el futuro aparecen más detalles sobre retención, priorización, scoring, informes automáticos o sincronización técnica, deben desplazarse a `## 🧠🧱 Política de Memoria Activa` o a la documentación del convertidor, no crecer aquí.
