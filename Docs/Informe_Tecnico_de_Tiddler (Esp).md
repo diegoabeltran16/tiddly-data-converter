@@ -695,17 +695,17 @@ La importancia de esta precisión radica en que el sistema no solo organiza cono
 
 En términos generales, los tipos de datos válidos del esquema son los siguientes:
 
-id: string
-title: string
-rol_principal: enum
-roles_secundarios: array
-tags: array
-relations: array
-content.plain: string
-content.markdown: string
-meta: object
-provenance: array
-metacognition: object
+- id: string
+- title: string
+- rol_principal: enum
+- roles_secundarios: array
+- tags: array
+- relations: array
+- content.plain: string
+- content.markdown: string
+- meta: object
+- provenance: array
+- metacognition: object
 
 Esta especificación establece la base sintáctica mínima del sistema y permite que cada nodo conserve no solo coherencia semántica, sino también validez estructural dentro del proceso de edición, conversión y reutilización posterior
 
@@ -1060,6 +1060,7 @@ En consecuencia, las relaciones entre contenido especializado y contexto constit
 - "-- 🧭🧱 Protocolo de Sesión.md"
 - "-- 🧰🧱 Elementos específicos.md"
 - "-- 🧾🧱 Procedencia epistemológica.md"
+- "-- 🧠🧱 Política de Memoria Activa.md"
 - "# 1_Tema_raiz"
 - "# 2_🧾 Procedencia inicial"
 - "# 3_🧪 Hipótesis inicial"
