@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "1.2",
+  "title": "🗂 Estructura de commits y PR",
+  "textPlain": "Convención operativa para redactar commits y pull requests en tiddly-data-converter. Distingue entre commit como operación atómica nominal y PR como síntesis integradora del cambio. Integra metadatos compactos, tabla legible en Markdown y payload estructurado para trazabilidad humana y análisis por IA. Declara explícitamente el contexto arquitectónico del proyecto, la diferencia entre cajas arquitectónicas y tarjetas operativas del tablero, y el contrato de salida que cualquier IA debe seguir al proponer nombre de commit, nombre de PR y descripción de PR en Markdown.",
+  "textMarkdown": "## 🗂 Estructura de commits y PR\n\n### 1. Distinción básica\n\nUn **commit** y un **pull request** no cumplen la misma función.\n\n- El **commit** registra una operación puntual, atómica y trazable.\n- El **PR** resume una integración más amplia, compuesta por uno o varios commits.\n\nPor eso, ambos pueden compartir el mismo tono semántico, pero **no deben forzarse a cumplir exactamente el mismo papel descriptivo**.\n\n---\n\n### 2. Contexto arquitectónico del proyecto\n\nEste archivo no enumera todas las tarjetas operativas del tablero de GitHub Projects.\n\nLo que sí declara es el **marco estructural estable** desde el cual deben leerse los cambios del proyecto.\n\nLas siguientes cajas representan la organización arquitectónica general del desarrollo:\n\n- Interfaz local\n- Orquestación segura\n- Extracción e Inspección\n- Canon y Reversibilidad\n- Estado, Reportes y Consumidores del Canon\n\nEstas cajas **no equivalen** automáticamente a tarjetas individuales del tablero.\n\n- Una **caja** expresa una zona arquitectónica o responsabilidad macro.\n- Una **tarjeta** expresa una unidad operativa concreta de ejecución, prueba, documentación o cierre.\n\nPor lo tanto, cualquier IA debe entender que este JSON describe la **estructura de lectura y clasificación del cambio**, no un inventario exhaustivo de todas las tareas activas del Kanban.\n\n---\n\n### 3. Regla para commits\n\nLa forma preferida para commits queda así:\n\n```text\ntipo(alcance): operación normalizada + complemento específico\n```\n\nEjemplo:\n\n```text\ndocs(report-en): incorporación de informe técnico del sistema\n```\n\n#### Criterios\n\nLa operación normalizada debe:\n\n- sonar natural en español,\n- describir una acción reconocible,\n- evitar brusquedad innecesaria,\n- evitar palabras vacías,\n- mantener consistencia histórica en el repositorio.\n\n#### Meta compacta opcional para commit\n\n```text\nMeta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}\nArch: Cx:{Caja}|Lg:{Lenguajes}|Mdls:{Modulos}\n```\n\n---\n\n### 4. Regla para PR\n\nLa forma preferida para títulos de PR queda así:\n\n```text\nbloque(alcance): síntesis integradora + resultado principal\n```\n\nEjemplo:\n\n```text\ndocs(commits): consolidación de convención semántica para commits y PR\n```\n\n#### Criterios\n\nEl título del PR debe:\n\n- resumir el cambio integrado, no cada microacción,\n- conservar el tono nominal y semánticamente estable,\n- expresar el resultado principal del conjunto,\n- leerse bien en historial, tablero y revisión.\n\n---\n\n### 5. Taxonomía base de operaciones normalizadas\n\n#### A. Incorporación\n\n- incorporación\n- integración\n- inclusión\n\n#### B. Modificación\n\n- actualización\n- ajuste\n- refinamiento\n- mejora\n\n#### C. Corrección\n\n- corrección\n- reparación\n- normalización\n\n#### D. Reorganización\n\n- reorganización\n- reestructuración\n- consolidación\n- separación\n\n#### E. Retiro o limpieza\n\n- eliminación\n- depuración\n- retiro\n\n---\n\n### 6. Palabras a evitar o restringir\n\nEvitar como títulos aislados:\n\n- cambios\n- varios\n- ajustes varios\n- modificación\n- actualización\n- corrección\n\nEstas solo deben usarse con complemento específico.\n\n---\n\n### 7. Recomendación sobre alcance\n\nConviene evitar scopes demasiado genéricos como `docs(docs)`.\n\nScopes más útiles:\n\n- template\n- report\n- report-en\n- references\n- canonical\n- encoding\n- markdown\n- commits\n- schema\n- export\n- reverse\n- bridge\n- ui\n- tests\n- contracts\n- e2e\n\n---\n\n### 8. Meta compacta\n\nFormato sugerido:\n\n```text\nMeta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}\n```\n\nFormato arquitectónico sugerido:\n\n```text\nArch: Cx:{Caja}|Lg:{Lenguajes}|Mdls:{Modulos}\n```\n\n---\n\n### 9. Plantilla oficial de PR en GitHub\n\nLa descripción del PR debe contener tres capas simultáneas:\n\n1. **Línea compacta** para copia rápida y análisis\n2. **Tabla legible** para revisión humana clara\n3. **Payload estructurado** para clasificación por IA y trazabilidad estable\n\n---\n\n### 10. Instrucción operativa para IA\n\nCualquier IA que lea este archivo debe ser capaz de hacer lo siguiente:\n\n1. **proponer un nombre de commit** conforme a la plantilla de commit;\n2. **proponer un nombre de PR** conforme a la plantilla de PR;\n3. **redactar la descripción completa del PR en Markdown** conforme a la plantilla oficial;\n4. **clasificar el cambio** según bloque, caja arquitectónica, lenguajes, prioridad, tamaño y estimate;\n5. **no inventar cajas nuevas** si el cambio puede mapearse razonablemente a una ya existente;\n6. **no asumir que las cajas son tarjetas** ni que el JSON enumera todas las tareas del Kanban;\n7. **usar el payload estructurado** para dejar el cambio interpretable por humanos y por sistemas.\n\nSi la información del cambio entregada por el usuario es parcial, la IA debe:\n\n- inferir con prudencia,\n- evitar exagerar alcance,\n- preferir nombres sobrios y específicos,\n- y dejar las decisiones dudosas en estado claro dentro de la descripción del PR.\n\n---\n\n### 11. Definición refinada\n\n> Una operación normalizada es un nombre de operación seleccionado por claridad semántica, naturalidad en español y consistencia histórica del repositorio.\n\n> Un título de PR no replica commits individuales: sintetiza el resultado integrado del cambio.\n\n> La línea `Meta:` sirve como lectura compacta y portable; la tabla del PR sirve como lectura humana estable; el payload estructurado sirve como contrato para IA, filtros y automatización.\n",
+  "principle": {
+    "commit": "operacion_atomica",
+    "pullRequest": "sintesis_integradora"
+  },
+  "architectureContext": {
+    "purpose": "Proveer el marco estable para clasificar cambios del proyecto sin confundir cajas arquitectónicas con tarjetas operativas del tablero.",
+    "boxes": [
+      "Interfaz local",
+      "Orquestación segura",
+      "Extracción e Inspección",
+      "Canon y Reversibilidad",
+      "Estado, Reportes y Consumidores del Canon"
+    ],
+    "languages": [
+      "RUST",
+      "GO",
+      "PYTHON"
+    ],
+    "notes": [
+      "Las cajas representan zonas arquitectónicas del desarrollo.",
+      "Las tarjetas del tablero representan unidades operativas concretas.",
+      "Este archivo no pretende listar todas las tarjetas del Kanban.",
+      "La IA debe usar las cajas para clasificar el cambio, no para asumir inventario de tareas."
+    ]
+  },
+  "commitTemplate": "tipo(alcance): operación normalizada + complemento específico",
+  "prTitleTemplate": "bloque(alcance): síntesis integradora + resultado principal",
+  "metaTemplate": "Meta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}",
+  "archTemplate": "Arch: Cx:{Caja}|Lg:{Lenguajes}|Mdls:{Modulos}",
+  "controlledVocabularies": {
+    "estado": ["borrador", "listo", "bloqueado"],
+    "madurez": ["experimental", "estable", "consolidado"],
+    "bloque": ["docs", "feat", "fix", "refactor", "chore", "test"],
+    "priority": ["P0", "P1", "P2", "none"],
+    "size": ["XS", "S", "M", "L", "XL"],
+    "estimate": [1, 2, 3, 5, 8],
+    "caja": [
+      "Interfaz local",
+      "Orquestación segura",
+      "Extracción e Inspección",
+      "Canon y Reversibilidad",
+      "Estado, Reportes y Consumidores del Canon"
+    ],
+    "lenguajes": ["RUST", "GO", "PYTHON"],
+    "operaciones": [
+      "incorporación",
+      "integración",
+      "inclusión",
+      "actualización",
+      "ajuste",
+      "refinamiento",
+      "mejora",
+      "corrección",
+      "reparación",
+      "normalización",
+      "reorganización",
+      "reestructuración",
+      "consolidación",
+      "separación",
+      "eliminación",
+      "depuración",
+      "retiro"
+    ]
+  },
+  "metaFields": {
+    "Estado": "borrador | listo | bloqueado",
+    "Vuelta": "número de iteración helicoidal",
+    "Radio": "amplitud del cambio: 1 puntual … 5 amplio",
+    "Madurez": "experimental | estable | consolidado",
+    "Bloque": "docs | feat | fix | refactor | chore | test",
+    "Priority": "P0 | P1 | P2 | none",
+    "Size": "XS | S | M | L | XL",
+    "Estimate": "1 | 2 | 3 | 5 | 8",
+    "Delta-r": "0 | +N | -N",
+    "Delta-c": "variación neta de contenido"
+  },
+  "prTemplate": "# PR: bloque(alcance): síntesis integradora + resultado principal\n\nMeta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}\nArch: Cx:{Caja}|Lg:{Lenguajes}|Mdls:{Modulos}\n\n---\n\n## Metadatos\n\n| Campo      | Valor |\n|------------|-------|\n| Estado     | {Estado} |\n| Vuelta     | {Vuelta} |\n| Radio      | {Radio} |\n| Madurez    | {Madurez} |\n| Bloque     | {Bloque} |\n| Priority   | {Priority} |\n| Size       | {Size} |\n| Estimate   | {Estimate} |\n| Delta-r    | {Delta-r} |\n| Delta-c    | {Delta-c} |\n\n## Arquitectura\n\n| Campo      | Valor |\n|------------|-------|\n| Caja       | {Caja} |\n| Lenguajes  | {Lenguajes} |\n| Módulos    | {Modulos} |\n\n---\n\n## Objetivo\n\n[Una o dos frases que expliquen qué problema resuelve este PR o qué capacidad integra.]\n\n---\n\n## Resultado integrado\n\n[Resumen breve del efecto global del PR sobre el sistema, documento, flujo o módulo.]\n\n---\n\n## Acciones realizadas\n\n- [Componente o archivo principal]: [acción breve]\n  - [Detalle 1]\n  - [Detalle 2]\n- [Otro archivo o componente]: [acción breve]\n  - [Detalle 1]\n\n---\n\n## Archivos modificados / añadidos\n\n- `ruta/al/archivo.ext` — [actualizado | añadido | eliminado]\n- `ruta/al/otro.ext` — [acción]\n\n---\n\n## Comprobaciones sugeridas\n\n- [Paso de verificación 1]\n- [Paso de verificación 2]\n- [Paso de verificación 3]\n\n---\n\n## Notas para el revisor\n\n- [Observación relevante sobre alcance, límites o decisiones de diseño.]\n- [Ajuste posterior recomendado, si aplica.]\n\n---\n\n## Payload estructurado\n\n```json\n{\n  \"artifactType\": \"pr\",\n  \"titleHuman\": \"bloque(alcance): síntesis integradora + resultado principal\",\n  \"classification\": {\n    \"tipo\": \"{tipo}\",\n    \"alcance\": \"{alcance}\",\n    \"operacion\": \"{operacion}\",\n    \"bloque\": \"{Bloque}\",\n    \"estado\": \"{Estado}\",\n    \"madurez\": \"{Madurez}\",\n    \"priority\": \"{Priority}\",\n    \"size\": \"{Size}\",\n    \"estimate\": {Estimate}\n  },\n  \"architecture\": {\n    \"caja\": \"{Caja}\",\n    \"modulos\": [\"{Modulo1}\", \"{Modulo2}\"],\n    \"lenguajes\": [\"{Lenguaje1}\", \"{Lenguaje2}\"]\n  },\n  \"change\": {\n    \"objetivo\": \"[objetivo breve]\",\n    \"resultadoIntegrado\": \"[resultado principal]\",\n    \"archivosPrincipales\": [\"ruta/al/archivo.ext\"],\n    \"breakingChange\": false,\n    \"riesgo\": \"bajo\",\n    \"checks\": [\n      \"[check 1]\",\n      \"[check 2]\"\n    ]\n  },\n  \"traceability\": {\n    \"relatedIssues\": [\"#123\"],\n    \"milestone\": \"{Milestone}\",\n    \"assignee\": \"{Assignee}\"\n  },\n  \"metrics\": {\n    \"vuelta\": {Vuelta},\n    \"radio\": {Radio},\n    \"deltaRadio\": \"{Delta-r}\",\n    \"deltaContenido\": \"{Delta-c}\"\n  }\n}\n```\n",
+  "prPayloadSchema": {
+    "artifactType": "pr",
+    "titleHuman": "string",
+    "classification": {
+      "tipo": "string",
+      "alcance": "string",
+      "operacion": "string",
+      "bloque": "docs | feat | fix | refactor | chore | test",
+      "estado": "borrador | listo | bloqueado",
+      "madurez": "experimental | estable | consolidado",
+      "priority": "P0 | P1 | P2 | none",
+      "size": "XS | S | M | L | XL",
+      "estimate": "1 | 2 | 3 | 5 | 8"
+    },
+    "architecture": {
+      "caja": "Interfaz local | Orquestación segura | Extracción e Inspección | Canon y Reversibilidad | Estado, Reportes y Consumidores del Canon",
+      "modulos": ["string"],
+      "lenguajes": ["RUST | GO | PYTHON"]
+    },
+    "change": {
+      "objetivo": "string",
+      "resultadoIntegrado": "string",
+      "archivosPrincipales": ["string"],
+      "breakingChange": "boolean",
+      "riesgo": "bajo | medio | alto",
+      "checks": ["string"]
+    },
+    "traceability": {
+      "relatedIssues": ["string"],
+      "milestone": "string | null",
+      "assignee": "string | null"
+    },
+    "metrics": {
+      "vuelta": "number",
+      "radio": "number",
+      "deltaRadio": "string",
+      "deltaContenido": "string"
+    }
+  },
+  "aiInstructionContract": {
+    "goal": "Cualquier IA que lea este JSON debe poder proponer nombre de commit, nombre de PR y descripción de PR en Markdown acorde a la plantilla oficial.",
+    "requiredOutputs": [
+      "commitName",
+      "prTitle",
+      "prDescriptionMarkdown"
+    ],
+    "requiredReasoningDimensions": [
+      "tipo de cambio",
+      "alcance",
+      "operación normalizada",
+      "bloque",
+      "caja arquitectónica",
+      "módulos afectados",
+      "lenguajes implicados",
+      "priority",
+      "size",
+      "estimate"
+    ],
+    "rules": [
+      "No inventar tarjetas del tablero si no fueron proporcionadas por el usuario.",
+      "No confundir caja arquitectónica con item operativo del Kanban.",
+      "Usar una caja existente si el cambio puede mapearse razonablemente a ella.",
+      "Si el cambio toca varios módulos, listarlos en Arch y en el payload estructurado.",
+      "Si el cambio es ambiguo, preferir un nombre sobrio y específico antes que uno grandilocuente.",
+      "La descripción del PR debe seguir exactamente la plantilla Markdown oficial declarada en prTemplate.",
+      "El payload estructurado del PR debe ser coherente con la línea Meta:, la línea Arch: y la tabla del cuerpo del PR.",
+      "Priority expresa urgencia, Size expresa tamaño, y Estimate expresa esfuerzo relativo; no deben colapsarse en un solo significado."
+    ]
+  },
+  "usageRules": [
+    "El commit conserva tono atómico y no debe cargar toda la semántica integradora del PR.",
+    "El PR en GitHub es el artefacto integrador principal y debe usar Markdown como superficie humana de revisión.",
+    "La línea Meta: se usa para copia rápida, filtros, visualizadores y análisis asistido.",
+    "La tabla del PR se usa para claridad humana y revisión estable dentro de GitHub.",
+    "El payload estructurado se usa para clasificación por IA, trazabilidad y extracción automática de detalles.",
+    "Priority, Size y Estimate deben significar cosas distintas: urgencia, tamaño y esfuerzo relativo.",
+    "La Caja arquitectónica debe corresponder al mapa actual del backlog y no inventar categorías nuevas sin gobernanza.",
+    "Los campos controlados deben mantenerse estables para no romper lectura histórica ni análisis automatizado."
+  ]
+}
