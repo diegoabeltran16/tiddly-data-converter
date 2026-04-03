@@ -1,0 +1,8 @@
+├── .github
+├── .gitignore
+├── Docs
+│   ├── Informe_Tecnico_de_Tiddler (Esp).md
+│   ├── Technical_Report_Tiddler_Sys_(Eng).md
+│   └── tiddly-data-converter (Saved).html
+├── estructura.txt
+└── LICENSE
