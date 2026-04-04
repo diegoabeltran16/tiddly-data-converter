@@ -1,9 +1,9 @@
 {
   "contractName": "estructura_de_commits_tiddly-data-converter",
-  "contractVersion": "2.0.0",
+  "contractVersion": "2.1.0",
   "language": "es",
   "repository": "tiddly-data-converter",
-  "purpose": "Gobernar la generacion consistente de commits y pull requests con metadatos operativos, clasificacion arquitectonica y salida completa lista para GitHub.",
+  "purpose": "Gobernar la generacion consistente de commits y pull requests con metadatos operativos, clasificacion de tablero, clasificacion arquitectonica y salida completa lista para GitHub.",
   "sourceOfTruth": {
     "commitConvention": true,
     "prConvention": true,
@@ -22,6 +22,9 @@
     "Si no hay impacto arquitectonico real, usar CajaArquitectonica = no aplica.",
     "ContextoCambio solo puede ser documental, runtime o transversal.",
     "Lenguajes solo puede contener RUST, GO, PYTHON o no aplica.",
+    "Todo cambio debe proponer un StatusTablero valido.",
+    "No confundir StatusTablero con EstadoArquitectonico.",
+    "No confundir EstadoArquitectonico con CajaArquitectonica.",
     "Si faltan datos, inferir de forma conservadora y coherente.",
     "No usar palabras vacias como varios, cambios varios, ajustes varios.",
     "Mantener consistencia semantica con el repositorio y con el contrato."
@@ -123,18 +126,25 @@
       "8",
       "13"
     ],
-    "statusArquitectonico": [
-      "Documentacion",
-      "Diseno",
-      "Implementacion",
+    "statusTablero": [
+      "Documentación",
+      "Lenguajes dev",
+      "Ejecución",
+      "Sup y Auditoría",
+      "Cierre y Lecciones"
+    ],
+    "estadoArquitectonico": [
+      "Documentación",
+      "Diseño",
+      "Implementación",
       "Refactor",
-      "Correccion",
+      "Corrección",
       "No aplica"
     ],
     "cajaArquitectonica": [
       "Interfaz local",
-      "Orquestacion segura",
-      "Extraccion e Inspeccion",
+      "Orquestación segura",
+      "Extracción e Inspección",
       "Canon y Reversibilidad",
       "Estado, Reportes y Consumidores del Canon",
       "no aplica"
@@ -148,8 +158,9 @@
   },
   "classificationRules": {
     "documental": {
-      "definition": "Cambios de documentacion, convenciones, informes, plantillas, contratos IA, markdown, referencias o estructura editorial.",
-      "defaultStatusArquitectonico": "Documentacion",
+      "definition": "Cambios de documentación, convenciones, informes, plantillas, contratos IA, markdown, referencias o estructura editorial.",
+      "defaultStatusTablero": "Documentación",
+      "defaultEstadoArquitectonico": "Documentación",
       "defaultCajaArquitectonica": "no aplica",
       "defaultLenguajes": [
         "no aplica"
@@ -159,21 +170,27 @@
       "definition": "Cambios que alteran comportamiento real del sistema, flujo, parsing, canonizacion, reverse, validacion, reportes, UI, bridge o ejecucion."
     },
     "transversal": {
-      "definition": "Cambios que afectan varias zonas a la vez o cambian reglas compartidas entre documentacion, arquitectura y ejecucion."
+      "definition": "Cambios que afectan varias zonas a la vez o cambian reglas compartidas entre documentación, arquitectura y ejecución.",
+      "defaultStatusTablero": "Documentación",
+      "defaultEstadoArquitectonico": "No aplica",
+      "defaultCajaArquitectonica": "no aplica",
+      "defaultLenguajes": [
+        "no aplica"
+      ]
     }
   },
   "templates": {
     "commitName": "{tipoCommit}({alcance}): {operacionNormalizada} {complementoEspecifico}",
     "prTitle": "{bloquePR}({alcance}): {sintesisIntegradora} {resultadoPrincipal}",
     "metaLine": "Meta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Ctx:{ContextoCambio}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}",
-    "archLine": "Arch: St:{Status}|Cx:{CajaArquitectonica}|Lg:{Lenguajes}|Mdls:{Modulos}",
+    "archLine": "Arch: Sb:{StatusTablero}|Ea:{EstadoArquitectonico}|Cx:{CajaArquitectonica}|Lg:{Lenguajes}|Mdls:{Modulos}",
     "prDescriptionMarkdown": [
       "# PR: {prTitle}",
       "",
       "```text",
       "Commit: {commitName}",
       "Meta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Ctx:{ContextoCambio}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}",
-      "Arch: St:{Status}|Cx:{CajaArquitectonica}|Lg:{Lenguajes}|Mdls:{Modulos}",
+      "Arch: Sb:{StatusTablero}|Ea:{EstadoArquitectonico}|Cx:{CajaArquitectonica}|Lg:{Lenguajes}|Mdls:{Modulos}",
       "```",
       "",
       "---",
@@ -196,11 +213,12 @@
       "",
       "---",
       "",
-      "## Arquitectura",
+      "## Tablero y Arquitectura",
       "",
       "| Campo | Valor |",
       "|-------|-------|",
-      "| Status | {Status} |",
+      "| StatusTablero | {StatusTablero} |",
+      "| EstadoArquitectonico | {EstadoArquitectonico} |",
       "| Caja | {CajaArquitectonica} |",
       "| Lenguajes | {Lenguajes} |",
       "| Modulos | {Modulos} |",
@@ -254,7 +272,8 @@
     "Estimate": "Estimacion relativa de esfuerzo.",
     "Delta-r": "Cambio relativo de riesgo.",
     "Delta-c": "Cambio relativo de complejidad.",
-    "Status": "Estado arquitectonico del cambio.",
+    "StatusTablero": "Columna real del tablero Kanban donde cae el cambio.",
+    "EstadoArquitectonico": "Tipo de momento o lectura arquitectonica del cambio.",
     "CajaArquitectonica": "Zona arquitectonica principal afectada.",
     "Lenguajes": "Lenguajes realmente involucrados.",
     "Modulos": "Submodulos o artefactos principales afectados."
@@ -271,7 +290,8 @@
       "Estimate": "1",
       "Delta-r": "0",
       "Delta-c": "+0",
-      "Status": "No aplica",
+      "StatusTablero": "Documentación",
+      "EstadoArquitectonico": "No aplica",
       "CajaArquitectonica": "no aplica",
       "Lenguajes": [
         "no aplica"
@@ -297,6 +317,8 @@
     "El commit respeta tipo(alcance): operacion + complemento.",
     "El PR title respeta bloque(alcance): sintesis + resultado.",
     "El ContextoCambio es coherente con el cambio descrito.",
+    "El StatusTablero propuesto es valido y consistente con el cambio.",
+    "El EstadoArquitectonico no contradice la naturaleza documental o runtime del cambio.",
     "La clasificacion arquitectonica no contradice la naturaleza documental o runtime del cambio.",
     "Los campos Meta y Arch aparecen al comienzo del PR.",
     "El markdown del PR esta completo y listo para GitHub."
@@ -306,7 +328,8 @@
       "tipoCommit": "docs",
       "alcance": "contract",
       "bloquePR": "docs",
-      "Status": "Documentacion",
+      "StatusTablero": "Documentación",
+      "EstadoArquitectonico": "Documentación",
       "CajaArquitectonica": "no aplica",
       "Lenguajes": [
         "no aplica"
