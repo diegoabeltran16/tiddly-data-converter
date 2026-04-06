@@ -1,0 +1,2 @@
+Zona periférica y consumidora del Canon.
+Aquí viven herramientas auxiliares, validaciones periféricas, exportadores, análisis derivados y consumidores posteriores del Canon. Su función es extender el ecosistema del convertidor sin redefinir la lógica central.

@@ -1,0 +1,2 @@
+Zona de evidencia del comportamiento esperado.
+Aquí se organizan fixtures, pruebas por lenguaje, pruebas de integración y regresión. Su función es impedir que el desarrollo avance sin control suficiente sobre contratos, errores y comportamiento.

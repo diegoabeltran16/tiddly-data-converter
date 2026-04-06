@@ -1,0 +1,2 @@
+Zona de frontera crítica del sistema.
+Aquí vive la lógica de extracción, inspección estructural mínima y superficie local basada en Tauri. Su función es proteger la entrada del sistema y sostener la interacción local sin contaminar el núcleo canónico.
