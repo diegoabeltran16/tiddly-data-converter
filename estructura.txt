@@ -1,9 +1,43 @@
 ├── .github
 ├── .gitignore
-├── Docs
+├── contratos
+│   └── contratos.txt
+├── data
+│   └── data.txt
+├── docs
 │   ├── estructura_de_commits_tiddly-data-converter.JSON
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
+│   ├── tiddlers_esp
+│   │   ├── plantilla_esp
+│   │   │   └── Plantilla(Estudiar topico)(Esp).html
+│   │   └── tiddlers_esp(.md)
+│   │       ├── desarrollo_y_evolucion.md
+│   │       ├── detalles_del_tema.md
+│   │       ├── elementos_especificos.md
+│   │       ├── glosario_y_convenciones.md
+│   │       ├── hipotesis.md
+│   │       ├── politica_de_memoria_activa.md
+│   │       ├── principios_de_gestion.md
+│   │       ├── procedencia_epistemologica.md
+│   │       ├── protocolo_de_sesion.md
+│   │       └── tema_raiz.md
 │   └── tiddly-data-converter (Saved).html
+├── esquemas
+│   └── esquemas.txt
 ├── estructura.txt
-└── LICENSE
+├── go
+│   └── go.txt
+├── LICENSE
+├── packaging
+│   └── packaging.txt
+├── python
+│   └── python.txt
+├── runtime
+│   └── runtime.txt
+├── rust
+│   └── rust.txt
+├── scripts
+│   └── scripts.txt
+└── tests
+    └── test.txt

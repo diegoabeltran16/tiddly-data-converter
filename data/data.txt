@@ -1,0 +1,2 @@
+Zona de artefactos de entrada, tránsito y salida del convertidor.
+Aquí se alojan las entradas autorizadas, los artefactos intermedios, el Canon, las reconstrucciones reversibles, los reportes y otros productos derivados del flujo. Su función es separar claramente los datos procesados del código fuente.

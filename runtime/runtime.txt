@@ -1,0 +1,2 @@
+Zona del estado de jecucion local
+Aquí se conserva lo relacionado con corridas, logs, cache y señales operativas temporales. Su función es separar claramente el sistema en ejecución de la estructura fuente del repositorio.

@@ -1,0 +1,2 @@
+Zona de preparación de entrega.
+Aquí se organiza la salida empaquetable del proyecto, ya sea como interfaz local o distribución operativa. Su función es preparar el uso del convertidor sin mezclar empaquetado con implementación base.
