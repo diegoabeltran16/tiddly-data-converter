@@ -1,0 +1,2 @@
+Zona de esquemas formales.
+Aquí se sitúan las definiciones estructurales que permiten validar y estabilizar el Canon, los artefactos raw, los reportes y otros formatos internos del sistema.
