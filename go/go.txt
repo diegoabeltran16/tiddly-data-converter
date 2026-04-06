@@ -1,0 +1,2 @@
+Zona del núcleo operativo del convertidor.
+Aquí vive la ingesta, la formalización del Canon, la reversibilidad base y, cuando corresponda, la parte central de la orquestación local. Su función es sostener la transformación canónica y reversible del sistema.
