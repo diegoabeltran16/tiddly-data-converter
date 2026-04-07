@@ -1,16 +1,140 @@
 ├── .github
 ├── .gitignore
 ├── contratos
-│   └── contratos.txt
+│   ├── contratos.txt
+│   └── m01-s01-extractor-contract.md
 ├── data
 │   └── data.txt
 ├── docs
 │   ├── estructura_de_commits_tiddly-data-converter.JSON
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
+│   ├── refs
+│   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
+│   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
+│   │   ├── 01. The semantic desktop at work, Interlinking notes.txt
+│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.docx
+│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.pdf
+│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.txt
+│   │   ├── 03. Managing provenance data in knowledge graph management platforms oficial.docx
+│   │   ├── 03. Managing provenance data in knowledge graph management platforms.pdf
+│   │   ├── 03. Managing provenance data in knowledge graph management platforms.txt
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.docx
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.pdf
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.txt
+│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.docx
+│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.pdf
+│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.txt
+│   │   ├── 06. Semantic annotation for knowledge management.docx
+│   │   ├── 06. Semantic annotation for knowledge management.pdf
+│   │   ├── 06. Semantic annotation for knowledge management.txt
+│   │   ├── 07. Nested learning, the illusion of deep learnin arch with equation.txt
+│   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
+│   │   ├── 07. Nested learning, the illusion of deep learnin arch.pdf
+│   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
 │   ├── tiddlers_esp
+│   │   ├── # 1_tiddly-data-converter.json
+│   │   ├── # 2_🧾 Procedencia inicial.json
+│   │   ├── # 3_🧪 Hipótesis inicial.json
+│   │   ├── ## 🌀🧱 Desarrollo y Evolución.json
+│   │   ├── ## 🎯🧱 Detalles del tema.json
+│   │   ├── ## 📚🧱 Glosario y Convenciones.json
+│   │   ├── ## 🗂🧱 Arquitectura (del desarrollo).json
+│   │   ├── ## 🗂🧱 Buen gusto.json
+│   │   ├── ## 🗂🧱 Calidad de referencias.json
+│   │   ├── ## 🗂🧱 Complejidad Esencial vs Accidental.json
+│   │   ├── ## 🗂🧱 Diseño.json
+│   │   ├── ## 🗂🧱 Epigenética Computacional.json
+│   │   ├── ## 🗂🧱 Estilo Mosston y Ashworth.json
+│   │   ├── ## 🗂🧱 Estructura de trazabilidad.json
+│   │   ├── ## 🗂🧱 Evolución Semántica.json
+│   │   ├── ## 🗂🧱 Modularidad y Estado.json
+│   │   ├── ## 🗂🧱 Principios de Gestion.json
+│   │   ├── ## 🗂🧱 Reglas de relaciones.json
+│   │   ├── ## 🗂🧱 Usabilidad y Robustez.json
+│   │   ├── ## 🧠🧱 Política de Memoria Activa.json
+│   │   ├── ## 🧪🧱 Hipótesis.json
+│   │   ├── ## 🧭🧱 Protocolo de Sesión.json
+│   │   ├── ## 🧰🧱 Elementos específicos.json
+│   │   ├── ## 🧾🧱 Procedencia epistemológica.json
+│   │   ├── ### 🎯 1. Objetivos 🧱.json
+│   │   ├── ### 🎯 2. Requisitos 🧱.json
+│   │   ├── ### 🎯 3. DOFA 🧱.json
+│   │   ├── ### 🎯 4. Flujo de interaccion 🧱.json
+│   │   ├── ### 🎯 5. Arquitectura 🌀.json
+│   │   ├── ### 🎯 6. Componentes 🌀.json
+│   │   ├── ### 🎯 7. Algoritmos y matematicas 🌀.json
+│   │   ├── ### 🎯 8. Ingeniería asistida por IA 🌀.json
+│   │   ├── #### referencias especificas 🌀.json
+│   │   ├── #### 🌀 Sesión 01 = extractor-contract.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
+│   │   ├── #### 📚 Diccionario 🌀.csv
+│   │   ├── -- 🎯🧱 Detalles del tema.md.json
+│   │   ├── -- 📚🧱 Glosario y Convenciones.md.json
+│   │   ├── -- 🗂🧱 Principios de Gestion.md.json
+│   │   ├── -- 🧠🧱 Política de Memoria Activa.md.json
+│   │   ├── -- 🧪🧱 Hipótesis.md.json
+│   │   ├── -- 🧭🧱 Protocolo de Sesión.md.json
+│   │   ├── -- 🧰🧱 Elementos específicos.md.json
+│   │   ├── -- 🧾🧱 Procedencia epistemológica.md.json
+│   │   ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
+│   │   ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
+│   │   ├── 03. Managing Provenance Data in Knowledge Graph Management Platforms.json
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.json
+│   │   ├── 05. An ecosystem for personal knowledge graphs_ A survey and research roadmap.json
+│   │   ├── 06. Semantic annotation for knowledge management_ Requirements and a survey of the state of the art.json
+│   │   ├── 07. Nested Learning_ The Illusion of Deep Learning Architecture.json
+│   │   ├── a self-referential learning module with continuum memory.json
+│   │   ├── Algorithm1Multi-scaleMomentumMuon(M3).json
+│   │   ├── continuum multi-timescale memory system equation.json
+│   │   ├── existing architectures as neural learning modules equations.json
+│   │   ├── Fig. 1 Simple Provenance Example with two Entities, an Activity, and an Agent.json
+│   │   ├── Fig. 1. Example of a document with semantic annotation from KMi’s semantic website.json
+│   │   ├── Fig. 1. PKG ecosystem.json
+│   │   ├── Fig. 1_ A code cell with the provenance data of its executions.json
+│   │   ├── Fig. 2 Overview of our management framework for managing the provenance of the KG generation in a web portal.json
+│   │   ├── Fig. 2. The role of annotation in document centric KM. Annotations provide interoperability between different kinds of documents and support enhanced search services. Annotation tools draw on knowledge workers’ do.json
+│   │   ├── Fig. 2_ The provenance of the notebook represented using the REPRODUCE-ME on- tology.json
+│   │   ├── Fig. 3 Provenance data example captured in our workflow in PROV-O syntax for a given phase i of the KG generation process; orange boxes show agents, yellow ovals present entities, and blue rectangles show activiti.json
+│   │   ├── Fig. 4 Visualization of Approach 1 with an example KG. Nodes attached to the left of sub-KG show the KG itself. Nodes on the right, attached to prov-sub-KG, contain provenance information.json
+│   │   ├── Fig. 5 Visualization of provenance data in the KG. Shown here are data points associated with the phases of KG generation.json
+│   │   ├── Fig. 6 Example of a workflow holding one phase in RDF.json
+│   │   ├── Fig. 7 Top-Left_ Provenance retrieval GUI – Users select which term or sub-KG they want to retrieve the provenance for; Bottom-Left_ result of provenance retrieval; Right_ The GUI for the altered rerun scenario.json
+│   │   ├── Figure 10_ The effect of context usage on the perplexity of the model.json
+│   │   ├── Figure 11_ ViT test and train loss on ImageNet-21K (Ridnik et al. 2021), trained with AdamW, Muon, and our M3 optimizers.json
+│   │   ├── Figure 12 _ Training time of models with 140M and 1.3B parameters with Muon, AdaMuon, and M3 optimizers.json
+│   │   ├── Figure 1_ Actors involved in KGEs, with their corresponding tasks, needs, and roles they can play.json
+│   │   ├── Figure 1_ Semantic Desktop Data life-cycle.json
+│   │   ├── Figure 1_ The uniform and reusable structure as well as multi time scale update in the brain are the key components to unlock the continual learning in humans.json
+│   │   ├── Figure 2_ Metadata about a note.json
+│   │   ├── Figure 2_ Nested Learning Paradigm that represent a machine learning model and its training procedure as a set of nested optimization problems. (Left) An example of Hybrid architecture.json
+│   │   ├── Figure 2_ Three life cycle steps for Data Analysis in the example, Creation, Validation, and Querying, compose the life cycle.json
+│   │   ├── Figure 3_ An example of comparing a FFN (e.g., MLP) with linear attention in a Transformer-based backbone, optimizing with gradient descent. The red components are blocks in the first level (with frequency 1), whi.json
+│   │   ├── Figure 3_ SemNotes GUI.json
+│   │   ├── Figure 4_ Optimization of function 𝝍(𝑟,𝜃) with standard momentum and our delta momentum.json
+│   │   ├── Figure 4_ SemNotes annotation suggestion and link.json
+│   │   ├── Figure 5_ A comparison of Hope architectural backbone with Transformers (Normalization and potential data-dependent components are removed for the sake of clarity).json
+│   │   ├── Figure 5_ Inter-quartile ranges for the time diff.json
+│   │   ├── Figure 6_ Class-incremental learning in the text classification domain on (Left) CLINC dataset (Larson et al. 2019), (Middle) Banking dataset (Casanueva et al. 2020), and (Right) DBpedia dataset (Auer et al. 2007).json
+│   │   ├── Figure 7_ The effect of memory levels on the in-context learning performance of the model in (Left) MK-NIAH of RULER (Hsieh et al. 2024), (Middle) LongHealth (Adams et al. 2025), (Right) QASPER (Dasigi et al. 2021.json
+│   │   ├── Figure 8_ ContinualTranslationofaNovel Language(CTNL) task.json
+│   │   ├── Figure 9 _BABILongBenchmark.Redpoints aretheresultsoffine-tunedmodels,andBlue pointsarethelargemodels’zero-shotresults.json
+│   │   ├── nested learning seccion equations.json
+│   │   ├── optimizers as learning modules equations.json
 │   │   ├── plantilla_esp
 │   │   │   └── Plantilla(Estudiar topico)(Esp).html
+│   │   ├── preliminaries equations.json
+│   │   ├── Table 1 _ Needle-In-A-Haystack experiment swith_ (1)Singleneedlewith threelevelsofdifficulty_single-needletasks—S-NIAH-1(passkeyretrieval), S-NIAH-2(numericalneedle),andS-NIAH-3(UUID-basedneedle); (2) multi-query;.json
+│   │   ├── Table 1 Comparison of annotation tools for requirements 1–6.json
+│   │   ├── Table 1 Different interpretations of personal knowledge graphs.json
+│   │   ├── Table 1_ The six life cycle steps and relationships between them on the example of a HKGE.json
+│   │   ├── Table 2 _ Performance of models on language modeling and common-sense reasoning tasks.json
+│   │   ├── Table 2 Comparison of annotation tools for requirement 7 (automation).json
+│   │   ├── Table 2 Paper categorization based on PKG ecosystem.json
+│   │   ├── Table 3 _ The performance of Hope and baselines in short in-context recall tasks.json
+│   │   ├── Table 4 _ Performance of Hope and baselines on the synthetic benchmark of MAD (Polietal.2024).json
+│   │   ├── Table 5 _ Accuracies of various models on the formal language recognition tasks.json
+│   │   ├── Table 6 _ Ablation Study on Hope. All components of Hope are positively contributing to its performance.json
 │   │   └── tiddlers_esp(.md)
 │   │       ├── desarrollo_y_evolucion.md
 │   │       ├── detalles_del_tema.md
@@ -22,7 +146,8 @@
 │   │       ├── procedencia_epistemologica.md
 │   │       ├── protocolo_de_sesion.md
 │   │       └── tema_raiz.md
-│   └── tiddly-data-converter (Saved).html
+│   ├── tiddly-data-converter (Saved).html
+│   └── tiddly-data-converter.jsonl
 ├── esquemas
 │   └── esquemas.txt
 ├── estructura.txt
