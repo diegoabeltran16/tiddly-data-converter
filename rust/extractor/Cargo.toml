@@ -1,0 +1,22 @@
+[package]
+name = "tdc-extractor"
+version = "0.1.0"
+edition = "2021"
+description = "Extractor HTML para tiddly-data-converter — frontera crítica de entrada del pipeline HTML → Canon."
+license = "MIT"
+
+[lib]
+name = "tdc_extractor"
+path = "src/lib.rs"
+
+# Decisión de parser HTML (m01-s02 Momento B):
+# TiddlyWiki 5.x almacena los tiddlers en un bloque <script class="tiddlywiki-tiddler-store">
+# de contenido JSON puro. La localización se hace con str::find() sobre el HTML leído;
+# no se requiere un parser HTML de árbol completo. serde_json es suficiente.
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+# Tests de integración del crate.
