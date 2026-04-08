@@ -4,7 +4,8 @@
 │   ├── contratos.txt
 │   └── m01-s01-extractor-contract.md
 ├── data
-│   └── data.txt
+│   ├── data.txt
+│   └── tiddly-data-converter (Saved).html
 ├── docs
 │   ├── estructura_de_commits_tiddly-data-converter.JSON
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
@@ -119,6 +120,7 @@
 │   │   ├── Figure 7_ The effect of memory levels on the in-context learning performance of the model in (Left) MK-NIAH of RULER (Hsieh et al. 2024), (Middle) LongHealth (Adams et al. 2025), (Right) QASPER (Dasigi et al. 2021.json
 │   │   ├── Figure 8_ ContinualTranslationofaNovel Language(CTNL) task.json
 │   │   ├── Figure 9 _BABILongBenchmark.Redpoints aretheresultsoffine-tunedmodels,andBlue pointsarethelargemodels’zero-shotresults.json
+│   │   ├── m01-s02-extractor-bootstrap.json
 │   │   ├── nested learning seccion equations.json
 │   │   ├── optimizers as learning modules equations.json
 │   │   ├── plantilla_esp
@@ -146,7 +148,6 @@
 │   │       ├── procedencia_epistemologica.md
 │   │       ├── protocolo_de_sesion.md
 │   │       └── tema_raiz.md
-│   ├── tiddly-data-converter (Saved).html
 │   └── tiddly-data-converter.jsonl
 ├── esquemas
 │   └── esquemas.txt
@@ -161,8 +162,22 @@
 ├── runtime
 │   └── runtime.txt
 ├── rust
+│   ├── extractor
+│   │   ├── Cargo.lock
+│   │   ├── Cargo.toml
+│   │   ├── src
+│   │   │   ├── error.rs
+│   │   │   ├── lib.rs
+│   │   │   ├── raw.rs
+│   │   │   └── report.rs
+│   │   └── tests
+│   │       └── test_extraction.rs
 │   └── rust.txt
 ├── scripts
 │   └── scripts.txt
 └── tests
+    ├── extractor
+    ├── fixtures
+    │   ├── minimal_tiddlywiki.html
+    │   └── README.md
     └── test.txt

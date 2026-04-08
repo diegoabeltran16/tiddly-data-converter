@@ -2,59 +2,19 @@ Docs/refs
 Docs/translate.ps1
 /rep_export_Windows
 /.venv
-Docs/tiddlers_esp/01. The Semantic Desktop at Work_ Interlinking Notes.json
-Docs/tiddlers_esp/02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
-Docs/tiddlers_esp/03. Managing Provenance Data in Knowledge Graph Management Platforms.json
-Docs/tiddlers_esp/04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.json
-Docs/tiddlers_esp/05. An ecosystem for personal knowledge graphs_ A survey and research roadmap.json
-Docs/tiddlers_esp/06. Semantic annotation for knowledge management_ Requirements and a survey of the state of the art.json
-Docs/tiddlers_esp/07. Nested Learning_ The Illusion of Deep Learning Architecture.json
-Docs/tiddlers_esp/a self-referential learning module with continuum memory.json
-Docs/tiddlers_esp/Algorithm1Multi-scaleMomentumMuon(M3).json
-Docs/tiddlers_esp/continuum multi-timescale memory system equation.json
-Docs/tiddlers_esp/existing architectures as neural learning modules equations.json
-Docs/tiddlers_esp/Fig. 1 Simple Provenance Example with two Entities, an Activity, and an Agent.json
-Docs/tiddlers_esp/Fig. 1_ A code cell with the provenance data of its executions.json
-Docs/tiddlers_esp/Fig. 1. Example of a document with semantic annotation from KMi’s semantic website.json
-Docs/tiddlers_esp/Fig. 1. PKG ecosystem.json
-Docs/tiddlers_esp/Fig. 2 Overview of our management framework for managing the provenance of the KG generation in a web portal.json
-Docs/tiddlers_esp/Fig. 2_ The provenance of the notebook represented using the REPRODUCE-ME on- tology.json
-Docs/tiddlers_esp/Fig. 2. The role of annotation in document centric KM. Annotations provide interoperability between different kinds of documents and support enhanced search services. Annotation tools draw on knowledge workers’ do.json
-Docs/tiddlers_esp/Fig. 3 Provenance data example captured in our workflow in PROV-O syntax for a given phase i of the KG generation process; orange boxes show agents, yellow ovals present entities, and blue rectangles show activiti.json
-Docs/tiddlers_esp/Fig. 4 Visualization of Approach 1 with an example KG. Nodes attached to the left of sub-KG show the KG itself. Nodes on the right, attached to prov-sub-KG, contain provenance information.json
-Docs/tiddlers_esp/Fig. 5 Visualization of provenance data in the KG. Shown here are data points associated with the phases of KG generation.json
-Docs/tiddlers_esp/Fig. 6 Example of a workflow holding one phase in RDF.json
-Docs/tiddlers_esp/Fig. 7 Top-Left_ Provenance retrieval GUI – Users select which term or sub-KG they want to retrieve the provenance for; Bottom-Left_ result of provenance retrieval; Right_ The GUI for the altered rerun scenario.json
-Docs/tiddlers_esp/Figure 1_ Actors involved in KGEs, with their corresponding tasks, needs, and roles they can play.json
-Docs/tiddlers_esp/Figure 1_ Semantic Desktop Data life-cycle.json
-Docs/tiddlers_esp/Figure 1_ The uniform and reusable structure as well as multi time scale update in the brain are the key components to unlock the continual learning in humans.json
-Docs/tiddlers_esp/Figure 2_ Metadata about a note.json
-Docs/tiddlers_esp/Figure 2_ Nested Learning Paradigm that represent a machine learning model and its training procedure as a set of nested optimization problems. (Left) An example of Hybrid architecture.json
-Docs/tiddlers_esp/Figure 2_ Three life cycle steps for Data Analysis in the example, Creation, Validation, and Querying, compose the life cycle.json
-Docs/tiddlers_esp/Figure 3_ An example of comparing a FFN (e.g., MLP) with linear attention in a Transformer-based backbone, optimizing with gradient descent. The red components are blocks in the first level (with frequency 1), whi.json
-Docs/tiddlers_esp/Figure 3_ SemNotes GUI.json
-Docs/tiddlers_esp/Figure 4_ Optimization of function 𝝍(𝑟,𝜃) with standard momentum and our delta momentum.json
-Docs/tiddlers_esp/Figure 4_ SemNotes annotation suggestion and link.json
-Docs/tiddlers_esp/Figure 5_ A comparison of Hope architectural backbone with Transformers (Normalization and potential data-dependent components are removed for the sake of clarity).json
-Docs/tiddlers_esp/Figure 5_ Inter-quartile ranges for the time diff.json
-Docs/tiddlers_esp/Figure 6_ Class-incremental learning in the text classification domain on (Left) CLINC dataset (Larson et al. 2019), (Middle) Banking dataset (Casanueva et al. 2020), and (Right) DBpedia dataset (Auer et al. 2007).json
-Docs/tiddlers_esp/Figure 7_ The effect of memory levels on the in-context learning performance of the model in (Left) MK-NIAH of RULER (Hsieh et al. 2024), (Middle) LongHealth (Adams et al. 2025), (Right) QASPER (Dasigi et al. 2021.json
-Docs/tiddlers_esp/Figure 8_ ContinualTranslationofaNovel Language(CTNL) task.json
-Docs/tiddlers_esp/Figure 9 _BABILongBenchmark.Redpoints aretheresultsoffine-tunedmodels,andBlue pointsarethelargemodels’zero-shotresults.json
-Docs/tiddlers_esp/Figure 10_ The effect of context usage on the perplexity of the model.json
-Docs/tiddlers_esp/Figure 11_ ViT test and train loss on ImageNet-21K (Ridnik et al. 2021), trained with AdamW, Muon, and our M3 optimizers.json
-Docs/tiddlers_esp/Figure 12 _ Training time of models with 140M and 1.3B parameters with Muon, AdaMuon, and M3 optimizers.json
-Docs/tiddlers_esp/nested learning seccion equations.json
-Docs/tiddlers_esp/optimizers as learning modules equations.json
-Docs/tiddlers_esp/preliminaries equations.json
-Docs/tiddlers_esp/Table 1 _ Needle-In-A-Haystack experiment swith_ (1)Singleneedlewith threelevelsofdifficulty_single-needletasks—S-NIAH-1(passkeyretrieval), S-NIAH-2(numericalneedle),andS-NIAH-3(UUID-basedneedle); (2) multi-query;.json
-Docs/tiddlers_esp/Table 1 Comparison of annotation tools for requirements 1–6.json
-Docs/tiddlers_esp/Table 1 Different interpretations of personal knowledge graphs.json
-Docs/tiddlers_esp/Table 1_ The six life cycle steps and relationships between them on the example of a HKGE.json
-Docs/tiddlers_esp/Table 2 _ Performance of models on language modeling and common-sense reasoning tasks.json
-Docs/tiddlers_esp/Table 2 Comparison of annotation tools for requirement 7 (automation).json
-Docs/tiddlers_esp/Table 2 Paper categorization based on PKG ecosystem.json
-Docs/tiddlers_esp/Table 3 _ The performance of Hope and baselines in short in-context recall tasks.json
-Docs/tiddlers_esp/Table 4 _ Performance of Hope and baselines on the synthetic benchmark of MAD (Polietal.2024).json
-Docs/tiddlers_esp/Table 5 _ Accuracies of various models on the formal language recognition tasks.json
-Docs/tiddlers_esp/Table 6 _ Ablation Study on Hope. All components of Hope are positively contributing to its performance.json
+
+# ── Extractor HTML (tdc-extractor) ──────────────────────────────────────────
+# Build artifacts del crate Rust (nunca versionar)
+rust/extractor/target/
+
+# Artefactos de extracción generados en runtime (se regeneran desde el fuente)
+data/raw/
+data/extraction_output/
+
+# HTML fuente real del usuario — nunca entra al repo como fuente viva.
+# Solo se versionan fixtures controlados bajo tests/fixtures/
+*.tiddlywiki.html
+user_input*.html
+# ─────────────────────────────────────────────────────────────────────────────
+
+/docs/tiddlers_esp
