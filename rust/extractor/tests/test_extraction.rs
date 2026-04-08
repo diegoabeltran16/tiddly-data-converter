@@ -1,5 +1,12 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tdc_extractor::{extract, ExtractionStatus, ExtractorError};
+
+/// Devuelve la ruta absoluta a un fixture bajo tests/fixtures/ en la raíz del proyecto.
+fn fixture(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/fixtures")
+        .join(name)
+}
 
 // ---------------------------------------------------------------------------
 // Tests de comportamiento bloqueante (no dependen del parser real)
@@ -41,8 +48,8 @@ fn test_error_tiene_mensaje_descriptivo() {
 #[test]
 fn test_extraccion_exitosa_desde_fixture_minimo() {
     // El fixture contiene 4 tiddlers: Alpha, Beta, Sin Texto, $:/SiteTitle
-    let path = Path::new("tests/fixtures/minimal_tiddlywiki.html");
-    let result = extract(path);
+    let path = fixture("minimal_tiddlywiki.html");
+    let result = extract(&path);
     assert!(result.is_ok(), "La extracción del fixture mínimo debe ser exitosa: {:?}", result);
     let (tiddlers, report) = result.unwrap();
     assert_eq!(tiddlers.len(), 4, "El fixture debe producir exactamente 4 tiddlers");
@@ -58,8 +65,8 @@ fn test_extraccion_exitosa_desde_fixture_minimo() {
 
 #[test]
 fn test_raw_fields_no_modificados() {
-    let path = Path::new("tests/fixtures/minimal_tiddlywiki.html");
-    let (tiddlers, _) = extract(path).unwrap();
+    let path = fixture("minimal_tiddlywiki.html");
+    let (tiddlers, _) = extract(&path).unwrap();
     for t in &tiddlers {
         assert!(!t.title.is_empty(), "El título del tiddler no puede ser vacío");
         // El campo title en raw_fields debe coincidir con el campo title de conveniencia
@@ -80,8 +87,8 @@ fn test_raw_fields_no_modificados() {
 
 #[test]
 fn test_siempre_hay_reporte_en_exito() {
-    let path = Path::new("tests/fixtures/minimal_tiddlywiki.html");
-    let result = extract(path);
+    let path = fixture("minimal_tiddlywiki.html");
+    let result = extract(&path);
     // Con el fixture mínimo la extracción debe ser exitosa
     assert!(result.is_ok(), "El fixture mínimo debe extraerse sin error");
     let (tiddlers, report) = result.unwrap();
