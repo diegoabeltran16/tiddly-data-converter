@@ -18,3 +18,6 @@ user_input*.html
 # ─────────────────────────────────────────────────────────────────────────────
 
 /docs/tiddlers_esp
+
+/rep_export_LINUXandMAC
+/.vscode
