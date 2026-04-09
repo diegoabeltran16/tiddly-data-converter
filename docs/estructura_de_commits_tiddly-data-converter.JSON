@@ -1,0 +1,339 @@
+{
+  "contractName": "estructura_de_commits_tiddly-data-converter",
+  "contractVersion": "2.1.0",
+  "language": "es",
+  "repository": "tiddly-data-converter",
+  "purpose": "Gobernar la generacion consistente de commits y pull requests con metadatos operativos, clasificacion de tablero, clasificacion arquitectonica y salida completa lista para GitHub.",
+  "sourceOfTruth": {
+    "commitConvention": true,
+    "prConvention": true,
+    "aiOutputContract": true
+  },
+  "requiredOutputs": [
+    "commitName",
+    "prTitle",
+    "prDescriptionMarkdown"
+  ],
+  "hardRules": [
+    "La salida debe incluir siempre exactamente los 3 artefactos requeridos.",
+    "Nunca devolver solo YAML, solo Meta, solo resumen corto o solo observaciones.",
+    "El PR debe venir completo en Markdown listo para copiar y pegar en GitHub.",
+    "Si el cambio es documental, no forzar caja runtime.",
+    "Si no hay impacto arquitectonico real, usar CajaArquitectonica = no aplica.",
+    "ContextoCambio solo puede ser documental, runtime o transversal.",
+    "Lenguajes solo puede contener RUST, GO, PYTHON o no aplica.",
+    "Todo cambio debe proponer un StatusTablero valido.",
+    "No confundir StatusTablero con EstadoArquitectonico.",
+    "No confundir EstadoArquitectonico con CajaArquitectonica.",
+    "Si faltan datos, inferir de forma conservadora y coherente.",
+    "No usar palabras vacias como varios, cambios varios, ajustes varios.",
+    "Mantener consistencia semantica con el repositorio y con el contrato."
+  ],
+  "classification": {
+    "tipoCommit": [
+      "feat",
+      "fix",
+      "refactor",
+      "docs",
+      "test",
+      "build",
+      "ci",
+      "chore",
+      "perf",
+      "style",
+      "revert"
+    ],
+    "alcance": [
+      "docs",
+      "contract",
+      "schema",
+      "parser",
+      "inspect",
+      "canon",
+      "reverse",
+      "bridge",
+      "ui",
+      "state",
+      "reports",
+      "pipeline",
+      "security",
+      "repo"
+    ],
+    "bloquePR": [
+      "docs",
+      "contract",
+      "schema",
+      "parser",
+      "inspect",
+      "canon",
+      "reverse",
+      "bridge",
+      "ui",
+      "state",
+      "reports",
+      "pipeline",
+      "security",
+      "repo"
+    ],
+    "estado": [
+      "listo",
+      "en_revision",
+      "bloqueado",
+      "parcial"
+    ],
+    "vuelta": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5+"
+    ],
+    "radio": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "madurez": [
+      "borrador",
+      "estable",
+      "solido",
+      "experimental"
+    ],
+    "contextoCambio": [
+      "documental",
+      "runtime",
+      "transversal"
+    ],
+    "priority": [
+      "P0",
+      "P1",
+      "P2",
+      "P3"
+    ],
+    "size": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "estimate": [
+      "1",
+      "2",
+      "3",
+      "5",
+      "8",
+      "13"
+    ],
+    "statusTablero": [
+      "Documentación",
+      "Lenguajes dev",
+      "Ejecución",
+      "Sup y Auditoría",
+      "Cierre y Lecciones"
+    ],
+    "estadoArquitectonico": [
+      "Documentación",
+      "Diseño",
+      "Implementación",
+      "Refactor",
+      "Corrección",
+      "No aplica"
+    ],
+    "cajaArquitectonica": [
+      "Interfaz local",
+      "Orquestación segura",
+      "Extracción e Inspección",
+      "Canon y Reversibilidad",
+      "Estado, Reportes y Consumidores del Canon",
+      "no aplica"
+    ],
+    "lenguajes": [
+      "RUST",
+      "GO",
+      "PYTHON",
+      "no aplica"
+    ]
+  },
+  "classificationRules": {
+    "documental": {
+      "definition": "Cambios de documentación, convenciones, informes, plantillas, contratos IA, markdown, referencias o estructura editorial.",
+      "defaultStatusTablero": "Documentación",
+      "defaultEstadoArquitectonico": "Documentación",
+      "defaultCajaArquitectonica": "no aplica",
+      "defaultLenguajes": [
+        "no aplica"
+      ]
+    },
+    "runtime": {
+      "definition": "Cambios que alteran comportamiento real del sistema, flujo, parsing, canonizacion, reverse, validacion, reportes, UI, bridge o ejecucion."
+    },
+    "transversal": {
+      "definition": "Cambios que afectan varias zonas a la vez o cambian reglas compartidas entre documentación, arquitectura y ejecución.",
+      "defaultStatusTablero": "Documentación",
+      "defaultEstadoArquitectonico": "No aplica",
+      "defaultCajaArquitectonica": "no aplica",
+      "defaultLenguajes": [
+        "no aplica"
+      ]
+    }
+  },
+  "templates": {
+    "commitName": "{tipoCommit}({alcance}): {operacionNormalizada} {complementoEspecifico}",
+    "prTitle": "{bloquePR}({alcance}): {sintesisIntegradora} {resultadoPrincipal}",
+    "metaLine": "Meta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Ctx:{ContextoCambio}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}",
+    "archLine": "Arch: Sb:{StatusTablero}|Ea:{EstadoArquitectonico}|Cx:{CajaArquitectonica}|Lg:{Lenguajes}|Mdls:{Modulos}",
+    "prDescriptionMarkdown": [
+      "# PR: {prTitle}",
+      "",
+      "```text",
+      "Commit: {commitName}",
+      "Meta: Es:{Estado}|V:{Vuelta}|R:{Radio}|Md:{Madurez}|B:{Bloque}|Ctx:{ContextoCambio}|Pr:{Priority}|Sz:{Size}|Est:{Estimate}|Dr:{Delta-r}|Dc:{Delta-c}",
+      "Arch: Sb:{StatusTablero}|Ea:{EstadoArquitectonico}|Cx:{CajaArquitectonica}|Lg:{Lenguajes}|Mdls:{Modulos}",
+      "```",
+      "",
+      "---",
+      "",
+      "## Metadatos",
+      "",
+      "| Campo | Valor |",
+      "|-------|-------|",
+      "| Estado | {Estado} |",
+      "| Vuelta | {Vuelta} |",
+      "| Radio | {Radio} |",
+      "| Madurez | {Madurez} |",
+      "| Bloque | {Bloque} |",
+      "| ContextoCambio | {ContextoCambio} |",
+      "| Priority | {Priority} |",
+      "| Size | {Size} |",
+      "| Estimate | {Estimate} |",
+      "| Delta-r | {Delta-r} |",
+      "| Delta-c | {Delta-c} |",
+      "",
+      "---",
+      "",
+      "## Tablero y Arquitectura",
+      "",
+      "| Campo | Valor |",
+      "|-------|-------|",
+      "| StatusTablero | {StatusTablero} |",
+      "| EstadoArquitectonico | {EstadoArquitectonico} |",
+      "| Caja | {CajaArquitectonica} |",
+      "| Lenguajes | {Lenguajes} |",
+      "| Modulos | {Modulos} |",
+      "",
+      "---",
+      "",
+      "## Objetivo",
+      "",
+      "{Objetivo}",
+      "",
+      "---",
+      "",
+      "## Resultado integrado",
+      "",
+      "{ResultadoIntegrado}",
+      "",
+      "---",
+      "",
+      "## Acciones realizadas",
+      "",
+      "{AccionesRealizadas}",
+      "",
+      "---",
+      "",
+      "## Archivos modificados / añadidos",
+      "",
+      "{ArchivosModificados}",
+      "",
+      "---",
+      "",
+      "## Comprobaciones sugeridas",
+      "",
+      "{ComprobacionesSugeridas}",
+      "",
+      "---",
+      "",
+      "## Notas para el revisor",
+      "",
+      "{NotasRevisor}"
+    ]
+  },
+  "fieldSemantics": {
+    "Estado": "Estado operativo del cambio al momento del PR.",
+    "Vuelta": "Numero de iteracion sobre el mismo bloque o artefacto.",
+    "Radio": "Alcance lateral del cambio en el sistema.",
+    "Madurez": "Nivel de consolidacion del cambio.",
+    "Bloque": "Bloque principal afectado por el cambio.",
+    "ContextoCambio": "Naturaleza del cambio: documental, runtime o transversal.",
+    "Priority": "Prioridad operativa.",
+    "Size": "Tamano estimado del cambio.",
+    "Estimate": "Estimacion relativa de esfuerzo.",
+    "Delta-r": "Cambio relativo de riesgo.",
+    "Delta-c": "Cambio relativo de complejidad.",
+    "StatusTablero": "Columna real del tablero Kanban donde cae el cambio.",
+    "EstadoArquitectonico": "Tipo de momento o lectura arquitectonica del cambio.",
+    "CajaArquitectonica": "Zona arquitectonica principal afectada.",
+    "Lenguajes": "Lenguajes realmente involucrados.",
+    "Modulos": "Submodulos o artefactos principales afectados."
+  },
+  "inferencePolicy": {
+    "mode": "conservador",
+    "fallbacks": {
+      "Estado": "listo",
+      "Vuelta": "1",
+      "Radio": "1",
+      "Madurez": "estable",
+      "Priority": "P2",
+      "Size": "S",
+      "Estimate": "1",
+      "Delta-r": "0",
+      "Delta-c": "+0",
+      "StatusTablero": "Documentación",
+      "EstadoArquitectonico": "No aplica",
+      "CajaArquitectonica": "no aplica",
+      "Lenguajes": [
+        "no aplica"
+      ],
+      "Modulos": [
+        "no aplica"
+      ]
+    }
+  },
+  "outputFormat": {
+    "order": [
+      "commitName",
+      "prTitle",
+      "prDescriptionMarkdown"
+    ],
+    "wrappers": {
+      "commitName": "text",
+      "prTitle": "text",
+      "prDescriptionMarkdown": "markdown"
+    }
+  },
+  "reviewChecks": [
+    "El commit respeta tipo(alcance): operacion + complemento.",
+    "El PR title respeta bloque(alcance): sintesis + resultado.",
+    "El ContextoCambio es coherente con el cambio descrito.",
+    "El StatusTablero propuesto es valido y consistente con el cambio.",
+    "El EstadoArquitectonico no contradice la naturaleza documental o runtime del cambio.",
+    "La clasificacion arquitectonica no contradice la naturaleza documental o runtime del cambio.",
+    "Los campos Meta y Arch aparecen al comienzo del PR.",
+    "El markdown del PR esta completo y listo para GitHub."
+  ],
+  "exampleDefaults": {
+    "documental": {
+      "tipoCommit": "docs",
+      "alcance": "contract",
+      "bloquePR": "docs",
+      "StatusTablero": "Documentación",
+      "EstadoArquitectonico": "Documentación",
+      "CajaArquitectonica": "no aplica",
+      "Lenguajes": [
+        "no aplica"
+      ]
+    }
+  }
+}
