@@ -1,6 +1,16 @@
+├── .github
+│   └── workflows
+│       └── ci.yml
 ├── .gitignore
 ├── contratos
-│   └── contratos.txt
+│   ├── contratos.txt
+│   ├── m01-s01-extractor-contract.md.json
+│   ├── m01-s02-extractor-bootstrap.json
+│   ├── m01-s03-extractor-env-wsl.json
+│   ├── m01-s04-doctor-contract.json
+│   ├── m01-s05-ingesta-contract.json
+│   ├── m01-s06-ingesta-go-env-wsl.json
+│   └── m01-s07-ingesta-bootstrap.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -30,12 +40,243 @@
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.pdf
 │   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
-│   └── tiddlers_esp_test
+│   └── tiddlers_esp
+│       ├── # 1_tiddly-data-converter.json
+│       ├── # 2_🧾 Procedencia inicial.json
+│       ├── # 3_🧪 Hipótesis inicial.json
+│       ├── ## 🌀🧱 Desarrollo y Evolución.json
+│       ├── ## 🎯🧱 Detalles del tema.json
+│       ├── ## 📚🧱 Glosario y Convenciones.json
+│       ├── ## 🗂🧱 Arquitectura (del desarrollo).json
+│       ├── ## 🗂🧱 Buen gusto.json
+│       ├── ## 🗂🧱 Calidad de referencias.json
+│       ├── ## 🗂🧱 Complejidad Esencial vs Accidental.json
+│       ├── ## 🗂🧱 Diseño.json
+│       ├── ## 🗂🧱 Epigenética Computacional.json
+│       ├── ## 🗂🧱 Estilo Mosston y Ashworth.json
+│       ├── ## 🗂🧱 Estructura de trazabilidad.json
+│       ├── ## 🗂🧱 Evolución Semántica.json
+│       ├── ## 🗂🧱 Modularidad y Estado.json
+│       ├── ## 🗂🧱 Principios de Gestion.json
+│       ├── ## 🗂🧱 Reglas de relaciones.json
+│       ├── ## 🗂🧱 Usabilidad y Robustez.json
+│       ├── ## 🧠🧱 Política de Memoria Activa.json
+│       ├── ## 🧪🧱 Hipótesis.json
+│       ├── ## 🧭🧱 Protocolo de Sesión.json
+│       ├── ## 🧰🧱 Elementos específicos.json
+│       ├── ## 🧾🧱 Procedencia epistemológica.json
+│       ├── ### 🎯 1. Objetivos 🧱.json
+│       ├── ### 🎯 2. Requisitos 🧱.json
+│       ├── ### 🎯 3. DOFA 🧱.json
+│       ├── ### 🎯 4. Flujo de interaccion 🧱.json
+│       ├── ### 🎯 5. Arquitectura 🌀.json
+│       ├── ### 🎯 6. Componentes 🌀.json
+│       ├── ### 🎯 7. Algoritmos y matematicas 🌀.json
+│       ├── ### 🎯 8. Ingeniería asistida por IA 🌀.json
+│       ├── #### referencias especificas 🌀.json
+│       ├── #### 🌀 Sesión 01 = extractor-contract.json
+│       ├── #### 🌀 Sesión 02 = extractor-bootstrap.json
+│       ├── #### 🌀 Sesión 03 = extractor-env-wsl.json
+│       ├── #### 🌀 Sesión 04 = doctor-contract.json
+│       ├── #### 🌀 Sesión 05 = ingesta-contract.json
+│       ├── #### 🌀 Sesión 06 = ingesta-go-env-wsl.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 02 = extractor-bootstrap.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 03 = extractor-env-wsl.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 04 = doctor-contract.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 05 = ingesta-contract.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 06 = ingesta-go-env-wsl.json
+│       ├── #### 🌀🧾 Procedencia de sesión 02.json
+│       ├── #### 🌀🧾 Procedencia de sesión 03.json
+│       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
+│       ├── #### 🌀🧾 Procedencia de sesión 05.json
+│       ├── #### 🌀🧾 Procedencia de sesión 06.json
+│       ├── #### 📚 Diccionario 🌀.csv
+│       ├── -- 🎯🧱 Detalles del tema.md.json
+│       ├── -- 📚🧱 Glosario y Convenciones.md.json
+│       ├── -- 🗂🧱 Principios de Gestion.md.json
+│       ├── -- 🧠🧱 Política de Memoria Activa.md.json
+│       ├── -- 🧪🧱 Hipótesis.md.json
+│       ├── -- 🧭🧱 Protocolo de Sesión.md.json
+│       ├── -- 🧰🧱 Elementos específicos.md.json
+│       ├── -- 🧾🧱 Procedencia epistemológica.md.json
+│       ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
+│       ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
+│       ├── 03. Managing Provenance Data in Knowledge Graph Management Platforms.json
+│       ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.json
+│       ├── 05. An ecosystem for personal knowledge graphs_ A survey and research roadmap.json
+│       ├── 06. Semantic annotation for knowledge management_ Requirements and a survey of the state of the art.json
+│       ├── 07. Nested Learning_ The Illusion of Deep Learning Architecture.json
+│       ├── a self-referential learning module with continuum memory.json
+│       ├── Algorithm1Multi-scaleMomentumMuon(M3).json
+│       ├── continuum multi-timescale memory system equation.json
+│       ├── contratos_contratos.txt copy.json
+│       ├── contratos_contratos.txt.json
+│       ├── contratos_m01-s01-extractor-contract.md.json
+│       ├── contratos_m01-s04-doctor-contract.md.json
+│       ├── data_data.txt.json
+│       ├── Docs_estructura_de_commits_tiddly-data-converter.JSON.json
+│       ├── Docs_Informe_Tecnico_de_Tiddler (Esp).md.json
+│       ├── docs_tiddlers_esp_m01-s02-extractor-bootstrap.json.json
+│       ├── esquemas_esquemas.txt copy.json
+│       ├── esquemas_esquemas.txt.json
+│       ├── estructura.txt (1).json
+│       ├── estructura.txt copy.json
+│       ├── estructura.txt.json
+│       ├── existing architectures as neural learning modules equations.json
+│       ├── Fig. 1 Simple Provenance Example with two Entities, an Activity, and an Agent.json
+│       ├── Fig. 1. Example of a document with semantic annotation from KMi’s semantic website.json
+│       ├── Fig. 1. PKG ecosystem.json
+│       ├── Fig. 1_ A code cell with the provenance data of its executions.json
+│       ├── Fig. 2 Overview of our management framework for managing the provenance of the KG generation in a web portal.json
+│       ├── Fig. 2. The role of annotation in document centric KM. Annotations provide interoperability between different kinds of documents and support enhanced search services. Annotation tools draw on knowledge workers’ do.json
+│       ├── Fig. 2_ The provenance of the notebook represented using the REPRODUCE-ME on- tology.json
+│       ├── Fig. 3 Provenance data example captured in our workflow in PROV-O syntax for a given phase i of the KG generation process; orange boxes show agents, yellow ovals present entities, and blue rectangles show activiti.json
+│       ├── Fig. 4 Visualization of Approach 1 with an example KG. Nodes attached to the left of sub-KG show the KG itself. Nodes on the right, attached to prov-sub-KG, contain provenance information.json
+│       ├── Fig. 5 Visualization of provenance data in the KG. Shown here are data points associated with the phases of KG generation.json
+│       ├── Fig. 6 Example of a workflow holding one phase in RDF.json
+│       ├── Fig. 7 Top-Left_ Provenance retrieval GUI – Users select which term or sub-KG they want to retrieve the provenance for; Bottom-Left_ result of provenance retrieval; Right_ The GUI for the altered rerun scenario.json
+│       ├── Figure 10_ The effect of context usage on the perplexity of the model.json
+│       ├── Figure 11_ ViT test and train loss on ImageNet-21K (Ridnik et al. 2021), trained with AdamW, Muon, and our M3 optimizers.json
+│       ├── Figure 12 _ Training time of models with 140M and 1.3B parameters with Muon, AdaMuon, and M3 optimizers.json
+│       ├── Figure 1_ Actors involved in KGEs, with their corresponding tasks, needs, and roles they can play.json
+│       ├── Figure 1_ Semantic Desktop Data life-cycle.json
+│       ├── Figure 1_ The uniform and reusable structure as well as multi time scale update in the brain are the key components to unlock the continual learning in humans.json
+│       ├── Figure 2_ Metadata about a note.json
+│       ├── Figure 2_ Nested Learning Paradigm that represent a machine learning model and its training procedure as a set of nested optimization problems. (Left) An example of Hybrid architecture.json
+│       ├── Figure 2_ Three life cycle steps for Data Analysis in the example, Creation, Validation, and Querying, compose the life cycle.json
+│       ├── Figure 3_ An example of comparing a FFN (e.g., MLP) with linear attention in a Transformer-based backbone, optimizing with gradient descent. The red components are blocks in the first level (with frequency 1), whi.json
+│       ├── Figure 3_ SemNotes GUI.json
+│       ├── Figure 4_ Optimization of function 𝝍(𝑟,𝜃) with standard momentum and our delta momentum.json
+│       ├── Figure 4_ SemNotes annotation suggestion and link.json
+│       ├── Figure 5_ A comparison of Hope architectural backbone with Transformers (Normalization and potential data-dependent components are removed for the sake of clarity).json
+│       ├── Figure 5_ Inter-quartile ranges for the time diff.json
+│       ├── Figure 6_ Class-incremental learning in the text classification domain on (Left) CLINC dataset (Larson et al. 2019), (Middle) Banking dataset (Casanueva et al. 2020), and (Right) DBpedia dataset (Auer et al. 2007).json
+│       ├── Figure 7_ The effect of memory levels on the in-context learning performance of the model in (Left) MK-NIAH of RULER (Hsieh et al. 2024), (Middle) LongHealth (Adams et al. 2025), (Right) QASPER (Dasigi et al. 2021.json
+│       ├── Figure 8_ ContinualTranslationofaNovel Language(CTNL) task.json
+│       ├── Figure 9 _BABILongBenchmark.Redpoints aretheresultsoffine-tunedmodels,andBlue pointsarethelargemodels’zero-shotresults.json
+│       ├── gitignore.json
+│       ├── go_go.txt copy.json
+│       ├── go_go.txt.json
+│       ├── LICENSE copy.json
+│       ├── LICENSE.json
+│       ├── m01-s01-extractor-contract.md.json
+│       ├── m01-s02-extractor-bootstrap.json
+│       ├── m01-s03-extractor-env-wsl.json
+│       ├── m01-s04-doctor-contract.json
+│       ├── nested learning seccion equations.json
+│       ├── optimizers as learning modules equations.json
+│       ├── packaging_packaging.txt copy.json
+│       ├── packaging_packaging.txt.json
+│       ├── plantilla_esp
+│       │   └── Plantilla(Estudiar topico)(Esp).html
+│       ├── preliminaries equations.json
+│       ├── python_python.txt copy.json
+│       ├── python_python.txt.json
+│       ├── runtime_runtime.txt copy.json
+│       ├── runtime_runtime.txt.json
+│       ├── rust_doctor_Cargo.toml.json
+│       ├── rust_doctor_src_error.rs.json
+│       ├── rust_doctor_src_lib.rs.json
+│       ├── rust_doctor_src_report.rs.json
+│       ├── rust_doctor_target_.rustc_info.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_itoa-2c16ec70efb38979_lib-itoa.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_itoa-798eb72370c2dacd_lib-itoa.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_memchr-0402db28d0e68abe_lib-memchr.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_memchr-c01e5b6ca8126a29_lib-memchr.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_proc-macro2-82f14c7fc828efe1_lib-proc_macro2.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_proc-macro2-cbf9d7f07e34dca1_build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_proc-macro2-ff6c99247e2db420_run-build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_quote-0c74ba0e11cb0bb6_build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_quote-4908da60071f767d_lib-quote.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_quote-79d91a2ce0ca376b_run-build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde-0c0d3ac83fe3437f_build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde-2b221b0c832bded3_lib-serde.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde-2d8c5c4fc62108cf_lib-serde.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde-6aeb262f7e7c722f_run-build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_core-07f62aa92e7cee58_lib-serde_core.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_core-641c2570f37b6b5b_lib-serde_core.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_core-842ae9a69327bc0f_build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_core-a2b0d5857c986c99_run-build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_derive-ab24b079c53f2ee2_lib-serde_derive.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_json-03c27675fcdb3aef_lib-serde_json.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_json-12f714ac87cb6503_lib-serde_json.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_json-6361a6d06e4c740b_build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_serde_json-9a7e2db8c27659cc_run-build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_syn-1533c0d0fc46a95d_lib-syn.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-a22d2d8b395d3e83_lib-tdc_doctor.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-ab6894ca1be40b75_test-lib-tdc_doctor.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-d30a6481ee3425da_test-integration-test-test_doctor.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-dc8fe32049e143a7_lib-tdc_doctor.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_zmij-21501fc4e230aede_build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_zmij-503b4b33217e4370_lib-zmij.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_zmij-ab73b46c38354647_lib-zmij.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_zmij-d90832289578f4e0_run-build-script-build-script-build.json.json
+│       ├── rust_doctor_target_debug_build_serde-6aeb262f7e7c722f_out_private.rs.json
+│       ├── rust_doctor_target_debug_build_serde_core-a2b0d5857c986c99_out_private.rs.json
+│       ├── rust_doctor_tests_test_doctor.rs.json
+│       ├── rust_extractor_Cargo.toml copy.json
+│       ├── rust_extractor_Cargo.toml.json
+│       ├── rust_extractor_src_error.rs copy.json
+│       ├── rust_extractor_src_error.rs.json
+│       ├── rust_extractor_src_lib.rs copy.json
+│       ├── rust_extractor_src_lib.rs.json
+│       ├── rust_extractor_src_raw.rs copy.json
+│       ├── rust_extractor_src_raw.rs.json
+│       ├── rust_extractor_src_report.rs copy.json
+│       ├── rust_extractor_src_report.rs.json
+│       ├── rust_extractor_tests_test_extraction.rs copy.json
+│       ├── rust_extractor_tests_test_extraction.rs.json
+│       ├── rust_rust.txt copy.json
+│       ├── rust_rust.txt.json
+│       ├── scripts_pick_and_place.sh.json
+│       ├── scripts_scripts.txt copy.json
+│       ├── scripts_scripts.txt.json
+│       ├── scripts_tiddlers_to_jsonl.py.json
+│       ├── Table 1 _ Needle-In-A-Haystack experiment swith_ (1)Singleneedlewith threelevelsofdifficulty_single-needletasks—S-NIAH-1(passkeyretrieval), S-NIAH-2(numericalneedle),andS-NIAH-3(UUID-basedneedle); (2) multi-query;.json
+│       ├── Table 1 Comparison of annotation tools for requirements 1–6.json
+│       ├── Table 1 Different interpretations of personal knowledge graphs.json
+│       ├── Table 1_ The six life cycle steps and relationships between them on the example of a HKGE.json
+│       ├── Table 2 _ Performance of models on language modeling and common-sense reasoning tasks.json
+│       ├── Table 2 Comparison of annotation tools for requirement 7 (automation).json
+│       ├── Table 2 Paper categorization based on PKG ecosystem.json
+│       ├── Table 3 _ The performance of Hope and baselines in short in-context recall tasks.json
+│       ├── Table 4 _ Performance of Hope and baselines on the synthetic benchmark of MAD (Polietal.2024).json
+│       ├── Table 5 _ Accuracies of various models on the formal language recognition tasks.json
+│       ├── Table 6 _ Ablation Study on Hope. All components of Hope are positively contributing to its performance.json
+│       ├── tests_fixtures_minimal_tiddlywiki.html copy.json
+│       ├── tests_fixtures_minimal_tiddlywiki.html.json
+│       ├── tests_fixtures_README.md copy.json
+│       ├── tests_fixtures_README.md.json
+│       ├── tests_test.txt copy.json
+│       ├── tests_test.txt.json
+│       ├── tiddlers_esp(.md)
+│       │   ├── desarrollo_y_evolucion.md
+│       │   ├── detalles_del_tema.md
+│       │   ├── elementos_especificos.md
+│       │   ├── glosario_y_convenciones.md
+│       │   ├── hipotesis.md
+│       │   ├── politica_de_memoria_activa.md
+│       │   ├── principios_de_gestion.md
+│       │   ├── procedencia_epistemologica.md
+│       │   ├── protocolo_de_sesion.md
+│       │   └── tema_raiz.md
+│       └── vscode_settings.json.json
 ├── esquemas
 │   └── esquemas.txt
 ├── estructura.txt
 ├── go
-│   └── go.txt
+│   ├── go.txt
+│   └── ingesta
+│       ├── error.go
+│       ├── go.mod
+│       ├── ingest.go
+│       ├── ingest_test.go
+│       ├── parse.go
+│       ├── parse_test.go
+│       ├── raw.go
+│       ├── report.go
+│       └── tiddler.go
 ├── LICENSE
 ├── packaging
 │   └── packaging.txt
@@ -71,5 +312,11 @@
 └── tests
     ├── fixtures
     │   ├── minimal_tiddlywiki.html
+    │   ├── raw_tiddlers_minimal.json
     │   └── README.md
     └── test.txt
+
+# Nota: se han excluido de esta vista los artefactos de build (target/),
+# caches (__pycache__), metadatos de Windows (*:Zone.Identifier),
+# copias de exportación (rep_export_*) y archivos temporales como
+# "tiddly-data-converter (Saved).html" para mantener la estructura mínima.
