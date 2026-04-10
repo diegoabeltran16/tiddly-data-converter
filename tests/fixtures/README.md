@@ -16,6 +16,7 @@ del `tdc-extractor` y componentes relacionados del milestone M01.
 |---------|-----------|--------|
 | `minimal_tiddlywiki.html` | HTML vivo de TiddlyWiki 5.x mínimo controlado para validar extracción básica | **Activo** — 4 tiddlers sintéticos (Alpha, Beta, Sin Texto, `$:/SiteTitle`) |
 | `raw_tiddlers_minimal.json` | Artefacto raw validado mínimo para tests de la Ingesta (Go) | **Activo** — 4 tiddlers: normal, sistema, sin timestamps, timestamp malformado |
+| `raw_tiddlers_timestamp_ms_from_data.json` | Artefacto raw mínimo derivado de `data/tiddly-data-converter (Saved).html` para observar precisión temporal (timestamp TW5 con milisegundos) | **Candidato S08** — 1 tiddler real reducido; útil para decidir semántica de `created/modified` en Ingesta |
 
 ## Cómo añadir un fixture
 
