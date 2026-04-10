@@ -1085,6 +1085,11 @@ En consecuencia, las relaciones entre contenido especializado y contexto constit
 - "## 🧠🧱 Política de Memoria Activa"
 - "## 🧰🧱 Elementos específicos"
 - "## 🧾🧱 Procedencia epistemológica"
+- "## 📦🧱 Dependencias y superficie externa"
+- "#### 🌀📦 Política de dependencias"
+- "#### 🌀📦 Registro de dependencias críticas"
+- "#### 🌀📦 Hipótesis de dependencias = m##"
+- "#### 🌀📦 Procedencia de dependencias = m##"
 - "### 🎯 1. Objetivos 🧱"
 - "### 🎯 2. Requisitos 🧱"
 - "### 🎯 3. DOFA 🧱"
@@ -1105,7 +1110,7 @@ En la parte más externa de esta organización se sitúa la capa documental huma
 
 A continuación aparece la capa de arranque del tema, que constituye la primera zona editable del sistema. Aquí se trabaja sobre # 1_Tema_raiz, # 2_🧾 Procedencia inicial y # 3_🧪 Hipótesis inicial. Estos nodos no desarrollan todavía el tema en profundidad, pero sí fijan su identidad, su genealogía y su dirección inicial. El primero actúa como orquestador pedagógico y estructural; el segundo registra de dónde nace el tema, qué lo detonó y cuáles fueron sus insumos iniciales; y el tercero conserva las conjeturas fundacionales que orientan el inicio del trabajo. Gracias a esta capa, el tema no aparece como un objeto neutro, sino como algo que ya posee contexto de surgimiento y primeras líneas de orientación.
 
-Una vez activado el tema, entran en juego los núcleos madre reutilizables del sistema. Estos bloques ya vienen con la plantilla y no se reescriben en el arranque ni en las sesiones ordinarias. Su función es ofrecer una infraestructura permanente de uso, trazabilidad y estabilidad metodológica. Aquí se encuentran, entre otros, desarrollo y evolución, detalles del tema, glosario y convenciones, hipótesis, protocolo de sesión, elementos específicos y procedencia epistemológica. A ellos se suma la capa normativa transversal, compuesta por principios reutilizables que actúan como referencias estables de calidad, diseño, estructura y gobernanza del trabajo. Dentro de esta familia, Principios de Gestion cumple la función de nodo madre de los demás principios, articulando el marco normativo general del sistema.
+Una vez activado el tema, entran en juego los núcleos madre reutilizables del sistema. Estos bloques ya vienen con la plantilla y no se reescriben en el arranque ni en las sesiones ordinarias. Su función es ofrecer una infraestructura permanente de uso, trazabilidad y estabilidad metodológica. Aquí se encuentran, entre otros, desarrollo y evolución, detalles del tema, glosario y convenciones, hipótesis, protocolo de sesión, elementos específicos, procedencia epistemológica y dependencias y superficie externa. A ellos se suma la capa normativa transversal, compuesta por principios reutilizables que actúan como referencias estables de calidad, diseño, estructura y gobernanza del trabajo. Dentro de esta familia, Principios de Gestion cumple la función de nodo madre de los demás principios, articulando el marco normativo general del sistema.
 
 Sobre esta base estable se despliega la capa temática editable, en la que, con asistencia de la IA, se redactan los ocho tiddlers fundamentales del desarrollo del tema: objetivos, requisitos, DOFA, flujo de interacción, arquitectura, componentes, algoritmos y matemáticas, e ingeniería asistida por IA. Los cuatro primeros fijan principalmente el alcance, las condiciones y la secuencia general del trabajo. Los cuatro últimos, marcados además por el remolino, representan zonas naturalmente más evolutivas, ya que suelen refinarse a medida que el desarrollo del tema madura. Cuando estos ocho bloques han sido suficientemente trabajados, el tema queda estructurado para pasar al trabajo por sesiones.
 
@@ -1193,6 +1198,17 @@ El sistema cuenta además con una familia de principios normativos reutilizables
 Dentro de esta familia, ## 🗂🧱 Principios de Gestion funciona como nodo madre de los demás principios, articulando la capa normativa transversal del sistema.
 
 Estos nodos no existen para burocratizar el trabajo, sino para asegurar que el desarrollo del tema no dependa únicamente de decisiones locales, intuiciones momentáneas o memoria circunstancial. Su papel es mantener disponibles, durante todo el proceso, directrices ya declaradas que permitan sostener el crecimiento del tema sin caer en acumulación caótica, pérdida de calidad o inconsistencia estructural.
+### Capa técnica transversal de dependencias y superficie externa
+A esta familia de núcleos se suma un nuevo bloque transversal que no pertenece a la capa normativa, sino a una capa técnica de dependencias y superficie externa. Su función es gobernar la relación del sistema con sus dependencias externas (bibliotecas, `packages`, herramientas) y definir la superficie de contacto con otros sistemas (APIs, puntos de ingesta, formatos de exportación).
+
+**Nodos de la capa de dependencias**
+- "## 📦🧱 Dependencias y superficie externa"
+- "#### 🌀📦 Política de dependencias"
+- "#### 🌀📦 Registro de dependencias críticas"
+- "#### 🌀📦 Hipótesis de dependencias = m##"
+- "#### 🌀📦 Procedencia de dependencias = m##"
+
+Este núcleo madre no define el contenido del tema, sino las condiciones técnicas que hacen posible su desarrollo, despliegue y mantenimiento. Su rol es asegurar que las dependencias no se introduzcan de forma ad-hoc, sino bajo una política explícita que gestione versiones, compatibilidad, licencias y riesgos. De este modo, el sistema no solo organiza conocimiento, sino también las herramientas que lo soportan.
 
 ### Capa de despliegue temático editable
 Una vez que el arranque del tema ha sido suficientemente aclarado, comienza la capa de despliegue temático editable. En este punto ya no se trabaja sobre la plantilla general como marco abstracto, sino sobre la estructura específica del tema, utilizando como base tanto los nodos de arranque ya desarrollados como los bloques madre y principios normativos que permanecen disponibles en la arquitectura. De este modo, la redacción temática no surge de forma aislada ni improvisada, sino sostenida por directrices previas que orientan su organización y su profundidad.
