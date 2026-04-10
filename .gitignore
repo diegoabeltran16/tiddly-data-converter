@@ -7,6 +7,9 @@ Docs/translate.ps1
 # Build artifacts del crate Rust (nunca versionar)
 rust/extractor/target/
 
+# ── Doctor (tdc-doctor) ──────────────────────────────────────────────────────
+rust/doctor/target/
+
 # Artefactos de extracción generados en runtime (se regeneran desde el fuente)
 data/raw/
 data/extraction_output/
