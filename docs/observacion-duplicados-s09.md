@@ -1,17 +1,28 @@
-# Observación de duplicados y near-duplicates — Apertura S09
+# Apertura conceptual: Observación de duplicados — S09
 
 **Sesión:** `m01-s09-ingesta-timestamp-policy`  
 **Fecha:** 2026-04-10  
-**Estado:** Propuesta observacional abierta  
-**Alcance:** Definición de categorías; **NO** implementación de deduplicación
+**Estado:** Apertura conceptual documentada  
+**Alcance:** Definición de categorías observacionales; **NO** implementación ni detección activa
 
 ---
 
 ## 1. Propósito de este documento
 
-Abrir de forma acotada la **detección observacional** de duplicados y near-duplicates en el pipeline de ingesta, sin cerrar todavía la **política de resolución** ni la **deduplicación efectiva**.
+Abrir **conceptualmente** la observación de duplicados y near-duplicates en el pipeline de ingesta, definiendo categorías mínimas sin implementar detección ni resolución.
 
-Este documento define categorías mínimas de observación y propone un marco técnico conservador para sesiones futuras, respetando la frontera entre observación (S09) y resolución (futuro).
+Este documento **no introduce capacidades nuevas en el código**. Define categorías observacionales y propone un marco técnico conservador para sesiones futuras, respetando la frontera entre observación conceptual (S09) y detección/resolución efectiva (futuro).
+
+**Qué SÍ contiene este documento:**
+- Definición de 4 categorías de duplicados (D1-D4)
+- Propuesta de estructura técnica (`IngestReport.duplicates`)
+- Algoritmo conservador sugerido para sesiones futuras
+
+**Qué NO contiene este documento:**
+- Implementación de detección de duplicados
+- Código ejecutable para clasificar duplicados
+- Modificaciones al `IngestReport` actual
+- Política de resolución o deduplicación
 
 ---
 
@@ -229,10 +240,24 @@ Esta propuesta se considera **cerrada y útil** si:
 
 ---
 
-## 10. Estado final de esta apertura
+## 10. Estado final de esta apertura conceptual
 
-**Cerrada como propuesta técnica conservadora.**
+**Cerrada como apertura conceptual documentada.**
 
-La detección observacional de duplicados queda **abierta como línea futura de triage**, con categorías definidas, alcance delimitado y riesgos documentados.
+S09 **no implementa** detección de duplicados. Define categorías observacionales (D1-D4) y propone estructura técnica conservadora para sesiones futuras.
+
+**Lo que S09 cierra:**
+- [x] Definición conceptual de 4 categorías de duplicados
+- [x] Alcance delimitado (observación vs resolución)
+- [x] Riesgos documentados de implementación prematura
+- [x] Propuesta técnica conservadora para `IngestReport.duplicates`
+
+**Lo que S09 NO implementa:**
+- [ ] Detección activa de duplicados en `go/ingesta/`
+- [ ] Modificaciones al `IngestReport` actual
+- [ ] Algoritmo de clasificación ejecutable
+- [ ] Política de resolución o deduplicación
+
+La **detección observacional** de duplicados queda **abierta como línea conceptual futura de triage**, con categorías definidas, alcance delimitado y riesgos documentados.
 
 La **implementación efectiva** y la **política de resolución** quedan **explícitamente diferidas** a sesiones posteriores o a componentes posteriores del pipeline (Canon JSONL).
