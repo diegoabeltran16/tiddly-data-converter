@@ -46,15 +46,19 @@ func ParseTW5Tags(raw string) ([]string, error) {
 // tw5TimestampLayout is the TiddlyWiki 5 timestamp format: YYYYMMDDHHmmss.
 const tw5TimestampLayout = "20060102150405"
 
-// parseTW5Timestamp attempts to parse a TW5 timestamp string.
+// parseTW5Timestamp attempts to parse a TW5 timestamp string for created/modified fields.
 // TW5 timestamps are 17-digit strings: YYYYMMDDHHmmssSSS.
 // The last 3 digits are milliseconds (SSS).
 //
 // Policy (S09): Preserve milliseconds when present to maintain temporal
-// precision from the source. The Ingesta is pre-canonical and should not
-// lose valid information silently.
+// precision from the source. This applies to both created and modified timestamps.
+// The Ingesta is pre-canonical and should not lose valid information silently.
+// Malformed milliseconds (non-numeric, out of range) are silently ignored and
+// do not produce errors — the timestamp is preserved at second precision.
 //
-// Returns nil, nil for empty input; nil, error for malformed input.
+// This is the first closed semantic policy of Ingesta validated against real corpus (S08).
+//
+// Returns nil, nil for empty input; nil, error for malformed base timestamp.
 func parseTW5Timestamp(raw string) (*time.Time, error) {
 	if raw == "" {
 		return nil, nil

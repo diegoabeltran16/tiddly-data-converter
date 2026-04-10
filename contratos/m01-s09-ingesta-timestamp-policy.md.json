@@ -11,7 +11,9 @@
 
 ### Política elegida
 
-**Preservar milisegundos válidos** de los timestamps TW5 de 17 dígitos (`YYYYMMDDHHmmssSSS`).
+**Preservar milisegundos válidos** de los timestamps TW5 de 17 dígitos (`YYYYMMDDHHmmssSSS`) en los campos `created` y `modified`.
+
+Esta es **la primera política semántica cerrada de la Ingesta** validada contra corpus real (S08).
 
 ### Justificación técnica
 
@@ -100,7 +102,7 @@ func parseTW5Timestamp(raw string) (*time.Time, error) {
 }
 ```
 
-**Justificación:** Parsear los 3 dígitos de milisegundos y añadirlos al `time.Time` como nanosegundos. Si los milisegundos son malformados, se ignoran silenciosamente (preserva el timestamp a nivel de segundos). Esto es coherente con el comportamiento actual de timestamps malformados: advertencia, no error bloqueante.
+**Justificación:** Parsear los 3 dígitos de milisegundos y añadirlos al `time.Time` como nanosegundos. **Milisegundos malformados son caso no bloqueante**: se ignoran silenciosamente y el timestamp se preserva a nivel de segundos (sin error, sin advertencia). Esto es coherente con el principio de que la Ingesta debe ser tolerante con variaciones de formato que no comprometen la información esencial.
 
 #### 2. `go/ingesta/parse_test.go`
 
@@ -304,11 +306,11 @@ Usarlo como referencia semántica final puede contaminar el pipeline con suposic
 
 ### Ganancia epistemológica de S09
 
-> **La Ingesta no debe perder información válida de forma silenciosa.**  
-> Preservar milisegundos resuelve el hallazgo I-1 de S08 sin introducir complejidad semántica artificial. La política es reversible, evidenciada, y coherente con el contrato de la Ingesta como puente pre-canónico.
+> **S09 cierra la primera política semántica de la Ingesta validada contra corpus real.**  
+> La Ingesta no debe perder información válida de forma silenciosa. Preservar milisegundos en `created` y `modified` resuelve el hallazgo I-1 de S08 sin introducir complejidad semántica artificial. La política es reversible, evidenciada, y coherente con el contrato de la Ingesta como puente pre-canónico.
 
-> **La observación de duplicados puede abrirse conceptualmente sin implementar deduplicación.**  
-> Definir categorías (D1-D4) y proponer estructura técnica (`IngestReport.duplicates`) permite sesiones futuras de triage sin invadir la responsabilidad del Canon.
+> **La observación de duplicados puede abrirse conceptualmente sin implementar detección.**  
+> Definir categorías (D1-D4) y proponer estructura técnica (`IngestReport.duplicates`) permite sesiones futuras de triage sin invadir la responsabilidad del Canon. S09 documenta la apertura conceptual sin modificar código ejecutable.
 
 ---
 

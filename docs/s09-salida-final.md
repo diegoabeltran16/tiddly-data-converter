@@ -5,13 +5,16 @@
 ## A. Decisión de política temporal
 
 ### Política elegida
-**Preservar milisegundos válidos** de los timestamps TW5 de 17 dígitos (`YYYYMMDDHHmmssSSS`).
+**Preservar milisegundos válidos** de los timestamps TW5 de 17 dígitos (`YYYYMMDDHHmmssSSS`) en los campos **`created` y `modified`**.
+
+**Esta es la primera política semántica cerrada de la Ingesta validada contra corpus real (S08).**
 
 ### Justificación técnica
 1. **Carácter pre-canónico**: La Ingesta no debe perder información válida de forma silenciosa (S05 §2).
 2. **Evidencia de corpus real**: 337/338 timestamps del corpus oficial tienen milisegundos no cero (S08).
 3. **Reversibilidad**: Truncar daña la reversibilidad — no se puede reconstruir el timestamp TW5 original.
 4. **Sin costo semántico**: Go's `time.Time` soporta nanosegundos nativamente; mapear milisegundos es directo.
+5. **Milisegundos malformados son caso no bloqueante**: Se ignoran silenciosamente, preservando el timestamp a nivel de segundos sin error ni advertencia.
 
 ### Evidencia mínima usada
 - Fixture: `tests/fixtures/raw_tiddlers_timestamp_ms_from_data.json` (derivado de corpus real)
@@ -36,16 +39,18 @@ Preservar milisegundos mantiene fidelidad temporal sin invadir responsabilidad d
 ### Archivos creados
 | Archivo | Propósito |
 |---------|-----------|
-| `docs/observacion-duplicados-s09.md` | Propuesta técnica para detección observacional de duplicados (D1-D4) |
+| `docs/observacion-duplicados-s09.md` | **Apertura conceptual** de observación de duplicados (D1-D4) — **sin implementación** |
 | `contratos/m01-s09-ingesta-timestamp-policy.md.json` | Reporte estructurado de cierre de S09 |
 
 ### Descripción breve del ajuste
 
 **parse.go (líneas 46-70):**
-- Parsear primeros 14 dígitos como timestamp base
+- Parsear primeros 14 dígitos como timestamp base para campos `created` y `modified`
 - Si hay 17+ caracteres, extraer dígitos 14-16 como milisegundos
 - Añadir milisegundos al `time.Time` usando `t.Add(time.Duration(ms) * time.Millisecond)`
-- Si milisegundos son malformados, ignorar silenciosamente (preserva precisión de segundos)
+- **Milisegundos malformados son caso no bloqueante**: se ignoran silenciosamente (preserva precisión de segundos, sin error)
+
+**Esta es la primera política semántica cerrada de Ingesta sobre corpus real.**
 
 **Tests:**
 - `TestParseTW5Timestamp_WithMilliseconds`: Valida ms=708, ms=000, ms=999
@@ -90,18 +95,22 @@ La política elegida (preservar milisegundos) queda cubierta por test de aceptac
 | **D4** | Distinto título, contenido similar — Near-duplicates (fuzzy) |
 
 ### Alcance real de la observación
-- **Solo definición conceptual y propuesta técnica**
-- No se implementa detección ni deduplicación en esta sesión
+- **Apertura conceptual documentada — sin implementación**
+- No se modifica código de `go/ingesta/`
+- No se modifica `IngestReport` actual
+- No se implementa detección ni clasificación de duplicados
 - Propuesta de estructura `IngestReport.duplicates` para sesiones futuras
-- Algoritmo conservador propuesto basado en mapas `title → []Tiddler`
+- Algoritmo conservador propuesto pero no implementado
 
 ### Qué se deja explícitamente fuera
-1. Implementación de detección de duplicados
-2. Implementación de deduplicación
-3. Política de resolución de colisiones (D2)
-4. Heurísticas de similitud fuzzy (D4)
-5. Asignación de UUIDs canónicos
-6. Uso de `docs/tiddlers_esp.jsonl` como autoridad
+1. **Implementación de detección de duplicados**
+2. **Modificaciones al `IngestReport` actual**
+3. **Código ejecutable de clasificación**
+4. Implementación de deduplicación
+5. Política de resolución de colisiones (D2)
+6. Heurísticas de similitud fuzzy (D4)
+7. Asignación de UUIDs canónicos
+8. Uso de `docs/tiddlers_esp.jsonl` como autoridad
 
 ---
 
