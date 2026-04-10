@@ -1,0 +1,13 @@
+[
+  {
+    "title": "LICENSE",
+    "raw_fields": {
+      "title": "LICENSE",
+      "created": "20260409180825708",
+      "modified": "20260409180825708",
+      "type": "text/markdown"
+    },
+    "raw_text": "Derived minimal case from data/tiddly-data-converter (Saved).html for timestamp precision triage.",
+    "source_position": "tiddler-store:210"
+  }
+]

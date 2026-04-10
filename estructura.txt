@@ -10,7 +10,8 @@
 │   ├── m01-s04-doctor-contract.json
 │   ├── m01-s05-ingesta-contract.json
 │   ├── m01-s06-ingesta-go-env-wsl.json
-│   └── m01-s07-ingesta-bootstrap.md.json
+│   ├── m01-s07-ingesta-bootstrap.md.json
+│   └── m01-s08-ingesta-data-triage.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -80,17 +81,20 @@
 │       ├── #### 🌀 Sesión 04 = doctor-contract.json
 │       ├── #### 🌀 Sesión 05 = ingesta-contract.json
 │       ├── #### 🌀 Sesión 06 = ingesta-go-env-wsl.json
+│       ├── #### 🌀 Sesión 07 = ingesta-bootstrap.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 02 = extractor-bootstrap.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 03 = extractor-env-wsl.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 04 = doctor-contract.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 05 = ingesta-contract.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 06 = ingesta-go-env-wsl.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 07 = ingesta-bootstrap.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
 │       ├── #### 🌀🧾 Procedencia de sesión 05.json
 │       ├── #### 🌀🧾 Procedencia de sesión 06.json
+│       ├── #### 🌀🧾 Procedencia de sesión 07.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -313,6 +317,7 @@
     ├── fixtures
     │   ├── minimal_tiddlywiki.html
     │   ├── raw_tiddlers_minimal.json
+    │   ├── raw_tiddlers_timestamp_ms_from_data.json
     │   └── README.md
     └── test.txt
 
