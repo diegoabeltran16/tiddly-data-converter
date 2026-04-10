@@ -1060,6 +1060,7 @@ Consequently, the relations between specialized content and context constitute a
 - "-- 🧭🧱 Protocolo de Sesión.md"
 - "-- 🧰🧱 Elementos específicos.md"
 - "-- 🧾🧱 Procedencia epistemológica.md"
+- "-- 🧠🧱 Política de Memoria Activa.md"
 - "# 1_Tema_raiz"
 - "# 2_🧾 Procedencia inicial"
 - "# 3_🧪 Hipótesis inicial"
@@ -1084,6 +1085,11 @@ Consequently, the relations between specialized content and context constitute a
 - "## 🧠🧱 Política de Memoria Activa"
 - "## 🧰🧱 Elementos específicos"
 - "## 🧾🧱 Procedencia epistemológica"
+- "## 📦🧱 Dependencias y superficie externa"
+- "#### 🌀📦 Política de dependencias"
+- "#### 🌀📦 Registro de dependencias críticas"
+- "#### 🌀📦 Hipótesis de dependencias = m##"
+- "#### 🌀📦 Procedencia de dependencias = m##"
 - "### 🎯 1. Objetivos 🧱"
 - "### 🎯 2. Requisitos 🧱"
 - "### 🎯 3. DOFA 🧱"
@@ -1104,7 +1110,7 @@ In the outermost part of this organization sits the human documentary reference 
 
 Next appears the topic startup layer, which constitutes the first editable zone of the system. Here one works on # 1_Tema_raiz, # 2_🧾 Procedencia inicial, and # 3_🧪 Hipótesis inicial. These nodes do not yet develop the topic in depth, but they do establish its identity, its genealogy, and its initial direction. The first acts as a pedagogical and structural orchestrator; the second records where the topic originates from, what triggered it, and what its initial inputs were; and the third preserves the foundational conjectures that guide the beginning of work. Thanks to this layer, the topic does not appear as a neutral object, but as something that already possesses context of emergence and initial lines of orientation.
 
-Once the topic is activated, the reusable mother nuclei of the system come into play. These blocks already come with the template and are not rewritten during startup or ordinary sessions. Their function is to offer a permanent infrastructure for use, traceability, and methodological stability. Among them are found development and evolution, topic details, glossary and conventions, hypotheses, session protocol, specific elements, and epistemological provenance. Added to them is the transversal normative layer, composed of reusable principles that act as stable references for quality, design, structure, and work governance. Within this family, Principios de Gestion fulfills the function of mother node for the other principles, articulating the general normative framework of the system.
+Once the topic is activated, the reusable mother nuclei of the system come into play. These blocks already come with the template and are not rewritten during startup or ordinary sessions. Their function is to offer a permanent infrastructure for use, traceability, and methodological stability. Among them are found development and evolution, topic details, glossary and conventions, hypotheses, session protocol, specific elements, epistemological provenance, and dependencies and external surface. Added to them is the transversal normative layer, composed of reusable principles that act as stable references for quality, design, structure, and work governance. Within this family, Principios de Gestion fulfills the function of mother node for the other principles, articulating the general normative framework of the system.
 
 Upon this stable base, the editable thematic layer is deployed, in which, with AI assistance, the eight fundamental tiddlers of the topic's development are drafted: objectives, requirements, SWOT analysis, interaction flow, architecture, components, algorithms and mathematics, and AI-assisted engineering. The first four primarily establish the scope, conditions, and general sequence of the work. The last four, additionally marked by the spiral, represent naturally more evolutionary zones, as they tend to be refined as the topic's development matures. When these eight blocks have been sufficiently worked on, the topic is structured to move on to session-based work.
 
@@ -1165,6 +1171,12 @@ These nuclei are not remade nor rewritten in each topic, but rather function as 
 
 Among these nuclei, ## 🧠🧱 Política de Memoria Activa (Active Memory Policy) introduces a normative layer that governs contextual continuity across sessions. This mother nucleus defines the policy-level meaning of open loops (unresolved hypotheses, pending validations, or declared uncertainties that remain active), relevance (the degree to which a prior node bears on the current session's objectives), recency (how recently a node was created, modified, or referenced), contextual priority (the ranking of nodes for session-opening context recovery), and recoverability (whether a node's epistemic trajectory can be reconstructed from its history arrays). It also governs memory-related relational signals: confirmation, contradiction, and refinement of prior claims. The policy answers normative questions that neither the topic-specific content nor the session record can answer on their own: what must remain recoverable before a new session begins? What counts as unresolved knowledge? How should relevance rise or decay across sessions? How should repeated reference affect contextual priority? This nucleus does not store or compute scores; it defines the rules that the converter later materializes. Its role within the mother-nuclei family is analogous to the role that Epistemological Provenance plays for origin traceability or that Session Protocol plays for session flow governance: it provides a stable rule set for a dimension of the system —contextual memory— that would otherwise depend on informal, implicit, or circumstantial decisions. In the terms of the Nested Learning paradigm, this policy formalizes the conditions under which the system's Continuum Memory —its distributed, multi-frequency knowledge state— is made accessible across update cycles rather than discarded between sessions [7].
 
+#### Interface between active memory and AI-assisted sessions
+
+Before an assisted session, active memory should guide the selection of what reappears, not inflate the context indiscriminately. In operational terms, this means prioritizing still-open hypotheses, recently stabilized definitions, contradictions pending resolution, recent refinements of prior claims, frequently referenced nodes, and results with high incidence on the declared local objective. This selection is not exhaustive retrieval: it is guided orientation that allows the session to begin with the necessary context without incorporating materials whose contextual relevance has not been verified.
+
+The results of an assisted session must feed future recoverability when the session opens follow-up loops, changes the contextual priority of a node, stabilizes definitions that previously remained open, introduces contradiction or confirmation signals over prior claims, or generates dependencies with known incidence on subsequent work. Specific references, by contrast, should only be reactivated when the local objective of the next session explicitly requires them. Active memory is not a record of everything that occurred, but the normative layer that ensures that what is relevant remains recoverable between sessions without turning into contextual noise.
+
 ### Transversal normative layer
 The system additionally has a family of reusable normative principles. These are not created from scratch in each topic, but rather form part of the template and remain available as stable criteria for quality, design, traceability, and work governance. Their function is not to be added as accessory content, but to offer a normative framework that accompanies the topic's development in a continuous manner.
 
@@ -1187,6 +1199,18 @@ Within this family, ## 🗂🧱 Principios de Gestion functions as the mother no
 
 These nodes do not exist to bureaucratize the work, but to ensure that the topic's development does not depend solely on local decisions, momentary intuitions, or circumstantial memory. Their role is to keep available, throughout the entire process, already declared guidelines that allow sustaining the topic's growth without falling into chaotic accumulation, quality loss, or structural inconsistency.
 
+### Technical cross-cutting layer of dependencies and external surface
+Added to this family of nuclei is a new cross-cutting block that does not belong to the normative layer, but to a technical layer of dependencies and external surface. Its function is to govern the system's relationship with its external dependencies (libraries, `packages`, tools) and define the contact surface with other systems (APIs, ingestion points, export formats).
+
+**Dependency-layer nodes**
+- "## 📦🧱 Dependencias y superficie externa"
+- "#### 🌀📦 Política de dependencias"
+- "#### 🌀📦 Registro de dependencias críticas"
+- "#### 🌀📦 Hipótesis de dependencias = m##"
+- "#### 🌀📦 Procedencia de dependencias = m##"
+
+This mother nucleus does not define the topic's content, but the technical conditions that make its development, deployment, and maintenance possible. Its role is to ensure that dependencies are not introduced ad hoc, but under an explicit policy that governs versions, compatibility, licenses, and risks. In this way, the system does not only organize knowledge, but also the tools that support it.
+
 ### Editable thematic deployment layer
 Once the topic's startup has been sufficiently clarified, the editable thematic deployment layer begins. At this point, work is no longer done on the general template as an abstract framework, but rather on the specific structure of the topic, using as a base both the startup nodes already developed and the mother blocks and normative principles that remain available in the architecture. In this way, the thematic writing does not emerge in an isolated or improvised manner, but sustained by prior guidelines that orient its organization and its depth.
 
@@ -1203,6 +1227,12 @@ Once the topic's startup has been sufficiently clarified, the editable thematic 
 These eight tiddlers constitute the minimum body of thematic development. Their drafting is done with AI assistance, but already within the system's architecture and not as a diffuse or unanchored conversation. In other words, the AI does not produce content in a vacuum here, but rather helps formalize the topic from the work already done in # 1_Tema_raiz, # 2_🧾 Procedencia inicial, and # 3_🧪 Hipótesis inicial, additionally building upon the reusable mother nuclei and the transversal normative layer that have already established usage rules, quality criteria, and methodological guidelines.
 
 The first four tiddlers primarily establish the topic's scope, as they allow declaring its purpose, its conditions, its main tensions, and its general work sequence. The last four, additionally marked by 🌀, represent zones most prone to refinement during the actual development of the topic, especially when it involves design, modeling, implementation, or continuous use of AI. This difference does not imply a rigid separation between static and dynamic blocks, but rather a functional distinction between those that stabilize the initial scope and those that tend to mature as the work progresses.
+
+#### Contractual intervention model of AI
+
+Among the eight tiddlers of thematic deployment, `### 🎯 8. Ingeniería asistida por IA 🌀` fulfills the function of doctrinalizing the model of AI intervention within the system: not as an autonomous source of truth nor as a free conversation detached from the architecture, but as a contractual assistance layer subordinated to the system already declared. AI does not produce content in a vacuum; it operates under session-level operational contract. Its value lies in helping close the work into structured artifacts compatible with the system, and its intervention is subject to three limits that cannot be ceded without compromising the integrity of the Canon: not substituting the human author's semantic authority over relations, classifications, and epistemic states; not prematurely stabilizing knowledge that remains in exploratory phase; and not producing outputs incompatible with the system's architecture, semantics, or controlled vocabulary.
+
+This tiddler does not describe technical capabilities nor define possible uses of language models. Its function is to establish the structural place of AI within the system: the role it can fulfill without breaking the traceability, contextual continuity, and situated production that the other blocks of the architecture sustain.
 
 When these eight blocks have been sufficiently worked on, the topic is structured with the minimum degree of clarity necessary to move on to session-based work. From that point on, new contributions are no longer incorporated as part of the startup or initial deployment, but as situated production within the topic's evolutionary dynamic.
 
