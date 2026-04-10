@@ -1,0 +1,349 @@
+# Sesión 09 — Política temporal y apertura observacional de duplicados
+
+**Sesión:** `m01-s09-ingesta-timestamp-policy`  
+**Milestone:** `M01 — Extracción e inspección crítica`  
+**Fecha:** 2026-04-10  
+**Estado:** Cerrada y útil
+
+---
+
+## A. Decisión de política temporal
+
+### Política elegida
+
+**Preservar milisegundos válidos** de los timestamps TW5 de 17 dígitos (`YYYYMMDDHHmmssSSS`).
+
+### Justificación técnica
+
+1. **Carácter pre-canónico de la Ingesta:**  
+   Según S05 §2, la Ingesta pertenece a la zona "Canon y Reversibilidad" y es el puente de transformación semántica entre el artefacto raw validado y el núcleo canónico. El contrato establece que la Ingesta "sí interpreta semánticamente los campos raw" pero **no debe perder información válida de forma silenciosa**.
+
+2. **Evidencia de corpus real (S08):**  
+   El triage de S08 sobre el corpus oficial (`data/tiddly-data-converter (Saved).html`) demostró que **337 de 338 timestamps** tienen milisegundos no cero (`ms_likely_truncated=337`). Truncar a segundos produce **pérdida semántica real y sistemática** en datos de producción.
+
+3. **Reversibilidad:**  
+   La arquitectura enfatiza "Canon y Reversibilidad". Perder precisión temporal daña la reversibilidad: no se puede reconstruir el timestamp TW5 original de 17 dígitos a partir de un timestamp truncado a 14 dígitos.
+
+4. **Sin costo semántico:**  
+   Preservar milisegundos no requiere nuevas decisiones semánticas. Los milisegundos ya están presentes en el formato TW5; solo se trata de **no descartarlos**. Go's `time.Time` soporta nanosegundos nativamente, por lo que mapear los 3 dígitos de milisegundos a nanosegundos es directo.
+
+5. **Coherencia con hallazgo I-1 de S08:**  
+   S08 identificó el truncamiento silencioso como un defecto semántico de severidad "no bloqueante operativamente, pero produce pérdida silenciosa de información". La política de preservación resuelve este hallazgo sin introducir complejidad artificial.
+
+### Evidencia mínima usada
+
+- **Fixture:** `tests/fixtures/raw_tiddlers_timestamp_ms_from_data.json` — derivado del corpus real, contiene `created=20260409180825708` (ms=708).
+- **Hallazgo cuantitativo:** S08 reportó `ms_likely_truncated=337` de 338 timestamps con longitud 17.
+- **Corpus:** `data/tiddly-data-converter (Saved).html` — 363 tiddlers procesados sin error estructural.
+
+### Razón de coherencia con el carácter pre-canónico
+
+La Ingesta **no define el Canon final** ni asigna UUIDs estables. Su responsabilidad es producir un **modelo interno común tipado** listo para canonización (S05 §3).
+
+Preservar milisegundos:
+- Mantiene la fidelidad temporal del artefacto raw.
+- No invade la responsabilidad del Canon JSONL.
+- No introduce nuevos invariantes semánticos; solo **no descarta datos válidos**.
+- Permite que el Canon decida la serialización definitiva con toda la información disponible.
+
+---
+
+## B. Cambios aplicados o propuestos
+
+### Archivos modificados
+
+| Archivo | Propósito del cambio |
+|---------|----------------------|
+| [`go/ingesta/parse.go`](go/ingesta/parse.go) | Extender `parseTW5Timestamp` para parsear los 3 dígitos de milisegundos (posiciones 14-16 del string TW5) y añadirlos al `time.Time` como nanosegundos. |
+| [`go/ingesta/parse_test.go`](go/ingesta/parse_test.go) | Añadir 2 tests: `TestParseTW5Timestamp_WithMilliseconds` (valida preservación de ms=708, ms=000, ms=999) y `TestParseTW5Timestamp_14DigitsOnly` (valida compatibilidad con timestamps sin milisegundos). |
+| [`go/ingesta/ingest_test.go`](go/ingesta/ingest_test.go) | Añadir `TestIngest_TimestampPrecisionFromRealCorpus` — test de aceptación que valida preservación de milisegundos usando el fixture derivado de S08. |
+| [`tests/fixtures/README.md`](tests/fixtures/README.md) | Actualizar el estado del fixture `raw_tiddlers_timestamp_ms_from_data.json` de "Candidato S08" a "Activo S09" para reflejar su uso en el test de aceptación. |
+
+### Archivos creados
+
+| Archivo | Propósito |
+|---------|-----------|
+| [`docs/observacion-duplicados-s09.md`](docs/observacion-duplicados-s09.md) | Propuesta técnica conservadora para detección observacional de duplicados (D1-D4), sin implementar deduplicación. |
+| [`contratos/m01-s09-ingesta-timestamp-policy.md.json`](contratos/m01-s09-ingesta-timestamp-policy.md.json) | Este documento — reporte estructurado de cierre de S09. |
+
+### Descripción de los ajustes
+
+#### 1. `go/ingesta/parse.go` (líneas 46-70)
+
+**Antes:**
+```go
+func parseTW5Timestamp(raw string) (*time.Time, error) {
+    // ...
+    t, err := time.Parse(tw5TimestampLayout, cleaned[:14])
+    // ...
+    return &t, nil  // milisegundos ignorados
+}
+```
+
+**Después:**
+```go
+func parseTW5Timestamp(raw string) (*time.Time, error) {
+    // ...
+    t, err := time.Parse(tw5TimestampLayout, cleaned[:14])
+    // ...
+    
+    // Si hay milisegundos (posiciones 14-16), añadirlos
+    if len(cleaned) >= 17 {
+        msStr := cleaned[14:17]
+        var ms int
+        if _, err := fmt.Sscanf(msStr, "%03d", &ms); err == nil && ms >= 0 && ms <= 999 {
+            t = t.Add(time.Duration(ms) * time.Millisecond)
+        }
+    }
+    
+    return &t, nil
+}
+```
+
+**Justificación:** Parsear los 3 dígitos de milisegundos y añadirlos al `time.Time` como nanosegundos. Si los milisegundos son malformados, se ignoran silenciosamente (preserva el timestamp a nivel de segundos). Esto es coherente con el comportamiento actual de timestamps malformados: advertencia, no error bloqueante.
+
+#### 2. `go/ingesta/parse_test.go`
+
+Añade 2 tests unitarios:
+
+- **`TestParseTW5Timestamp_WithMilliseconds`:** Valida que `parseTW5Timestamp("20260409180825708")` produzca un `time.Time` con 708 millisegundos = 708,000,000 nanosegundos. También prueba ms=000 y ms=999.
+
+- **`TestParseTW5Timestamp_14DigitsOnly`:** Valida compatibilidad con timestamps de solo 14 dígitos (sin milisegundos). El comportamiento debe ser idéntico al previo: `Nanosecond()` debe ser 0.
+
+#### 3. `go/ingesta/ingest_test.go`
+
+Añade **test de aceptación** `TestIngest_TimestampPrecisionFromRealCorpus`:
+
+- Carga `tests/fixtures/raw_tiddlers_timestamp_ms_from_data.json`.
+- Ingesta el fixture.
+- Verifica que `IngestReport.verdict` es `ok`.
+- Verifica que `Tiddler.Created.Nanosecond()` es `708 * 1000000` (708ms).
+- Verifica que `Tiddler.Modified.Nanosecond()` es `708 * 1000000`.
+
+Este test valida el caso real derivado del corpus oficial en S08 y cierra el hallazgo I-1.
+
+#### 4. `tests/fixtures/README.md`
+
+Cambio menor en la tabla de fixtures:
+
+- **Antes:** Estado "Candidato S08"
+- **Después:** Estado "Activo S09 — test de aceptación para política temporal"
+
+Refleja que el fixture ahora está activo en el test `TestIngest_TimestampPrecisionFromRealCorpus`.
+
+---
+
+## C. Validación
+
+### Comandos ejecutados
+
+```bash
+cd /home/runner/work/tiddly-data-converter/tiddly-data-converter/go/ingesta
+go test -v -count=1
+```
+
+### Resultados
+
+```
+=== RUN   TestParseTW5Tags_Simple
+--- PASS: TestParseTW5Tags_Simple (0.00s)
+=== RUN   TestParseTW5Tags_Bracketed
+--- PASS: TestParseTW5Tags_Bracketed (0.00s)
+=== RUN   TestParseTW5Tags_Empty
+--- PASS: TestParseTW5Tags_Empty (0.00s)
+=== RUN   TestParseTW5Timestamp_Valid
+--- PASS: TestParseTW5Timestamp_Valid (0.00s)
+=== RUN   TestParseTW5Timestamp_Empty
+--- PASS: TestParseTW5Timestamp_Empty (0.00s)
+=== RUN   TestParseTW5Timestamp_Malformed
+--- PASS: TestParseTW5Timestamp_Malformed (0.00s)
+=== RUN   TestParseTW5Timestamp_WithMilliseconds
+--- PASS: TestParseTW5Timestamp_WithMilliseconds (0.00s)
+=== RUN   TestParseTW5Timestamp_14DigitsOnly
+--- PASS: TestParseTW5Timestamp_14DigitsOnly (0.00s)
+=== RUN   TestIngest_MinimalFixture
+--- PASS: TestIngest_MinimalFixture (0.00s)
+=== RUN   TestIngest_EmptyArray
+--- PASS: TestIngest_EmptyArray (0.00s)
+=== RUN   TestIngest_FileNotFound
+--- PASS: TestIngest_FileNotFound (0.00s)
+=== RUN   TestIngest_InvalidJSON
+--- PASS: TestIngest_InvalidJSON (0.00s)
+=== RUN   TestIngest_TagsParsing
+--- PASS: TestIngest_TagsParsing (0.00s)
+=== RUN   TestIngest_SystemTiddler
+--- PASS: TestIngest_SystemTiddler (0.00s)
+=== RUN   TestIngest_OriginFormatPreserved
+--- PASS: TestIngest_OriginFormatPreserved (0.00s)
+=== RUN   TestIngest_Determinism
+--- PASS: TestIngest_Determinism (0.00s)
+=== RUN   TestIngest_TimestampPrecisionFromRealCorpus
+--- PASS: TestIngest_TimestampPrecisionFromRealCorpus (0.00s)
+PASS
+ok  	github.com/tiddly-data-converter/ingesta	0.004s
+```
+
+### Evidencia
+
+- **17 tests, 17 passed, 0 failed.**
+- **Ninguna regresión:** Los 14 tests existentes de S07 continúan verdes.
+- **3 tests nuevos:**
+  - `TestParseTW5Timestamp_WithMilliseconds` — valida preservación de milisegundos a nivel unitario.
+  - `TestParseTW5Timestamp_14DigitsOnly` — valida compatibilidad con timestamps sin ms.
+  - `TestIngest_TimestampPrecisionFromRealCorpus` — **test de aceptación** que valida el caso real de S08.
+
+### Política cubierta por tests
+
+✅ **La política elegida (preservar milisegundos) queda cubierta por test de aceptación** reproducible derivado de corpus real.
+
+---
+
+## D. Observación mínima sobre duplicados
+
+### Categorías observadas o definidas
+
+Se definen **4 categorías** de duplicados potenciales:
+
+| Categoría | Descripción |
+|-----------|-------------|
+| **D1** | Mismo título, mismo contenido — Duplicados exactos por contenido |
+| **D2** | Mismo título, contenido distinto — Colisión de identidad nominal |
+| **D3** | Distinto título, mismo contenido — Redundancia de contenido |
+| **D4** | Distinto título, contenido altamente similar — Near-duplicates (fuzzy) |
+
+Cada categoría tiene semántica y severidad sugerida documentadas en [`docs/observacion-duplicados-s09.md`](docs/observacion-duplicados-s09.md).
+
+### Alcance real de la observación
+
+- **Solo definición conceptual y propuesta técnica.**
+- **No se implementa detección ni deduplicación en esta sesión.**
+- **Se propone estructura `IngestReport.duplicates`** para sesiones futuras.
+- **Se propone algoritmo conservador** basado en mapas `title → []Tiddler` y `hash(text) → []Tiddler`.
+
+### Qué se deja explícitamente fuera
+
+1. Implementación de detección de duplicados en `go/ingesta/`.
+2. Implementación de deduplicación.
+3. Política de resolución de colisiones (D2).
+4. Heurísticas de similitud fuzzy (D4).
+5. Asignación de UUIDs canónicos (pertenece al Canon).
+6. Uso de `docs/tiddlers_esp.jsonl` como autoridad semántica.
+
+---
+
+## E. Qué quedó explícitamente fuera de S09
+
+- Modificación del shape `Tiddler` en `tiddler.go` (no fue necesario).
+- Implementación del componente Doctor (`audit()` sigue en `todo!()`).
+- Contrato del Canon JSONL.
+- Bridge completo (Extractor → Doctor → Ingesta → Canon).
+- Reverse HTML.
+- CLI para ningún componente.
+- Deduplicación efectiva.
+- Expansión de la política temporal más allá de "preservar milisegundos".
+
+---
+
+## F. Riesgos si se implementa más de la cuenta ahora
+
+### Por qué no corresponde cerrar deduplicación
+
+1. **Invasión del Canon:**  
+   La Ingesta es **pre-canónica**. Deduplicar en Ingesta puede producir pérdida de información sin reversibilidad. La identidad canónica definitiva pertenece al componente Canon JSONL, que asignará UUIDs estables (UUIDv5) y decidirá la serialización determinística.
+
+2. **Política sin evidencia suficiente:**  
+   El corpus oficial (S08) no presenta duplicados de título (0 colisiones). Implementar política de resolución sin casos reales puede producir reglas incorrectas o prematuramente restrictivas.
+
+3. **Complejidad prematura:**  
+   La Ingesta ya resuelve parseo de tags TW5, timestamps, campos tipados, y manejo de errores semánticos no bloqueantes. Añadir deduplicación incrementa superficie de error y dificulta debugging de casos borde.
+
+4. **Confusión de responsabilidades:**  
+   La frontera Doctor → Ingesta → Canon debe mantenerse clara:
+   - **Doctor:** Integridad estructural mínima.
+   - **Ingesta:** Transformación semántica pre-canónica.
+   - **Canon:** Identidad canónica, deduplicación, serialización determinística.
+
+### Por qué no corresponde abrir Canon
+
+El Canon JSONL es un componente posterior a la Ingesta. Abrirlo ahora sin tener:
+- Ingesta completamente estable;
+- Doctor implementado (actualmente `todo!()`);
+- Bridge operativo;
+
+Produciría **acoplamiento prematuro** y **decisiones de diseño sin evidencia operativa suficiente**.
+
+### Por qué no usar `docs/tiddlers_esp.jsonl` como autoridad
+
+Este archivo es:
+- Auxiliar de observación (S08 §B).
+- No Canon (no tiene UUIDs canónicos estables).
+- No fuente de verdad (no ha sido validado por Doctor ni canonizado).
+
+Usarlo como referencia semántica final puede contaminar el pipeline con suposiciones externas al flujo Extractor → Doctor → Ingesta → Canon.
+
+---
+
+## G. Criterio de cierre de S09
+
+**Estado final: Cerrada y útil.**
+
+### Compuertas de cierre
+
+| Compuerta | Estado |
+|-----------|--------|
+| Política temporal decidida y documentada | ✅ |
+| Política implementada en `parse.go` | ✅ |
+| Test de aceptación usando fixture de S08 | ✅ (`TestIngest_TimestampPrecisionFromRealCorpus`) |
+| Hallazgo I-1 de S08 cerrado | ✅ (preservación de ms resuelve truncamiento silencioso) |
+| Sin regresiones en tests existentes (14 → 17 tests) | ✅ |
+| Categorías de duplicados definidas (D1-D4) | ✅ |
+| Límites de alcance de observación de duplicados documentados | ✅ |
+| Deduplicación **explícitamente no implementada** | ✅ |
+| Evidencia de corpus real utilizada (S08) | ✅ |
+| Política coherente con carácter pre-canónico de Ingesta | ✅ |
+
+### Ganancia epistemológica de S09
+
+> **La Ingesta no debe perder información válida de forma silenciosa.**  
+> Preservar milisegundos resuelve el hallazgo I-1 de S08 sin introducir complejidad semántica artificial. La política es reversible, evidenciada, y coherente con el contrato de la Ingesta como puente pre-canónico.
+
+> **La observación de duplicados puede abrirse conceptualmente sin implementar deduplicación.**  
+> Definir categorías (D1-D4) y proponer estructura técnica (`IngestReport.duplicates`) permite sesiones futuras de triage sin invadir la responsabilidad del Canon.
+
+---
+
+## H. Siguiente paso sugerido
+
+**Opción recomendada: `m01-s10-doctor-implementation`**
+
+**Justificación:**
+- El Doctor sigue sin implementación material (`audit()` = `todo!()`; 6 tests con `#[ignore]`).
+- La Ingesta ya está operativa y validada (17 tests verdes).
+- El pipeline Extractor → Ingesta funciona sobre corpus real (S08), pero **sin Doctor** en medio.
+- Implementar el Doctor permitirá:
+  - Validar el corpus real con auditoría estructural mínima antes de la Ingesta.
+  - Cerrar la compuerta de integridad Doctor → Ingesta.
+  - Probar el Doctor contra el mismo corpus oficial de S08 (363 tiddlers).
+  - Validar los 6 tests ignorados del Doctor.
+
+**Entregables mínimos de S10:**
+1. Implementar `audit()` en `rust/doctor/src/lib.rs`.
+2. Validar los 6 tests existentes (actualmente `#[ignore]`).
+3. Ejecutar el Doctor sobre `data/tiddly-data-converter (Saved).html`.
+4. Verificar que el `DoctorReport.verdict` es coherente con el `IngestReport.verdict` para el mismo corpus.
+5. Sin regresiones en Extractor (5 tests) ni Ingesta (17 tests).
+
+**Alternativa:** Si se prefiere posponer el Doctor, el siguiente paso puede ser **Canon JSONL contract** (`m01-s11`). Pero esto dejaría el Doctor como deuda técnica, lo cual es subóptimo.
+
+---
+
+## I. Metadata de sesión
+
+- **Duración estimada:** 1.5 horas
+- **Commits:** 2
+  - `212b98a` — Implementación de preservación de milisegundos + tests.
+  - (Siguiente) — Documentación de cierre de S09.
+- **Archivos modificados:** 4
+- **Archivos creados:** 2
+- **Tests:** 14 → 17 (+3)
+- **Coverage:** Hallazgo I-1 de S08 cerrado con test de aceptación reproducible.
