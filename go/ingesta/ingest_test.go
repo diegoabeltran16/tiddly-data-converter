@@ -282,3 +282,115 @@ func TestIngest_TimestampPrecisionFromRealCorpus(t *testing.T) {
 		t.Errorf("unexpected Created time: %v", tiddler.Created)
 	}
 }
+
+// TestIngest_D1ExactDuplicatePassthrough validates S11 observation:
+// Ingesta (pre-canonical) passes D1 duplicates through without deduplication.
+// D1: same title + same content — both tiddlers are ingested; deduplication
+// is deferred to the Canon layer (S05 §9.8).
+func TestIngest_D1ExactDuplicatePassthrough(t *testing.T) {
+	path := filepath.Join(fixtureDir(t), "raw_tiddlers_d1_exact_duplicate.json")
+
+	tiddlers, report, err := ingesta.Ingest(path, ingesta.OriginHTML)
+	if err != nil {
+		t.Fatalf("unexpected IngestError: %v", err)
+	}
+	if report == nil {
+		t.Fatal("report must not be nil")
+	}
+
+	// Fixture has 2 tiddlers with identical title and content.
+	// Ingesta MUST pass both through — deduplication is not its responsibility.
+	if report.TiddlerCount != 2 {
+		t.Errorf("expected TiddlerCount=2, got %d", report.TiddlerCount)
+	}
+	if report.IngestedCount != 2 {
+		t.Errorf("expected IngestedCount=2 (both duplicates pass through), got %d", report.IngestedCount)
+	}
+	if report.SkippedCount != 0 {
+		t.Errorf("expected SkippedCount=0 (no deduplication at this layer), got %d", report.SkippedCount)
+	}
+	if len(tiddlers) != 2 {
+		t.Errorf("expected 2 tiddlers in output, got %d", len(tiddlers))
+	}
+	// Both should have the same title.
+	if tiddlers[0].Title != "LICENSE" || tiddlers[1].Title != "LICENSE" {
+		t.Errorf("expected both tiddlers titled LICENSE, got %q and %q", tiddlers[0].Title, tiddlers[1].Title)
+	}
+}
+
+// TestIngest_D2SameTitleDiffContentPassthrough validates S11 observation:
+// Ingesta (pre-canonical) passes D2 duplicates through without resolving the collision.
+// D2: same title + different content — both versions are ingested; the Canon
+// layer is responsible for deciding which version is authoritative (S05 §9.8).
+func TestIngest_D2SameTitleDiffContentPassthrough(t *testing.T) {
+	path := filepath.Join(fixtureDir(t), "raw_tiddlers_d2_same_title_diff_content.json")
+
+	tiddlers, report, err := ingesta.Ingest(path, ingesta.OriginHTML)
+	if err != nil {
+		t.Fatalf("unexpected IngestError: %v", err)
+	}
+	if report == nil {
+		t.Fatal("report must not be nil")
+	}
+
+	// Fixture has 2 tiddlers with the same title but different content/timestamps.
+	// Both must pass through; the D2 collision is not resolved at Ingesta level.
+	if report.TiddlerCount != 2 {
+		t.Errorf("expected TiddlerCount=2, got %d", report.TiddlerCount)
+	}
+	if report.IngestedCount != 2 {
+		t.Errorf("expected IngestedCount=2 (both D2 versions pass through), got %d", report.IngestedCount)
+	}
+	if len(tiddlers) != 2 {
+		t.Errorf("expected 2 tiddlers in output, got %d", len(tiddlers))
+	}
+	// Both should share the same title.
+	if tiddlers[0].Title != "estructura.txt" || tiddlers[1].Title != "estructura.txt" {
+		t.Errorf("expected both tiddlers titled 'estructura.txt', got %q and %q",
+			tiddlers[0].Title, tiddlers[1].Title)
+	}
+	// Content must differ to confirm this is a D2 case.
+	text0 := ""
+	if tiddlers[0].Text != nil {
+		text0 = *tiddlers[0].Text
+	}
+	text1 := ""
+	if tiddlers[1].Text != nil {
+		text1 = *tiddlers[1].Text
+	}
+	if text0 == text1 {
+		t.Error("D2 fixture: expected different text content between the two tiddlers")
+	}
+}
+
+// TestIngest_D4NearDuplicatePassthrough validates S11 observation:
+// Ingesta (pre-canonical) passes D4 near-duplicates through without semantic comparison.
+// D4: different title + highly similar content — both tiddlers are ingested as-is.
+// Near-duplicate resolution requires semantic analysis at Canon layer.
+func TestIngest_D4NearDuplicatePassthrough(t *testing.T) {
+	path := filepath.Join(fixtureDir(t), "raw_tiddlers_d4_near_duplicate.json")
+
+	tiddlers, report, err := ingesta.Ingest(path, ingesta.OriginHTML)
+	if err != nil {
+		t.Fatalf("unexpected IngestError: %v", err)
+	}
+	if report == nil {
+		t.Fatal("report must not be nil")
+	}
+
+	// Fixture has 2 tiddlers with different titles but highly similar text content.
+	// Both must pass through; near-duplicate detection is out of scope for Ingesta.
+	if report.TiddlerCount != 2 {
+		t.Errorf("expected TiddlerCount=2, got %d", report.TiddlerCount)
+	}
+	if report.IngestedCount != 2 {
+		t.Errorf("expected IngestedCount=2 (both D4 near-duplicates pass through), got %d", report.IngestedCount)
+	}
+	if len(tiddlers) != 2 {
+		t.Errorf("expected 2 tiddlers in output, got %d", len(tiddlers))
+	}
+	// Titles must differ (distinguishing D4 from D1/D2).
+	if tiddlers[0].Title == tiddlers[1].Title {
+		t.Errorf("D4 fixture: expected different titles, both got %q", tiddlers[0].Title)
+	}
+}
