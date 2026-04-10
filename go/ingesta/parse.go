@@ -43,27 +43,50 @@ func ParseTW5Tags(raw string) ([]string, error) {
 	return tags, nil
 }
 
-// tw5TimestampLayout is the TiddlyWiki 5 timestamp format: YYYYMMDDHHmmssSSS.
+// tw5TimestampLayout is the TiddlyWiki 5 timestamp format: YYYYMMDDHHmmss.
 const tw5TimestampLayout = "20060102150405"
 
-// parseTW5Timestamp attempts to parse a TW5 timestamp string.
+// parseTW5Timestamp attempts to parse a TW5 timestamp string for created/modified fields.
 // TW5 timestamps are 17-digit strings: YYYYMMDDHHmmssSSS.
-// Returns nil, nil for empty input; nil, error for malformed input.
+// The last 3 digits are milliseconds (SSS).
+//
+// Policy (S09): Preserve milliseconds when present to maintain temporal
+// precision from the source. This applies to both created and modified timestamps.
+// The Ingesta is pre-canonical and should not lose valid information silently.
+// Malformed milliseconds (non-numeric, out of range) are silently ignored and
+// do not produce errors — the timestamp is preserved at second precision.
+//
+// This is the first closed semantic policy of Ingesta validated against real corpus (S08).
+//
+// Returns nil, nil for empty input; nil, error for malformed base timestamp.
 func parseTW5Timestamp(raw string) (*time.Time, error) {
 	if raw == "" {
 		return nil, nil
 	}
 
-	// TW5 timestamps are typically 17 chars (14 digits + 3 ms).
-	// We parse the first 14 as the core timestamp.
 	cleaned := strings.TrimSpace(raw)
 	if len(cleaned) < 14 {
 		return nil, fmt.Errorf("timestamp too short: %q", raw)
 	}
 
+	// Parse the base timestamp (first 14 digits: YYYYMMDDHHmmss)
 	t, err := time.Parse(tw5TimestampLayout, cleaned[:14])
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse timestamp %q: %w", raw, err)
 	}
+
+	// If there are milliseconds (positions 14-16), add them
+	if len(cleaned) >= 17 {
+		msStr := cleaned[14:17]
+		// Parse milliseconds (000-999)
+		var ms int
+		if _, err := fmt.Sscanf(msStr, "%03d", &ms); err == nil && ms >= 0 && ms <= 999 {
+			// Add milliseconds as nanoseconds to the parsed time
+			t = t.Add(time.Duration(ms) * time.Millisecond)
+		}
+		// If milliseconds are malformed, we silently ignore them and
+		// preserve the second-precision timestamp (no error).
+	}
+
 	return &t, nil
 }
