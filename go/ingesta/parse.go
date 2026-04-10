@@ -2,6 +2,7 @@ package ingesta
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -47,8 +48,10 @@ func ParseTW5Tags(raw string) ([]string, error) {
 const tw5TimestampLayout = "20060102150405"
 
 // parseTW5Timestamp attempts to parse a TW5 timestamp string for created/modified fields.
-// TW5 timestamps are 17-digit strings: YYYYMMDDHHmmssSSS.
-// The last 3 digits are milliseconds (SSS).
+// Accepted inputs:
+// - 14-digit timestamps: YYYYMMDDHHmmss (seconds precision)
+// - 17-digit timestamps: YYYYMMDDHHmmssSSS (milliseconds in the final 3 digits)
+// The function accepts both formats and preserves milliseconds when present.
 //
 // Policy (S09): Preserve milliseconds when present to maintain temporal
 // precision from the source. This applies to both created and modified timestamps.
@@ -78,14 +81,13 @@ func parseTW5Timestamp(raw string) (*time.Time, error) {
 	// If there are milliseconds (positions 14-16), add them
 	if len(cleaned) >= 17 {
 		msStr := cleaned[14:17]
-		// Parse milliseconds (000-999)
-		var ms int
-		if _, err := fmt.Sscanf(msStr, "%03d", &ms); err == nil && ms >= 0 && ms <= 999 {
+		// Strictly parse milliseconds (must be exactly three digits).
+		if ms, err := strconv.Atoi(msStr); err == nil && ms >= 0 && ms <= 999 {
 			// Add milliseconds as nanoseconds to the parsed time
 			t = t.Add(time.Duration(ms) * time.Millisecond)
 		}
-		// If milliseconds are malformed, we silently ignore them and
-		// preserve the second-precision timestamp (no error).
+		// If milliseconds are malformed (non-digits) or out of range,
+		// we silently ignore them and preserve the second-precision timestamp.
 	}
 
 	return &t, nil
