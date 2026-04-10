@@ -17,6 +17,9 @@ del `tdc-extractor` y componentes relacionados del milestone M01.
 | `minimal_tiddlywiki.html` | HTML vivo de TiddlyWiki 5.x mínimo controlado para validar extracción básica | **Activo** — 4 tiddlers sintéticos (Alpha, Beta, Sin Texto, `$:/SiteTitle`) |
 | `raw_tiddlers_minimal.json` | Artefacto raw validado mínimo para tests de la Ingesta (Go) | **Activo** — 4 tiddlers: normal, sistema, sin timestamps, timestamp malformado |
 | `raw_tiddlers_timestamp_ms_from_data.json` | Artefacto raw mínimo derivado de corpus real para validar preservación de milisegundos en timestamps TW5 | **Activo S09** — 1 tiddler con `created=20260409180825708` (ms=708); test de aceptación para política temporal |
+| `raw_tiddlers_d1_exact_duplicate.json` | Caso reproducible D1: 2 tiddlers con mismo título y mismo contenido; documenta comportamiento de passthrough pre-canónico de Ingesta | **Activo S11** — derivado del caso `LICENSE` observado en `docs/tiddlers_esp.jsonl`; 2 tiddlers idénticos; `source_position` distinto |
+| `raw_tiddlers_d2_same_title_diff_content.json` | Caso reproducible D2: 2 tiddlers con mismo título y contenido distinto; documenta que Ingesta no resuelve colisiones de versión | **Activo S11** — derivado del caso `estructura.txt` (3 versiones observadas); 2 snapshots de árbol en momentos distintos |
+| `raw_tiddlers_d4_near_duplicate.json` | Caso reproducible D4: 2 tiddlers con títulos distintos y contenido textualmente muy similar (Jaccard≈1.0); documenta que Ingesta no realiza comparación semántica | **Activo S11** — derivado del par `#### 🌀 Sesión 08` / `#### 🌀🧾 Procedencia de sesión 08` observado en corpus |
 
 ## Cómo añadir un fixture
 
