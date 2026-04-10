@@ -214,3 +214,71 @@ func TestIngest_Determinism(t *testing.T) {
 		}
 	}
 }
+
+// TestIngest_TimestampPrecisionFromRealCorpus validates S09 policy:
+// TW5 timestamps with milliseconds are preserved with full precision.
+//
+// This test uses the fixture derived from real corpus in S08, which
+// demonstrated that 337/338 timestamps had non-zero milliseconds that
+// were being silently truncated before the S09 fix.
+func TestIngest_TimestampPrecisionFromRealCorpus(t *testing.T) {
+	path := filepath.Join(fixtureDir(t), "raw_tiddlers_timestamp_ms_from_data.json")
+
+	tiddlers, report, err := ingesta.Ingest(path, ingesta.OriginHTML)
+	if err != nil {
+		t.Fatalf("unexpected IngestError: %v", err)
+	}
+	if report == nil {
+		t.Fatal("report must not be nil")
+	}
+
+	// Fixture has 1 tiddler with created=20260409180825708 and modified=20260409180825708
+	if report.TiddlerCount != 1 {
+		t.Fatalf("expected TiddlerCount=1, got %d", report.TiddlerCount)
+	}
+	if report.IngestedCount != 1 {
+		t.Fatalf("expected IngestedCount=1, got %d", report.IngestedCount)
+	}
+	if report.Verdict != ingesta.VerdictOk {
+		t.Errorf("expected verdict=ok, got %q (warnings: %v)", report.Verdict, report.Warnings)
+	}
+	if len(tiddlers) != 1 {
+		t.Fatalf("expected 1 tiddler, got %d", len(tiddlers))
+	}
+
+	// Verify the tiddler
+	tiddler := tiddlers[0]
+	if tiddler.Title != "LICENSE" {
+		t.Errorf("expected title=LICENSE, got %q", tiddler.Title)
+	}
+
+	// Verify Created timestamp preserves milliseconds (708ms)
+	if tiddler.Created == nil {
+		t.Fatal("Created timestamp should not be nil")
+	}
+	expectedCreatedMs := 708 * 1000000 // 708ms in nanoseconds
+	actualCreatedNs := tiddler.Created.Nanosecond()
+	if actualCreatedNs != expectedCreatedMs {
+		t.Errorf("Created milliseconds not preserved: expected %dns (708ms), got %dns",
+			expectedCreatedMs, actualCreatedNs)
+	}
+
+	// Verify Modified timestamp preserves milliseconds (708ms)
+	if tiddler.Modified == nil {
+		t.Fatal("Modified timestamp should not be nil")
+	}
+	expectedModifiedMs := 708 * 1000000
+	actualModifiedNs := tiddler.Modified.Nanosecond()
+	if actualModifiedNs != expectedModifiedMs {
+		t.Errorf("Modified milliseconds not preserved: expected %dns (708ms), got %dns",
+			expectedModifiedMs, actualModifiedNs)
+	}
+
+	// Verify base timestamp values
+	if tiddler.Created.Year() != 2026 || tiddler.Created.Month() != 4 || tiddler.Created.Day() != 9 {
+		t.Errorf("unexpected Created date: %v", tiddler.Created)
+	}
+	if tiddler.Created.Hour() != 18 || tiddler.Created.Minute() != 8 || tiddler.Created.Second() != 25 {
+		t.Errorf("unexpected Created time: %v", tiddler.Created)
+	}
+}
