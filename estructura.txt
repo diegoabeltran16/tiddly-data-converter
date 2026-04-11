@@ -1,17 +1,23 @@
 ├── .github
+│   ├── instructions
+│   │   ├── contratos.instructions.md
+│   │   └── PRcommits.instructions.md
 │   └── workflows
 │       └── ci.yml
 ├── .gitignore
 ├── contratos
 │   ├── contratos.txt
 │   ├── m01-s01-extractor-contract.md.json
-│   ├── m01-s02-extractor-bootstrap.json
-│   ├── m01-s03-extractor-env-wsl.json
-│   ├── m01-s04-doctor-contract.json
-│   ├── m01-s05-ingesta-contract.json
-│   ├── m01-s06-ingesta-go-env-wsl.json
+│   ├── m01-s02-extractor-bootstrap.md.json
+│   ├── m01-s03-extractor-env-wsl.md.json
+│   ├── m01-s04-doctor-contract.md.json
+│   ├── m01-s05-ingesta-contract.md.json
+│   ├── m01-s06-ingesta-go-env-wsl.mc.json
 │   ├── m01-s07-ingesta-bootstrap.md.json
-│   └── m01-s08-ingesta-data-triage.md.json
+│   ├── m01-s08-ingesta-data-triage.md.json
+│   ├── m01-s09-ingesta-timestamp-policy.md.json
+│   ├── m01-s10-doctor-audit.md.json
+│   └── m01-s11-ingesta-dedup-triage.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -19,26 +25,19 @@
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
-│   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.txt
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.docx
-│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.pdf
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.txt
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms oficial.docx
-│   │   ├── 03. Managing provenance data in knowledge graph management platforms.pdf
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms.txt
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.docx
-│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.pdf
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.txt
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.docx
-│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.pdf
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.txt
 │   │   ├── 06. Semantic annotation for knowledge management.docx
-│   │   ├── 06. Semantic annotation for knowledge management.pdf
 │   │   ├── 06. Semantic annotation for knowledge management.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch with equation.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
-│   │   ├── 07. Nested learning, the illusion of deep learnin arch.pdf
 │   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
 │   └── tiddlers_esp
@@ -48,6 +47,7 @@
 │       ├── ## 🌀🧱 Desarrollo y Evolución.json
 │       ├── ## 🎯🧱 Detalles del tema.json
 │       ├── ## 📚🧱 Glosario y Convenciones.json
+│       ├── ## 📦🧱 Dependencias y superficie externa.json
 │       ├── ## 🗂🧱 Arquitectura (del desarrollo).json
 │       ├── ## 🗂🧱 Buen gusto.json
 │       ├── ## 🗂🧱 Calidad de referencias.json
@@ -82,6 +82,13 @@
 │       ├── #### 🌀 Sesión 05 = ingesta-contract.json
 │       ├── #### 🌀 Sesión 06 = ingesta-go-env-wsl.json
 │       ├── #### 🌀 Sesión 07 = ingesta-bootstrap.json
+│       ├── #### 🌀 Sesión 08 = ingesta-data-triage.json
+│       ├── #### 🌀 Sesión 09 = ingesta-timestamp-policy.json
+│       ├── #### 🌀 Sesión 10 = doctor-audit.json
+│       ├── #### 🌀 Sesión 11 = ingesta-dedup-triage.json
+│       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
+│       ├── #### 🌀📦 Procedencia de dependencias = m01.json
+│       ├── #### 🌀📦 Registro de dependencias críticas.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 02 = extractor-bootstrap.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 03 = extractor-env-wsl.json
@@ -89,12 +96,20 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 05 = ingesta-contract.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 06 = ingesta-go-env-wsl.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 07 = ingesta-bootstrap.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 08 = ingesta-data-triage.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 09.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 10 = doctor-audit.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 11 = ingesta-dedup-triage.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
 │       ├── #### 🌀🧾 Procedencia de sesión 05.json
 │       ├── #### 🌀🧾 Procedencia de sesión 06.json
 │       ├── #### 🌀🧾 Procedencia de sesión 07.json
+│       ├── #### 🌀🧾 Procedencia de sesión 08.json
+│       ├── #### 🌀🧾 Procedencia de sesión 09.json
+│       ├── #### 🌀🧾 Procedencia de sesión 10.json
+│       ├── #### 🌀🧾 Procedencia de sesión 11.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -117,7 +132,16 @@
 │       ├── contratos_contratos.txt copy.json
 │       ├── contratos_contratos.txt.json
 │       ├── contratos_m01-s01-extractor-contract.md.json
+│       ├── contratos_m01-s01-extractor-contract.md.json.json
+│       ├── contratos_m01-s02-extractor-bootstrap.json.json
+│       ├── contratos_m01-s03-extractor-env-wsl.json.json
+│       ├── contratos_m01-s04-doctor-contract.json.json
 │       ├── contratos_m01-s04-doctor-contract.md.json
+│       ├── contratos_m01-s05-ingesta-contract.json.json
+│       ├── contratos_m01-s06-ingesta-go-env-wsl.json.json
+│       ├── contratos_m01-s07-ingesta-bootstrap.md.json.json
+│       ├── contratos_m01-s08-ingesta-data-triage.md.json.json
+│       ├── contratos_m01-s09-ingesta-timestamp-policy.md.json.json
 │       ├── data_data.txt.json
 │       ├── Docs_estructura_de_commits_tiddly-data-converter.JSON.json
 │       ├── Docs_Informe_Tecnico_de_Tiddler (Esp).md.json
@@ -159,9 +183,20 @@
 │       ├── Figure 7_ The effect of memory levels on the in-context learning performance of the model in (Left) MK-NIAH of RULER (Hsieh et al. 2024), (Middle) LongHealth (Adams et al. 2025), (Right) QASPER (Dasigi et al. 2021.json
 │       ├── Figure 8_ ContinualTranslationofaNovel Language(CTNL) task.json
 │       ├── Figure 9 _BABILongBenchmark.Redpoints aretheresultsoffine-tunedmodels,andBlue pointsarethelargemodels’zero-shotresults.json
+│       ├── github_instructions_contratos.instructions.md.json
+│       ├── github_instructions_PRcommits.instructions.md.json
+│       ├── github_workflows_ci.yml.json
 │       ├── gitignore.json
 │       ├── go_go.txt copy.json
 │       ├── go_go.txt.json
+│       ├── go_ingesta_error.go.json
+│       ├── go_ingesta_ingest.go.json
+│       ├── go_ingesta_ingest_test.go.json
+│       ├── go_ingesta_parse.go.json
+│       ├── go_ingesta_parse_test.go.json
+│       ├── go_ingesta_raw.go.json
+│       ├── go_ingesta_report.go.json
+│       ├── go_ingesta_tiddler.go.json
 │       ├── LICENSE copy.json
 │       ├── LICENSE.json
 │       ├── m01-s01-extractor-contract.md.json
@@ -173,10 +208,11 @@
 │       ├── packaging_packaging.txt copy.json
 │       ├── packaging_packaging.txt.json
 │       ├── plantilla_esp
-│       │   └── Plantilla(Estudiar topico)(Esp).html
 │       ├── preliminaries equations.json
 │       ├── python_python.txt copy.json
 │       ├── python_python.txt.json
+│       ├── rep_export_LINUXandMAC_.hashes.json.json
+│       ├── run_export_menu.py.json
 │       ├── runtime_runtime.txt copy.json
 │       ├── runtime_runtime.txt.json
 │       ├── rust_doctor_Cargo.toml.json
@@ -212,6 +248,7 @@
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-ab6894ca1be40b75_test-lib-tdc_doctor.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-d30a6481ee3425da_test-integration-test-test_doctor.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-dc8fe32049e143a7_lib-tdc_doctor.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_unicode-ident-a43390fd6bef71db_lib-unicode_ident.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_zmij-21501fc4e230aede_build-script-build-script-build.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_zmij-503b4b33217e4370_lib-zmij.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_zmij-ab73b46c38354647_lib-zmij.json.json
@@ -229,6 +266,77 @@
 │       ├── rust_extractor_src_raw.rs.json
 │       ├── rust_extractor_src_report.rs copy.json
 │       ├── rust_extractor_src_report.rs.json
+│       ├── rust_extractor_target_.rustc_info.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_itoa-132baf0523049529_lib-itoa.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_itoa-2c16ec70efb38979_lib-itoa.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_itoa-798eb72370c2dacd_lib-itoa.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_itoa-d554c134a7aac6f7_lib-itoa.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_memchr-0402db28d0e68abe_lib-memchr.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_memchr-18be0405192f59aa_lib-memchr.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_memchr-44197aba67f6ba32_lib-memchr.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_memchr-c01e5b6ca8126a29_lib-memchr.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_proc-macro2-1ba54668ce34f1e0_lib-proc_macro2.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_proc-macro2-82f14c7fc828efe1_lib-proc_macro2.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_proc-macro2-cbf9d7f07e34dca1_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_proc-macro2-dfa5cdcdc90afbbd_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_proc-macro2-f916b3cd9d9fc2be_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_proc-macro2-ff6c99247e2db420_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_quote-0c74ba0e11cb0bb6_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_quote-1a36fdb065eb2ffc_lib-quote.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_quote-4908da60071f767d_lib-quote.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_quote-79d91a2ce0ca376b_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_quote-7a78641142524715_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_quote-effe9d774fe0dd90_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-0c0d3ac83fe3437f_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-2b221b0c832bded3_lib-serde.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-2d8c5c4fc62108cf_lib-serde.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-6aeb262f7e7c722f_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-760d47826c5df71e_lib-serde.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-9b433fed0ae7d3d6_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-b93c8b1d9ef1d791_lib-serde.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde-cd6cf7555ebc8d13_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-07f62aa92e7cee58_lib-serde_core.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-3bbf8f23e70b1718_lib-serde_core.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-641c2570f37b6b5b_lib-serde_core.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-842ae9a69327bc0f_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-86ce1f5c3a36cae6_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-a2b0d5857c986c99_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-a94a5db8e816e2ab_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_core-fc69dbe11e4a0eed_lib-serde_core.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_derive-a0139689ac804d09_lib-serde_derive.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_derive-ab24b079c53f2ee2_lib-serde_derive.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-03c27675fcdb3aef_lib-serde_json.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-0adeb58fd927e590_lib-serde_json.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-12f714ac87cb6503_lib-serde_json.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-2510b2fa847df3ac_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-290561af061a5124_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-6361a6d06e4c740b_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-8e401e836aa2ce9f_lib-serde_json.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_serde_json-9a7e2db8c27659cc_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_syn-1533c0d0fc46a95d_lib-syn.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_syn-f092696a93caafe7_lib-syn.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-04f75e8730e16c7d_test-integration-test-test_extraction.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-37274414d8f712b9_test-lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-55ba7e42491a2464_lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-60c3b90da7ac7661_lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-7c74cdac7a40cb5a_lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-cd3744520e3e2bc7_test-integration-test-test_extraction.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-d274022ef2ea47cd_lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-e4e20790a4b16d74_test-lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_unicode-ident-9e7c54313dae6f64_lib-unicode_ident.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_unicode-ident-a43390fd6bef71db_lib-unicode_ident.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-21501fc4e230aede_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-42949e4ecdf155cd_lib-zmij.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-503b4b33217e4370_lib-zmij.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-5b7714ccba171874_build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-aa680fdbe18cc477_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-ab73b46c38354647_lib-zmij.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-bca63a0dd20d2129_lib-zmij.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_zmij-d90832289578f4e0_run-build-script-build-script-build.json.json
+│       ├── rust_extractor_target_debug_build_serde-6aeb262f7e7c722f_out_private.rs.json
+│       ├── rust_extractor_target_debug_build_serde-9b433fed0ae7d3d6_out_private.rs.json
+│       ├── rust_extractor_target_debug_build_serde_core-a2b0d5857c986c99_out_private.rs.json
+│       ├── rust_extractor_target_debug_build_serde_core-a94a5db8e816e2ab_out_private.rs.json
 │       ├── rust_extractor_tests_test_extraction.rs copy.json
 │       ├── rust_extractor_tests_test_extraction.rs.json
 │       ├── rust_rust.txt copy.json
@@ -250,6 +358,8 @@
 │       ├── Table 6 _ Ablation Study on Hope. All components of Hope are positively contributing to its performance.json
 │       ├── tests_fixtures_minimal_tiddlywiki.html copy.json
 │       ├── tests_fixtures_minimal_tiddlywiki.html.json
+│       ├── tests_fixtures_raw_tiddlers_minimal.json.json
+│       ├── tests_fixtures_raw_tiddlers_timestamp_ms_from_data.json.json
 │       ├── tests_fixtures_README.md copy.json
 │       ├── tests_fixtures_README.md.json
 │       ├── tests_test.txt copy.json
@@ -316,7 +426,13 @@
 └── tests
     ├── fixtures
     │   ├── minimal_tiddlywiki.html
+    │   ├── raw_tiddlers_d1_exact_duplicate.json
+    │   ├── raw_tiddlers_d2_same_title_diff_content.json
+    │   ├── raw_tiddlers_d4_near_duplicate.json
+    │   ├── raw_tiddlers_empty_title.json
+    │   ├── raw_tiddlers_invalid.json
     │   ├── raw_tiddlers_minimal.json
+    │   ├── raw_tiddlers_no_title.json
     │   ├── raw_tiddlers_timestamp_ms_from_data.json
     │   └── README.md
     └── test.txt
