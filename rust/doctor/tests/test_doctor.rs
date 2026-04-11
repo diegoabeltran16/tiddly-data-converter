@@ -1,16 +1,20 @@
 //! Tests de contrato del Doctor / Auditoría mínima.
 //!
-//! Estos tests son placeholders contractuales que documentan los comportamientos
-//! exigidos por `contratos/m01-s04-doctor-contract.md`.
+//! Estos tests validan los comportamientos exigidos por
+//! `contratos/m01-s04-doctor-contract.md`.
 //!
-//! Estado: marcados `#[ignore]` hasta que `audit()` tenga implementación real.
+//! Activados en m01-s10 con la implementación real de `audit()`.
 //! Cada test incluye el criterio de aceptación que valida (§10 del contrato).
 //!
 //! Ref: contratos/m01-s04-doctor-contract.md §10
 
 use std::path::Path;
-#[allow(unused_imports)]
 use tdc_doctor::{audit, DoctorError, DoctorVerdict};
+
+/// Ruta base a los fixtures compartidos del repositorio.
+fn fixtures_dir() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures")
+}
 
 // ---------------------------------------------------------------------------
 // Fallos bloqueantes (Err result) — §8 del contrato
@@ -18,7 +22,6 @@ use tdc_doctor::{audit, DoctorError, DoctorVerdict};
 
 /// §10 criterio: audit() devuelve Err(DoctorError::RawFileNotFound) si la ruta no existe.
 #[test]
-#[ignore = "pendiente implementación de audit() — m01-s04"]
 fn test_archivo_inexistente_produce_error_raw_file_not_found() {
     let ruta = Path::new("/ruta/que/no/existe/raw.tiddlers.json");
     let resultado = audit(ruta);
@@ -27,11 +30,14 @@ fn test_archivo_inexistente_produce_error_raw_file_not_found() {
 
 /// §10 criterio: audit() devuelve Err(DoctorError::RawNotValidJson) si el contenido no es JSON válido.
 #[test]
-#[ignore = "pendiente implementación de audit() — m01-s04"]
 fn test_json_invalido_produce_error_raw_not_valid_json() {
-    // Fixture: archivo con contenido no-JSON.
-    // TODO: crear tests/fixtures/raw_tiddlers_invalid.json con contenido: "esto no es json"
-    todo!("crear fixture raw_tiddlers_invalid.json")
+    let ruta = fixtures_dir().join("raw_tiddlers_invalid.json");
+    let resultado = audit(&ruta);
+    assert!(
+        matches!(resultado, Err(DoctorError::RawNotValidJson(_))),
+        "se esperaba RawNotValidJson, se obtuvo: {:?}",
+        resultado
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -40,33 +46,68 @@ fn test_json_invalido_produce_error_raw_not_valid_json() {
 
 /// §10 criterio: audit() devuelve Ok(DoctorReport) con verdict Ok ante artefacto estructuralmente correcto.
 #[test]
-#[ignore = "pendiente implementación de audit() — m01-s04"]
 fn test_artefacto_minimo_correcto_produce_veredicto_ok() {
-    // Fixture: tests/fixtures/raw_tiddlers_minimal.json — array con tiddlers válidos.
-    // TODO: crear fixture raw_tiddlers_minimal.json
-    todo!("crear fixture raw_tiddlers_minimal.json")
+    let ruta = fixtures_dir().join("raw_tiddlers_minimal.json");
+    let resultado = audit(&ruta).expect("audit() debería devolver Ok para fixture mínimo");
+    assert_eq!(
+        resultado.verdict,
+        DoctorVerdict::Ok,
+        "se esperaba veredicto Ok, se obtuvo: {:?}",
+        resultado.verdict
+    );
+    assert!(resultado.errors.is_empty(), "no debe haber errores: {:?}", resultado.errors);
 }
 
 /// §10 criterio: audit() devuelve Ok(DoctorReport) con verdict Warning ante título vacío.
 #[test]
-#[ignore = "pendiente implementación de audit() — m01-s04"]
 fn test_titulo_vacio_produce_veredicto_warning() {
-    // Fixture: tiddler con "title": "" — anomalía no bloqueante según §9 caso 3.
-    todo!("crear fixture con título vacío")
+    let ruta = fixtures_dir().join("raw_tiddlers_empty_title.json");
+    let resultado = audit(&ruta).expect("audit() debería devolver Ok para fixture con título vacío");
+    assert_eq!(
+        resultado.verdict,
+        DoctorVerdict::Warning,
+        "se esperaba veredicto Warning, se obtuvo: {:?}",
+        resultado.verdict
+    );
+    assert!(resultado.errors.is_empty(), "no debe haber errores bloqueantes: {:?}", resultado.errors);
+    assert!(!resultado.warnings.is_empty(), "debe haber al menos un warning");
 }
 
 /// §10 criterio: audit() devuelve Ok(DoctorReport) con verdict Error ante tiddler sin campo title.
 #[test]
-#[ignore = "pendiente implementación de audit() — m01-s04"]
 fn test_tiddler_sin_titulo_produce_veredicto_error() {
-    // Fixture: tiddler sin campo "title" — fallo de integridad estructural según §9 caso 2.
-    todo!("crear fixture con tiddler sin title")
+    let ruta = fixtures_dir().join("raw_tiddlers_no_title.json");
+    let resultado = audit(&ruta).expect("audit() debería devolver Ok incluso con errores de integridad");
+    assert_eq!(
+        resultado.verdict,
+        DoctorVerdict::Error,
+        "se esperaba veredicto Error, se obtuvo: {:?}",
+        resultado.verdict
+    );
+    assert!(!resultado.errors.is_empty(), "debe haber al menos un error de integridad");
 }
 
 /// §10 criterio: DoctorReport siempre incluye tiddler_count, warnings y errors.
 #[test]
-#[ignore = "pendiente implementación de audit() — m01-s04"]
 fn test_reporte_siempre_tiene_campos_minimos() {
-    // Verificar que DoctorReport.tiddler_count, warnings y errors están siempre presentes.
-    todo!("crear fixture mínimo y verificar estructura del reporte")
+    let ruta = fixtures_dir().join("raw_tiddlers_minimal.json");
+    let reporte = audit(&ruta).expect("audit() debería devolver Ok para fixture mínimo");
+    // tiddler_count debe ser > 0 para el fixture mínimo
+    assert!(
+        reporte.tiddler_count > 0,
+        "tiddler_count debe ser > 0 para fixture mínimo, fue {}",
+        reporte.tiddler_count
+    );
+    // warnings y errors son Vecs — siempre presentes (pueden estar vacíos)
+    // verificar que los conteos coincidan con el contenido
+    assert_eq!(
+        reporte.warnings.len(),
+        0,
+        "fixture mínimo no debe tener warnings"
+    );
+    assert_eq!(
+        reporte.errors.len(),
+        0,
+        "fixture mínimo no debe tener errors"
+    );
 }
