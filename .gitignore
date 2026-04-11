@@ -24,3 +24,9 @@ user_input*.html
 
 /rep_export_LINUXandMAC
 /.vscode
+
+# ── Pipeline S12 — artefactos runtime ────────────────────────────────────────
+# Artefactos intermedios y finales del pipeline generados en runtime
+/tmp/tdc-pipeline-run/
+# Binario Go compilado manualmente (se reconstruye con go build)
+go/ingesta/ingest

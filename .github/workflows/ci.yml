@@ -41,3 +41,29 @@ jobs:
         with:
           go-version: "1.24"
       - run: go test ./... -v -count=1
+
+  pipeline-smoke:
+    name: "Pipeline · smoke (Extractor → Doctor → Ingesta)"
+    runs-on: ubuntu-latest
+    needs: [rust-extractor, rust-doctor, go-ingesta]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: |
+            rust/extractor/target
+            rust/doctor/target
+          key: ${{ runner.os }}-rust-pipeline-${{ hashFiles('rust/extractor/Cargo.lock', 'rust/doctor/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-pipeline-
+      - name: Build Rust binaries (extract + audit)
+        run: |
+          cargo build --manifest-path rust/extractor/Cargo.toml --bin extract
+          cargo build --manifest-path rust/doctor/Cargo.toml --bin audit
+      - name: Run pipeline smoke test
+        run: bash tests/smoke/test_pipeline_smoke.sh
