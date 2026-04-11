@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test_pipeline_smoke.sh — Smoke test mínimo del pipeline Extractor → Doctor → Ingesta
+# test_pipeline_smoke.sh — Smoke test mínimo del pipeline Extractor → Doctor → Ingesta → Canon
 #
 # Ejecuta el pipeline completo sobre el fixture mínimo controlado
 # (tests/fixtures/minimal_tiddlywiki.html) y valida que cada componente
@@ -13,6 +13,7 @@
 #   1 — uno o más checks fallaron
 #
 # Ref: contratos/m01-s12-pipeline-costura.md.json
+# Ref: contratos/m01-s14-bridge-ingesta-canon.md.json
 
 set -euo pipefail
 
@@ -21,6 +22,7 @@ FIXTURE_HTML="${REPO_ROOT}/tests/fixtures/minimal_tiddlywiki.html"
 OUT_DIR="$(mktemp -d)"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"
 INGESTA_JSON="${OUT_DIR}/ingesta.tiddlers.json"
+CANON_JSON="${OUT_DIR}/canon.entries.json"
 
 PASS=0
 FAIL=0
@@ -38,7 +40,7 @@ check() {
 }
 
 echo ""
-echo "=== Smoke test: pipeline Extractor → Doctor → Ingesta ==="
+echo "=== Smoke test: pipeline Extractor → Doctor → Ingesta → Canon ==="
 echo "    Fixture: ${FIXTURE_HTML}"
 echo "    Salida:  ${OUT_DIR}"
 echo ""
@@ -96,11 +98,28 @@ check "ingesta.tiddlers.json contiene tiddlers (got ${INGESTA_COUNT})" "$([ "${I
 check "ingesta log menciona verdict=ok o verdict=warning" "$(grep -qE 'verdict=(ok|warning)' "${INGEST_LOG}" && echo true || echo false)"
 check "conteo raw == conteo ingesta (${RAW_COUNT} == ${INGESTA_COUNT})" "$([ "${RAW_COUNT}" -eq "${INGESTA_COUNT}" ] && echo true || echo false)"
 
+# ─── Paso 4: Bridge → Canon ────────────────────────────────────────────────────────────
+echo ""
+echo "--- Paso 4: Bridge → Canon ---"
+BRIDGE_LOG="${OUT_DIR}/bridge.log"
+cd "${REPO_ROOT}/go/bridge"
+go run ./cmd/admit "${INGESTA_JSON}" > "${CANON_JSON}" 2> "${BRIDGE_LOG}" \
+    || { echo "FALLO: Bridge terminó con código de error"; cat "${BRIDGE_LOG}"; exit 1; }
+
+cat "${BRIDGE_LOG}"
+
+check "canon.entries.json existe" "$([ -f "${CANON_JSON}" ] && echo true || echo false)"
+CANON_COUNT=$(python3 -c "import json; a=json.load(open('${CANON_JSON}')); print(len(a))" 2>/dev/null || echo "0")
+check "canon.entries.json contiene entries (got ${CANON_COUNT})" "$([ "${CANON_COUNT}" -gt 0 ] && echo true || echo false)"
+check "bridge log menciona input=" "$(grep -q 'input=' "${BRIDGE_LOG}" && echo true || echo false)"
+check "conteo ingesta == conteo canon (${INGESTA_COUNT} == ${CANON_COUNT})" "$([ "${INGESTA_COUNT}" -eq "${CANON_COUNT}" ] && echo true || echo false)"
+
 # ─── Resumen ──────────────────────────────────────────────────────────────────
 echo ""
 echo "=== Resumen smoke test ==="
 echo "    Extractor tiddlers raw: ${RAW_COUNT}"
 echo "    Ingesta tiddlers:       ${INGESTA_COUNT}"
+echo "    Canon entries:          ${CANON_COUNT}"
 echo "    Checks pasados: ${PASS}"
 echo "    Checks fallidos: ${FAIL}"
 echo ""
