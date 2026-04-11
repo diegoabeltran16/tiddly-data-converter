@@ -1,0 +1,26 @@
+[
+  {
+    "title": "estructura.txt",
+    "raw_fields": {
+      "title": "estructura.txt",
+      "created": "20260406000000000",
+      "modified": "20260406000000000",
+      "type": "text/plain",
+      "tags": "[[⚙️ Text]] [[estructura.txt]] [[--- Codigo]]"
+    },
+    "raw_text": "├── .gitignore\n├── contratos\n│   ├── contratos.txt\n│   └── m01-s01-extractor-contract.md\n├── data\n└── rust",
+    "source_position": "tiddler-store:144"
+  },
+  {
+    "title": "estructura.txt",
+    "raw_fields": {
+      "title": "estructura.txt",
+      "created": "20260409000000000",
+      "modified": "20260409000000000",
+      "type": "text/plain",
+      "tags": "[[⚙️ Text]] [[estructura.txt]] [[--- Codigo]]"
+    },
+    "raw_text": "├── .github\n│   └── workflows\n│       └── ci.yml\n├── .gitignore\n├── contratos\n│   ├── contratos.txt\n│   ├── m01-s01-extractor-contract.md\n│   └── m01-s07-ingesta-bootstrap.md.json\n├── data\n├── go\n│   └── ingesta\n└── rust",
+    "source_position": "tiddler-store:146"
+  }
+]
