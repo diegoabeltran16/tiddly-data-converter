@@ -7,9 +7,8 @@
 // and invokes the existing Canon bootstrap logic for admission.
 //
 // Contract reference: contratos/m01-s14-bridge-ingesta-canon.md.json
-// Ref: S13 §6 — "la conversión de ingesta.Tiddler a CanonEntry es
-//
-//	responsabilidad del Bridge o de la capa de integración."
+// Ref: S13 §6 — conversion of ingesta.Tiddler to CanonEntry is the
+// responsibility of the Bridge or the integration layer.
 package bridge
 
 import (
