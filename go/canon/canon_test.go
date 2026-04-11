@@ -1,6 +1,9 @@
 package canon_test
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/tiddly-data-converter/canon"
@@ -8,6 +11,42 @@ import (
 
 // strPtr is a test helper to create a *string from a literal.
 func strPtr(s string) *string { return &s }
+
+// fixtureRawTiddler is the minimal raw fixture shape used in Canon acceptance tests.
+type fixtureRawTiddler struct {
+	Title          string `json:"title"`
+	RawText        string `json:"raw_text"`
+	SourcePosition string `json:"source_position"`
+}
+
+func loadFixturePairAsCanonEntries(t *testing.T, fixtureFile string) (canon.CanonEntry, canon.CanonEntry) {
+	t.Helper()
+
+	path := filepath.Join("..", "..", "tests", "fixtures", fixtureFile)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read fixture %q: %v", path, err)
+	}
+
+	var items []fixtureRawTiddler
+	if err := json.Unmarshal(raw, &items); err != nil {
+		t.Fatalf("failed to parse fixture %q: %v", path, err)
+	}
+	if len(items) < 2 {
+		t.Fatalf("fixture %q has %d entries; need at least 2", path, len(items))
+	}
+
+	makeEntry := func(item fixtureRawTiddler) canon.CanonEntry {
+		return canon.CanonEntry{
+			Key:            canon.KeyOf(item.Title),
+			Title:          item.Title,
+			Text:           strPtr(item.RawText),
+			SourcePosition: strPtr(item.SourcePosition),
+		}
+	}
+
+	return makeEntry(items[0]), makeEntry(items[1])
+}
 
 // ---------------------------------------------------------------------------
 // Identity tests
@@ -71,19 +110,7 @@ func TestCanonEntry_Fields(t *testing.T) {
 // Ref: S13 §C — D1: same title + same content → collapse.
 // Ref: S11 corpus observation — LICENSE case.
 func TestClassifyCollision_D1_ExactDuplicate(t *testing.T) {
-	body := "Apache License 2.0 — minimal representative body for duplicate observation."
-	a := canon.CanonEntry{
-		Key:            canon.KeyOf("LICENSE"),
-		Title:          "LICENSE",
-		Text:           strPtr(body),
-		SourcePosition: strPtr("tiddler-store:112"),
-	}
-	b := canon.CanonEntry{
-		Key:            canon.KeyOf("LICENSE"),
-		Title:          "LICENSE",
-		Text:           strPtr(body),
-		SourcePosition: strPtr("tiddler-store:113"),
-	}
+	a, b := loadFixturePairAsCanonEntries(t, "raw_tiddlers_d1_exact_duplicate.json")
 
 	result := canon.ClassifyCollision(a, b)
 
@@ -104,23 +131,7 @@ func TestClassifyCollision_D1_ExactDuplicate(t *testing.T) {
 // Ref: S13 §C — D2: same title + different content → pending human review.
 // Ref: S11 corpus observation — estructura.txt case (3 versions).
 func TestClassifyCollision_D2_SameTitleDiffContent(t *testing.T) {
-	a := canon.CanonEntry{
-		Key:   canon.KeyOf("estructura.txt"),
-		Title: "estructura.txt",
-		Text: strPtr("├── .gitignore\n├── contratos\n│   ├── contratos.txt\n" +
-			"│   └── m01-s01-extractor-contract.md\n├── data\n└── rust"),
-		SourcePosition: strPtr("tiddler-store:144"),
-	}
-	b := canon.CanonEntry{
-		Key:   canon.KeyOf("estructura.txt"),
-		Title: "estructura.txt",
-		Text: strPtr("├── .github\n│   └── workflows\n│       └── ci.yml\n" +
-			"├── .gitignore\n├── contratos\n│   ├── contratos.txt\n" +
-			"│   ├── m01-s01-extractor-contract.md\n" +
-			"│   └── m01-s07-ingesta-bootstrap.md.json\n" +
-			"├── data\n├── go\n│   └── ingesta\n└── rust"),
-		SourcePosition: strPtr("tiddler-store:146"),
-	}
+	a, b := loadFixturePairAsCanonEntries(t, "raw_tiddlers_d2_same_title_diff_content.json")
 
 	result := canon.ClassifyCollision(a, b)
 
@@ -132,31 +143,46 @@ func TestClassifyCollision_D2_SameTitleDiffContent(t *testing.T) {
 	}
 }
 
+// TestClassifyCollision_D3_ExactContentDifferentTitle validates the D3 classification.
+//
+// Acceptance case derived from S15 fixture raw_tiddlers_d3_exact_content_diff_title.json:
+// "#### 🌀 Sesión 08 = ingesta-data-triage" and its procedencia sibling
+// share exact same body text but have different titles.
+//
+// Expected: CollisionD3, DispositionPendingSemantic.
+// Ref: S15 — D3: different title + exact same content → pending semantic review.
+// Ref: S11 corpus observation — Sesión 08 / Procedencia pair.
+func TestClassifyCollision_D3_ExactContentDifferentTitle(t *testing.T) {
+	a, b := loadFixturePairAsCanonEntries(t, "raw_tiddlers_d3_exact_content_diff_title.json")
+
+	result := canon.ClassifyCollision(a, b)
+
+	if result.Class != canon.CollisionD3 {
+		t.Errorf("expected D3, got %q (note: %s)", result.Class, result.Note)
+	}
+	if result.Disposition != canon.DispositionPendingSemantic {
+		t.Errorf("expected pending_semantic disposition, got %q", result.Disposition)
+	}
+}
+
 // TestClassifyCollision_D4_NearDuplicate validates the D4 classification.
 //
-// Acceptance case derived from S11 fixture raw_tiddlers_d4_near_duplicate.json:
-// "#### 🌀 Sesión 08 = ingesta-data-triage" and its procedencia sibling
-// shared almost identical body text (Jaccard ≈ 1.0) but had different titles.
+// Acceptance case derived from S15 fixture raw_tiddlers_d4_near_duplicate_high_similarity.json:
+// the pair has different titles and high Jaccard similarity, but not exact content equality.
 //
 // Expected: CollisionD4, DispositionPendingSemantic.
-// Ref: S13 §C — D4: different title + high similarity → pending semantic review.
-// Ref: S11 corpus observation — Sesión 08 / Procedencia pair.
 func TestClassifyCollision_D4_NearDuplicate(t *testing.T) {
-	sharedBody := "Sesión 08: ingesta-data-triage. Milestone M01. " +
-		"Objetivo: triage semántico del corpus real. " +
-		"Resultado: hallazgo I-1 truncamiento de milisegundos."
+	a, b := loadFixturePairAsCanonEntries(t, "raw_tiddlers_d4_near_duplicate_high_similarity.json")
 
-	a := canon.CanonEntry{
-		Key:            canon.KeyOf("#### 🌀 Sesión 08 = ingesta-data-triage"),
-		Title:          "#### 🌀 Sesión 08 = ingesta-data-triage",
-		Text:           strPtr(sharedBody),
-		SourcePosition: strPtr("tiddler-store:41"),
+	if a.Text == nil || b.Text == nil {
+		t.Fatalf("expected fixture texts to be present")
 	}
-	b := canon.CanonEntry{
-		Key:            canon.KeyOf("#### 🌀🧾 Procedencia de sesión 08 = ingesta-data-triage"),
-		Title:          "#### 🌀🧾 Procedencia de sesión 08 = ingesta-data-triage",
-		Text:           strPtr(sharedBody),
-		SourcePosition: strPtr("tiddler-store:61"),
+	if *a.Text == *b.Text {
+		t.Fatalf("fixture should represent near-duplicate, not exact duplicate text")
+	}
+	j := canon.JaccardWords(*a.Text, *b.Text)
+	if j < canon.D4JaccardThreshold {
+		t.Fatalf("fixture should satisfy D4 threshold >= %f, got %f", canon.D4JaccardThreshold, j)
 	}
 
 	result := canon.ClassifyCollision(a, b)
@@ -213,6 +239,16 @@ func TestClassifyCollision_Symmetry(t *testing.T) {
 			name: "D2",
 			a:    canon.CanonEntry{Key: canon.KeyOf("T"), Title: "T", Text: strPtr("content A")},
 			b:    canon.CanonEntry{Key: canon.KeyOf("T"), Title: "T", Text: strPtr("content B")},
+		},
+		{
+			name: "D3",
+			a:    canon.CanonEntry{Key: canon.KeyOf("Alpha"), Title: "Alpha", Text: strPtr("shared content")},
+			b:    canon.CanonEntry{Key: canon.KeyOf("Beta"), Title: "Beta", Text: strPtr("shared content")},
+		},
+		{
+			name: "D4",
+			a:    canon.CanonEntry{Key: canon.KeyOf("Alpha"), Title: "Alpha", Text: strPtr("shared content with alpha beta gamma tokens")},
+			b:    canon.CanonEntry{Key: canon.KeyOf("Beta"), Title: "Beta", Text: strPtr("shared content with alpha beta delta tokens")},
 		},
 		{
 			name: "NoCollision",
@@ -277,16 +313,16 @@ func TestJaccardWords_PartialOverlap(t *testing.T) {
 
 // TestJaccardWords_AboveD4Threshold confirms the D4 fixture pair exceeds the threshold.
 //
-// S11 observation: the Sesión 08 / Procedencia pair shares identical body text,
-// giving Jaccard ≈ 1.0. This test verifies the pair exceeds D4JaccardThreshold.
+// The pair comes from the S15 near-duplicate fixture where content differs
+// but overlap remains high enough to trigger D4.
 func TestJaccardWords_AboveD4Threshold(t *testing.T) {
-	sharedBody := "Sesión 08: ingesta-data-triage. Milestone M01. " +
-		"Objetivo: triage semántico del corpus real. " +
-		"Resultado: hallazgo I-1 truncamiento de milisegundos."
-
-	j := canon.JaccardWords(sharedBody, sharedBody)
+	a, b := loadFixturePairAsCanonEntries(t, "raw_tiddlers_d4_near_duplicate_high_similarity.json")
+	if a.Text == nil || b.Text == nil {
+		t.Fatalf("expected fixture texts to be present")
+	}
+	j := canon.JaccardWords(*a.Text, *b.Text)
 	if j < canon.D4JaccardThreshold {
-		t.Errorf("expected Jaccard >= %f for identical D4 fixture texts, got %f",
+		t.Errorf("expected Jaccard >= %f for near-duplicate D4 fixture texts, got %f",
 			canon.D4JaccardThreshold, j)
 	}
 }
