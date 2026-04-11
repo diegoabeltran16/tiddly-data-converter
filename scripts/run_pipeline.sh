@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_pipeline.sh — Runner mínimo del pipeline Extractor → Doctor → Ingesta
+# run_pipeline.sh — Runner mínimo del pipeline Extractor → Doctor → Ingesta → Canon
 #
 # Uso:
 #   ./scripts/run_pipeline.sh [<html_input>] [<out_dir>]
@@ -13,6 +13,7 @@
 # Salida:
 #   <out_dir>/raw.tiddlers.json     — artefacto raw del Extractor
 #   <out_dir>/ingesta.tiddlers.json — tiddlers pre-canónicos de la Ingesta
+#   <out_dir>/canon.entries.json    — entradas canónicas del Bridge
 #
 # Código de salida:
 #   0 — pipeline completo (ok o warning en algún componente)
@@ -20,8 +21,10 @@
 #   2 — fallo bloqueante en el Extractor
 #   3 — fallo bloqueante en el Doctor (incluyendo veredicto Error)
 #   4 — fallo bloqueante en la Ingesta
+#   5 — fallo bloqueante en el Bridge (admisión Canon)
 #
 # Ref: contratos/m01-s12-pipeline-costura.md.json
+# Ref: contratos/m01-s14-bridge-ingesta-canon.md.json
 
 set -euo pipefail
 
@@ -31,6 +34,7 @@ HTML_INPUT="${1:-${REPO_ROOT}/data/tiddly-data-converter (Saved).html}"
 OUT_DIR="${2:-/tmp/tdc-pipeline-run}"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"
 INGESTA_JSON="${OUT_DIR}/ingesta.tiddlers.json"
+CANON_JSON="${OUT_DIR}/canon.entries.json"
 
 mkdir -p "${OUT_DIR}"
 
@@ -78,10 +82,20 @@ go run ./cmd/ingest "${RAW_JSON}" > "${INGESTA_JSON}" \
     || { echo "[pipeline] BLOQUEADO: Ingesta falló (exit $?)"; exit 4; }
 echo "[pipeline] Ingesta completada → ${INGESTA_JSON}"
 
+
+# ─── PASO 4: Bridge → Canon ─────────────────────────────────────────────────────────────
+echo ""
+echo "[pipeline] === Paso 4 · Bridge → Canon ==="
+cd "${REPO_ROOT}/go/bridge"
+go run ./cmd/admit "${INGESTA_JSON}" > "${CANON_JSON}" \
+    || { echo "[pipeline] BLOQUEADO: Bridge falló (exit $?)"; exit 5; }
+echo "[pipeline] Bridge completado → ${CANON_JSON}"
+
 # ─── RESUMEN ──────────────────────────────────────────────────────────────────
 echo ""
 echo "[pipeline] ============================================"
 echo "[pipeline] Costura completa ✓"
 echo "[pipeline] Tiddlers raw:     $(python3 -c "import json,sys; a=json.load(open('${RAW_JSON}')); print(len(a))" 2>/dev/null || echo "?")"
 echo "[pipeline] Tiddlers ingesta: $(python3 -c "import json,sys; a=json.load(open('${INGESTA_JSON}')); print(len(a))" 2>/dev/null || echo "?")"
+echo "[pipeline] Canon entries:    $(python3 -c "import json,sys; a=json.load(open('${CANON_JSON}')); print(len(a))" 2>/dev/null || echo "?")"
 echo "[pipeline] ============================================"
