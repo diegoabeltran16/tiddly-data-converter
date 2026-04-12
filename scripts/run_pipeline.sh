@@ -14,6 +14,7 @@
 #   <out_dir>/raw.tiddlers.json     — artefacto raw del Extractor
 #   <out_dir>/ingesta.tiddlers.json — tiddlers pre-canónicos de la Ingesta
 #   <out_dir>/canon.entries.json    — entradas canónicas del Bridge
+#   <out_dir>/canon.jsonl           — salida canónica mínima JSONL (S16 bootstrap)
 #
 # Código de salida:
 #   0 — pipeline completo (ok o warning en algún componente)
@@ -22,9 +23,11 @@
 #   3 — fallo bloqueante en el Doctor (incluyendo veredicto Error)
 #   4 — fallo bloqueante en la Ingesta
 #   5 — fallo bloqueante en el Bridge (admisión Canon)
+#   6 — fallo bloqueante en la emisión Canon JSONL
 #
 # Ref: contratos/m01-s12-pipeline-costura.md.json
 # Ref: contratos/m01-s14-bridge-ingesta-canon.md.json
+# Ref: contratos/m01-s16-canon-jsonl-writer.md.json
 
 set -euo pipefail
 
@@ -35,6 +38,7 @@ OUT_DIR="${2:-/tmp/tdc-pipeline-run}"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"
 INGESTA_JSON="${OUT_DIR}/ingesta.tiddlers.json"
 CANON_JSON="${OUT_DIR}/canon.entries.json"
+CANON_JSONL="${OUT_DIR}/canon.jsonl"
 
 mkdir -p "${OUT_DIR}"
 
@@ -91,6 +95,14 @@ go run ./cmd/admit "${INGESTA_JSON}" > "${CANON_JSON}" \
     || { echo "[pipeline] BLOQUEADO: Bridge falló (exit $?)"; exit 5; }
 echo "[pipeline] Bridge completado → ${CANON_JSON}"
 
+# ─── PASO 5: Canon JSONL ──────────────────────────────────────────────────────
+echo ""
+echo "[pipeline] === Paso 5 · Canon JSONL (emisión mínima S16) ==="
+cd "${REPO_ROOT}/go/canon"
+go run ./cmd/emit "${CANON_JSON}" "${CANON_JSONL}" \
+    || { echo "[pipeline] BLOQUEADO: Canon JSONL emisión falló (exit $?)"; exit 6; }
+echo "[pipeline] Canon JSONL completado → ${CANON_JSONL}"
+
 # ─── RESUMEN ──────────────────────────────────────────────────────────────────
 echo ""
 echo "[pipeline] ============================================"
@@ -98,4 +110,5 @@ echo "[pipeline] Costura completa ✓"
 echo "[pipeline] Tiddlers raw:     $(python3 -c "import json,sys; a=json.load(open('${RAW_JSON}')); print(len(a))" 2>/dev/null || echo "?")"
 echo "[pipeline] Tiddlers ingesta: $(python3 -c "import json,sys; a=json.load(open('${INGESTA_JSON}')); print(len(a))" 2>/dev/null || echo "?")"
 echo "[pipeline] Canon entries:    $(python3 -c "import json,sys; a=json.load(open('${CANON_JSON}')); print(len(a))" 2>/dev/null || echo "?")"
+echo "[pipeline] Canon JSONL:      $(wc -l < "${CANON_JSONL}" 2>/dev/null || echo "?")"
 echo "[pipeline] ============================================"
