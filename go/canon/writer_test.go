@@ -94,10 +94,12 @@ func TestWriteJSONL_SkipsEmptyKey(t *testing.T) {
 }
 
 // TestWriteJSONL_ShapeConsistency validates that each emitted line contains
-// exactly the S13 CanonEntry fields: key, title, text (omitempty),
-// source_position (omitempty).
+// the CanonEntry core fields: key, title, text (omitempty),
+// source_position (omitempty). Optional fields created/modified are omitted
+// when nil.
 //
 // Ref: S16 §B — shape mínimo explícito.
+// Ref: S17 — shape enriched with optional created/modified.
 func TestWriteJSONL_ShapeConsistency(t *testing.T) {
 	entries := []canon.CanonEntry{
 		{Key: canon.KeyOf("WithText"), Title: "WithText", Text: strPtr("body"), SourcePosition: strPtr("pos:1")},
@@ -136,7 +138,7 @@ func TestWriteJSONL_ShapeConsistency(t *testing.T) {
 			t.Errorf("line 1: missing field %q", required)
 		}
 	}
-	for _, absent := range []string{"text", "source_position"} {
+	for _, absent := range []string{"text", "source_position", "created", "modified"} {
 		if _, ok := sparse[absent]; ok {
 			t.Errorf("line 1: field %q should be omitted (omitempty)", absent)
 		}
@@ -210,5 +212,107 @@ func TestWriteJSONL_RoundTrip(t *testing.T) {
 		if restored.Title != original[i].Title {
 			t.Errorf("line %d Title: got %q, want %q", i, restored.Title, original[i].Title)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// S17 — WriteJSONL tests with timestamps (created/modified)
+// ---------------------------------------------------------------------------
+
+// TestWriteJSONL_WithTimestamps validates that created and modified fields
+// appear in the JSONL output when present, and are omitted when nil.
+//
+// Ref: S17 — shape enrichment with created/modified.
+func TestWriteJSONL_WithTimestamps(t *testing.T) {
+	created := "20230615143052123"
+	modified := "20230615150000456"
+	entries := []canon.CanonEntry{
+		{
+			Key:      canon.KeyOf("WithTS"),
+			Title:    "WithTS",
+			Text:     strPtr("body"),
+			Created:  &created,
+			Modified: &modified,
+		},
+		{
+			Key:   canon.KeyOf("NoTS"),
+			Title: "NoTS",
+			Text:  strPtr("body"),
+		},
+	}
+
+	var buf bytes.Buffer
+	result, err := canon.WriteJSONL(&buf, entries)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+	if result.Written != 2 {
+		t.Errorf("Written: got %d, want 2", result.Written)
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d", len(lines))
+	}
+
+	// Line 0: timestamps should be present.
+	var withTS map[string]interface{}
+	if err := json.Unmarshal([]byte(lines[0]), &withTS); err != nil {
+		t.Fatalf("line 0: invalid JSON: %v", err)
+	}
+	if v, ok := withTS["created"]; !ok || v != created {
+		t.Errorf("line 0: created = %v, want %q", v, created)
+	}
+	if v, ok := withTS["modified"]; !ok || v != modified {
+		t.Errorf("line 0: modified = %v, want %q", v, modified)
+	}
+
+	// Line 1: timestamps should be omitted (omitempty).
+	var noTS map[string]interface{}
+	if err := json.Unmarshal([]byte(lines[1]), &noTS); err != nil {
+		t.Fatalf("line 1: invalid JSON: %v", err)
+	}
+	if _, ok := noTS["created"]; ok {
+		t.Error("line 1: created should be omitted (omitempty)")
+	}
+	if _, ok := noTS["modified"]; ok {
+		t.Error("line 1: modified should be omitted (omitempty)")
+	}
+}
+
+// TestWriteJSONL_RoundTrip_WithTimestamps validates that timestamps survive
+// a write-read cycle via JSONL serialization.
+//
+// Ref: S17 — round-trip evidence for enriched shape.
+func TestWriteJSONL_RoundTrip_WithTimestamps(t *testing.T) {
+	created := "20230615143052123"
+	modified := "20230615150000456"
+	original := []canon.CanonEntry{
+		{
+			Key:      canon.KeyOf("WithTS"),
+			Title:    "WithTS",
+			Text:     strPtr("body"),
+			Created:  &created,
+			Modified: &modified,
+		},
+	}
+
+	var buf bytes.Buffer
+	_, err := canon.WriteJSONL(&buf, original)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+
+	line := strings.TrimSpace(buf.String())
+	var restored canon.CanonEntry
+	if err := json.Unmarshal([]byte(line), &restored); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if restored.Created == nil || *restored.Created != created {
+		t.Errorf("Created: got %v, want %q", restored.Created, created)
+	}
+	if restored.Modified == nil || *restored.Modified != modified {
+		t.Errorf("Modified: got %v, want %q", restored.Modified, modified)
 	}
 }

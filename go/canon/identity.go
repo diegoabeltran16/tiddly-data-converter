@@ -17,11 +17,15 @@ type CanonKey string
 // CanonEntry is the minimal canonical representation of a tiddler at the
 // Canon boundary, as it arrives from the pre-canonical Ingesta layer.
 //
-// This shape is PROVISIONAL for S13. The definitive Canon JSONL schema
+// This shape is PROVISIONAL. The definitive Canon JSONL schema
 // (including UUID v5, primary_role, relations, provenance, meta blocks)
 // is defined when the Canon JSONL contract is formalized.
 //
+// S17 enrichment: Created and Modified are now carried from Ingesta when
+// available, as optional timestamp strings in TW5 format (YYYYMMDDHHmmssSSS).
+//
 // Ref: S13 §B — Identidad canónica mínima.
+// Ref: S17 — admisión canónica mínima v0 (created/modified enrichment).
 // Ref: docs/Informe_Tecnico_de_Tiddler (Esp).md — estructura mínima del nodo.
 type CanonEntry struct {
 	// Key is the canonical identity key (derived from Title via KeyOf).
@@ -35,6 +39,24 @@ type CanonEntry struct {
 
 	// SourcePosition traces back to the extraction origin for auditability.
 	SourcePosition *string `json:"source_position,omitempty"`
+
+	// Created is the tiddler creation timestamp in TW5 format (YYYYMMDDHHmmssSSS).
+	// Nil when absent in the source. Carried from Ingesta without transformation.
+	//
+	// PROVISIONAL (S17): enriches the minimal shape without defining canonical
+	// timestamp policy. The timestamp remains pre-canonical metadata.
+	// Ref: S09 — ingesta timestamp preservation policy.
+	// Ref: S17 — shape enrichment with created/modified.
+	Created *string `json:"created,omitempty"`
+
+	// Modified is the tiddler modification timestamp in TW5 format (YYYYMMDDHHmmssSSS).
+	// Nil when absent in the source. Carried from Ingesta without transformation.
+	//
+	// PROVISIONAL (S17): enriches the minimal shape without defining canonical
+	// timestamp policy. The timestamp remains pre-canonical metadata.
+	// Ref: S09 — ingesta timestamp preservation policy.
+	// Ref: S17 — shape enrichment with created/modified.
+	Modified *string `json:"modified,omitempty"`
 }
 
 // KeyOf derives the canonical key from a tiddler title.
