@@ -27,20 +27,20 @@ func (r WriteResult) Summary() string {
 // WriteJSONL serializes a batch of CanonEntry values as JSONL
 // (one JSON object per line, no trailing comma, newline-delimited).
 //
-// Each line has exactly the S13 CanonEntry shape:
+// Each line has the CanonEntry shape including optional timestamps:
 //
-//	{"key":"…","title":"…","text":"…","source_position":"…"}
+//	{"key":"…","title":"…","text":"…","source_position":"…","created":"…","modified":"…"}
 //
 // Entries with an empty Key are skipped and counted in WriteResult.Skipped.
 // The writer does NOT add fields beyond the current CanonEntry shape.
 //
-// PROVISIONAL (S16): This is the minimal bootstrap emission. The shape
-// will evolve when UUID v5 identity, primary_role, provenance, and meta
-// blocks are formalized in the Canon JSONL contract.
+// PROVISIONAL: This is the bootstrap emission. The shape will evolve when
+// UUID v5 identity, primary_role, provenance, and meta blocks are formalized
+// in the Canon JSONL contract.
 //
 // Ref: S13 §B — CanonEntry shape.
 // Ref: S16 §A — writer mínimo de canon.jsonl.
-// Ref: S16 §B — shape mínimo explícito.
+// Ref: S17 — shape enriched with created/modified.
 func WriteJSONL(w io.Writer, entries []CanonEntry) (WriteResult, error) {
 	var result WriteResult
 	for _, e := range entries {
