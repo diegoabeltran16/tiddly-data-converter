@@ -22,19 +22,37 @@ import (
 // The mapping is minimal and faithful:
 //   - Key is derived via canon.KeyOf(title) — no custom normalization.
 //   - Title, Text, SourcePosition are carried over directly.
-//   - Fields, Tags, timestamps, Type, OriginFormat are NOT carried into
-//     CanonEntry because the S13 canonical shape does not include them yet.
+//   - Created and Modified are formatted back to TW5 17-digit timestamp
+//     strings when present in the Ingesta tiddler.
+//   - Fields, Tags, Type, OriginFormat are NOT carried into
+//     CanonEntry because the canonical shape does not include them yet.
 //     They are not lost — they remain in the Ingesta artifact.
 //
 // Ref: S13 §B — CanonEntry shape.
 // Ref: S05 §5 — Tiddler shape.
+// Ref: S09 — timestamp preservation policy.
+// Ref: S17 — shape enrichment with created/modified.
 func ToCanonEntry(t ingesta.Tiddler) canon.CanonEntry {
-	return canon.CanonEntry{
+	entry := canon.CanonEntry{
 		Key:            canon.KeyOf(t.Title),
 		Title:          t.Title,
 		Text:           t.Text,
 		SourcePosition: t.SourcePosition,
 	}
+
+	// Carry timestamps when available, formatting back to TW5 17-digit string.
+	// The format is YYYYMMDDHHmmssSSS where SSS is milliseconds.
+	// Ref: S09 — Ingesta preserves TW5 milliseconds in time.Time nanoseconds.
+	if t.Created != nil {
+		s := FormatTW5Timestamp(*t.Created)
+		entry.Created = &s
+	}
+	if t.Modified != nil {
+		s := FormatTW5Timestamp(*t.Modified)
+		entry.Modified = &s
+	}
+
+	return entry
 }
 
 // ToCanonEntries converts a batch of pre-canonical ingesta.Tiddler values
