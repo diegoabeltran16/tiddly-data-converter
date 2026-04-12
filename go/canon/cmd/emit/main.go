@@ -13,15 +13,18 @@
 //   2 — error fatal al leer o parsear el archivo
 //   3 — error al escribir la salida
 //
-// Shape mínimo por línea JSONL (S16 provisional):
-//   {"key":"…","title":"…","text":"…","source_position":"…"}
+// Shape mínimo por línea JSONL (S17 provisional, enriched from S16):
+//   {"key":"…","title":"…","text":"…","source_position":"…","created":"…","modified":"…"}
 //
-// Campos deliberadamente ausentes en S16:
+// created and modified are present only when available from Ingesta (omitempty).
+//
+// Campos deliberadamente ausentes:
 //   - UUID v5 estable (deferred)
 //   - primary_role, relations, provenance, meta blocks (deferred)
 //
 // Ref: contratos/m01-s16-canon-jsonl-writer.md.json
 // Ref: S13 §B — CanonEntry shape.
+// Ref: S17 — shape enriched with created/modified.
 package main
 
 import (
