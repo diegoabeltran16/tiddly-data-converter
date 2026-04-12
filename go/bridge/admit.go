@@ -9,10 +9,19 @@ import (
 // AdmitReport summarises the result of running Canon admission on a batch
 // of CanonEntries. It provides observable counters for auditing the bridge.
 //
-// This report is PROVISIONAL for S14. A definitive CanonReport may replace
-// or extend it when the full Canon admission logic is formalized.
+// This report is PROVISIONAL — admisión canónica mínima v0.
+// A definitive CanonReport may replace or extend it when the full Canon
+// admission logic is formalized.
+//
+// The counters align with the full D1/D2/D3/D4 collision grammar:
+//   - D1: same key + same text (collapse)
+//   - D2: same key + different text (pending_review)
+//   - D3: different key + exact same text (pending_semantic)
+//   - D4: different key + high text similarity (pending_semantic)
 //
 // Ref: S13 §12 — "Admisión de corpus completo (pendiente etapa posterior)".
+// Ref: S15 — D3 acceptance class.
+// Ref: S17 — alignment with full D1/D2/D3/D4 grammar.
 type AdmitReport struct {
 	// InputCount is the number of CanonEntries submitted for admission.
 	InputCount int `json:"input_count"`
@@ -25,6 +34,11 @@ type AdmitReport struct {
 
 	// D2Count is the number of D2 collisions (same key, different content) detected.
 	D2Count int `json:"d2_count"`
+
+	// D3Count is the number of D3 collisions (different key, exact same content) detected.
+	// Ref: S15 — D3 explicit operational class.
+	// Ref: S17 — alignment with full D1/D2/D3/D4 grammar.
+	D3Count int `json:"d3_count"`
 
 	// D4Count is the number of D4 collisions (near-duplicates) detected.
 	D4Count int `json:"d4_count"`
@@ -86,6 +100,8 @@ func Admit(entries []canon.CanonEntry) *AdmitReport {
 				report.D1Count++
 			case canon.CollisionD2:
 				report.D2Count++
+			case canon.CollisionD3:
+				report.D3Count++
 			case canon.CollisionD4:
 				report.D4Count++
 			}
@@ -99,13 +115,16 @@ func Admit(entries []canon.CanonEntry) *AdmitReport {
 }
 
 // Summary returns a human-readable one-line summary of the AdmitReport.
+//
+// Ref: S17 — observable admission counters aligned with D1/D2/D3/D4.
 func (r *AdmitReport) Summary() string {
 	return fmt.Sprintf(
-		"input=%d distinct=%d d1=%d d2=%d d4=%d collisions=%d",
+		"input=%d distinct=%d d1=%d d2=%d d3=%d d4=%d collisions=%d",
 		r.InputCount,
 		r.DistinctCount,
 		r.D1Count,
 		r.D2Count,
+		r.D3Count,
 		r.D4Count,
 		len(r.Collisions),
 	)
