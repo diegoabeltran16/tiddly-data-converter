@@ -14,6 +14,7 @@
 #
 # Ref: contratos/m01-s12-pipeline-costura.md.json
 # Ref: contratos/m01-s14-bridge-ingesta-canon.md.json
+# Ref: contratos/m01-s16-canon-jsonl-writer.md.json
 
 set -euo pipefail
 
@@ -23,6 +24,7 @@ OUT_DIR="$(mktemp -d)"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"
 INGESTA_JSON="${OUT_DIR}/ingesta.tiddlers.json"
 CANON_JSON="${OUT_DIR}/canon.entries.json"
+CANON_JSONL="${OUT_DIR}/canon.jsonl"
 
 PASS=0
 FAIL=0
@@ -40,7 +42,7 @@ check() {
 }
 
 echo ""
-echo "=== Smoke test: pipeline Extractor → Doctor → Ingesta → Canon ==="
+echo "=== Smoke test: pipeline Extractor → Doctor → Ingesta → Canon → JSONL ==="
 echo "    Fixture: ${FIXTURE_HTML}"
 echo "    Salida:  ${OUT_DIR}"
 echo ""
@@ -114,12 +116,38 @@ check "canon.entries.json contiene entries (got ${CANON_COUNT})" "$([ "${CANON_C
 check "bridge log menciona input=" "$(grep -q 'input=' "${BRIDGE_LOG}" && echo true || echo false)"
 check "conteo ingesta == conteo canon (${INGESTA_COUNT} == ${CANON_COUNT})" "$([ "${INGESTA_COUNT}" -eq "${CANON_COUNT}" ] && echo true || echo false)"
 
+# ─── Paso 5: Canon JSONL ──────────────────────────────────────────────────────
+echo ""
+echo "--- Paso 5: Canon JSONL (emisión mínima S16) ---"
+EMIT_LOG="${OUT_DIR}/emit.log"
+cd "${REPO_ROOT}/go/canon"
+go run ./cmd/emit "${CANON_JSON}" "${CANON_JSONL}" 2> "${EMIT_LOG}" \
+    || { echo "FALLO: Canon JSONL emisión terminó con código de error"; cat "${EMIT_LOG}"; exit 1; }
+
+cat "${EMIT_LOG}"
+
+check "canon.jsonl existe" "$([ -f "${CANON_JSONL}" ] && echo true || echo false)"
+JSONL_LINES=$(wc -l < "${CANON_JSONL}" 2>/dev/null || echo "0")
+check "canon.jsonl contiene líneas (got ${JSONL_LINES})" "$([ "${JSONL_LINES}" -gt 0 ] && echo true || echo false)"
+check "emit log menciona written=" "$(grep -q 'written=' "${EMIT_LOG}" && echo true || echo false)"
+check "conteo canon entries == líneas JSONL (${CANON_COUNT} == ${JSONL_LINES})" "$([ "${CANON_COUNT}" -eq "${JSONL_LINES}" ] && echo true || echo false)"
+# Validate each JSONL line is valid JSON with 'key' and 'title' fields.
+JSONL_VALID="true"
+while IFS= read -r line; do
+    if ! python3 -c "import json,sys; d=json.loads(sys.argv[1]); assert 'key' in d; assert 'title' in d" "$line" 2>/dev/null; then
+        JSONL_VALID="false"
+        break
+    fi
+done < "${CANON_JSONL}"
+check "cada línea JSONL es JSON válido con key y title" "${JSONL_VALID}"
+
 # ─── Resumen ──────────────────────────────────────────────────────────────────
 echo ""
 echo "=== Resumen smoke test ==="
 echo "    Extractor tiddlers raw: ${RAW_COUNT}"
 echo "    Ingesta tiddlers:       ${INGESTA_COUNT}"
 echo "    Canon entries:          ${CANON_COUNT}"
+echo "    Canon JSONL líneas:     ${JSONL_LINES}"
 echo "    Checks pasados: ${PASS}"
 echo "    Checks fallidos: ${FAIL}"
 echo ""
