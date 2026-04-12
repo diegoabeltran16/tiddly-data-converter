@@ -26,6 +26,14 @@ const (
 	// S11 corpus case: estructura.txt appeared with 3 snapshots at different timestamps.
 	CollisionD2 CollisionClass = "D2"
 
+	// CollisionD3: different CanonKey AND same text content.
+	// Observation: exact textual equality across distinct titles/keys.
+	// Disposition: pending_semantic — exact text alone does not guarantee the
+	// same canonical entity; role/path/artifact context may differ.
+	//
+	// S15 refinement: explicit operational class for exact-content siblings.
+	CollisionD3 CollisionClass = "D3"
+
 	// CollisionD4: different CanonKey AND content similarity >= D4JaccardThreshold.
 	// Observation: distinct nodes whose text is textually near-identical.
 	// Disposition: pending_semantic — Jaccard alone does not imply semantic equivalence;
@@ -84,7 +92,12 @@ const D4JaccardThreshold = 0.85
 
 // ClassifyCollision determines the initial collision class between two CanonEntries.
 //
-// The function applies the D1/D2/D4 matrix as observed in S11.
+// The function applies the D1/D2/D3/D4 matrix for bootstrap acceptance.
+//   - D1: same key + same text
+//   - D2: same key + different text
+//   - D3: different key + same text
+//   - D4: different key + high text similarity (Jaccard >= threshold)
+//
 // It classifies collisions — it does NOT resolve them.
 // Resolution (collapse, merge, discard) requires human authority or a future
 // Canon policy that goes beyond the S13 bootstrap scope.
@@ -95,6 +108,7 @@ const D4JaccardThreshold = 0.85
 // Returns: CollisionResult with Class, Disposition and a short explanatory note.
 //
 // Ref: S13 §C — Initial collision matrix D1/D2/D4.
+// Ref: S15 — explicit D3 acceptance class.
 // Ref: S05 §9.8 — deduplication deferred to Canon.
 func ClassifyCollision(a, b CanonEntry) CollisionResult {
 	sameKey := a.Key == b.Key
@@ -121,6 +135,12 @@ func ClassifyCollision(a, b CanonEntry) CollisionResult {
 			Class:       CollisionD2,
 			Disposition: DispositionPendingReview,
 			Note:        "same key with conflicting content; human review required",
+		}
+	case !sameKey && sameText:
+		return CollisionResult{
+			Class:       CollisionD3,
+			Disposition: DispositionPendingSemantic,
+			Note:        "different keys with exact same content; semantic review required",
 		}
 	default:
 		j := JaccardWords(textA, textB)
