@@ -30,3 +30,4 @@ user_input*.html
 /tmp/tdc-pipeline-run/
 # Binario Go compilado manualmente (se reconstruye con go build)
 go/ingesta/ingest
+go/canon/emit

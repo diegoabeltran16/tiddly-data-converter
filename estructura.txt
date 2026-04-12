@@ -1,4 +1,5 @@
 ├── .github
+│   ├── dependabot.yml
 │   ├── instructions
 │   │   ├── contratos.instructions.md
 │   │   └── PRcommits.instructions.md
@@ -19,7 +20,10 @@
 │   ├── m01-s10-doctor-audit.md.json
 │   ├── m01-s11-ingesta-dedup-triage.md.json
 │   ├── m01-s12-pipeline-costura.md.json
-│   └── m01-s13-canon-bootstrap.md.json
+│   ├── m01-s13-canon-bootstrap.md.json
+│   ├── m01-s14-bridge-ingesta-canon.md.json
+│   ├── m01-s15-canon-collision-acceptance.md.json
+│   └── m01-s16-canon-jsonl-writer.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -27,26 +31,19 @@
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
-│   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.txt
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.docx
-│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.pdf
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.txt
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms oficial.docx
-│   │   ├── 03. Managing provenance data in knowledge graph management platforms.pdf
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms.txt
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.docx
-│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.pdf
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.txt
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.docx
-│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.pdf
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.txt
 │   │   ├── 06. Semantic annotation for knowledge management.docx
-│   │   ├── 06. Semantic annotation for knowledge management.pdf
 │   │   ├── 06. Semantic annotation for knowledge management.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch with equation.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
-│   │   ├── 07. Nested learning, the illusion of deep learnin arch.pdf
 │   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
 │   └── tiddlers_esp
@@ -97,7 +94,11 @@
 │       ├── #### 🌀 Sesión 11 = ingesta-dedup-triage.json
 │       ├── #### 🌀 Sesión 12 = pipeline-costura.json
 │       ├── #### 🌀 Sesión 13 = canon-bootstrap.json
+│       ├── #### 🌀 Sesión 14 = bridge-ingesta-canon.json
+│       ├── #### 🌀 Sesión 15 = canon-collision-acceptance.json
+│       ├── #### 🌀 Sesión 16 = canon-jsonl-writer.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
+│       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
 │       ├── #### 🌀📦 Registro de dependencias críticas.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
@@ -113,6 +114,9 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 11 = ingesta-dedup-triage.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 12 = pipeline-costura.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 13 = canon-bootstrap.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 14 = bridge-ingesta-canon.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 15 = canon-collision-acceptance.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 16 = canon-jsonl-writer.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
@@ -125,6 +129,9 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 11.json
 │       ├── #### 🌀🧾 Procedencia de sesión 12.json
 │       ├── #### 🌀🧾 Procedencia de sesión 13.json
+│       ├── #### 🌀🧾 Procedencia de sesión 14.json
+│       ├── #### 🌀🧾 Procedencia de sesión 15.json
+│       ├── #### 🌀🧾 Procedencia de sesión 16.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -164,10 +171,9 @@
 │       ├── contratos_m01-s09-ingesta-timestamp-policy.md.json.json
 │       ├── contratos_m01-s10-doctor-audit.md.json.json
 │       ├── contratos_m01-s11-ingesta-dedup-triage.md.json.json
+│       ├── contratos_m01-s12-pipeline-costura.md.json.json
+│       ├── contratos_m01-s13-canon-bootstrap.md.json.json
 │       ├── data_data.txt.json
-│       ├── Docs_estructura_de_commits_tiddly-data-converter.JSON.json
-│       ├── Docs_Informe_Tecnico_de_Tiddler (Esp).md.json
-│       ├── docs_tiddlers_esp_m01-s02-extractor-bootstrap.json.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
 │       ├── estructura.txt (1).json
@@ -209,8 +215,12 @@
 │       ├── github_instructions_PRcommits.instructions.md.json
 │       ├── github_workflows_ci.yml.json
 │       ├── gitignore.json
+│       ├── go_canon_canon_test.go.json
+│       ├── go_canon_collision.go.json
+│       ├── go_canon_identity.go.json
 │       ├── go_go.txt copy.json
 │       ├── go_go.txt.json
+│       ├── go_ingesta_cmd_ingest_main.go.json
 │       ├── go_ingesta_error.go.json
 │       ├── go_ingesta_ingest.go.json
 │       ├── go_ingesta_ingest_test.go.json
@@ -230,7 +240,6 @@
 │       ├── packaging_packaging.txt copy.json
 │       ├── packaging_packaging.txt.json
 │       ├── plantilla_esp
-│       │   └── Plantilla(Estudiar topico)(Esp).html
 │       ├── preliminaries equations.json
 │       ├── python_python.txt copy.json
 │       ├── python_python.txt.json
@@ -239,6 +248,7 @@
 │       ├── runtime_runtime.txt copy.json
 │       ├── runtime_runtime.txt.json
 │       ├── rust_doctor_Cargo.toml.json
+│       ├── rust_doctor_src_bin_audit.rs.json
 │       ├── rust_doctor_src_error.rs.json
 │       ├── rust_doctor_src_lib.rs.json
 │       ├── rust_doctor_src_report.rs.json
@@ -281,6 +291,7 @@
 │       ├── rust_doctor_tests_test_doctor.rs.json
 │       ├── rust_extractor_Cargo.toml copy.json
 │       ├── rust_extractor_Cargo.toml.json
+│       ├── rust_extractor_src_bin_extract.rs.json
 │       ├── rust_extractor_src_error.rs copy.json
 │       ├── rust_extractor_src_error.rs.json
 │       ├── rust_extractor_src_lib.rs copy.json
@@ -365,6 +376,7 @@
 │       ├── rust_rust.txt copy.json
 │       ├── rust_rust.txt.json
 │       ├── scripts_pick_and_place.sh.json
+│       ├── scripts_run_pipeline.sh.json
 │       ├── scripts_scripts.txt copy.json
 │       ├── scripts_scripts.txt.json
 │       ├── scripts_tiddlers_to_jsonl.py.json
@@ -391,6 +403,7 @@
 │       ├── tests_fixtures_raw_tiddlers_timestamp_ms_from_data.json.json
 │       ├── tests_fixtures_README.md copy.json
 │       ├── tests_fixtures_README.md.json
+│       ├── tests_smoke_test_pipeline_smoke.sh.json
 │       ├── tests_test.txt copy.json
 │       ├── tests_test.txt.json
 │       ├── tiddlers_esp(.md)
@@ -409,11 +422,24 @@
 │   └── esquemas.txt
 ├── estructura.txt
 ├── go
+│   ├── bridge
+│   │   ├── admit.go
+│   │   ├── bridge.go
+│   │   ├── bridge_test.go
+│   │   ├── cmd
+│   │   │   └── admit
+│   │   │       └── main.go
+│   │   └── go.mod
 │   ├── canon
 │   │   ├── canon_test.go
+│   │   ├── cmd
+│   │   │   └── emit
+│   │   │       └── main.go
 │   │   ├── collision.go
 │   │   ├── go.mod
-│   │   └── identity.go
+│   │   ├── identity.go
+│   │   ├── writer.go
+│   │   └── writer_test.go
 │   ├── go.txt
 │   └── ingesta
 │       ├── cmd
@@ -470,7 +496,9 @@
     │   ├── minimal_tiddlywiki.html
     │   ├── raw_tiddlers_d1_exact_duplicate.json
     │   ├── raw_tiddlers_d2_same_title_diff_content.json
+    │   ├── raw_tiddlers_d3_exact_content_diff_title.json
     │   ├── raw_tiddlers_d4_near_duplicate.json
+    │   ├── raw_tiddlers_d4_near_duplicate_high_similarity.json
     │   ├── raw_tiddlers_empty_title.json
     │   ├── raw_tiddlers_invalid.json
     │   ├── raw_tiddlers_minimal.json
@@ -480,3 +508,8 @@
     ├── smoke
     │   └── test_pipeline_smoke.sh
     └── test.txt
+
+# Nota: se han excluido de esta vista los artefactos de build (target/),
+# caches (__pycache__), metadatos de Windows (*:Zone.Identifier),
+# copias de exportación (rep_export_*) y archivos temporales como
+# "tiddly-data-converter (Saved).html" para mantener la estructura mínima.

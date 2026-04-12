@@ -1,0 +1,85 @@
+# Dependabot — tiddly-data-converter
+# Ecosistemas: Cargo (Rust), Go modules, GitHub Actions
+# Política: actualizaciones semanales, agrupadas por tipo,
+#           límite conservador de PRs abiertas para reducir ruido.
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+
+  # ── Rust · extractor ─────────────────────────────────────
+  - package-ecosystem: "cargo"
+    directory: "/rust/extractor"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      rust-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── Rust · doctor ────────────────────────────────────────
+  - package-ecosystem: "cargo"
+    directory: "/rust/doctor"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      rust-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── Go · ingesta ─────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/go/ingesta"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── Go · canon ───────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/go/canon"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── Go · bridge ──────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/go/bridge"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ── GitHub Actions ───────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
