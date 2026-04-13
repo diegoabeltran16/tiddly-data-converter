@@ -23,7 +23,9 @@
 │   ├── m01-s13-canon-bootstrap.md.json
 │   ├── m01-s14-bridge-ingesta-canon.md.json
 │   ├── m01-s15-canon-collision-acceptance.md.json
-│   └── m01-s16-canon-jsonl-writer.md.json
+│   ├── m01-s16-canon-jsonl-writer.md.json
+│   ├── m01-s17-canon-admit-v0.md.json
+│   └── m01-s17-post-merge-actions-verification.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -31,16 +33,22 @@
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
+│   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.txt
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.docx
+│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.pdf
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.txt
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms oficial.docx
+│   │   ├── 03. Managing provenance data in knowledge graph management platforms.pdf
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms.txt
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.docx
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.pdf
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.txt
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.docx
+│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.pdf
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.txt
 │   │   ├── 06. Semantic annotation for knowledge management.docx
+│   │   ├── 06. Semantic annotation for knowledge management.pdf
 │   │   ├── 06. Semantic annotation for knowledge management.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch with equation.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
@@ -97,6 +105,7 @@
 │       ├── #### 🌀 Sesión 14 = bridge-ingesta-canon.json
 │       ├── #### 🌀 Sesión 15 = canon-collision-acceptance.json
 │       ├── #### 🌀 Sesión 16 = canon-jsonl-writer.json
+│       ├── #### 🌀 Sesión 17 = canon-admit-v0.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -117,6 +126,7 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 14 = bridge-ingesta-canon.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 15 = canon-collision-acceptance.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 16 = canon-jsonl-writer.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 17 = canon-admit-v0.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
@@ -132,6 +142,7 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 14.json
 │       ├── #### 🌀🧾 Procedencia de sesión 15.json
 │       ├── #### 🌀🧾 Procedencia de sesión 16.json
+│       ├── #### 🌀🧾 Procedencia de sesión 17.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -173,6 +184,9 @@
 │       ├── contratos_m01-s11-ingesta-dedup-triage.md.json.json
 │       ├── contratos_m01-s12-pipeline-costura.md.json.json
 │       ├── contratos_m01-s13-canon-bootstrap.md.json.json
+│       ├── contratos_m01-s14-bridge-ingesta-canon.md.json.json
+│       ├── contratos_m01-s15-canon-collision-acceptance.md.json.json
+│       ├── contratos_m01-s16-canon-jsonl-writer.md.json.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
@@ -211,13 +225,21 @@
 │       ├── Figure 7_ The effect of memory levels on the in-context learning performance of the model in (Left) MK-NIAH of RULER (Hsieh et al. 2024), (Middle) LongHealth (Adams et al. 2025), (Right) QASPER (Dasigi et al. 2021.json
 │       ├── Figure 8_ ContinualTranslationofaNovel Language(CTNL) task.json
 │       ├── Figure 9 _BABILongBenchmark.Redpoints aretheresultsoffine-tunedmodels,andBlue pointsarethelargemodels’zero-shotresults.json
+│       ├── github_dependabot.yml.json
 │       ├── github_instructions_contratos.instructions.md.json
 │       ├── github_instructions_PRcommits.instructions.md.json
 │       ├── github_workflows_ci.yml.json
 │       ├── gitignore.json
+│       ├── go_bridge_admit.go.json
+│       ├── go_bridge_bridge.go.json
+│       ├── go_bridge_bridge_test.go.json
+│       ├── go_bridge_cmd_admit_main.go.json
 │       ├── go_canon_canon_test.go.json
+│       ├── go_canon_cmd_emit_main.go.json
 │       ├── go_canon_collision.go.json
 │       ├── go_canon_identity.go.json
+│       ├── go_canon_writer.go.json
+│       ├── go_canon_writer_test.go.json
 │       ├── go_go.txt copy.json
 │       ├── go_go.txt.json
 │       ├── go_ingesta_cmd_ingest_main.go.json
@@ -395,7 +417,9 @@
 │       ├── tests_fixtures_minimal_tiddlywiki.html.json
 │       ├── tests_fixtures_raw_tiddlers_d1_exact_duplicate.json.json
 │       ├── tests_fixtures_raw_tiddlers_d2_same_title_diff_content.json.json
+│       ├── tests_fixtures_raw_tiddlers_d3_exact_content_diff_title.json.json
 │       ├── tests_fixtures_raw_tiddlers_d4_near_duplicate.json.json
+│       ├── tests_fixtures_raw_tiddlers_d4_near_duplicate_high_similarity.json.json
 │       ├── tests_fixtures_raw_tiddlers_empty_title.json.json
 │       ├── tests_fixtures_raw_tiddlers_invalid.json.json
 │       ├── tests_fixtures_raw_tiddlers_minimal.json.json
@@ -429,7 +453,8 @@
 │   │   ├── cmd
 │   │   │   └── admit
 │   │   │       └── main.go
-│   │   └── go.mod
+│   │   ├── go.mod
+│   │   └── timestamp.go
 │   ├── canon
 │   │   ├── canon_test.go
 │   │   ├── cmd
