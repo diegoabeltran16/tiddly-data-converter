@@ -1,0 +1,7 @@
+{"schema_version":"v0","key":"","title":"MissingKey"}
+{"schema_version":"v0","key":"HasKey","title":""}
+{"schema_version":"v0","key":"","title":""}
+{"schema_version":"v99","key":"BadVersion","title":"BadVersion"}
+{"schema_version":"v1","key":"WrongV1","title":"WrongV1"}
+{"schema_version":"V0","key":"CaseSensitive","title":"CaseSensitive"}
+{not valid json at all

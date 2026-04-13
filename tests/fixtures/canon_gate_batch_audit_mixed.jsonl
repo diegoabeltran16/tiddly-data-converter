@@ -1,0 +1,10 @@
+{"schema_version":"v0","key":"Alpha","title":"Alpha","text":"body alpha","source_position":"tiddler-store:1","created":"20230615143052123","modified":"20230615150000456"}
+{"schema_version":"v0","key":"","title":"NoKey","text":"has body but no key"}
+{"schema_version":"v0","key":"Beta","title":"Beta"}
+{"schema_version":"v0","key":"Gamma","title":"","text":"has key but no title"}
+{"schema_version":"v99","key":"BadVer","title":"BadVer","text":"wrong schema version"}
+{"schema_version":"v0","key":"Delta","title":"Delta","text":"body delta","created":"20260101000000000"}
+{"key":"","title":""}
+{"schema_version":"v0","key":"#### 🌀 Sesión 08 = ingesta-data-triage","title":"#### 🌀 Sesión 08 = ingesta-data-triage","text":"unicode title entry"}
+{"schema_version":"V0","key":"CaseBad","title":"CaseBad","text":"uppercase V schema"}
+{"schema_version":"v0","key":"Epsilon","title":"Epsilon","text":"last valid entry"}

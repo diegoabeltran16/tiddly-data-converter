@@ -26,7 +26,14 @@
 │   ├── m01-s16-canon-jsonl-writer.md.json
 │   ├── m01-s17-canon-admit-v0.md.json
 │   ├── m01-s17-post-merge-actions-verification.md.json
-│   └── m01-s18-canon-schema-v0.md.json
+│   ├── m01-s18-canon-schema-v0.md.json
+│   ├── m02-s19-canon-jsonl-gate-v0.md.json
+│   ├── m02-s20-canon-gate-e2e-smoke.md.json
+│   ├── m02-s21-canon-gate-acceptance-matrix.md.json
+│   ├── m02-s22-canon-gate-batch-audit-v0.md.json
+│   ├── m02-s23-canon-gate-batch-report-v0.md.json
+│   ├── m02-s24-canon-gate-batch-emit-v0.md.json
+│   └── m02-s24-canon-gate-verdict-v0.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -102,6 +109,12 @@
 │       ├── #### 🌀 Sesión 16 = canon-jsonl-writer.json
 │       ├── #### 🌀 Sesión 17 = canon-admit-v0.json
 │       ├── #### 🌀 Sesión 18 = canon-schema-v0.json
+│       ├── #### 🌀 Sesión 19 = canon-jsonl-gate-v0.json
+│       ├── #### 🌀 Sesión 20 = canon-gate-e2e-smoke.json
+│       ├── #### 🌀 Sesión 21 = canon-gate-acceptance-matrix.json
+│       ├── #### 🌀 Sesión 22 = canon-gate-ci-integration.json
+│       ├── #### 🌀 Sesión 23 = canon-gate-docs.json
+│       ├── #### 🌀 Sesión 24 = canon-gate-ci-integration.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -114,7 +127,7 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 06 = ingesta-go-env-wsl.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 07 = ingesta-bootstrap.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 08 = ingesta-data-triage.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 09.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 09 = ingesta-timestamp-policy.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 10 = doctor-audit.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 11 = ingesta-dedup-triage.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 12 = pipeline-costura.json
@@ -124,9 +137,15 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 16 = canon-jsonl-writer.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 17 = canon-admit-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 18 = canon-schema-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 19 = canon-jsonl-gate-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 20 = canon-gate-e2e-smoke.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 21 = canon-gate-acceptance-matrix.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 22 = canon-gate-ci-integration.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 24 = canon-gate-ci-integration.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
-│       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
+│       ├── #### 🌀🧾 Procedencia de sesión 04.json
 │       ├── #### 🌀🧾 Procedencia de sesión 05.json
 │       ├── #### 🌀🧾 Procedencia de sesión 06.json
 │       ├── #### 🌀🧾 Procedencia de sesión 07.json
@@ -141,6 +160,12 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 16.json
 │       ├── #### 🌀🧾 Procedencia de sesión 17.json
 │       ├── #### 🌀🧾 Procedencia de sesión 18.json
+│       ├── #### 🌀🧾 Procedencia de sesión 19.json
+│       ├── #### 🌀🧾 Procedencia de sesión 20.json
+│       ├── #### 🌀🧾 Procedencia de sesión 21.json
+│       ├── #### 🌀🧾 Procedencia de sesión 22.json
+│       ├── #### 🌀🧾 Procedencia de sesión 23.json
+│       ├── #### 🌀🧾 Procedencia de sesión 24.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -187,6 +212,7 @@
 │       ├── contratos_m01-s16-canon-jsonl-writer.md.json.json
 │       ├── contratos_m01-s17-canon-admit-v0.md.json.json
 │       ├── contratos_m01-s17-post-merge-actions-verification.md.json.json
+│       ├── contratos_m01-s18-canon-schema-v0.md.json.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
@@ -239,6 +265,8 @@
 │       ├── go_canon_cmd_emit_main.go.json
 │       ├── go_canon_collision.go.json
 │       ├── go_canon_identity.go.json
+│       ├── go_canon_schema.go.json
+│       ├── go_canon_schema_test.go.json
 │       ├── go_canon_writer.go.json
 │       ├── go_canon_writer_test.go.json
 │       ├── go_go.txt copy.json
@@ -455,17 +483,27 @@
 │   │   │   └── admit
 │   │   │       └── main.go
 │   │   ├── go.mod
+│   │   ├── smoke_e2e_test.go
 │   │   └── timestamp.go
 │   ├── canon
+│   │   ├── batch_audit.go
+│   │   ├── batch_audit_test.go
+│   │   ├── batch_emit.go
+│   │   ├── batch_emit_test.go
+│   │   ├── batch_report.go
+│   │   ├── batch_report_test.go
 │   │   ├── canon_test.go
 │   │   ├── cmd
 │   │   │   └── emit
 │   │   │       └── main.go
 │   │   ├── collision.go
+│   │   ├── gate_acceptance_test.go
 │   │   ├── go.mod
 │   │   ├── identity.go
 │   │   ├── schema.go
 │   │   ├── schema_test.go
+│   │   ├── verdict.go
+│   │   ├── verdict_test.go
 │   │   ├── writer.go
 │   │   └── writer_test.go
 │   ├── go.txt
@@ -521,6 +559,9 @@
 │   └── tiddlers_to_jsonl.py
 └── tests
     ├── fixtures
+    │   ├── canon_gate_accept.jsonl
+    │   ├── canon_gate_batch_audit_mixed.jsonl
+    │   ├── canon_gate_reject.jsonl
     │   ├── minimal_tiddlywiki.html
     │   ├── raw_tiddlers_d1_exact_duplicate.json
     │   ├── raw_tiddlers_d2_same_title_diff_content.json
@@ -531,6 +572,7 @@
     │   ├── raw_tiddlers_invalid.json
     │   ├── raw_tiddlers_minimal.json
     │   ├── raw_tiddlers_no_title.json
+    │   ├── raw_tiddlers_smoke_e2e.json
     │   ├── raw_tiddlers_timestamp_ms_from_data.json
     │   └── README.md
     ├── smoke

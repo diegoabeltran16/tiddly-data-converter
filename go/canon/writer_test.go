@@ -281,6 +281,223 @@ func TestWriteJSONL_WithTimestamps(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// S19 — WriteJSONL validation gate tests
+// ---------------------------------------------------------------------------
+
+// TestWriteJSONL_Gate_RejectsEmptyTitle validates that the S19 gate blocks
+// entries with a non-empty Key but empty Title from being emitted.
+//
+// Before S19, an entry with Key="x" and Title="" would pass the simple
+// empty-key check and be emitted as a structurally invalid line.
+// The gate now invokes ValidateEntryV0, which rejects empty Title.
+//
+// Ref: S19 — compuerta activa de validación antes de emisión.
+func TestWriteJSONL_Gate_RejectsEmptyTitle(t *testing.T) {
+	entries := []canon.CanonEntry{
+		{Key: canon.KeyOf("Valid"), Title: "Valid", Text: strPtr("ok")},
+		{Key: canon.KeyOf("NoTitle"), Title: ""},
+		{Key: canon.KeyOf("AlsoValid"), Title: "AlsoValid"},
+	}
+
+	var buf bytes.Buffer
+	result, err := canon.WriteJSONL(&buf, entries)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+	if result.Written != 2 {
+		t.Errorf("Written: got %d, want 2", result.Written)
+	}
+	if result.Skipped != 1 {
+		t.Errorf("Skipped: got %d, want 1", result.Skipped)
+	}
+	if len(result.ValidationErrors) != 1 {
+		t.Fatalf("ValidationErrors: got %d, want 1", len(result.ValidationErrors))
+	}
+	if !strings.Contains(result.ValidationErrors[0], "title") {
+		t.Errorf("ValidationErrors[0] should mention 'title': %s", result.ValidationErrors[0])
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 JSONL lines, got %d", len(lines))
+	}
+}
+
+// TestWriteJSONL_Gate_RejectsWrongSchemaVersion validates that the gate
+// blocks entries with an explicitly wrong schema_version from being emitted.
+//
+// Ref: S19 — compuerta activa: wrong schema_version is a gate violation.
+func TestWriteJSONL_Gate_RejectsWrongSchemaVersion(t *testing.T) {
+	entries := []canon.CanonEntry{
+		{SchemaVersion: "v99", Key: canon.KeyOf("Bad"), Title: "Bad", Text: strPtr("body")},
+		{Key: canon.KeyOf("Good"), Title: "Good", Text: strPtr("ok")},
+	}
+
+	var buf bytes.Buffer
+	result, err := canon.WriteJSONL(&buf, entries)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+	if result.Written != 1 {
+		t.Errorf("Written: got %d, want 1", result.Written)
+	}
+	if result.Skipped != 1 {
+		t.Errorf("Skipped: got %d, want 1", result.Skipped)
+	}
+	if len(result.ValidationErrors) != 1 {
+		t.Fatalf("ValidationErrors: got %d, want 1", len(result.ValidationErrors))
+	}
+	if !strings.Contains(result.ValidationErrors[0], "schema_version") {
+		t.Errorf("ValidationErrors[0] should mention 'schema_version': %s", result.ValidationErrors[0])
+	}
+
+	line := strings.TrimSpace(buf.String())
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(line), &parsed); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if parsed["title"] != "Good" {
+		t.Errorf("emitted entry should be 'Good', got %v", parsed["title"])
+	}
+}
+
+// TestWriteJSONL_Gate_RejectsAllInvalid validates that a batch where every
+// entry is invalid produces zero output and all entries are rejected.
+//
+// Ref: S19 — gate blocks all structurally invalid entries.
+func TestWriteJSONL_Gate_RejectsAllInvalid(t *testing.T) {
+	entries := []canon.CanonEntry{
+		{Key: "", Title: ""},
+		{Key: "", Title: "OnlyTitle"},
+		{Key: canon.KeyOf("OnlyKey"), Title: ""},
+	}
+
+	var buf bytes.Buffer
+	result, err := canon.WriteJSONL(&buf, entries)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+	if result.Written != 0 {
+		t.Errorf("Written: got %d, want 0", result.Written)
+	}
+	if result.Skipped != 3 {
+		t.Errorf("Skipped: got %d, want 3", result.Skipped)
+	}
+	if len(result.ValidationErrors) != 3 {
+		t.Errorf("ValidationErrors: got %d, want 3", len(result.ValidationErrors))
+	}
+	if buf.Len() != 0 {
+		t.Errorf("expected empty output for all-invalid batch, got %q", buf.String())
+	}
+}
+
+// TestWriteJSONL_Gate_MixedBatch validates the gate with a realistic mixed
+// batch containing valid, empty-key, empty-title and wrong-version entries.
+//
+// Ref: S19 — compuerta activa observable en batch mixto.
+func TestWriteJSONL_Gate_MixedBatch(t *testing.T) {
+	entries := []canon.CanonEntry{
+		{Key: canon.KeyOf("A"), Title: "A", Text: strPtr("ok")},     // valid
+		{Key: "", Title: ""},                                          // invalid: empty key+title
+		{Key: canon.KeyOf("C"), Title: "C"},                          // valid
+		{Key: canon.KeyOf("D"), Title: ""},                           // invalid: empty title
+		{SchemaVersion: "v2", Key: canon.KeyOf("E"), Title: "E"},     // invalid: wrong version
+		{Key: canon.KeyOf("F"), Title: "F", Text: strPtr("also ok")}, // valid
+	}
+
+	var buf bytes.Buffer
+	result, err := canon.WriteJSONL(&buf, entries)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+	if result.Written != 3 {
+		t.Errorf("Written: got %d, want 3", result.Written)
+	}
+	if result.Skipped != 3 {
+		t.Errorf("Skipped: got %d, want 3", result.Skipped)
+	}
+	if len(result.ValidationErrors) != 3 {
+		t.Errorf("ValidationErrors: got %d, want 3", len(result.ValidationErrors))
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 JSONL lines, got %d", len(lines))
+	}
+
+	// Verify only valid entries were emitted, in order.
+	wantTitles := []string{"A", "C", "F"}
+	for i, line := range lines {
+		var ce canon.CanonEntry
+		if err := json.Unmarshal([]byte(line), &ce); err != nil {
+			t.Errorf("line %d: invalid JSON: %v", i, err)
+			continue
+		}
+		if ce.Title != wantTitles[i] {
+			t.Errorf("line %d: title = %q, want %q", i, ce.Title, wantTitles[i])
+		}
+		if ce.SchemaVersion != canon.SchemaV0 {
+			t.Errorf("line %d: schema_version = %q, want %q", i, ce.SchemaVersion, canon.SchemaV0)
+		}
+	}
+}
+
+// TestWriteJSONL_Gate_ValidationErrorsHaveContext validates that each
+// validation error message contains enough context to identify the failing
+// entry: its index and the specific field violation.
+//
+// Ref: S19 — observabilidad mínima de errores de validación.
+func TestWriteJSONL_Gate_ValidationErrorsHaveContext(t *testing.T) {
+	entries := []canon.CanonEntry{
+		{Key: canon.KeyOf("Ok"), Title: "Ok"},
+		{Key: "", Title: "NoKey"},
+		{Key: canon.KeyOf("NoTitle"), Title: ""},
+	}
+
+	var buf bytes.Buffer
+	result, err := canon.WriteJSONL(&buf, entries)
+	if err != nil {
+		t.Fatalf("WriteJSONL: unexpected error: %v", err)
+	}
+	if len(result.ValidationErrors) != 2 {
+		t.Fatalf("ValidationErrors: got %d, want 2", len(result.ValidationErrors))
+	}
+
+	// Error for entry[1] should mention index and "key".
+	if !strings.Contains(result.ValidationErrors[0], "entry[1]") {
+		t.Errorf("error[0] should contain 'entry[1]': %s", result.ValidationErrors[0])
+	}
+	if !strings.Contains(result.ValidationErrors[0], "key") {
+		t.Errorf("error[0] should mention 'key': %s", result.ValidationErrors[0])
+	}
+
+	// Error for entry[2] should mention index and "title".
+	if !strings.Contains(result.ValidationErrors[1], "entry[2]") {
+		t.Errorf("error[1] should contain 'entry[2]': %s", result.ValidationErrors[1])
+	}
+	if !strings.Contains(result.ValidationErrors[1], "title") {
+		t.Errorf("error[1] should mention 'title': %s", result.ValidationErrors[1])
+	}
+}
+
+// TestWriteResult_Summary_WithErrors validates the summary format when
+// validation errors are present.
+//
+// Ref: S19 — observabilidad mínima.
+func TestWriteResult_Summary_WithErrors(t *testing.T) {
+	r := canon.WriteResult{
+		Written:          3,
+		Skipped:          2,
+		ValidationErrors: []string{"err1", "err2"},
+	}
+	got := r.Summary()
+	want := "written=3 skipped=2 validation_errors=2"
+	if got != want {
+		t.Errorf("Summary: got %q, want %q", got, want)
+	}
+}
+
 // TestWriteJSONL_RoundTrip_WithTimestamps validates that timestamps survive
 // a write-read cycle via JSONL serialization.
 //
