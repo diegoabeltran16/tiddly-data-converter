@@ -13,9 +13,10 @@
 //   2 — error fatal al leer o parsear el archivo
 //   3 — error al escribir la salida
 //
-// Shape mínimo por línea JSONL (S17 provisional, enriched from S16):
-//   {"key":"…","title":"…","text":"…","source_position":"…","created":"…","modified":"…"}
+// Schema v0 shape per JSONL line (S18):
+//   {"schema_version":"v0","key":"…","title":"…","text":"…","source_position":"…","created":"…","modified":"…"}
 //
+// schema_version is stamped by the writer on every emitted line.
 // created and modified are present only when available from Ingesta (omitempty).
 //
 // Campos deliberadamente ausentes:
@@ -23,8 +24,10 @@
 //   - primary_role, relations, provenance, meta blocks (deferred)
 //
 // Ref: contratos/m01-s16-canon-jsonl-writer.md.json
+// Ref: contratos/m01-s18-canon-schema-v0.md.json
 // Ref: S13 §B — CanonEntry shape.
 // Ref: S17 — shape enriched with created/modified.
+// Ref: S18 — schema v0 explícito.
 package main
 
 import (

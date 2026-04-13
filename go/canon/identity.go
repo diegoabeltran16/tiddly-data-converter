@@ -17,17 +17,26 @@ type CanonKey string
 // CanonEntry is the minimal canonical representation of a tiddler at the
 // Canon boundary, as it arrives from the pre-canonical Ingesta layer.
 //
-// This shape is PROVISIONAL. The definitive Canon JSONL schema
-// (including UUID v5, primary_role, relations, provenance, meta blocks)
-// is defined when the Canon JSONL contract is formalized.
+// Schema v0 (S18): the shape is now explicitly declared and validated.
+// See SchemaV0 constant and ValidateEntryV0 for the formal contract.
+//
+// The definitive Canon JSONL schema (including UUID v5, primary_role,
+// relations, provenance, meta blocks) is deferred to future sessions.
 //
 // S17 enrichment: Created and Modified are now carried from Ingesta when
 // available, as optional timestamp strings in TW5 format (YYYYMMDDHHmmssSSS).
 //
 // Ref: S13 §B — Identidad canónica mínima.
 // Ref: S17 — admisión canónica mínima v0 (created/modified enrichment).
+// Ref: S18 — schema v0 explícito para canon.jsonl.
 // Ref: docs/Informe_Tecnico_de_Tiddler (Esp).md — estructura mínima del nodo.
 type CanonEntry struct {
+	// SchemaVersion identifies the schema that governs this entry's shape.
+	// Set by the writer at emission time; not populated by upstream stages.
+	//
+	// Ref: S18 — schema v0 explícito.
+	SchemaVersion string `json:"schema_version,omitempty"`
+
 	// Key is the canonical identity key (derived from Title via KeyOf).
 	Key CanonKey `json:"key"`
 

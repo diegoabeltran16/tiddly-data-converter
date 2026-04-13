@@ -131,15 +131,15 @@ JSONL_LINES=$(wc -l < "${CANON_JSONL}" 2>/dev/null || echo "0")
 check "canon.jsonl contiene líneas (got ${JSONL_LINES})" "$([ "${JSONL_LINES}" -gt 0 ] && echo true || echo false)"
 check "emit log menciona written=" "$(grep -q 'written=' "${EMIT_LOG}" && echo true || echo false)"
 check "conteo canon entries == líneas JSONL (${CANON_COUNT} == ${JSONL_LINES})" "$([ "${CANON_COUNT}" -eq "${JSONL_LINES}" ] && echo true || echo false)"
-# Validate each JSONL line is valid JSON with 'key' and 'title' fields.
+# Validate each JSONL line is valid JSON with 'schema_version', 'key' and 'title' fields.
 JSONL_VALID="true"
 while IFS= read -r line; do
-    if ! python3 -c "import json,sys; d=json.loads(sys.argv[1]); assert 'key' in d; assert 'title' in d" "$line" 2>/dev/null; then
+    if ! python3 -c "import json,sys; d=json.loads(sys.argv[1]); assert d.get('schema_version')=='v0'; assert 'key' in d; assert 'title' in d" "$line" 2>/dev/null; then
         JSONL_VALID="false"
         break
     fi
 done < "${CANON_JSONL}"
-check "cada línea JSONL es JSON válido con key y title" "${JSONL_VALID}"
+check "cada línea JSONL es JSON válido con schema_version=v0, key y title" "${JSONL_VALID}"
 
 # ─── Resumen ──────────────────────────────────────────────────────────────────
 echo ""
