@@ -94,12 +94,13 @@ func TestWriteJSONL_SkipsEmptyKey(t *testing.T) {
 }
 
 // TestWriteJSONL_ShapeConsistency validates that each emitted line contains
-// the CanonEntry core fields: key, title, text (omitempty),
+// the CanonEntry core fields: schema_version, key, title, text (omitempty),
 // source_position (omitempty). Optional fields created/modified are omitted
 // when nil.
 //
 // Ref: S16 §B — shape mínimo explícito.
 // Ref: S17 — shape enriched with optional created/modified.
+// Ref: S18 — schema v0 with schema_version field.
 func TestWriteJSONL_ShapeConsistency(t *testing.T) {
 	entries := []canon.CanonEntry{
 		{Key: canon.KeyOf("WithText"), Title: "WithText", Text: strPtr("body"), SourcePosition: strPtr("pos:1")},
@@ -122,7 +123,7 @@ func TestWriteJSONL_ShapeConsistency(t *testing.T) {
 	if err := json.Unmarshal([]byte(lines[0]), &full); err != nil {
 		t.Fatalf("line 0: invalid JSON: %v", err)
 	}
-	for _, required := range []string{"key", "title", "text", "source_position"} {
+	for _, required := range []string{"schema_version", "key", "title", "text", "source_position"} {
 		if _, ok := full[required]; !ok {
 			t.Errorf("line 0: missing field %q", required)
 		}
@@ -133,7 +134,7 @@ func TestWriteJSONL_ShapeConsistency(t *testing.T) {
 	if err := json.Unmarshal([]byte(lines[1]), &sparse); err != nil {
 		t.Fatalf("line 1: invalid JSON: %v", err)
 	}
-	for _, required := range []string{"key", "title"} {
+	for _, required := range []string{"schema_version", "key", "title"} {
 		if _, ok := sparse[required]; !ok {
 			t.Errorf("line 1: missing field %q", required)
 		}
