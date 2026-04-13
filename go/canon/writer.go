@@ -27,20 +27,20 @@ func (r WriteResult) Summary() string {
 // WriteJSONL serializes a batch of CanonEntry values as JSONL
 // (one JSON object per line, no trailing comma, newline-delimited).
 //
-// Each line has the CanonEntry shape including optional timestamps:
+// Each emitted line carries the schema v0 shape (S18):
 //
-//	{"key":"…","title":"…","text":"…","source_position":"…","created":"…","modified":"…"}
+//	{"schema_version":"v0","key":"…","title":"…","text":"…","source_position":"…","created":"…","modified":"…"}
 //
+// The writer stamps schema_version = SchemaV0 on every emitted line.
 // Entries with an empty Key are skipped and counted in WriteResult.Skipped.
-// The writer does NOT add fields beyond the current CanonEntry shape.
 //
-// PROVISIONAL: This is the bootstrap emission. The shape will evolve when
-// UUID v5 identity, primary_role, provenance, and meta blocks are formalized
-// in the Canon JSONL contract.
+// The writer does NOT add fields beyond the declared schema v0 shape.
+// UUID v5 identity, primary_role, provenance, and meta blocks are deferred.
 //
 // Ref: S13 §B — CanonEntry shape.
 // Ref: S16 §A — writer mínimo de canon.jsonl.
 // Ref: S17 — shape enriched with created/modified.
+// Ref: S18 — schema v0 explícito; writer stamps schema_version.
 func WriteJSONL(w io.Writer, entries []CanonEntry) (WriteResult, error) {
 	var result WriteResult
 	for _, e := range entries {
@@ -48,6 +48,8 @@ func WriteJSONL(w io.Writer, entries []CanonEntry) (WriteResult, error) {
 			result.Skipped++
 			continue
 		}
+		// Stamp schema version on the copy (range var is already a copy).
+		e.SchemaVersion = SchemaV0
 		line, err := json.Marshal(e)
 		if err != nil {
 			return result, fmt.Errorf("canon: marshal entry %q: %w", e.Title, err)
