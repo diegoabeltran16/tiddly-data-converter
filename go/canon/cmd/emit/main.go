@@ -82,4 +82,9 @@ func main() {
 
 	// Report on stderr.
 	fmt.Fprintf(os.Stderr, "[emit] %s\n", result.Summary())
+
+	// S19: log validation errors for observability.
+	for _, ve := range result.ValidationErrors {
+		fmt.Fprintf(os.Stderr, "[emit] REJECTED: %s\n", ve)
+	}
 }
