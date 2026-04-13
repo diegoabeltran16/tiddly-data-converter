@@ -25,7 +25,8 @@
 │   ├── m01-s15-canon-collision-acceptance.md.json
 │   ├── m01-s16-canon-jsonl-writer.md.json
 │   ├── m01-s17-canon-admit-v0.md.json
-│   └── m01-s17-post-merge-actions-verification.md.json
+│   ├── m01-s17-post-merge-actions-verification.md.json
+│   └── m01-s18-canon-schema-v0.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -33,22 +34,16 @@
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
-│   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.txt
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.docx
-│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.pdf
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.txt
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms oficial.docx
-│   │   ├── 03. Managing provenance data in knowledge graph management platforms.pdf
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms.txt
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.docx
-│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.pdf
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.txt
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.docx
-│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.pdf
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.txt
 │   │   ├── 06. Semantic annotation for knowledge management.docx
-│   │   ├── 06. Semantic annotation for knowledge management.pdf
 │   │   ├── 06. Semantic annotation for knowledge management.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch with equation.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
@@ -106,6 +101,7 @@
 │       ├── #### 🌀 Sesión 15 = canon-collision-acceptance.json
 │       ├── #### 🌀 Sesión 16 = canon-jsonl-writer.json
 │       ├── #### 🌀 Sesión 17 = canon-admit-v0.json
+│       ├── #### 🌀 Sesión 18 = canon-schema-v0.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -127,6 +123,7 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 15 = canon-collision-acceptance.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 16 = canon-jsonl-writer.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 17 = canon-admit-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 18 = canon-schema-v0.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04 = doctor-contract.json
@@ -143,6 +140,7 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 15.json
 │       ├── #### 🌀🧾 Procedencia de sesión 16.json
 │       ├── #### 🌀🧾 Procedencia de sesión 17.json
+│       ├── #### 🌀🧾 Procedencia de sesión 18.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -187,6 +185,8 @@
 │       ├── contratos_m01-s14-bridge-ingesta-canon.md.json.json
 │       ├── contratos_m01-s15-canon-collision-acceptance.md.json.json
 │       ├── contratos_m01-s16-canon-jsonl-writer.md.json.json
+│       ├── contratos_m01-s17-canon-admit-v0.md.json.json
+│       ├── contratos_m01-s17-post-merge-actions-verification.md.json.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
@@ -234,6 +234,7 @@
 │       ├── go_bridge_bridge.go.json
 │       ├── go_bridge_bridge_test.go.json
 │       ├── go_bridge_cmd_admit_main.go.json
+│       ├── go_bridge_timestamp.go.json
 │       ├── go_canon_canon_test.go.json
 │       ├── go_canon_cmd_emit_main.go.json
 │       ├── go_canon_collision.go.json
@@ -463,6 +464,8 @@
 │   │   ├── collision.go
 │   │   ├── go.mod
 │   │   ├── identity.go
+│   │   ├── schema.go
+│   │   ├── schema_test.go
 │   │   ├── writer.go
 │   │   └── writer_test.go
 │   ├── go.txt
