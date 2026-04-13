@@ -1,0 +1,26 @@
+[
+  {
+    "title": "SmokeAlpha",
+    "raw_fields": {
+      "created": "20260101120000000",
+      "modified": "20260101130000000",
+      "tags": "[[smoke test]] fixture"
+    },
+    "raw_text": "Body of Alpha for smoke E2E test.",
+    "source_position": "smoke:0"
+  },
+  {
+    "title": "SmokeBeta",
+    "raw_fields": {
+      "created": "20260201100000000"
+    },
+    "raw_text": "Body of Beta for smoke E2E test.",
+    "source_position": "smoke:1"
+  },
+  {
+    "title": "SmokeGamma",
+    "raw_fields": {},
+    "raw_text": null,
+    "source_position": null
+  }
+]
