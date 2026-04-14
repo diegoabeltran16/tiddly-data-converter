@@ -13,7 +13,8 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// S26 — canon-gate-batch-report-persist-v0
+// S26 — canon-gate-batch-report-persist-v0  (base tests)
+// S27 — canon-gate-batch-report-persist-v0  (observability + determinism)
 //
 // Tests for the minimal persistence seam of BatchReport as JSON artifact.
 //
@@ -28,8 +29,13 @@ import (
 //   H. File wrapper error on invalid path
 //   I. Trailing newline convention
 //   J. Mixed batch round-trip
+//   K. Nil batch audit produces serializable report
+//   L. Determinism — same report twice produces identical output  (S27)
+//   M. BytesWritten is correct                                    (S27)
+//   N. WriteBatchReportResult JSON round-trip                     (S27)
 //
 // Ref: S26 — batch report persist tests.
+// Ref: S27 — observability and determinism tests.
 // Ref: S23 — BatchReport shape.
 // Ref: S25 — batch contract freeze v1.
 // ---------------------------------------------------------------------------
@@ -70,7 +76,7 @@ func TestWriteBatchReportJSON_ValidReport(t *testing.T) {
 	report := buildMixedReport()
 	var buf bytes.Buffer
 
-	err := canon.WriteBatchReportJSON(&buf, report)
+	result, err := canon.WriteBatchReportJSON(&buf, report)
 	if err != nil {
 		t.Fatalf("WriteBatchReportJSON: unexpected error: %v", err)
 	}
@@ -78,6 +84,11 @@ func TestWriteBatchReportJSON_ValidReport(t *testing.T) {
 	// Output must be valid JSON.
 	if !json.Valid(buf.Bytes()) {
 		t.Fatalf("output is not valid JSON:\n%s", buf.String())
+	}
+
+	// S27: result must report positive byte count.
+	if result.BytesWritten <= 0 {
+		t.Errorf("BytesWritten: got %d, want > 0", result.BytesWritten)
 	}
 }
 
@@ -93,7 +104,7 @@ func TestWriteBatchReportJSON_RoundTrip(t *testing.T) {
 	original := buildMixedReport()
 	var buf bytes.Buffer
 
-	if err := canon.WriteBatchReportJSON(&buf, original); err != nil {
+	if _, err := canon.WriteBatchReportJSON(&buf, original); err != nil {
 		t.Fatalf("WriteBatchReportJSON: %v", err)
 	}
 
@@ -135,7 +146,7 @@ func TestWriteBatchReportJSON_EmptyReport(t *testing.T) {
 	report := canon.BuildBatchReport(audit)
 	var buf bytes.Buffer
 
-	if err := canon.WriteBatchReportJSON(&buf, report); err != nil {
+	if _, err := canon.WriteBatchReportJSON(&buf, report); err != nil {
 		t.Fatalf("WriteBatchReportJSON: %v", err)
 	}
 	if !json.Valid(buf.Bytes()) {
@@ -161,7 +172,7 @@ func TestWriteBatchReportJSON_EmptyReport(t *testing.T) {
 // Ref: S26 — test case 4.
 func TestWriteBatchReportJSON_WriterError(t *testing.T) {
 	report := buildMixedReport()
-	err := canon.WriteBatchReportJSON(errWriter{}, report)
+	_, err := canon.WriteBatchReportJSON(errWriter{}, report)
 	if err == nil {
 		t.Fatal("expected error from failing writer, got nil")
 	}
@@ -180,7 +191,8 @@ func TestWriteBatchReportFile_Success(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "report.json")
 
-	if err := canon.WriteBatchReportFile(path, report); err != nil {
+	result, err := canon.WriteBatchReportFile(path, report)
+	if err != nil {
 		t.Fatalf("WriteBatchReportFile: %v", err)
 	}
 
@@ -190,6 +202,11 @@ func TestWriteBatchReportFile_Success(t *testing.T) {
 	}
 	if !json.Valid(data) {
 		t.Fatalf("file content is not valid JSON:\n%s", string(data))
+	}
+
+	// S27: BytesWritten must match file size.
+	if result.BytesWritten != len(data) {
+		t.Errorf("BytesWritten: got %d, file size %d", result.BytesWritten, len(data))
 	}
 }
 
@@ -206,7 +223,7 @@ func TestWriteBatchReportFile_RoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "report.json")
 
-	if err := canon.WriteBatchReportFile(path, original); err != nil {
+	if _, err := canon.WriteBatchReportFile(path, original); err != nil {
 		t.Fatalf("WriteBatchReportFile: %v", err)
 	}
 
@@ -252,7 +269,7 @@ func TestWriteBatchReportJSON_NoMutation(t *testing.T) {
 	baseline, _ := json.Marshal(original)
 
 	var buf bytes.Buffer
-	if err := canon.WriteBatchReportJSON(&buf, original); err != nil {
+	if _, err := canon.WriteBatchReportJSON(&buf, original); err != nil {
 		t.Fatalf("WriteBatchReportJSON: %v", err)
 	}
 
@@ -273,7 +290,7 @@ func TestWriteBatchReportJSON_NoMutation(t *testing.T) {
 // Ref: S26 — test case 8.
 func TestWriteBatchReportFile_InvalidPath(t *testing.T) {
 	report := buildMixedReport()
-	err := canon.WriteBatchReportFile("/nonexistent/dir/report.json", report)
+	_, err := canon.WriteBatchReportFile("/nonexistent/dir/report.json", report)
 	if err == nil {
 		t.Fatal("expected error for invalid path, got nil")
 	}
@@ -291,7 +308,7 @@ func TestWriteBatchReportJSON_TrailingNewline(t *testing.T) {
 	report := buildMixedReport()
 	var buf bytes.Buffer
 
-	if err := canon.WriteBatchReportJSON(&buf, report); err != nil {
+	if _, err := canon.WriteBatchReportJSON(&buf, report); err != nil {
 		t.Fatalf("WriteBatchReportJSON: %v", err)
 	}
 
@@ -319,7 +336,7 @@ func TestWriteBatchReportJSON_RoundTrip_RejectsByReason(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := canon.WriteBatchReportJSON(&buf, original); err != nil {
+	if _, err := canon.WriteBatchReportJSON(&buf, original); err != nil {
 		t.Fatalf("WriteBatchReportJSON: %v", err)
 	}
 
@@ -357,7 +374,7 @@ func TestWriteBatchReportJSON_NilAuditReport(t *testing.T) {
 	report := canon.BuildBatchReport(audit)
 	var buf bytes.Buffer
 
-	if err := canon.WriteBatchReportJSON(&buf, report); err != nil {
+	if _, err := canon.WriteBatchReportJSON(&buf, report); err != nil {
 		t.Fatalf("WriteBatchReportJSON: %v", err)
 	}
 
@@ -367,5 +384,137 @@ func TestWriteBatchReportJSON_NilAuditReport(t *testing.T) {
 	}
 	if restored.Total != 0 {
 		t.Errorf("Total: got %d, want 0", restored.Total)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// L. Determinism — same report written twice produces identical output (S27)
+// ---------------------------------------------------------------------------
+
+// TestWriteBatchReportJSON_Determinism validates that serializing the same
+// BatchReport twice produces byte-identical output.
+//
+// Ref: S27 — determinism quality gate.
+func TestWriteBatchReportJSON_Determinism(t *testing.T) {
+	report := buildMixedReport()
+
+	var buf1, buf2 bytes.Buffer
+	r1, err := canon.WriteBatchReportJSON(&buf1, report)
+	if err != nil {
+		t.Fatalf("first write: %v", err)
+	}
+	r2, err := canon.WriteBatchReportJSON(&buf2, report)
+	if err != nil {
+		t.Fatalf("second write: %v", err)
+	}
+
+	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
+		t.Errorf("non-deterministic output:\nfirst:  %s\nsecond: %s",
+			buf1.String(), buf2.String())
+	}
+	if r1.BytesWritten != r2.BytesWritten {
+		t.Errorf("BytesWritten differs: first=%d, second=%d",
+			r1.BytesWritten, r2.BytesWritten)
+	}
+}
+
+// TestWriteBatchReportJSON_Determinism_Empty validates determinism for
+// the empty report case.
+//
+// Ref: S27 — determinism quality gate (edge case).
+func TestWriteBatchReportJSON_Determinism_Empty(t *testing.T) {
+	audit := canon.AuditBatch([]canon.CanonEntry{})
+	report := canon.BuildBatchReport(audit)
+
+	var buf1, buf2 bytes.Buffer
+	if _, err := canon.WriteBatchReportJSON(&buf1, report); err != nil {
+		t.Fatalf("first write: %v", err)
+	}
+	if _, err := canon.WriteBatchReportJSON(&buf2, report); err != nil {
+		t.Fatalf("second write: %v", err)
+	}
+
+	if !bytes.Equal(buf1.Bytes(), buf2.Bytes()) {
+		t.Errorf("non-deterministic output for empty report")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// M. BytesWritten is correct (S27)
+// ---------------------------------------------------------------------------
+
+// TestWriteBatchReportJSON_BytesWritten validates that the BytesWritten
+// field in the result matches the actual output size.
+//
+// Ref: S27 — observability verification.
+func TestWriteBatchReportJSON_BytesWritten(t *testing.T) {
+	report := buildMixedReport()
+	var buf bytes.Buffer
+
+	result, err := canon.WriteBatchReportJSON(&buf, report)
+	if err != nil {
+		t.Fatalf("WriteBatchReportJSON: %v", err)
+	}
+
+	if result.BytesWritten != buf.Len() {
+		t.Errorf("BytesWritten: got %d, buffer len %d",
+			result.BytesWritten, buf.Len())
+	}
+}
+
+// TestWriteBatchReportJSON_BytesWritten_Empty validates BytesWritten for
+// an empty report.
+//
+// Ref: S27 — observability for edge case.
+func TestWriteBatchReportJSON_BytesWritten_Empty(t *testing.T) {
+	audit := canon.AuditBatch([]canon.CanonEntry{})
+	report := canon.BuildBatchReport(audit)
+	var buf bytes.Buffer
+
+	result, err := canon.WriteBatchReportJSON(&buf, report)
+	if err != nil {
+		t.Fatalf("WriteBatchReportJSON: %v", err)
+	}
+
+	if result.BytesWritten != buf.Len() {
+		t.Errorf("BytesWritten: got %d, buffer len %d",
+			result.BytesWritten, buf.Len())
+	}
+	if result.BytesWritten <= 0 {
+		t.Errorf("BytesWritten should be positive for empty report, got %d",
+			result.BytesWritten)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// N. WriteBatchReportResult JSON round-trip (S27)
+// ---------------------------------------------------------------------------
+
+// TestWriteBatchReportResult_JSONRoundTrip validates that the result type
+// serializes and deserializes correctly.
+//
+// Ref: S27 — result type auditability.
+func TestWriteBatchReportResult_JSONRoundTrip(t *testing.T) {
+	report := buildMixedReport()
+	var buf bytes.Buffer
+
+	original, err := canon.WriteBatchReportJSON(&buf, report)
+	if err != nil {
+		t.Fatalf("WriteBatchReportJSON: %v", err)
+	}
+
+	data, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("json.Marshal result: %v", err)
+	}
+
+	var restored canon.WriteBatchReportResult
+	if err := json.Unmarshal(data, &restored); err != nil {
+		t.Fatalf("json.Unmarshal result: %v", err)
+	}
+
+	if restored.BytesWritten != original.BytesWritten {
+		t.Errorf("BytesWritten: got %d, want %d",
+			restored.BytesWritten, original.BytesWritten)
 	}
 }
