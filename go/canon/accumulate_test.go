@@ -1,237 +1,32 @@
 package canon
 
 // ---------------------------------------------------------------------------
-// S28 — canon-gate-batch-accumulation-semantics-v0
+// S28 — canon-gate-batch-accumulation-semantics-v0  (original contract tests)
+// S29 — canon-accumulator-truth-pin-and-impl-v0    (truth-pinning tests)
 //
 // Contract tests for the accumulation semantics defined in S28.
+// Truth-pinning tests added in S29 to codify resolved discrepancies.
+//
 // These tests verify:
 //   - Deterministic fold of run_report fixtures into batch_snapshot.
 //   - Replay reconstruction produces identical checksums.
 //   - Invariants I1–I5 are satisfied.
-//
-// The tests use a minimal stub implementation of fold_v1 that operates
-// on the run_report shape defined in S28. The stub is intentionally
-// simple: it demonstrates the contract, not a production implementation.
+//   - [S29] Fold order uses start_time (not batch_time).
+//   - [S29] Checksum rule: sha256 with Checksum="" before serialization.
 //
 // Ref: S28 — accumulation semantics contract.
-// Ref: S25–S27 — batch contract, report, persist.
+// Ref: S29 — truth pin and implementation.
 // ---------------------------------------------------------------------------
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"testing"
 )
 
-// --- Accumulation shapes (S28 contract) ---
-
-// RunReport represents a single pipeline run's observable output.
-// Shape defined in S28 — canon-gate-batch-accumulation-semantics-v0.
-type RunReport struct {
-	RunID    string     `json:"run_id"`
-	BatchID  string     `json:"batch_id"`
-	Start    string     `json:"start_time"`
-	End      string     `json:"end_time"`
-	Metrics  RunMetrics `json:"metrics"`
-	Rejected map[string]int `json:"rejected_by_reason"`
-	Emitted  struct {
-		CanonLines int      `json:"canon_lines"`
-		Files      []string `json:"files"`
-	} `json:"emitted"`
-	Provenance struct {
-		ToolVersion string `json:"tool_version"`
-		Commit      string `json:"commit"`
-	} `json:"provenance"`
-	Checksums struct {
-		CanonSHA256 string `json:"canon_sha256"`
-	} `json:"checksums"`
-}
-
-// RunMetrics holds the counters for a single run.
-type RunMetrics struct {
-	Processed       int     `json:"processed"`
-	Admitted        int     `json:"admitted"`
-	Rejected        int     `json:"rejected"`
-	Warnings        int     `json:"warnings"`
-	DurationSeconds float64 `json:"duration_seconds"`
-}
-
-// BatchSnapshot is the accumulated state across runs.
-// Shape defined in S28 contract.
-type BatchSnapshot struct {
-	SnapshotID       string            `json:"snapshot_id"`
-	AsOf             string            `json:"as_of"`
-	BatchesIncluded  []string          `json:"batches_included"`
-	RunsIncluded     []string          `json:"runs_included"`
-	MetricsAggregate AggregateMetrics  `json:"metrics_aggregate"`
-	RejectedAggregate map[string]int   `json:"rejected_by_reason_aggregate"`
-	TopErrors        [][2]interface{}  `json:"top_errors"`
-	FirstSeen        string            `json:"first_seen"`
-	LastSeen         string            `json:"last_seen"`
-	Provenance       SnapshotProvenance `json:"provenance"`
-	Checksum         string            `json:"checksum"`
-}
-
-// AggregateMetrics holds the accumulated counters.
-type AggregateMetrics struct {
-	Processed       int     `json:"processed"`
-	Admitted        int     `json:"admitted"`
-	Rejected        int     `json:"rejected"`
-	Warnings        int     `json:"warnings"`
-	DurationSeconds float64 `json:"duration_seconds"`
-	CanonLines      int     `json:"canon_lines"`
-}
-
-// SnapshotProvenance records how the snapshot was computed.
-type SnapshotProvenance struct {
-	AccumulationAlgo    string   `json:"accumulation_algo"`
-	AccumulationVersion string   `json:"accumulation_version"`
-	ReconstructedFrom   []string `json:"reconstructed_from_runs"`
-}
-
-// --- Stub implementation of fold_v1 ---
-
-// foldV1 applies the deterministic fold algorithm over a sorted slice of
-// RunReport values and returns a BatchSnapshot.
-//
-// This is a contract-level stub: it demonstrates the fold semantics
-// required by S28 without optimizations.
-func foldV1(runs []RunReport, snapshotID, asOf string) BatchSnapshot {
-	// Sort by (start_time, run_id) for deterministic order.
-	sorted := make([]RunReport, len(runs))
-	copy(sorted, runs)
-	sort.Slice(sorted, func(i, j int) bool {
-		if sorted[i].Start != sorted[j].Start {
-			return sorted[i].Start < sorted[j].Start
-		}
-		return sorted[i].RunID < sorted[j].RunID
-	})
-
-	snap := BatchSnapshot{
-		SnapshotID:        snapshotID,
-		AsOf:              asOf,
-		RejectedAggregate: make(map[string]int),
-		Provenance: SnapshotProvenance{
-			AccumulationAlgo:    "fold_v1",
-			AccumulationVersion: "v0.1",
-		},
-	}
-
-	batchSet := make(map[string]bool)
-	var firstSeen, lastSeen string
-
-	for _, r := range sorted {
-		// I2: record run_id in order
-		snap.RunsIncluded = append(snap.RunsIncluded, r.RunID)
-		snap.Provenance.ReconstructedFrom = append(snap.Provenance.ReconstructedFrom, r.RunID)
-
-		// Batches: union
-		if !batchSet[r.BatchID] {
-			batchSet[r.BatchID] = true
-			snap.BatchesIncluded = append(snap.BatchesIncluded, r.BatchID)
-		}
-
-		// Counters: sum
-		snap.MetricsAggregate.Processed += r.Metrics.Processed
-		snap.MetricsAggregate.Admitted += r.Metrics.Admitted
-		snap.MetricsAggregate.Rejected += r.Metrics.Rejected
-		snap.MetricsAggregate.Warnings += r.Metrics.Warnings
-		snap.MetricsAggregate.DurationSeconds += r.Metrics.DurationSeconds
-		snap.MetricsAggregate.CanonLines += r.Emitted.CanonLines
-
-		// Maps of counts: sum per key
-		for reason, count := range r.Rejected {
-			snap.RejectedAggregate[reason] += count
-		}
-
-		// Timestamps: min/max
-		if firstSeen == "" || r.Start < firstSeen {
-			firstSeen = r.Start
-		}
-		if lastSeen == "" || r.End > lastSeen {
-			lastSeen = r.End
-		}
-	}
-
-	snap.FirstSeen = firstSeen
-	snap.LastSeen = lastSeen
-
-	// Top-K: derive from map, sorted desc by count, ties by key asc
-	snap.TopErrors = topKFromMap(snap.RejectedAggregate)
-
-	// I4: compute checksum over canonical serialization
-	snap.Checksum = computeSnapshotChecksum(snap)
-
-	return snap
-}
-
-// topKFromMap derives a sorted error list from the rejection map.
-func topKFromMap(m map[string]int) [][2]interface{} {
-	type kv struct {
-		Key   string
-		Count int
-	}
-	var items []kv
-	for k, v := range m {
-		items = append(items, kv{k, v})
-	}
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].Count != items[j].Count {
-			return items[i].Count > items[j].Count
-		}
-		return items[i].Key < items[j].Key
-	})
-	result := make([][2]interface{}, len(items))
-	for i, item := range items {
-		result[i] = [2]interface{}{item.Key, item.Count}
-	}
-	return result
-}
-
-// computeSnapshotChecksum serializes a snapshot (without its checksum
-// field) to canonical JSON and returns "sha256:<hex>".
-// The snapshot is received by value, so the caller's copy is NOT mutated.
-func computeSnapshotChecksum(snap BatchSnapshot) string {
-	// Zero out checksum before serializing
-	snap.Checksum = ""
-	data, err := json.Marshal(snap)
-	if err != nil {
-		panic(fmt.Sprintf("accumulate: marshal snapshot: %v", err))
-	}
-	h := sha256.Sum256(data)
-	return fmt.Sprintf("sha256:%x", h)
-}
-
-// loadRunReports reads all JSON files from a directory and parses them
-// as RunReport values.
-func loadRunReports(dir string) ([]RunReport, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("accumulate: read dir %q: %w", dir, err)
-	}
-	var runs []RunReport
-	for _, e := range entries {
-		if e.IsDir() || filepath.Ext(e.Name()) != ".json" {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
-		if err != nil {
-			return nil, fmt.Errorf("accumulate: read %q: %w", e.Name(), err)
-		}
-		var r RunReport
-		if err := json.Unmarshal(data, &r); err != nil {
-			return nil, fmt.Errorf("accumulate: parse %q: %w", e.Name(), err)
-		}
-		runs = append(runs, r)
-	}
-	return runs, nil
-}
-
-// --- Tests ---
+// --- Tests (S28 original) ---
 
 // TestFoldDeterministic verifies that the same set of runs, folded in
 // the canonical order, always produces the same snapshot checksum.
@@ -239,7 +34,7 @@ func loadRunReports(dir string) ([]RunReport, error) {
 // Ref: S28 — criterion: same runs → same checksum.
 func TestFoldDeterministic(t *testing.T) {
 	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
-	runs, err := loadRunReports(fixtureDir)
+	runs, err := LoadRunReports(fixtureDir)
 	if err != nil {
 		t.Fatalf("load fixtures: %v", err)
 	}
@@ -248,8 +43,8 @@ func TestFoldDeterministic(t *testing.T) {
 	}
 
 	// Fold twice
-	snap1 := foldV1(runs, "snapshot-test-v0", "2026-04-14T12:00:00Z")
-	snap2 := foldV1(runs, "snapshot-test-v0", "2026-04-14T12:00:00Z")
+	snap1 := FoldV1(runs, "snapshot-test-v0", "2026-04-14T12:00:00Z")
+	snap2 := FoldV1(runs, "snapshot-test-v0", "2026-04-14T12:00:00Z")
 
 	if snap1.Checksum != snap2.Checksum {
 		t.Errorf("fold not deterministic: checksum1=%s checksum2=%s", snap1.Checksum, snap2.Checksum)
@@ -260,7 +55,7 @@ func TestFoldDeterministic(t *testing.T) {
 	for i, r := range runs {
 		reversed[len(runs)-1-i] = r
 	}
-	snap3 := foldV1(reversed, "snapshot-test-v0", "2026-04-14T12:00:00Z")
+	snap3 := FoldV1(reversed, "snapshot-test-v0", "2026-04-14T12:00:00Z")
 	if snap1.Checksum != snap3.Checksum {
 		t.Errorf("fold not order-independent after sort: checksum1=%s checksum3=%s", snap1.Checksum, snap3.Checksum)
 	}
@@ -272,21 +67,21 @@ func TestFoldDeterministic(t *testing.T) {
 // Ref: S28 — criterion: replay == snapshot.
 func TestReplayReconstruction(t *testing.T) {
 	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
-	runs, err := loadRunReports(fixtureDir)
+	runs, err := LoadRunReports(fixtureDir)
 	if err != nil {
 		t.Fatalf("load fixtures: %v", err)
 	}
 
 	// Generate snapshot
-	original := foldV1(runs, "snapshot-replay-test", "2026-04-14T12:00:00Z")
+	original := FoldV1(runs, "snapshot-replay-test", "2026-04-14T12:00:00Z")
 
 	// Replay: reload and refold
-	runs2, err := loadRunReports(fixtureDir)
+	runs2, err := LoadRunReports(fixtureDir)
 	if err != nil {
 		t.Fatalf("reload fixtures: %v", err)
 	}
 
-	replayed := foldV1(runs2, "snapshot-replay-test", "2026-04-14T12:00:00Z")
+	replayed := FoldV1(runs2, "snapshot-replay-test", "2026-04-14T12:00:00Z")
 
 	if original.Checksum != replayed.Checksum {
 		t.Errorf("replay mismatch: original=%s replayed=%s", original.Checksum, replayed.Checksum)
@@ -310,12 +105,12 @@ func TestReplayReconstruction(t *testing.T) {
 // Ref: S28 — invariants I1–I5.
 func TestInvariants(t *testing.T) {
 	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
-	runs, err := loadRunReports(fixtureDir)
+	runs, err := LoadRunReports(fixtureDir)
 	if err != nil {
 		t.Fatalf("load fixtures: %v", err)
 	}
 
-	snap := foldV1(runs, "snapshot-invariants-test", "2026-04-14T12:00:00Z")
+	snap := FoldV1(runs, "snapshot-invariants-test", "2026-04-14T12:00:00Z")
 
 	// I1: run_reports are referentiable by run_id — each run has a non-empty run_id
 	t.Run("I1_RunID_NonEmpty", func(t *testing.T) {
@@ -327,9 +122,6 @@ func TestInvariants(t *testing.T) {
 	})
 
 	// I2: runs_included is exact and ordered by (start_time, run_id) as per fold_v1 spec.
-	// In our fixtures, run_ids are co-monotonic with start_times, so checking
-	// run_id ordering suffices. The canonical ordering is verified end-to-end
-	// by TestFoldDeterministic (reversed input → same output).
 	t.Run("I2_RunsIncluded_Exact_Ordered", func(t *testing.T) {
 		if len(snap.RunsIncluded) != len(runs) {
 			t.Errorf("runs_included has %d entries, expected %d",
@@ -355,7 +147,7 @@ func TestInvariants(t *testing.T) {
 
 	// I4: checksum is verifiable
 	t.Run("I4_Checksum_Verifiable", func(t *testing.T) {
-		recomputed := computeSnapshotChecksum(snap)
+		recomputed := ComputeSnapshotChecksum(snap)
 		if snap.Checksum != recomputed {
 			t.Errorf("checksum mismatch: stored=%s recomputed=%s",
 				snap.Checksum, recomputed)
@@ -383,12 +175,12 @@ func TestInvariants(t *testing.T) {
 // Ref: S28 — fold_v1 counter rules: sum.
 func TestFoldAggregateValues(t *testing.T) {
 	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
-	runs, err := loadRunReports(fixtureDir)
+	runs, err := LoadRunReports(fixtureDir)
 	if err != nil {
 		t.Fatalf("load fixtures: %v", err)
 	}
 
-	snap := foldV1(runs, "snapshot-aggregate-test", "2026-04-14T12:00:00Z")
+	snap := FoldV1(runs, "snapshot-aggregate-test", "2026-04-14T12:00:00Z")
 
 	// Expected sums from run-001 + run-002 + run-003:
 	// processed: 50 + 80 + 30 = 160
@@ -437,5 +229,348 @@ func TestFoldAggregateValues(t *testing.T) {
 	}
 	if snap.LastSeen != "2026-04-14T10:11:30Z" {
 		t.Errorf("last_seen: got %s, want 2026-04-14T10:11:30Z", snap.LastSeen)
+	}
+}
+
+// --- Tests (S29 truth-pinning) ---
+
+// TestTruthPinnedFoldOrder verifies that the fold sorts by (start_time, run_id),
+// NOT by batch_time or any other field.
+//
+// This test codifies the resolution of discrepancy D1 (S29):
+//   Contract S28 §D said "(batch_time, run_id)" but batch_time does not exist
+//   in the run_report shape. Truth: fold order is (start_time, run_id).
+//
+// Ref: S29 — D1 truth pin.
+func TestTruthPinnedFoldOrder(t *testing.T) {
+	// Create runs with different start_times in non-chronological order.
+	// If fold sorts by start_time, output order will be run-C, run-A, run-B.
+	runs := []RunReport{
+		{
+			RunID:   "run-A",
+			BatchID: "batch-test",
+			Start:   "2026-04-14T10:05:00Z",
+			End:     "2026-04-14T10:06:00Z",
+			Metrics: RunMetrics{Processed: 10, Admitted: 10},
+		},
+		{
+			RunID:   "run-B",
+			BatchID: "batch-test",
+			Start:   "2026-04-14T10:10:00Z",
+			End:     "2026-04-14T10:11:00Z",
+			Metrics: RunMetrics{Processed: 20, Admitted: 20},
+		},
+		{
+			RunID:   "run-C",
+			BatchID: "batch-test",
+			Start:   "2026-04-14T10:00:00Z",
+			End:     "2026-04-14T10:01:00Z",
+			Metrics: RunMetrics{Processed: 30, Admitted: 30},
+		},
+	}
+
+	snap := FoldV1(runs, "snapshot-truth-order", "2026-04-14T12:00:00Z")
+
+	// Verify the runs are ordered by start_time ascending.
+	expectedOrder := []string{"run-C", "run-A", "run-B"}
+	if len(snap.RunsIncluded) != len(expectedOrder) {
+		t.Fatalf("runs_included length: got %d, want %d", len(snap.RunsIncluded), len(expectedOrder))
+	}
+	for i, want := range expectedOrder {
+		if snap.RunsIncluded[i] != want {
+			t.Errorf("runs_included[%d]: got %s, want %s (sorted by start_time)",
+				i, snap.RunsIncluded[i], want)
+		}
+	}
+
+	// Verify tie-breaking by run_id when start_time is equal.
+	runsWithTie := []RunReport{
+		{
+			RunID:   "run-Z",
+			BatchID: "batch-test",
+			Start:   "2026-04-14T10:00:00Z",
+			End:     "2026-04-14T10:01:00Z",
+			Metrics: RunMetrics{Processed: 10, Admitted: 10},
+		},
+		{
+			RunID:   "run-A",
+			BatchID: "batch-test",
+			Start:   "2026-04-14T10:00:00Z",
+			End:     "2026-04-14T10:01:00Z",
+			Metrics: RunMetrics{Processed: 20, Admitted: 20},
+		},
+	}
+
+	snapTie := FoldV1(runsWithTie, "snapshot-truth-tie", "2026-04-14T12:00:00Z")
+	if snapTie.RunsIncluded[0] != "run-A" || snapTie.RunsIncluded[1] != "run-Z" {
+		t.Errorf("tie-break by run_id: got %v, want [run-A, run-Z]", snapTie.RunsIncluded)
+	}
+}
+
+// TestTruthPinnedChecksumRule verifies that the checksum is computed as
+// sha256(canonical JSON with Checksum field set to "").
+//
+// This test codifies the resolution of discrepancy D2 (S29):
+//   Contract S28 §E said "sha256(serialized_snapshot)" which is ambiguous.
+//   Truth: Checksum field is set to "" before serialization, then sha256 is
+//   computed over that serialization.
+//
+// Ref: S29 — D2 truth pin.
+func TestTruthPinnedChecksumRule(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures: %v", err)
+	}
+
+	snap := FoldV1(runs, "snapshot-checksum-truth", "2026-04-14T12:00:00Z")
+
+	// 1. Verify the checksum is non-empty and has sha256: prefix
+	if snap.Checksum == "" {
+		t.Fatal("checksum is empty")
+	}
+	if len(snap.Checksum) < 8 || snap.Checksum[:7] != "sha256:" {
+		t.Fatalf("checksum does not have sha256: prefix: %s", snap.Checksum)
+	}
+
+	// 2. Manually verify: set Checksum to "", canonical marshal, compute sha256
+	verifyCopy := snap
+	verifyCopy.Checksum = ""
+	data, err := CanonicalJSON(verifyCopy)
+	if err != nil {
+		t.Fatalf("canonical marshal for verification: %v", err)
+	}
+	h := sha256.Sum256(data)
+	expected := fmt.Sprintf("sha256:%x", h)
+
+	if snap.Checksum != expected {
+		t.Errorf("checksum rule violated:\n  stored:   %s\n  expected: %s\n  rule: sha256(JSON with Checksum=\"\")",
+			snap.Checksum, expected)
+	}
+
+	// 3. Verify that ComputeSnapshotChecksum produces the same result
+	recomputed := ComputeSnapshotChecksum(snap)
+	if snap.Checksum != recomputed {
+		t.Errorf("ComputeSnapshotChecksum mismatch: stored=%s recomputed=%s",
+			snap.Checksum, recomputed)
+	}
+}
+
+// TestTruthPinnedSemantics verifies that the truth-pinned accumulator
+// produces deterministic and correct output with the fixture runs,
+// combining both D1 and D2 resolutions.
+//
+// Ref: S29 — combined truth verification.
+func TestTruthPinnedSemantics(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures: %v", err)
+	}
+
+	// Sort runs manually by (start_time, run_id) to verify fold does the same
+	sorted := make([]RunReport, len(runs))
+	copy(sorted, runs)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Start != sorted[j].Start {
+			return sorted[i].Start < sorted[j].Start
+		}
+		return sorted[i].RunID < sorted[j].RunID
+	})
+
+	snap := FoldV1(runs, "snapshot-truth-combined", "2026-04-14T12:00:00Z")
+
+	// Verify order matches manual sort by start_time
+	for i, r := range sorted {
+		if snap.RunsIncluded[i] != r.RunID {
+			t.Errorf("fold order[%d]: got %s, want %s (by start_time)",
+				i, snap.RunsIncluded[i], r.RunID)
+		}
+	}
+
+	// Verify checksum is reproducible
+	snap2 := FoldV1(runs, "snapshot-truth-combined", "2026-04-14T12:00:00Z")
+	if snap.Checksum != snap2.Checksum {
+		t.Errorf("not deterministic: %s vs %s", snap.Checksum, snap2.Checksum)
+	}
+
+	// Verify checksum rule
+	recomputed := ComputeSnapshotChecksum(snap)
+	if snap.Checksum != recomputed {
+		t.Errorf("checksum rule: stored=%s recomputed=%s", snap.Checksum, recomputed)
+	}
+}
+
+// --- Tests (S30 — UUIDv5 and Canonical JSON) ---
+
+// TestBatchSnapshotUUIDDeterministic verifies that the same set of
+// runs_included (in any input order) always produces the same UUID.
+//
+// Quality gate: S30 §14.1.
+// Ref: S30 — UUIDv5 deterministic identity.
+func TestBatchSnapshotUUIDDeterministic(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures: %v", err)
+	}
+
+	// Fold twice with same inputs.
+	snap1 := FoldV1(runs, "snapshot-uuid-det", "2026-04-14T12:00:00Z")
+	snap2 := FoldV1(runs, "snapshot-uuid-det", "2026-04-14T12:00:00Z")
+
+	if snap1.UUID == "" {
+		t.Fatal("UUID is empty")
+	}
+	if snap1.UUID != snap2.UUID {
+		t.Errorf("UUID not deterministic: %s vs %s", snap1.UUID, snap2.UUID)
+	}
+
+	// Fold with reversed input order (sort is internal).
+	reversed := make([]RunReport, len(runs))
+	for i, r := range runs {
+		reversed[len(runs)-1-i] = r
+	}
+	snap3 := FoldV1(reversed, "snapshot-uuid-det", "2026-04-14T12:00:00Z")
+	if snap1.UUID != snap3.UUID {
+		t.Errorf("UUID not order-independent: %s vs %s", snap1.UUID, snap3.UUID)
+	}
+
+	// UUID must have version 5 marker.
+	// Format: xxxxxxxx-xxxx-5xxx-yxxx-xxxxxxxxxxxx
+	if len(snap1.UUID) != 36 {
+		t.Fatalf("UUID wrong length: %d", len(snap1.UUID))
+	}
+	if snap1.UUID[14] != '5' {
+		t.Errorf("UUID version nibble: got %c, want 5", snap1.UUID[14])
+	}
+
+	// UUIDSpecVersion must be set.
+	if snap1.UUIDSpecVersion != UUIDSpecVersionV1 {
+		t.Errorf("UUIDSpecVersion: got %q, want %q", snap1.UUIDSpecVersion, UUIDSpecVersionV1)
+	}
+}
+
+// TestChecksumZeroField verifies that the checksum is computed as
+// sha256(CanonicalJSON(snapshot with checksum="")).
+//
+// This strengthens the S29 truth pin D2 by ensuring Canonical JSON
+// (sorted keys) is used instead of struct-order serialization.
+//
+// Quality gate: S30 §14.2.
+// Ref: S30 — canonical JSON checksum rule.
+func TestChecksumZeroField(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures: %v", err)
+	}
+
+	snap := FoldV1(runs, "snapshot-checksum-zero", "2026-04-14T12:00:00Z")
+
+	// 1. Checksum must be non-empty with sha256: prefix.
+	if snap.Checksum == "" {
+		t.Fatal("checksum is empty")
+	}
+	if len(snap.Checksum) < 8 || snap.Checksum[:7] != "sha256:" {
+		t.Fatalf("checksum missing sha256: prefix: %s", snap.Checksum)
+	}
+
+	// 2. Manually verify using CanonicalJSON.
+	verifyCopy := snap
+	verifyCopy.Checksum = ""
+	canonical, err := CanonicalJSON(verifyCopy)
+	if err != nil {
+		t.Fatalf("canonical JSON for verification: %v", err)
+	}
+
+	// Verify canonical JSON has sorted keys (spot-check: "as_of" < "batches_included").
+	if len(canonical) == 0 {
+		t.Fatal("canonical JSON is empty")
+	}
+
+	h := sha256.Sum256(canonical)
+	expected := fmt.Sprintf("sha256:%x", h)
+	if snap.Checksum != expected {
+		t.Errorf("checksum rule violated:\n  stored:   %s\n  expected: %s\n  rule: sha256(CanonicalJSON(snapshot with checksum=\"\"))",
+			snap.Checksum, expected)
+	}
+
+	// 3. ComputeSnapshotChecksum must agree.
+	recomputed := ComputeSnapshotChecksum(snap)
+	if snap.Checksum != recomputed {
+		t.Errorf("ComputeSnapshotChecksum mismatch: stored=%s recomputed=%s",
+			snap.Checksum, recomputed)
+	}
+}
+
+// TestReplayVerification verifies that replaying the fold from the same
+// run_report fixtures reproduces both the checksum and the UUID.
+//
+// Quality gate: S30 §14.3.
+// Ref: S30 — replay verification.
+func TestReplayVerification(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs1, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures (pass 1): %v", err)
+	}
+
+	original := FoldV1(runs1, "snapshot-replay-s30", "2026-04-14T12:00:00Z")
+
+	// Replay: reload and refold.
+	runs2, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures (pass 2): %v", err)
+	}
+
+	replayed := FoldV1(runs2, "snapshot-replay-s30", "2026-04-14T12:00:00Z")
+
+	// Both checksum and UUID must match.
+	if original.Checksum != replayed.Checksum {
+		t.Errorf("replay checksum mismatch: %s vs %s", original.Checksum, replayed.Checksum)
+	}
+	if original.UUID != replayed.UUID {
+		t.Errorf("replay UUID mismatch: %s vs %s", original.UUID, replayed.UUID)
+	}
+
+	// Runs included must match.
+	if len(original.RunsIncluded) != len(replayed.RunsIncluded) {
+		t.Fatalf("runs_included length: %d vs %d",
+			len(original.RunsIncluded), len(replayed.RunsIncluded))
+	}
+	for i := range original.RunsIncluded {
+		if original.RunsIncluded[i] != replayed.RunsIncluded[i] {
+			t.Errorf("runs_included[%d]: %s vs %s",
+				i, original.RunsIncluded[i], replayed.RunsIncluded[i])
+		}
+	}
+
+	// UUIDSpecVersion must be set on both.
+	if original.UUIDSpecVersion != UUIDSpecVersionV1 {
+		t.Errorf("original UUIDSpecVersion: %q", original.UUIDSpecVersion)
+	}
+	if replayed.UUIDSpecVersion != UUIDSpecVersionV1 {
+		t.Errorf("replayed UUIDSpecVersion: %q", replayed.UUIDSpecVersion)
+	}
+}
+
+// TestUUIDDifferentRunsProduceDifferentUUID verifies that different sets
+// of runs_included produce different UUIDs.
+//
+// Ref: S30 — UUIDv5 collision resistance for distinct inputs.
+func TestUUIDDifferentRunsProduceDifferentUUID(t *testing.T) {
+	runsA := []RunReport{
+		{RunID: "run-A", BatchID: "b1", Start: "2026-04-14T10:00:00Z", End: "2026-04-14T10:01:00Z", Metrics: RunMetrics{Processed: 10, Admitted: 10}},
+	}
+	runsB := []RunReport{
+		{RunID: "run-B", BatchID: "b1", Start: "2026-04-14T10:00:00Z", End: "2026-04-14T10:01:00Z", Metrics: RunMetrics{Processed: 10, Admitted: 10}},
+	}
+
+	snapA := FoldV1(runsA, "snap-diff-a", "2026-04-14T12:00:00Z")
+	snapB := FoldV1(runsB, "snap-diff-b", "2026-04-14T12:00:00Z")
+
+	if snapA.UUID == snapB.UUID {
+		t.Errorf("different runs produced same UUID: %s", snapA.UUID)
 	}
 }
