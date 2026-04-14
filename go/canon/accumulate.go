@@ -65,8 +65,17 @@ type RunMetrics struct {
 
 // BatchSnapshot is the accumulated state across runs.
 // Shape defined in S28 contract, promoted to production in S29.
+//
+// S30 enrichment: UUID (UUIDv5 deterministic identity) and UUIDSpecVersion
+// fields added. UUID is computed from a canonical payload that includes
+// the sorted runs_included, algorithm_id, accumulation_version, and
+// uuid_spec_version. Checksum now uses Canonical JSON serialization.
+//
+// Ref: S30 — UUIDv5 and canonical JSON for batch_snapshot identity.
 type BatchSnapshot struct {
 	SnapshotID        string             `json:"snapshot_id"`
+	UUID              string             `json:"uuid"`
+	UUIDSpecVersion   string             `json:"uuid_spec_version"`
 	AsOf              string             `json:"as_of"`
 	BatchesIncluded   []string           `json:"batches_included"`
 	RunsIncluded      []string           `json:"runs_included"`
@@ -174,8 +183,26 @@ func FoldV1(runs []RunReport, snapshotID, asOf string) BatchSnapshot {
 	// Top-K: derive from map, sorted desc by count, ties by key asc
 	snap.TopErrors = TopKFromMap(snap.RejectedAggregate)
 
-	// I4: compute checksum over canonical serialization
-	// Truth pin D2: checksum field set to "" before hashing.
+	// S30: set UUID spec version.
+	snap.UUIDSpecVersion = UUIDSpecVersionV1
+
+	// S30: compute deterministic UUIDv5 from canonical payload.
+	// The UUID depends on (accumulation_version, algorithm_id, runs_included, uuid_spec_version).
+	uuid, err := ComputeSnapshotUUID(
+		snap.Provenance.AccumulationVersion,
+		snap.Provenance.AccumulationAlgo,
+		snap.RunsIncluded,
+	)
+	if err != nil {
+		// Should not happen with well-formed inputs; panic matches
+		// the existing convention in ComputeSnapshotChecksum.
+		panic(fmt.Sprintf("accumulate: compute uuid: %v", err))
+	}
+	snap.UUID = uuid
+
+	// I4: compute checksum over canonical serialization.
+	// Truth pin D2 (S29): checksum field set to "" before hashing.
+	// S30: uses Canonical JSON (sorted keys) for deterministic serialization.
 	snap.Checksum = ComputeSnapshotChecksum(snap)
 
 	return snap
@@ -206,11 +233,15 @@ func TopKFromMap(m map[string]int) [][2]interface{} {
 }
 
 // ComputeSnapshotChecksum serializes a snapshot (with its checksum field
-// set to "") to canonical JSON and returns "sha256:<hex>".
+// set to "") to Canonical JSON and returns "sha256:<hex>".
 //
 // Truth pin D2 (S29): the checksum is computed over the JSON serialization
 // with the Checksum field set to empty string, avoiding circular dependency.
 // The snapshot is received by value, so the caller's copy is NOT mutated.
+//
+// S30: uses Canonical JSON (sorted keys, preserved number precision) instead
+// of Go's default struct-order json.Marshal, ensuring the checksum is
+// independent of Go struct field declaration order.
 //
 // This function panics if JSON marshaling fails, which should not happen for
 // well-formed BatchSnapshot values. If called with untrusted data, callers
@@ -218,12 +249,13 @@ func TopKFromMap(m map[string]int) [][2]interface{} {
 //
 // Ref: S28 I4 — checksum verification.
 // Ref: S29 D2 — checksum rule resolution.
+// Ref: S30 — canonical JSON for deterministic checksum.
 func ComputeSnapshotChecksum(snap BatchSnapshot) string {
-	// Zero out checksum before serializing
+	// Zero out checksum before serializing.
 	snap.Checksum = ""
-	data, err := json.Marshal(snap)
+	data, err := CanonicalJSON(snap)
 	if err != nil {
-		panic(fmt.Sprintf("accumulate: marshal snapshot: %v", err))
+		panic(fmt.Sprintf("accumulate: canonical marshal snapshot: %v", err))
 	}
 	h := sha256.Sum256(data)
 	return fmt.Sprintf("sha256:%x", h)
