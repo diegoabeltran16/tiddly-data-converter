@@ -64,7 +64,12 @@ func main() {
 	}
 
 	// 3. Fold
-	snapshotID := fmt.Sprintf("snapshot-%s", time.Now().UTC().Format("20060102-150405"))
+	// Include batch context in snapshot ID for traceability.
+	batchSuffix := "all"
+	if *batchID != "" {
+		batchSuffix = *batchID
+	}
+	snapshotID := fmt.Sprintf("snapshot-%s-%s", batchSuffix, time.Now().UTC().Format("20060102-150405"))
 	asOf := time.Now().UTC().Format(time.RFC3339)
 	snap := canon.FoldV1(runs, snapshotID, asOf)
 

@@ -212,6 +212,10 @@ func TopKFromMap(m map[string]int) [][2]interface{} {
 // with the Checksum field set to empty string, avoiding circular dependency.
 // The snapshot is received by value, so the caller's copy is NOT mutated.
 //
+// This function panics if JSON marshaling fails, which should not happen for
+// well-formed BatchSnapshot values. If called with untrusted data, callers
+// should recover from panics or pre-validate the input.
+//
 // Ref: S28 I4 — checksum verification.
 // Ref: S29 D2 — checksum rule resolution.
 func ComputeSnapshotChecksum(snap BatchSnapshot) string {
