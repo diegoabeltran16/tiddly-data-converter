@@ -48,22 +48,6 @@ type VerifyResult struct {
 	Message    string      `json:"message"`
 }
 
-// normativeFields lists the BatchSnapshot fields that must match exactly
-// for a verification to pass. Defined by S31 contract §6.1.
-//
-// Ref: S31 §6.1 — strictly verified fields.
-var normativeFields = map[string]bool{
-	"uuid":                 true,
-	"uuid_spec_version":    true,
-	"runs_included":        true,
-	"metrics_aggregate":    true,
-	"rejected_by_reason_aggregate": true,
-	"checksum":             true,
-	"first_seen":           true,
-	"last_seen":            true,
-	"provenance":           true,
-}
-
 // VerifySnapshot loads an observed snapshot from snapshotPath, loads
 // run_report inputs from inputDir, reconstructs the expected snapshot
 // via FoldV1 using the observed snapshot's snapshot_id and as_of, and
@@ -202,8 +186,12 @@ func compareField(result *VerifyResult, field, expected, observed string, normat
 // compareSlice compares two string slices and records a diff if they differ.
 func compareSlice(result *VerifyResult, field string, expected, observed []string, normative bool) {
 	if !reflect.DeepEqual(expected, observed) {
-		expJSON, _ := json.Marshal(expected)
-		obsJSON, _ := json.Marshal(observed)
+		expJSON, err1 := json.Marshal(expected)
+		obsJSON, err2 := json.Marshal(observed)
+		if err1 != nil || err2 != nil {
+			expJSON = []byte(fmt.Sprintf("%v", expected))
+			obsJSON = []byte(fmt.Sprintf("%v", observed))
+		}
 		result.Diffs = append(result.Diffs, FieldDiff{
 			Field:     field,
 			Expected:  string(expJSON),
@@ -218,8 +206,12 @@ func compareSlice(result *VerifyResult, field string, expected, observed []strin
 
 // compareJSON compares two values by their JSON serialization.
 func compareJSON(result *VerifyResult, field string, expected, observed interface{}, normative bool) {
-	expJSON, _ := json.Marshal(expected)
-	obsJSON, _ := json.Marshal(observed)
+	expJSON, err1 := json.Marshal(expected)
+	obsJSON, err2 := json.Marshal(observed)
+	if err1 != nil || err2 != nil {
+		expJSON = []byte(fmt.Sprintf("%v", expected))
+		obsJSON = []byte(fmt.Sprintf("%v", observed))
+	}
 	if string(expJSON) != string(obsJSON) {
 		result.Diffs = append(result.Diffs, FieldDiff{
 			Field:     field,

@@ -31,7 +31,7 @@ func main() {
 	inputDir := flag.String("input", "", "Directory containing run_report JSON files (required)")
 	batchID := flag.String("batch", "", "Filter runs by batch_id (optional)")
 	outPath := flag.String("out", "", "Output path for batch_snapshot JSON (required for generate mode)")
-	verify := flag.Bool("verify", false, "Verify mode: replay from runs and verify snapshot")
+	verify := flag.Bool("verify", false, "Verify mode: with --snapshot verifies existing snapshot; without --snapshot replays after generation")
 	snapshotPath := flag.String("snapshot", "", "Path to existing snapshot file to verify (used with --verify)")
 	version := flag.Bool("version", false, "Print accumulation algorithm version")
 	flag.Parse()
