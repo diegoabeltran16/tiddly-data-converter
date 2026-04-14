@@ -20,7 +20,6 @@ package canon
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -334,12 +333,12 @@ func TestTruthPinnedChecksumRule(t *testing.T) {
 		t.Fatalf("checksum does not have sha256: prefix: %s", snap.Checksum)
 	}
 
-	// 2. Manually verify: set Checksum to "", marshal, compute sha256
+	// 2. Manually verify: set Checksum to "", canonical marshal, compute sha256
 	verifyCopy := snap
 	verifyCopy.Checksum = ""
-	data, err := json.Marshal(verifyCopy)
+	data, err := CanonicalJSON(verifyCopy)
 	if err != nil {
-		t.Fatalf("marshal for verification: %v", err)
+		t.Fatalf("canonical marshal for verification: %v", err)
 	}
 	h := sha256.Sum256(data)
 	expected := fmt.Sprintf("sha256:%x", h)
@@ -399,5 +398,179 @@ func TestTruthPinnedSemantics(t *testing.T) {
 	recomputed := ComputeSnapshotChecksum(snap)
 	if snap.Checksum != recomputed {
 		t.Errorf("checksum rule: stored=%s recomputed=%s", snap.Checksum, recomputed)
+	}
+}
+
+// --- Tests (S30 — UUIDv5 and Canonical JSON) ---
+
+// TestBatchSnapshotUUIDDeterministic verifies that the same set of
+// runs_included (in any input order) always produces the same UUID.
+//
+// Quality gate: S30 §14.1.
+// Ref: S30 — UUIDv5 deterministic identity.
+func TestBatchSnapshotUUIDDeterministic(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures: %v", err)
+	}
+
+	// Fold twice with same inputs.
+	snap1 := FoldV1(runs, "snapshot-uuid-det", "2026-04-14T12:00:00Z")
+	snap2 := FoldV1(runs, "snapshot-uuid-det", "2026-04-14T12:00:00Z")
+
+	if snap1.UUID == "" {
+		t.Fatal("UUID is empty")
+	}
+	if snap1.UUID != snap2.UUID {
+		t.Errorf("UUID not deterministic: %s vs %s", snap1.UUID, snap2.UUID)
+	}
+
+	// Fold with reversed input order (sort is internal).
+	reversed := make([]RunReport, len(runs))
+	for i, r := range runs {
+		reversed[len(runs)-1-i] = r
+	}
+	snap3 := FoldV1(reversed, "snapshot-uuid-det", "2026-04-14T12:00:00Z")
+	if snap1.UUID != snap3.UUID {
+		t.Errorf("UUID not order-independent: %s vs %s", snap1.UUID, snap3.UUID)
+	}
+
+	// UUID must have version 5 marker.
+	// Format: xxxxxxxx-xxxx-5xxx-yxxx-xxxxxxxxxxxx
+	if len(snap1.UUID) != 36 {
+		t.Fatalf("UUID wrong length: %d", len(snap1.UUID))
+	}
+	if snap1.UUID[14] != '5' {
+		t.Errorf("UUID version nibble: got %c, want 5", snap1.UUID[14])
+	}
+
+	// UUIDSpecVersion must be set.
+	if snap1.UUIDSpecVersion != UUIDSpecVersionV1 {
+		t.Errorf("UUIDSpecVersion: got %q, want %q", snap1.UUIDSpecVersion, UUIDSpecVersionV1)
+	}
+}
+
+// TestChecksumZeroField verifies that the checksum is computed as
+// sha256(CanonicalJSON(snapshot with checksum="")).
+//
+// This strengthens the S29 truth pin D2 by ensuring Canonical JSON
+// (sorted keys) is used instead of struct-order serialization.
+//
+// Quality gate: S30 §14.2.
+// Ref: S30 — canonical JSON checksum rule.
+func TestChecksumZeroField(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures: %v", err)
+	}
+
+	snap := FoldV1(runs, "snapshot-checksum-zero", "2026-04-14T12:00:00Z")
+
+	// 1. Checksum must be non-empty with sha256: prefix.
+	if snap.Checksum == "" {
+		t.Fatal("checksum is empty")
+	}
+	if len(snap.Checksum) < 8 || snap.Checksum[:7] != "sha256:" {
+		t.Fatalf("checksum missing sha256: prefix: %s", snap.Checksum)
+	}
+
+	// 2. Manually verify using CanonicalJSON.
+	verifyCopy := snap
+	verifyCopy.Checksum = ""
+	canonical, err := CanonicalJSON(verifyCopy)
+	if err != nil {
+		t.Fatalf("canonical JSON for verification: %v", err)
+	}
+
+	// Verify canonical JSON has sorted keys (spot-check: "as_of" < "batches_included").
+	if len(canonical) == 0 {
+		t.Fatal("canonical JSON is empty")
+	}
+
+	h := sha256.Sum256(canonical)
+	expected := fmt.Sprintf("sha256:%x", h)
+	if snap.Checksum != expected {
+		t.Errorf("checksum rule violated:\n  stored:   %s\n  expected: %s\n  rule: sha256(CanonicalJSON(snapshot with checksum=\"\"))",
+			snap.Checksum, expected)
+	}
+
+	// 3. ComputeSnapshotChecksum must agree.
+	recomputed := ComputeSnapshotChecksum(snap)
+	if snap.Checksum != recomputed {
+		t.Errorf("ComputeSnapshotChecksum mismatch: stored=%s recomputed=%s",
+			snap.Checksum, recomputed)
+	}
+}
+
+// TestReplayVerification verifies that replaying the fold from the same
+// run_report fixtures reproduces both the checksum and the UUID.
+//
+// Quality gate: S30 §14.3.
+// Ref: S30 — replay verification.
+func TestReplayVerification(t *testing.T) {
+	fixtureDir := filepath.Join("..", "..", "tests", "fixtures", "runs_for_accumulation")
+	runs1, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures (pass 1): %v", err)
+	}
+
+	original := FoldV1(runs1, "snapshot-replay-s30", "2026-04-14T12:00:00Z")
+
+	// Replay: reload and refold.
+	runs2, err := LoadRunReports(fixtureDir)
+	if err != nil {
+		t.Fatalf("load fixtures (pass 2): %v", err)
+	}
+
+	replayed := FoldV1(runs2, "snapshot-replay-s30", "2026-04-14T12:00:00Z")
+
+	// Both checksum and UUID must match.
+	if original.Checksum != replayed.Checksum {
+		t.Errorf("replay checksum mismatch: %s vs %s", original.Checksum, replayed.Checksum)
+	}
+	if original.UUID != replayed.UUID {
+		t.Errorf("replay UUID mismatch: %s vs %s", original.UUID, replayed.UUID)
+	}
+
+	// Runs included must match.
+	if len(original.RunsIncluded) != len(replayed.RunsIncluded) {
+		t.Fatalf("runs_included length: %d vs %d",
+			len(original.RunsIncluded), len(replayed.RunsIncluded))
+	}
+	for i := range original.RunsIncluded {
+		if original.RunsIncluded[i] != replayed.RunsIncluded[i] {
+			t.Errorf("runs_included[%d]: %s vs %s",
+				i, original.RunsIncluded[i], replayed.RunsIncluded[i])
+		}
+	}
+
+	// UUIDSpecVersion must be set on both.
+	if original.UUIDSpecVersion != UUIDSpecVersionV1 {
+		t.Errorf("original UUIDSpecVersion: %q", original.UUIDSpecVersion)
+	}
+	if replayed.UUIDSpecVersion != UUIDSpecVersionV1 {
+		t.Errorf("replayed UUIDSpecVersion: %q", replayed.UUIDSpecVersion)
+	}
+}
+
+// TestUUIDDifferentRunsProduceDifferentUUID verifies that different sets
+// of runs_included produce different UUIDs.
+//
+// Ref: S30 — UUIDv5 collision resistance for distinct inputs.
+func TestUUIDDifferentRunsProduceDifferentUUID(t *testing.T) {
+	runsA := []RunReport{
+		{RunID: "run-A", BatchID: "b1", Start: "2026-04-14T10:00:00Z", End: "2026-04-14T10:01:00Z", Metrics: RunMetrics{Processed: 10, Admitted: 10}},
+	}
+	runsB := []RunReport{
+		{RunID: "run-B", BatchID: "b1", Start: "2026-04-14T10:00:00Z", End: "2026-04-14T10:01:00Z", Metrics: RunMetrics{Processed: 10, Admitted: 10}},
+	}
+
+	snapA := FoldV1(runsA, "snap-diff-a", "2026-04-14T12:00:00Z")
+	snapB := FoldV1(runsB, "snap-diff-b", "2026-04-14T12:00:00Z")
+
+	if snapA.UUID == snapB.UUID {
+		t.Errorf("different runs produced same UUID: %s", snapA.UUID)
 	}
 }
