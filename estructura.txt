@@ -2,7 +2,8 @@
 │   ├── dependabot.yml
 │   ├── instructions
 │   │   ├── contratos.instructions.md
-│   │   └── PRcommits.instructions.md
+│   │   ├── PRcommits.instructions.md
+│   │   └── tiddlers_sesiones.instructions.md
 │   └── workflows
 │       └── ci.yml
 ├── .gitignore
@@ -33,7 +34,11 @@
 │   ├── m02-s22-canon-gate-batch-audit-v0.md.json
 │   ├── m02-s23-canon-gate-batch-report-v0.md.json
 │   ├── m02-s24-canon-gate-batch-emit-v0.md.json
-│   └── m02-s24-canon-gate-verdict-v0.md.json
+│   ├── m02-s24-canon-gate-verdict-v0.md.json
+│   ├── m02-s25-canon-gate-batch-contract-v1.md.json
+│   ├── m02-s26-canon-gate-batch-report-persist-v0.md.json
+│   ├── m02-s27-canon-gate-batch-report-persist-v0.md.json
+│   └── m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -56,6 +61,136 @@
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
 │   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
+│   ├── tiddlers_de_sesiones
+│   │   ├── # 1_tiddly-data-converter.json
+│   │   ├── # 2_🧾 Procedencia inicial.json
+│   │   ├── # 3_🧪 Hipótesis inicial.json
+│   │   ├── ## 🌀🧱 Desarrollo y Evolución.json
+│   │   ├── ## 🎯🧱 Detalles del tema.json
+│   │   ├── ## 📚🧱 Glosario y Convenciones.json
+│   │   ├── ## 📦🧱 Dependencias y superficie externa.json
+│   │   ├── ## 🗂🧱 Arquitectura (del desarrollo).json
+│   │   ├── ## 🗂🧱 Buen gusto.json
+│   │   ├── ## 🗂🧱 Calidad de referencias.json
+│   │   ├── ## 🗂🧱 Complejidad Esencial vs Accidental.json
+│   │   ├── ## 🗂🧱 Diseño.json
+│   │   ├── ## 🗂🧱 Epigenética Computacional.json
+│   │   ├── ## 🗂🧱 Estilo Mosston y Ashworth.json
+│   │   ├── ## 🗂🧱 Estructura de trazabilidad.json
+│   │   ├── ## 🗂🧱 Evolución Semántica.json
+│   │   ├── ## 🗂🧱 Modularidad y Estado.json
+│   │   ├── ## 🗂🧱 Principios de Gestion.json
+│   │   ├── ## 🗂🧱 Reglas de relaciones.json
+│   │   ├── ## 🗂🧱 Usabilidad y Robustez.json
+│   │   ├── ## 🧠🧱 Política de Memoria Activa.json
+│   │   ├── ## 🧪🧱 Hipótesis.json
+│   │   ├── ## 🧭🧱 Protocolo de Sesión.json
+│   │   ├── ## 🧰🧱 Elementos específicos.json
+│   │   ├── ## 🧾🧱 Procedencia epistemológica.json
+│   │   ├── ### 🎯 1. Objetivos 🧱.json
+│   │   ├── ### 🎯 2. Requisitos 🧱.json
+│   │   ├── ### 🎯 3. DOFA 🧱.json
+│   │   ├── ### 🎯 4. Flujo de interaccion 🧱.json
+│   │   ├── ### 🎯 5. Arquitectura 🌀.json
+│   │   ├── ### 🎯 6. Componentes 🌀.json
+│   │   ├── ### 🎯 7. Algoritmos y matematicas 🌀.json
+│   │   ├── ### 🎯 8. Ingeniería asistida por IA 🌀.json
+│   │   ├── #### referencias especificas 🌀.json
+│   │   ├── #### 🌀 Sesión 01 = extractor-contract.json
+│   │   ├── #### 🌀 Sesión 02 = extractor-bootstrap.json
+│   │   ├── #### 🌀 Sesión 03 = extractor-env-wsl.json
+│   │   ├── #### 🌀 Sesión 04 = doctor-contract.json
+│   │   ├── #### 🌀 Sesión 05 = ingesta-contract.json
+│   │   ├── #### 🌀 Sesión 06 = ingesta-go-env-wsl.json
+│   │   ├── #### 🌀 Sesión 07 = ingesta-bootstrap.json
+│   │   ├── #### 🌀 Sesión 08 = ingesta-data-triage.json
+│   │   ├── #### 🌀 Sesión 09 = ingesta-timestamp-policy.json
+│   │   ├── #### 🌀 Sesión 10 = doctor-audit.json
+│   │   ├── #### 🌀 Sesión 11 = ingesta-dedup-triage.json
+│   │   ├── #### 🌀 Sesión 12 = pipeline-costura.json
+│   │   ├── #### 🌀 Sesión 13 = canon-bootstrap.json
+│   │   ├── #### 🌀 Sesión 14 = bridge-ingesta-canon.json
+│   │   ├── #### 🌀 Sesión 15 = canon-collision-acceptance.json
+│   │   ├── #### 🌀 Sesión 16 = canon-jsonl-writer.json
+│   │   ├── #### 🌀 Sesión 17 = canon-admit-v0.json
+│   │   ├── #### 🌀 Sesión 18 = canon-schema-v0.json
+│   │   ├── #### 🌀 Sesión 19 = canon-jsonl-gate-v0.json
+│   │   ├── #### 🌀 Sesión 20 = canon-gate-e2e-smoke.json
+│   │   ├── #### 🌀 Sesión 21 = canon-gate-acceptance-matrix.json
+│   │   ├── #### 🌀 Sesión 22 = canon-gate-ci-integration.json
+│   │   ├── #### 🌀 Sesión 23 = canon-gate-docs.json
+│   │   ├── #### 🌀 Sesión 24 = canon-gate-ci-integration.json
+│   │   ├── #### 🌀 Sesión 25 = canon-gate-batch-contract-v1.json
+│   │   ├── #### 🌀 Sesión 26 = canon-gate-batch-report-persist-v0.json
+│   │   ├── #### 🌀 Sesión 27 = canon-gate-batch-report-persist-v0.json
+│   │   ├── #### 🌀 Sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
+│   │   ├── #### 🌀📦 Hipótesis de dependencias = m01.json
+│   │   ├── #### 🌀📦 Política de dependencias.json
+│   │   ├── #### 🌀📦 Procedencia de dependencias = m01.json
+│   │   ├── #### 🌀📦 Registro de dependencias críticas.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 02 = extractor-bootstrap.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 03 = extractor-env-wsl.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 04 = doctor-contract.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 05 = ingesta-contract.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 06 = ingesta-go-env-wsl.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 07 = ingesta-bootstrap.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 08 = ingesta-data-triage.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 09 = ingesta-timestamp-policy.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 10 = doctor-audit.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 11 = ingesta-dedup-triage.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 12 = pipeline-costura.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 13 = canon-bootstrap.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 14 = bridge-ingesta-canon.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 15 = canon-collision-acceptance.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 16 = canon-jsonl-writer.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 17 = canon-admit-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 18 = canon-schema-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 19 = canon-jsonl-gate-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 20 = canon-gate-e2e-smoke.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 21 = canon-gate-acceptance-matrix.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 22 = canon-gate-ci-integration.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 24 = canon-gate-ci-integration.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 25 = canon-gate-batch-contract-v1.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 26 = canon-gate-batch-report-persist-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 27 = canon-gate-batch-report-persist-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 02.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 03.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 04.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 05.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 06.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 07.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 08.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 09.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 10.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 11.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 12.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 13.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 14.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 15.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 16.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 17.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 18.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 19.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 20.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 21.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 22.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 23.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 24.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 25.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 26.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 27.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 28.json
+│   │   ├── #### 📚 Diccionario 🌀.csv
+│   │   ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
+│   │   ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
+│   │   ├── 03. Managing Provenance Data in Knowledge Graph Management Platforms.json
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.json
+│   │   ├── 05. An ecosystem for personal knowledge graphs_ A survey and research roadmap.json
+│   │   ├── 06. Semantic annotation for knowledge management_ Requirements and a survey of the state of the art.json
+│   │   └── 07. Nested Learning_ The Illusion of Deep Learning Architecture.json
 │   └── tiddlers_esp
 │       ├── # 1_tiddly-data-converter.json
 │       ├── # 2_🧾 Procedencia inicial.json
@@ -115,6 +250,10 @@
 │       ├── #### 🌀 Sesión 22 = canon-gate-ci-integration.json
 │       ├── #### 🌀 Sesión 23 = canon-gate-docs.json
 │       ├── #### 🌀 Sesión 24 = canon-gate-ci-integration.json
+│       ├── #### 🌀 Sesión 25 = canon-gate-batch-contract-v1.json
+│       ├── #### 🌀 Sesión 26 = canon-gate-batch-report-persist-v0.json
+│       ├── #### 🌀 Sesión 27 = canon-gate-batch-report-persist-v0.json
+│       ├── #### 🌀 Sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -143,6 +282,10 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 22 = canon-gate-ci-integration.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 24 = canon-gate-ci-integration.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 25 = canon-gate-batch-contract-v1.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 26 = canon-gate-batch-report-persist-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 27 = canon-gate-batch-report-persist-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -166,6 +309,10 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 22.json
 │       ├── #### 🌀🧾 Procedencia de sesión 23.json
 │       ├── #### 🌀🧾 Procedencia de sesión 24.json
+│       ├── #### 🌀🧾 Procedencia de sesión 25.json
+│       ├── #### 🌀🧾 Procedencia de sesión 26.json
+│       ├── #### 🌀🧾 Procedencia de sesión 27.json
+│       ├── #### 🌀🧾 Procedencia de sesión 28.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -213,6 +360,16 @@
 │       ├── contratos_m01-s17-canon-admit-v0.md.json.json
 │       ├── contratos_m01-s17-post-merge-actions-verification.md.json.json
 │       ├── contratos_m01-s18-canon-schema-v0.md.json.json
+│       ├── contratos_m02-s19-canon-jsonl-gate-v0.md.json.json
+│       ├── contratos_m02-s20-canon-gate-e2e-smoke.md.json.json
+│       ├── contratos_m02-s21-canon-gate-acceptance-matrix.md.json.json
+│       ├── contratos_m02-s22-canon-gate-batch-audit-v0.md.json.json
+│       ├── contratos_m02-s23-canon-gate-batch-report-v0.md.json.json
+│       ├── contratos_m02-s24-canon-gate-batch-emit-v0.md.json.json
+│       ├── contratos_m02-s24-canon-gate-verdict-v0.md.json.json
+│       ├── contratos_m02-s25-canon-gate-batch-contract-v1.md.json.json
+│       ├── contratos_m02-s26-canon-gate-batch-report-persist-v0.md.json.json
+│       ├── contratos_m02-s27-canon-gate-batch-report-persist-v0.md.json.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
@@ -254,19 +411,34 @@
 │       ├── github_dependabot.yml.json
 │       ├── github_instructions_contratos.instructions.md.json
 │       ├── github_instructions_PRcommits.instructions.md.json
+│       ├── github_instructions_tiddlers_sesiones.instructions.md.json
 │       ├── github_workflows_ci.yml.json
 │       ├── gitignore.json
 │       ├── go_bridge_admit.go.json
 │       ├── go_bridge_bridge.go.json
 │       ├── go_bridge_bridge_test.go.json
 │       ├── go_bridge_cmd_admit_main.go.json
+│       ├── go_bridge_smoke_e2e_test.go.json
 │       ├── go_bridge_timestamp.go.json
+│       ├── go_canon_batch_audit.go.json
+│       ├── go_canon_batch_audit_test.go.json
+│       ├── go_canon_batch_contract.go.json
+│       ├── go_canon_batch_contract_test.go.json
+│       ├── go_canon_batch_emit.go.json
+│       ├── go_canon_batch_emit_test.go.json
+│       ├── go_canon_batch_report.go.json
+│       ├── go_canon_batch_report_persist.go.json
+│       ├── go_canon_batch_report_persist_test.go.json
+│       ├── go_canon_batch_report_test.go.json
 │       ├── go_canon_canon_test.go.json
 │       ├── go_canon_cmd_emit_main.go.json
 │       ├── go_canon_collision.go.json
+│       ├── go_canon_gate_acceptance_test.go.json
 │       ├── go_canon_identity.go.json
 │       ├── go_canon_schema.go.json
 │       ├── go_canon_schema_test.go.json
+│       ├── go_canon_verdict.go.json
+│       ├── go_canon_verdict_test.go.json
 │       ├── go_canon_writer.go.json
 │       ├── go_canon_writer_test.go.json
 │       ├── go_go.txt copy.json
@@ -453,6 +625,7 @@
 │       ├── tests_fixtures_raw_tiddlers_invalid.json.json
 │       ├── tests_fixtures_raw_tiddlers_minimal.json.json
 │       ├── tests_fixtures_raw_tiddlers_no_title.json.json
+│       ├── tests_fixtures_raw_tiddlers_smoke_e2e.json.json
 │       ├── tests_fixtures_raw_tiddlers_timestamp_ms_from_data.json.json
 │       ├── tests_fixtures_README.md copy.json
 │       ├── tests_fixtures_README.md.json
@@ -486,11 +659,16 @@
 │   │   ├── smoke_e2e_test.go
 │   │   └── timestamp.go
 │   ├── canon
+│   │   ├── accumulate_test.go
 │   │   ├── batch_audit.go
 │   │   ├── batch_audit_test.go
+│   │   ├── batch_contract.go
+│   │   ├── batch_contract_test.go
 │   │   ├── batch_emit.go
 │   │   ├── batch_emit_test.go
 │   │   ├── batch_report.go
+│   │   ├── batch_report_persist.go
+│   │   ├── batch_report_persist_test.go
 │   │   ├── batch_report_test.go
 │   │   ├── canon_test.go
 │   │   ├── cmd
@@ -557,27 +735,35 @@
 │   ├── run_pipeline.sh
 │   ├── scripts.txt
 │   └── tiddlers_to_jsonl.py
-└── tests
-    ├── fixtures
-    │   ├── canon_gate_accept.jsonl
-    │   ├── canon_gate_batch_audit_mixed.jsonl
-    │   ├── canon_gate_reject.jsonl
-    │   ├── minimal_tiddlywiki.html
-    │   ├── raw_tiddlers_d1_exact_duplicate.json
-    │   ├── raw_tiddlers_d2_same_title_diff_content.json
-    │   ├── raw_tiddlers_d3_exact_content_diff_title.json
-    │   ├── raw_tiddlers_d4_near_duplicate.json
-    │   ├── raw_tiddlers_d4_near_duplicate_high_similarity.json
-    │   ├── raw_tiddlers_empty_title.json
-    │   ├── raw_tiddlers_invalid.json
-    │   ├── raw_tiddlers_minimal.json
-    │   ├── raw_tiddlers_no_title.json
-    │   ├── raw_tiddlers_smoke_e2e.json
-    │   ├── raw_tiddlers_timestamp_ms_from_data.json
-    │   └── README.md
-    ├── smoke
-    │   └── test_pipeline_smoke.sh
-    └── test.txt
+├── tests
+│   ├── fixtures
+│   │   ├── canon_gate_accept.jsonl
+│   │   ├── canon_gate_batch_audit_mixed.jsonl
+│   │   ├── canon_gate_reject.jsonl
+│   │   ├── minimal_tiddlywiki.html
+│   │   ├── raw_tiddlers_d1_exact_duplicate.json
+│   │   ├── raw_tiddlers_d2_same_title_diff_content.json
+│   │   ├── raw_tiddlers_d3_exact_content_diff_title.json
+│   │   ├── raw_tiddlers_d4_near_duplicate.json
+│   │   ├── raw_tiddlers_d4_near_duplicate_high_similarity.json
+│   │   ├── raw_tiddlers_empty_title.json
+│   │   ├── raw_tiddlers_invalid.json
+│   │   ├── raw_tiddlers_minimal.json
+│   │   ├── raw_tiddlers_no_title.json
+│   │   ├── raw_tiddlers_smoke_e2e.json
+│   │   ├── raw_tiddlers_timestamp_ms_from_data.json
+│   │   ├── README.md
+│   │   └── runs_for_accumulation
+│   │       ├── run-001.json
+│   │       ├── run-002.json
+│   │       └── run-003.json
+│   ├── smoke
+│   │   └── test_pipeline_smoke.sh
+│   └── test.txt
+└── tools
+    └── accumulator
+        ├── README.md
+        └── spec.md
 
 # Nota: se han excluido de esta vista los artefactos de build (target/),
 # caches (__pycache__), metadatos de Windows (*:Zone.Identifier),
