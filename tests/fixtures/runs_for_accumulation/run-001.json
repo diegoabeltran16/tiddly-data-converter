@@ -1,0 +1,28 @@
+{
+  "run_id": "run-20260414-001",
+  "batch_id": "batch-20260414",
+  "start_time": "2026-04-14T10:00:00Z",
+  "end_time": "2026-04-14T10:02:00Z",
+  "metrics": {
+    "processed": 50,
+    "admitted": 45,
+    "rejected": 5,
+    "warnings": 1,
+    "duration_seconds": 120
+  },
+  "rejected_by_reason": {
+    "schema_error": 3,
+    "empty_title": 2
+  },
+  "emitted": {
+    "canon_lines": 45,
+    "files": ["out/canon-run-20260414-001.jsonl"]
+  },
+  "provenance": {
+    "tool_version": "go-canon@v0.1",
+    "commit": "aaa111"
+  },
+  "checksums": {
+    "canon_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
