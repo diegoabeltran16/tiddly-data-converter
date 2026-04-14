@@ -1,0 +1,11 @@
+[
+  {
+    "created": "20260413212100000",
+    "text": "{\n  \"id\": \"urn:uuid:PENDIENTE-GENERACION-CONVERTIDOR\",\n  \"title\": \"#### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs\",\n  \"rol_principal\": \"hipotesis\",\n  \"roles_secundarios\": [\n    \"documentacion\",\n    \"tests\"\n  ],\n  \"tags\": [\n    \"session:m02-s23\",\n    \"milestone:m02\",\n    \"topic:canon\",\n    \"topic:docs\",\n    \"kind:hipotesis\"\n  ],\n  \"relations\": [\n    {\n      \"type\": \"prueba_de\",\n      \"target\": \"m02-s23-canon-gate-docs\"\n    },\n    {\n      \"type\": \"usa\",\n      \"target\": \"tests/fixtures/canon_gate_accept.jsonl\"\n    },\n    {\n      \"type\": \"usa\",\n      \"target\": \"tests/fixtures/canon_gate_reject.jsonl\"\n    }\n  ],\n  \"content\": {\n    \"plain\": \"Hipótesis: la documentación del gate (canon-gate-docs) explicará los criterios de aceptación y mostrará ejemplos de uso y fixtures para facilitar la integración.\",\n    \"markdown\": \"#### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs\\n\\n**Hipótesis**: La nueva documentación para `canon-gate` proveerá descripciones claras de los criterios de aceptación, ejemplos de fixtures y comandos `emit` que permitan a usuarios reproducir rechazos y pases en local.\\n\\n**Criterios propuestos**:\\n- Incluir sección de 'Uso Rápido' con `emit` sample.\\n- Documentar fixtures `canon_gate_accept.jsonl` y `canon_gate_reject.jsonl`.\\n- Añadir ejemplos de logs y comportamiento esperado.\\n\\n**Resultado esperado**: Reducción en preguntas de integración y aumento en reproducibilidad de fallos.\"\n  },\n  \"meta\": {\n    \"status\": \"borrador\",\n    \"priority\": \"medium\"\n  },\n  \"provenance\": [\n    {\n      \"actor\": \"human\",\n      \"method\": \"derived_from_contracts\",\n      \"source_ref\": \"m02-s19, m02-s21, tests/fixtures\"\n    }\n  ],\n  \"metacognition\": {\n    \"certainty\": 2,\n    \"ambiguity\": 2,\n    \"notes\": \"Hipótesis orientada a documentación y ejemplos de uso.\"\n  }\n}",
+    "tags": "[[#### 🌀 Sesión 23 = canon-gate-docs]] [[session:m02-s23]] [[milestone:m02]]",
+    "title": "#### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs",
+    "modified": "20260413212100000",
+    "type": "application/json",
+    "tmap.id": "PENDIENTE-S23-HIP-001"
+  }
+]
