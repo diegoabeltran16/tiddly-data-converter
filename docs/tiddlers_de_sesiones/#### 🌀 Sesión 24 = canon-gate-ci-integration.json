@@ -1,0 +1,11 @@
+[
+  {
+    "created": "20260413212500000",
+    "text": "{\n  \"id\": \"urn:uuid:PENDIENTE-GENERACION-CONVERTIDOR\",\n  \"title\": \"#### 🌀 Sesión 24 = canon-gate-ci-integration\",\n  \"rol_principal\": \"sesion\",\n  \"roles_secundarios\": [\n    \"devops\",\n    \"integracion\"\n  ],\n  \"tags\": [\n    \"session:m02-s24\",\n    \"milestone:m02\",\n    \"topic:canon\",\n    \"topic:ci\"\n  ],\n  \"relations\": [\n    {\n      \"type\": \"contiene\",\n      \"target\": \"#### 🌀🧪 Hipótesis de sesión 24 = canon-gate-ci-integration\"\n    },\n    {\n      \"type\": \"contiene\",\n      \"target\": \"#### 🌀🧾 Procedencia de sesión 24\"\n    },\n    {\n      \"type\": \"usa\",\n      \"target\": \"contratos/m02-s24-canon-gate-ci-integration.md.json\"\n    }\n  ],\n  \"content\": {\n    \"plain\": \"Sesión orientada a integración del canon-gate en pipelines CI. Definición de jobs y reporting.\",\n    \"markdown\": \"#### 🌀 Sesión 24 = canon-gate-ci-integration\\n\\n**Objetivo**: Diseñar e integrar el job `canon-gate` en la pipeline CI con reporting y matrix de ejecución.\\n\\n**Actividades**:\\n1. Diseñar `.github/workflows/canon-gate.yml`.\\n2. Definir matrix y runners mínimos.\\n3. Publicar artifacts y/o comentarios con resumen de gate.\\n\\n**Cierre**: PR con workflow y evidencia de ejecución en una rama de prueba.\"\n  },\n  \"meta\": {\n    \"status\": \"borrador\",\n    \"epic\": \"canon-gate-ci\"\n  },\n  \"provenance\": [\n    {\n      \"actor\": \"human\",\n      \"origin\": \"contratos\",\n      \"method\": \"planning\",\n      \"source_ref\": \"m02-s24-canon-gate-ci-integration\"\n    }\n  ],\n  \"metacognition\": {\n    \"certainty\": 2,\n    \"ambiguity\": 2,\n    \"notes\": \"Requiere runners y validación en PRs.\"\n  }\n}",
+    "tags": "[[#### 🌀🧪 Hipótesis de sesión 24 = canon-gate-ci-integration]] [[#### 🌀🧾 Procedencia de sesión 24]] [[session:m02-s24]] [[milestone:m02]]",
+    "title": "#### 🌀 Sesión 24 = canon-gate-ci-integration",
+    "modified": "20260413212500000",
+    "type": "application/json",
+    "tmap.id": "PENDIENTE-S24-SES-001"
+  }
+]
