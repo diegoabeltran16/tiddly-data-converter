@@ -1,0 +1,53 @@
+{
+  "snapshot_id": "canon-baseline-v1",
+  "uuid": "d4b58f76-a870-54e9-b10a-a9f09f12d61f",
+  "uuid_spec_version": "v1",
+  "as_of": "2026-04-14T00:00:00Z",
+  "batches_included": [
+    "batch-20260414"
+  ],
+  "runs_included": [
+    "run-20260414-001",
+    "run-20260414-002",
+    "run-20260414-003"
+  ],
+  "metrics_aggregate": {
+    "processed": 160,
+    "admitted": 143,
+    "rejected": 17,
+    "warnings": 4,
+    "duration_seconds": 390,
+    "canon_lines": 143
+  },
+  "rejected_by_reason_aggregate": {
+    "duplicate": 7,
+    "empty_title": 3,
+    "schema_error": 7
+  },
+  "top_errors": [
+    [
+      "duplicate",
+      7
+    ],
+    [
+      "schema_error",
+      7
+    ],
+    [
+      "empty_title",
+      3
+    ]
+  ],
+  "first_seen": "2026-04-14T10:00:00Z",
+  "last_seen": "2026-04-14T10:11:30Z",
+  "provenance": {
+    "accumulation_algo": "fold_v1",
+    "accumulation_version": "v0.1",
+    "reconstructed_from_runs": [
+      "run-20260414-001",
+      "run-20260414-002",
+      "run-20260414-003"
+    ]
+  },
+  "checksum": "sha256:9e5d4f4c5f3579371c87ee23617f002c15c720922ce2b8b9d19b624ce36408f3"
+}
