@@ -196,7 +196,7 @@ func FoldV1(runs []RunReport, snapshotID, asOf string) BatchSnapshot {
 	if err != nil {
 		// Should not happen with well-formed inputs; panic matches
 		// the existing convention in ComputeSnapshotChecksum.
-		panic(fmt.Sprintf("accumulate: compute uuid: %v", err))
+		panic(fmt.Sprintf("accumulate: compute uuid for snapshot %q: %v", snapshotID, err))
 	}
 	snap.UUID = uuid
 
