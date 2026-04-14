@@ -40,7 +40,8 @@
 │   ├── m02-s27-canon-gate-batch-report-persist-v0.md.json
 │   ├── m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json
 │   ├── m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json
-│   └── m02-s30-canon-uuidv5-and-memory-policy-v0.md.json
+│   ├── m02-s30-canon-uuidv5-and-memory-policy-v0.md.json
+│   └── m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json
 ├── data
 │   └── data.txt
 ├── docs
@@ -127,6 +128,7 @@
 │   │   ├── #### 🌀 Sesión 27 = canon-gate-batch-report-persist-v0.json
 │   │   ├── #### 🌀 Sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │   │   ├── #### 🌀 Sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
+│   │   ├── #### 🌀 Sesión 31 = canon-accumulate-replay-verify-and-ci-v0.json
 │   │   ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │   │   ├── #### 🌀📦 Política de dependencias.json
 │   │   ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -160,6 +162,7 @@
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 27 = canon-gate-batch-report-persist-v0.json
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 31 = canon-accumulate-replay-verify-and-ci-v0.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 02.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 03.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -188,6 +191,7 @@
 │   │   ├── #### 🌀🧾 Procedencia de sesión 27.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 28.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 29.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 31.json
 │   │   ├── #### 📚 Diccionario 🌀.csv
 │   │   ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
 │   │   ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
@@ -383,6 +387,7 @@
 │       ├── contratos_m02-s27-canon-gate-batch-report-persist-v0.md.json.json
 │       ├── contratos_m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json.json
 │       ├── contratos_m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json.json
+│       ├── contratos_m02-s30-canon-uuidv5-and-memory-policy-v0.md.json.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
@@ -446,6 +451,8 @@
 │       ├── go_canon_batch_report_persist_test.go.json
 │       ├── go_canon_batch_report_test.go.json
 │       ├── go_canon_canon_test.go.json
+│       ├── go_canon_canonical.go.json
+│       ├── go_canon_canonical_test.go.json
 │       ├── go_canon_cmd_accumulate_main.go.json
 │       ├── go_canon_cmd_emit_main.go.json
 │       ├── go_canon_collision.go.json
@@ -708,6 +715,8 @@
 │   │   ├── schema_test.go
 │   │   ├── verdict.go
 │   │   ├── verdict_test.go
+│   │   ├── verify.go
+│   │   ├── verify_test.go
 │   │   ├── writer.go
 │   │   └── writer_test.go
 │   ├── go.txt
