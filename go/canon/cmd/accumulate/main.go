@@ -4,9 +4,16 @@
 // Usage:
 //
 //	accumulate --input <dir> --out <path> [--batch <id>] [--verify]
+//	accumulate --verify --snapshot <path> --input <dir> [--batch <id>]
+//
+// When --snapshot is provided with --verify, the tool loads an existing
+// snapshot and verifies it against a replay from the source run_reports.
+// This mode performs field-by-field comparison (S31) including UUIDv5
+// replay, checksum recomputation, and structured diff output.
 //
 // Ref: S28 — accumulator spec.
 // Ref: S29 — truth-pin implementation.
+// Ref: S31 — replay verification and CI.
 package main
 
 import (
@@ -23,8 +30,9 @@ import (
 func main() {
 	inputDir := flag.String("input", "", "Directory containing run_report JSON files (required)")
 	batchID := flag.String("batch", "", "Filter runs by batch_id (optional)")
-	outPath := flag.String("out", "", "Output path for batch_snapshot JSON (required)")
-	verify := flag.Bool("verify", false, "After generating, replay from runs and verify checksum")
+	outPath := flag.String("out", "", "Output path for batch_snapshot JSON (required for generate mode)")
+	verify := flag.Bool("verify", false, "Verify mode: with --snapshot verifies existing snapshot; without --snapshot replays after generation")
+	snapshotPath := flag.String("snapshot", "", "Path to existing snapshot file to verify (used with --verify)")
 	version := flag.Bool("version", false, "Print accumulation algorithm version")
 	flag.Parse()
 
@@ -33,6 +41,40 @@ func main() {
 		os.Exit(0)
 	}
 
+	// S31: --verify --snapshot <path> --input <dir> mode.
+	// Verifies an existing snapshot against a replay from source inputs.
+	if *verify && *snapshotPath != "" {
+		if *inputDir == "" {
+			fmt.Fprintln(os.Stderr, "accumulate: --input is required with --verify --snapshot")
+			flag.Usage()
+			os.Exit(2)
+		}
+
+		log.Printf("accumulate: verify mode — snapshot=%q input=%q batch=%q",
+			*snapshotPath, *inputDir, *batchID)
+
+		result, err := canon.VerifySnapshot(*snapshotPath, *inputDir, *batchID)
+		if err != nil {
+			log.Fatalf("accumulate: verify: %v", err)
+		}
+
+		// Emit structured result as JSON.
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			log.Fatalf("accumulate: marshal result: %v", err)
+		}
+		fmt.Println(string(resultJSON))
+
+		if !result.OK {
+			log.Printf("accumulate: %s", result.Message)
+			os.Exit(1)
+		}
+
+		log.Printf("accumulate: %s", result.Message)
+		os.Exit(0)
+	}
+
+	// Generate mode: --input and --out are required.
 	if *inputDir == "" || *outPath == "" {
 		fmt.Fprintln(os.Stderr, "accumulate: --input and --out are required")
 		flag.Usage()
@@ -86,7 +128,7 @@ func main() {
 	}
 	log.Printf("accumulate: wrote snapshot to %q (%d bytes)", *outPath, len(data))
 
-	// 5. Verify if requested
+	// 5. Verify if requested (inline replay verification for generate mode)
 	if *verify {
 		log.Printf("accumulate: verifying by replay...")
 		runs2, err := canon.LoadRunReports(*inputDir)
