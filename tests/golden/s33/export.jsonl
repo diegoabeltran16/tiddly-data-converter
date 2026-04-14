@@ -1,0 +1,4 @@
+{"schema_version":"v0","key":"Tiddler Alpha","title":"Tiddler Alpha","text":"Contenido del tiddler Alpha.\n\nUna segunda línea.","source_position":"html:block0:tiddler0","created":"20260101120000000","modified":"20260101130000000"}
+{"schema_version":"v0","key":"Tiddler Beta","title":"Tiddler Beta","text":"Contenido del tiddler Beta.","source_position":"html:block0:tiddler1","created":"20260102120000000","modified":"20260102130000000"}
+{"schema_version":"v0","key":"Tiddler Sin Texto","title":"Tiddler Sin Texto","source_position":"html:block0:tiddler2","created":"20260103120000000","modified":"20260103130000000"}
+{"schema_version":"v0","key":"Sesión de prueba","title":"Sesión de prueba","text":"Contenido de sesión de prueba con caracteres especiales: áéíóú ñ.","source_position":"html:block0:tiddler5","created":"20260104120000000","modified":"20260104130000000"}

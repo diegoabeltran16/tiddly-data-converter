@@ -86,6 +86,19 @@ func Ingest(rawPath string, origin OriginFormat) ([]Tiddler, *IngestReport, erro
 	return tiddlers, report, nil
 }
 
+// TransformOne converts a single RawTiddler into a pre-canonical Tiddler.
+// It returns per-tiddler warnings and errors (semantic, not fatal).
+//
+// Exported for use by the S33 export_tiddlers CLI, which performs in-memory
+// ingestion of RawTiddler values extracted directly from HTML.
+// The index parameter is used only for error/warning messages.
+//
+// Ref: S05 §9 — per-tiddler transformation rules.
+// Ref: S33 — adapter_real_html requires direct access to transformation.
+func TransformOne(raw RawTiddler, origin OriginFormat) (Tiddler, []string, []string) {
+	return transformOne(raw, origin, 0)
+}
+
 // transformOne converts a single RawTiddler into a pre-canonical Tiddler.
 // It returns per-tiddler warnings and errors (semantic, not fatal).
 func transformOne(raw RawTiddler, origin OriginFormat, index int) (Tiddler, []string, []string) {
