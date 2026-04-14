@@ -102,10 +102,23 @@ jobs:
             --snapshot /tmp/baseline_snapshot.json \
             --input ../../tests/fixtures/runs_for_accumulation
 
+  baseline-oracle:
+    name: "Go · baseline-oracle (S32)"
+    runs-on: ubuntu-latest
+    needs: [go-canon]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+          cache-dependency-path: go/canon/go.mod
+      - name: Verify baseline golden files by strict diff
+        run: bash scripts/baseline_verify.sh
+
   pipeline-smoke:
     name: "Pipeline · smoke (Extractor → Doctor → Ingesta → Canon → JSONL)"
     runs-on: ubuntu-latest
-    needs: [rust-extractor, rust-doctor, go-ingesta, go-canon, go-bridge, accumulate-verify]
+    needs: [rust-extractor, rust-doctor, go-ingesta, go-canon, go-bridge, accumulate-verify, baseline-oracle]
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
