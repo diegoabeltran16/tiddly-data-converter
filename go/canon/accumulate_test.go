@@ -194,6 +194,7 @@ func topKFromMap(m map[string]int) [][2]interface{} {
 
 // computeSnapshotChecksum serializes a snapshot (without its checksum
 // field) to canonical JSON and returns "sha256:<hex>".
+// The snapshot is received by value, so the caller's copy is NOT mutated.
 func computeSnapshotChecksum(snap BatchSnapshot) string {
 	// Zero out checksum before serializing
 	snap.Checksum = ""
@@ -325,7 +326,10 @@ func TestInvariants(t *testing.T) {
 		}
 	})
 
-	// I2: runs_included is exact and ordered
+	// I2: runs_included is exact and ordered by (start_time, run_id) as per fold_v1 spec.
+	// In our fixtures, run_ids are co-monotonic with start_times, so checking
+	// run_id ordering suffices. The canonical ordering is verified end-to-end
+	// by TestFoldDeterministic (reversed input → same output).
 	t.Run("I2_RunsIncluded_Exact_Ordered", func(t *testing.T) {
 		if len(snap.RunsIncluded) != len(runs) {
 			t.Errorf("runs_included has %d entries, expected %d",

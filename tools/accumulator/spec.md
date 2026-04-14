@@ -90,8 +90,12 @@ Runs are sorted by `(start_time, run_id)` in ascending order. Fold is applied se
 | Maps of counts | Sum per key | Associative, commutative |
 | Unique sets (run_ids, batch_ids) | Union | Idempotent |
 | Timestamps | `min()` for first-seen, `max()` for last-seen | Commutative |
-| Histograms | Merge by bucket boundaries (stable per `accumulation_version`) | Associative |
+| Histograms | Merge by bucket boundaries (stable per `accumulation_version`; see §5.4) | Associative |
 | Top-K | Derive from merged counts map; break ties lexicographically | Deterministic |
+
+### 5.4 Histogram Bucket Boundaries (deferred)
+
+Histogram buckets are not used in the initial `fold_v1` fixtures (S28). When histograms are introduced, the bucket boundaries must be defined per `accumulation_version` and stored in the snapshot metadata. Changing bucket boundaries requires incrementing `accumulation_version` and recomputing all affected snapshots. The exact boundary definitions will be specified in the session that introduces histogram accumulation.
 
 ### 5.3 Checksum Computation
 
