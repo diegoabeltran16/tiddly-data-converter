@@ -1,0 +1,11 @@
+[
+  {
+    "created": "20260413212300000",
+    "text": "{\n  \"id\": \"urn:uuid:PENDIENTE-GENERACION-CONVERTIDOR\",\n  \"title\": \"#### 🌀🧾 Procedencia de sesión 24\",\n  \"rol_principal\": \"dato\",\n  \"roles_secundarios\": [\n    \"reporte\"\n  ],\n  \"tags\": [\n    \"core:procedencia-epistemologica\",\n    \"layer:sesion\",\n    \"session:m02-s24\",\n    \"milestone:m02\",\n    \"topic:canon\",\n    \"topic:ci\"\n  ],\n  \"relations\": [\n    {\n      \"type\": \"parte_de\",\n      \"target\": \"## 🧾🧱 Procedencia epistemológica\"\n    },\n    {\n      \"type\": \"usa\",\n      \"target\": \"## 🧭🧱 Protocolo de Sesión\"\n    },\n    {\n      \"type\": \"usa\",\n      \"target\": \"#### 🌀 Sesión 24 = canon-gate-ci-integration\"\n    },\n    {\n      \"type\": \"usa\",\n      \"target\": \"m02-s24-canon-gate-ci-integration\"\n    }\n  ],\n  \"content\": {\n    \"plain\": \"Procedencia de la sesión m02-s24-canon-gate-ci-integration. Reúne decisiones sobre integración CI del gate.\",\n    \"markdown\": \"## 🌀🧾 Procedencia de sesión 24\\n\\nProcedencia enfocada en integrar el `canon-gate` en pipelines CI y registrar las pruebas e infra necesarias.\\n\\n### Entradas\\n\\n- Contratos: `m02-s22`, `m02-s23`\\n- Workflows: `.github/workflows/canon-gate.yml`\\n- Fixtures y runner examples: `tests/fixtures` y `go/bridge`\\n\\---\\n\\nSíntesis: La procedencia documenta los puntos de decisión para ejecución en CI, jobs, matrix y runners.\"\n  },\n  \"meta\": {\n    \"status\": \"borrador\",\n    \"epistemic_state\": \"documental\"\n  },\n  \"provenance\": [\n    {\n      \"actor\": \"human\",\n      \"origin\": \"contratos\",\n      \"method\": \"compiled\",\n      \"source_ref\": \"m02-s24-canon-gate-ci-integration\"\n    }\n  ],\n  \"metacognition\": {\n    \"certainty\": 2,\n    \"ambiguity\": 2,\n    \"notes\": \"Procedencia para decisiones de CI e integración.\"\n  }\n}",
+    "tags": "[[## 🧾🧱 Procedencia epistemológica]] [[## 🌀🧱 Desarrollo y Evolución]] [[## 🧭🧱 Protocolo de Sesión]] [[#### 🌀 Sesión 24 = canon-gate-ci-integration]]",
+    "title": "#### 🌀🧾 Procedencia de sesión 24",
+    "modified": "20260413212300000",
+    "type": "application/json",
+    "tmap.id": "PENDIENTE-S24-PROC-001"
+  }
+]
