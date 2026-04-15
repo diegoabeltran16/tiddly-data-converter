@@ -8,7 +8,8 @@
 │       └── ci.yml
 ├── .gitignore
 ├── contratos
-│   ├── contratos.txt
+│   ├── identity
+│   │   └── identity_rules.md
 │   ├── m01-s01-extractor-contract.md.json
 │   ├── m01-s02-extractor-bootstrap.md.json
 │   ├── m01-s03-extractor-env-wsl.md.json
@@ -41,7 +42,16 @@
 │   ├── m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json
 │   ├── m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json
 │   ├── m02-s30-canon-uuidv5-and-memory-policy-v0.md.json
-│   └── m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json
+│   ├── m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json
+│   ├── m02-s32-canon-freeze-baseline-oracle-and-first-jsonl-v0.md.json
+│   ├── m02-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json
+│   ├── m02-s34-canon-node-structural-identity-v0.md.json
+│   ├── m02-s35-canon-node-reading-mode-and-typing-v0.md.json
+│   ├── m02-s36-canon-semantic-function-and-asset-separation-v0.md.json
+│   ├── semantic
+│   │   └── semantic_rules.md
+│   └── typing
+│       └── node_reading_mode_rules.md
 ├── data
 │   └── data.txt
 ├── docs
@@ -49,19 +59,26 @@
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
+│   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.txt
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.docx
+│   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.pdf
 │   │   ├── 02. From genesis to maturity, Managing knowledge graph ecosystems through life cycles.txt
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms oficial.docx
+│   │   ├── 03. Managing provenance data in knowledge graph management platforms.pdf
 │   │   ├── 03. Managing provenance data in knowledge graph management platforms.txt
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.docx
+│   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.pdf
 │   │   ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.txt
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.docx
+│   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.pdf
 │   │   ├── 05. An ecosystem for personal knowledge graphs A survey and research roadmap.txt
 │   │   ├── 06. Semantic annotation for knowledge management.docx
+│   │   ├── 06. Semantic annotation for knowledge management.pdf
 │   │   ├── 06. Semantic annotation for knowledge management.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch with equation.txt
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
+│   │   ├── 07. Nested learning, the illusion of deep learnin arch.pdf
 │   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
 │   ├── Technical_Report_Tiddler_Sys_(Eng).md
 │   ├── tiddlers_de_sesiones
@@ -129,6 +146,11 @@
 │   │   ├── #### 🌀 Sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │   │   ├── #### 🌀 Sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
 │   │   ├── #### 🌀 Sesión 31 = canon-accumulate-replay-verify-and-ci-v0.json
+│   │   ├── #### 🌀 Sesión 32 = canon-freeze-baseline-oracle-and-first-jsonl-v0.json
+│   │   ├── #### 🌀 Sesión 33 = single-jsonl-functional-tiddlers-from-real-html-v0.json
+│   │   ├── #### 🌀 Sesión 34 = canon-node-structural-identity-v0.json
+│   │   ├── #### 🌀 Sesión 35 = canon-node-reading-mode-and-typing-v0.json
+│   │   ├── #### 🌀 Sesión 36 = canon-semantic-function-and-asset-separation-v0.json
 │   │   ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │   │   ├── #### 🌀📦 Política de dependencias.json
 │   │   ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -163,6 +185,11 @@
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 31 = canon-accumulate-replay-verify-and-ci-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 32 = canon-freeze-baseline-oracle-and-first-jsonl-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 33 = single-jsonl-functional-tiddlers-from-real-html-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 34 = canon-node-structural-identity-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 35 = canon-node-reading-mode-and-typing-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 36 = canon-semantic-function-and-asset-separation-v0.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 02.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 03.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -192,6 +219,11 @@
 │   │   ├── #### 🌀🧾 Procedencia de sesión 28.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 29.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 31.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 32.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 33.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 34.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 35.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 36.json
 │   │   ├── #### 📚 Diccionario 🌀.csv
 │   │   ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
 │   │   ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
@@ -265,6 +297,11 @@
 │       ├── #### 🌀 Sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │       ├── #### 🌀 Sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
 │       ├── #### 🌀 Sesión 30 = canon-uuidv5-and-memory-policy-v0.json
+│       ├── #### 🌀 Sesión 32 = canon-freeze-baseline-oracle-and-first-jsonl-v0.json
+│       ├── #### 🌀 Sesión 33 = single-jsonl-functional-tiddlers-from-real-html-v0.json
+│       ├── #### 🌀 Sesión 34 = canon-node-structural-identity-v0.json
+│       ├── #### 🌀 Sesión 35 = canon-node-reading-mode-and-typing-v0.json
+│       ├── #### 🌀 Sesión 36 = canon-semantic-function-and-asset-separation-v0.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -299,6 +336,11 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 30 = canon-uuidv5-and-memory-policy-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 32 = canon-freeze-baseline-oracle-and-first-jsonl-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 33 = single-jsonl-functional-tiddlers-from-real-html-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 34 = canon-node-structural-identity-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 35 = canon-node-reading-mode-and-typing-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 36 = canon-semantic-function-and-asset-separation-v0.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -328,6 +370,11 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 28.json
 │       ├── #### 🌀🧾 Procedencia de sesión 29.json
 │       ├── #### 🌀🧾 Procedencia de sesión 30.json
+│       ├── #### 🌀🧾 Procedencia de sesión 32.json
+│       ├── #### 🌀🧾 Procedencia de sesión 33.json
+│       ├── #### 🌀🧾 Procedencia de sesión 34.json
+│       ├── #### 🌀🧾 Procedencia de sesión 35.json
+│       ├── #### 🌀🧾 Procedencia de sesión 36.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -349,6 +396,7 @@
 │       ├── continuum multi-timescale memory system equation.json
 │       ├── contratos_contratos.txt copy.json
 │       ├── contratos_contratos.txt.json
+│       ├── contratos_identity_identity_rules.md.json
 │       ├── contratos_m01-s01-extractor-contract.md.json
 │       ├── contratos_m01-s01-extractor-contract.md.json.json
 │       ├── contratos_m01-s02-extractor-bootstrap.json.json
@@ -388,6 +436,12 @@
 │       ├── contratos_m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json.json
 │       ├── contratos_m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json.json
 │       ├── contratos_m02-s30-canon-uuidv5-and-memory-policy-v0.md.json.json
+│       ├── contratos_m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json.json
+│       ├── contratos_m02-s32-canon-freeze-baseline-oracle-and-first-jsonl-v0.md.json.json
+│       ├── contratos_m02-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json.json
+│       ├── contratos_m02-s34-canon-node-structural-identity-v0.md.json.json
+│       ├── contratos_m02-s35-canon-node-reading-mode-and-typing-v0.md.json.json
+│       ├── contratos_typing_node_reading_mode_rules.md.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
 │       ├── esquemas_esquemas.txt.json
@@ -395,6 +449,8 @@
 │       ├── estructura.txt copy.json
 │       ├── estructura.txt.json
 │       ├── existing architectures as neural learning modules equations.json
+│       ├── export_s33-manifest.json.json
+│       ├── export_s34-manifest.json.json
 │       ├── Fig. 1 Simple Provenance Example with two Entities, an Activity, and an Agent.json
 │       ├── Fig. 1. Example of a document with semantic annotation from KMi’s semantic website.json
 │       ├── Fig. 1. PKG ecosystem.json
@@ -432,14 +488,19 @@
 │       ├── github_instructions_tiddlers_sesiones.instructions.md.json
 │       ├── github_workflows_ci.yml.json
 │       ├── gitignore.json
+│       ├── go_bridge_adapter_real_html.go.json
+│       ├── go_bridge_adapter_real_html_test.go.json
 │       ├── go_bridge_admit.go.json
 │       ├── go_bridge_bridge.go.json
 │       ├── go_bridge_bridge_test.go.json
 │       ├── go_bridge_cmd_admit_main.go.json
+│       ├── go_bridge_cmd_export_tiddlers_main.go.json
+│       ├── go_bridge_s33_e2e_test.go.json
 │       ├── go_bridge_smoke_e2e_test.go.json
 │       ├── go_bridge_timestamp.go.json
 │       ├── go_canon_accumulate.go.json
 │       ├── go_canon_accumulate_test.go.json
+│       ├── go_canon_baseline_oracle_test.go.json
 │       ├── go_canon_batch_audit.go.json
 │       ├── go_canon_batch_audit_test.go.json
 │       ├── go_canon_batch_contract.go.json
@@ -456,12 +517,21 @@
 │       ├── go_canon_cmd_accumulate_main.go.json
 │       ├── go_canon_cmd_emit_main.go.json
 │       ├── go_canon_collision.go.json
+│       ├── go_canon_export_identity_integration_test.go.json
+│       ├── go_canon_export_reading_mode_integration_test.go.json
+│       ├── go_canon_exporter_tiddler.go.json
+│       ├── go_canon_exporter_tiddler_test.go.json
 │       ├── go_canon_gate_acceptance_test.go.json
 │       ├── go_canon_identity.go.json
+│       ├── go_canon_identity_test.go.json
+│       ├── go_canon_reading_mode.go.json
+│       ├── go_canon_reading_mode_test.go.json
 │       ├── go_canon_schema.go.json
 │       ├── go_canon_schema_test.go.json
 │       ├── go_canon_verdict.go.json
 │       ├── go_canon_verdict_test.go.json
+│       ├── go_canon_verify.go.json
+│       ├── go_canon_verify_test.go.json
 │       ├── go_canon_writer.go.json
 │       ├── go_canon_writer_test.go.json
 │       ├── go_go.txt copy.json
@@ -486,6 +556,7 @@
 │       ├── packaging_packaging.txt copy.json
 │       ├── packaging_packaging.txt.json
 │       ├── plantilla_esp
+│       │   └── Plantilla(Estudiar topico)(Esp).html
 │       ├── preliminaries equations.json
 │       ├── python_python.txt copy.json
 │       ├── python_python.txt.json
@@ -525,6 +596,7 @@
 │       ├── rust_doctor_target_debug_.fingerprint_syn-1533c0d0fc46a95d_lib-syn.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-a22d2d8b395d3e83_lib-tdc_doctor.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-ab6894ca1be40b75_test-lib-tdc_doctor.json.json
+│       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-abdf85396946aec3_bin-audit.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-d30a6481ee3425da_test-integration-test-test_doctor.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_tdc-doctor-dc8fe32049e143a7_lib-tdc_doctor.json.json
 │       ├── rust_doctor_target_debug_.fingerprint_unicode-ident-a43390fd6bef71db_lib-unicode_ident.json.json
@@ -598,6 +670,7 @@
 │       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-04f75e8730e16c7d_test-integration-test-test_extraction.json.json
 │       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-37274414d8f712b9_test-lib-tdc_extractor.json.json
 │       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-55ba7e42491a2464_lib-tdc_extractor.json.json
+│       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-5847119a54696cb6_bin-extract.json.json
 │       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-60c3b90da7ac7661_lib-tdc_extractor.json.json
 │       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-7c74cdac7a40cb5a_lib-tdc_extractor.json.json
 │       ├── rust_extractor_target_debug_.fingerprint_tdc-extractor-cd3744520e3e2bc7_test-integration-test-test_extraction.json.json
@@ -621,6 +694,10 @@
 │       ├── rust_extractor_tests_test_extraction.rs.json
 │       ├── rust_rust.txt copy.json
 │       ├── rust_rust.txt.json
+│       ├── scripts_baseline_regen.sh.json
+│       ├── scripts_baseline_verify.sh.json
+│       ├── scripts_export_s33_regen.sh.json
+│       ├── scripts_export_s33_verify.sh.json
 │       ├── scripts_pick_and_place.sh.json
 │       ├── scripts_run_pipeline.sh.json
 │       ├── scripts_scripts.txt copy.json
@@ -637,6 +714,10 @@
 │       ├── Table 4 _ Performance of Hope and baselines on the synthetic benchmark of MAD (Polietal.2024).json
 │       ├── Table 5 _ Accuracies of various models on the formal language recognition tasks.json
 │       ├── Table 6 _ Ablation Study on Hope. All components of Hope are positively contributing to its performance.json
+│       ├── tests_fixtures_baseline_v1_input_run-001.json.json
+│       ├── tests_fixtures_baseline_v1_input_run-002.json.json
+│       ├── tests_fixtures_baseline_v1_input_run-003.json.json
+│       ├── tests_fixtures_baseline_v1_manifest.json.json
 │       ├── tests_fixtures_minimal_tiddlywiki.html copy.json
 │       ├── tests_fixtures_minimal_tiddlywiki.html.json
 │       ├── tests_fixtures_raw_tiddlers_d1_exact_duplicate.json.json
@@ -655,6 +736,12 @@
 │       ├── tests_fixtures_runs_for_accumulation_run-001.json.json
 │       ├── tests_fixtures_runs_for_accumulation_run-002.json.json
 │       ├── tests_fixtures_runs_for_accumulation_run-003.json.json
+│       ├── tests_fixtures_s33_sample_s33_fixture.html.json
+│       ├── tests_fixtures_s34_identity_fixture.json.json
+│       ├── tests_fixtures_s34_identity_sample_output.json.json
+│       ├── tests_fixtures_s35_reading_mode_expected.json.json
+│       ├── tests_fixtures_s35_reading_mode_fixture.json.json
+│       ├── tests_golden_baseline_v1_batch_snapshot.json.json
 │       ├── tests_smoke_test_pipeline_smoke.sh.json
 │       ├── tests_test.txt copy.json
 │       ├── tests_test.txt.json
@@ -675,20 +762,33 @@
 ├── esquemas
 │   └── esquemas.txt
 ├── estructura.txt
+├── export
+│   ├── s33-export-log.jsonl
+│   ├── s33-manifest.json
+│   ├── s34-export-log.jsonl
+│   ├── s34-functional-tiddlers.jsonl
+│   └── s34-manifest.json
 ├── go
 │   ├── bridge
+│   │   ├── adapter_real_html.go
+│   │   ├── adapter_real_html_test.go
 │   │   ├── admit.go
 │   │   ├── bridge.go
 │   │   ├── bridge_test.go
 │   │   ├── cmd
-│   │   │   └── admit
+│   │   │   ├── admit
+│   │   │   │   └── main.go
+│   │   │   └── export_tiddlers
 │   │   │       └── main.go
 │   │   ├── go.mod
+│   │   ├── go.sum
+│   │   ├── s33_e2e_test.go
 │   │   ├── smoke_e2e_test.go
 │   │   └── timestamp.go
 │   ├── canon
 │   │   ├── accumulate.go
 │   │   ├── accumulate_test.go
+│   │   ├── baseline_oracle_test.go
 │   │   ├── batch_audit.go
 │   │   ├── batch_audit_test.go
 │   │   ├── batch_contract.go
@@ -708,11 +808,22 @@
 │   │   │   └── emit
 │   │   │       └── main.go
 │   │   ├── collision.go
+│   │   ├── export_identity_integration_test.go
+│   │   ├── export_reading_mode_integration_test.go
+│   │   ├── export_semantic_integration_test.go
+│   │   ├── exporter_tiddler.go
+│   │   ├── exporter_tiddler_test.go
 │   │   ├── gate_acceptance_test.go
 │   │   ├── go.mod
+│   │   ├── go.sum
 │   │   ├── identity.go
+│   │   ├── identity_test.go
+│   │   ├── reading_mode.go
+│   │   ├── reading_mode_test.go
 │   │   ├── schema.go
 │   │   ├── schema_test.go
+│   │   ├── semantic.go
+│   │   ├── semantic_test.go
 │   │   ├── verdict.go
 │   │   ├── verdict_test.go
 │   │   ├── verify.go
@@ -766,12 +877,23 @@
 │   │       └── test_extraction.rs
 │   └── rust.txt
 ├── scripts
+│   ├── baseline_regen.sh
+│   ├── baseline_verify.sh
+│   ├── export_s33_regen.sh
+│   ├── export_s33_verify.sh
 │   ├── pick_and_place.sh
 │   ├── run_pipeline.sh
 │   ├── scripts.txt
 │   └── tiddlers_to_jsonl.py
 ├── tests
 │   ├── fixtures
+│   │   ├── baseline
+│   │   │   └── v1
+│   │   │       ├── input
+│   │   │       │   ├── run-001.json
+│   │   │       │   ├── run-002.json
+│   │   │       │   └── run-003.json
+│   │   │       └── manifest.json
 │   │   ├── canon_gate_accept.jsonl
 │   │   ├── canon_gate_batch_audit_mixed.jsonl
 │   │   ├── canon_gate_reject.jsonl
@@ -788,10 +910,27 @@
 │   │   ├── raw_tiddlers_smoke_e2e.json
 │   │   ├── raw_tiddlers_timestamp_ms_from_data.json
 │   │   ├── README.md
-│   │   └── runs_for_accumulation
-│   │       ├── run-001.json
-│   │       ├── run-002.json
-│   │       └── run-003.json
+│   │   ├── runs_for_accumulation
+│   │   │   ├── run-001.json
+│   │   │   ├── run-002.json
+│   │   │   └── run-003.json
+│   │   ├── s33_sample
+│   │   │   └── s33_fixture.html
+│   │   ├── s34
+│   │   │   ├── identity_fixture.json
+│   │   │   └── identity_sample_output.json
+│   │   ├── s35
+│   │   │   ├── reading_mode_expected.json
+│   │   │   └── reading_mode_fixture.json
+│   │   └── s36
+│   │       └── semantic_fixture.json
+│   ├── golden
+│   │   ├── baseline
+│   │   │   └── v1
+│   │   │       ├── batch_snapshot.json
+│   │   │       └── export.jsonl
+│   │   └── s33
+│   │       └── export.jsonl
 │   ├── smoke
 │   │   └── test_pipeline_smoke.sh
 │   └── test.txt

@@ -599,6 +599,12 @@ func TestGateAcceptanceMatrix_EmittedShape_NoExtraFields(t *testing.T) {
 	for _, f := range canon.SchemaV0RequiredFields {
 		declared[f] = true
 	}
+	for _, f := range canon.SchemaV0IdentityFields {
+		declared[f] = true
+	}
+	for _, f := range canon.SchemaV0ReadingModeFields {
+		declared[f] = true
+	}
 	for _, f := range canon.SchemaV0OptionalFields {
 		declared[f] = true
 	}
