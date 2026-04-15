@@ -605,6 +605,12 @@ func TestGateAcceptanceMatrix_EmittedShape_NoExtraFields(t *testing.T) {
 	for _, f := range canon.SchemaV0ReadingModeFields {
 		declared[f] = true
 	}
+	for _, f := range canon.SchemaV0SemanticFields {
+		declared[f] = true
+	}
+	for _, f := range canon.SchemaV0ContextRelationFields {
+		declared[f] = true
+	}
 	for _, f := range canon.SchemaV0OptionalFields {
 		declared[f] = true
 	}
@@ -645,9 +651,9 @@ func TestGateAcceptanceMatrix_EmittedShape_NoExtraFields(t *testing.T) {
 func TestGateAcceptanceMatrix_ErrorContextQuality(t *testing.T) {
 	entries := []canon.CanonEntry{
 		{Key: canon.KeyOf("Good"), Title: "Good"},
-		{Key: "", Title: "NoKey"},                                             // entry[1], key
-		{Key: canon.KeyOf("NoTitle"), Title: ""},                              // entry[2], title
-		{SchemaVersion: "v99", Key: canon.KeyOf("BadVer"), Title: "BadVer"},   // entry[3], schema_version
+		{Key: "", Title: "NoKey"},                                           // entry[1], key
+		{Key: canon.KeyOf("NoTitle"), Title: ""},                            // entry[2], title
+		{SchemaVersion: "v99", Key: canon.KeyOf("BadVer"), Title: "BadVer"}, // entry[3], schema_version
 	}
 
 	var buf bytes.Buffer

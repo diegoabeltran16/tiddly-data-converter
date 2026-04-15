@@ -24,9 +24,8 @@ import (
 //   - Title, Text, SourcePosition are carried over directly.
 //   - Created and Modified are formatted back to TW5 17-digit timestamp
 //     strings when present in the Ingesta tiddler.
-//   - Fields, Tags, Type, OriginFormat are NOT carried into
-//     CanonEntry because the canonical shape does not include them yet.
-//     They are not lost — they remain in the Ingesta artifact.
+//   - Tags, Type and raw Fields are preserved in source_* fields for
+//     downstream semantic/context layers (S35–S37).
 //
 // Ref: S13 §B — CanonEntry shape.
 // Ref: S05 §5 — Tiddler shape.
@@ -38,6 +37,26 @@ func ToCanonEntry(t ingesta.Tiddler) canon.CanonEntry {
 		Title:          t.Title,
 		Text:           t.Text,
 		SourcePosition: t.SourcePosition,
+		SourceType:     t.Type,
+	}
+
+	if len(t.Tags) > 0 {
+		entry.SourceTags = append([]string(nil), t.Tags...)
+	}
+	if len(t.Fields) > 0 {
+		entry.SourceFields = make(map[string]string, len(t.Fields))
+		for k, v := range t.Fields {
+			entry.SourceFields[k] = v
+		}
+	}
+
+	// Preserve explicit role declarations when present in source fields.
+	if role, ok := t.Fields["role_primary"]; ok && role != "" {
+		r := role
+		entry.SourceRole = &r
+	} else if role, ok := t.Fields["rol_principal"]; ok && role != "" {
+		r := role
+		entry.SourceRole = &r
 	}
 
 	// Carry timestamps when available, formatting back to TW5 17-digit string.
