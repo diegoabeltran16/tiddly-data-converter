@@ -8,6 +8,8 @@
 │       └── ci.yml
 ├── .gitignore
 ├── contratos
+│   ├── context_relations
+│   │   └── context_relations_rules.md
 │   ├── identity
 │   │   └── identity_rules.md
 │   ├── m01-s01-extractor-contract.md.json
@@ -48,10 +50,13 @@
 │   ├── m02-s34-canon-node-structural-identity-v0.md.json
 │   ├── m02-s35-canon-node-reading-mode-and-typing-v0.md.json
 │   ├── m02-s36-canon-semantic-function-and-asset-separation-v0.md.json
+│   ├── m02-s37-canon-document-context-and-relations-v0.md.json
 │   ├── semantic
 │   │   └── semantic_rules.md
-│   └── typing
-│       └── node_reading_mode_rules.md
+│   ├── typing
+│   │   └── node_reading_mode_rules.md
+│   └── validation
+│       └── s37-local-checks.md
 ├── data
 │   └── data.txt
 ├── docs
@@ -151,6 +156,7 @@
 │   │   ├── #### 🌀 Sesión 34 = canon-node-structural-identity-v0.json
 │   │   ├── #### 🌀 Sesión 35 = canon-node-reading-mode-and-typing-v0.json
 │   │   ├── #### 🌀 Sesión 36 = canon-semantic-function-and-asset-separation-v0.json
+│   │   ├── #### 🌀 Sesión 37 = canon-document-context-and-relations-v0.json
 │   │   ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │   │   ├── #### 🌀📦 Política de dependencias.json
 │   │   ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -190,6 +196,7 @@
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 34 = canon-node-structural-identity-v0.json
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 35 = canon-node-reading-mode-and-typing-v0.json
 │   │   ├── #### 🌀🧪 Hipótesis de sesión 36 = canon-semantic-function-and-asset-separation-v0.json
+│   │   ├── #### 🌀🧪 Hipótesis de sesión 37 = canon-document-context-and-relations-v0.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 02.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 03.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -224,6 +231,7 @@
 │   │   ├── #### 🌀🧾 Procedencia de sesión 34.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 35.json
 │   │   ├── #### 🌀🧾 Procedencia de sesión 36.json
+│   │   ├── #### 🌀🧾 Procedencia de sesión 37.json
 │   │   ├── #### 📚 Diccionario 🌀.csv
 │   │   ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
 │   │   ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
@@ -302,6 +310,7 @@
 │       ├── #### 🌀 Sesión 34 = canon-node-structural-identity-v0.json
 │       ├── #### 🌀 Sesión 35 = canon-node-reading-mode-and-typing-v0.json
 │       ├── #### 🌀 Sesión 36 = canon-semantic-function-and-asset-separation-v0.json
+│       ├── #### 🌀 Sesión 37 = canon-document-context-and-relations-v0.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -341,6 +350,7 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 34 = canon-node-structural-identity-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 35 = canon-node-reading-mode-and-typing-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 36 = canon-semantic-function-and-asset-separation-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 37 = canon-document-context-and-relations-v0.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -375,6 +385,7 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 34.json
 │       ├── #### 🌀🧾 Procedencia de sesión 35.json
 │       ├── #### 🌀🧾 Procedencia de sesión 36.json
+│       ├── #### 🌀🧾 Procedencia de sesión 37.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── -- 🎯🧱 Detalles del tema.md.json
 │       ├── -- 📚🧱 Glosario y Convenciones.md.json
@@ -441,6 +452,8 @@
 │       ├── contratos_m02-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json.json
 │       ├── contratos_m02-s34-canon-node-structural-identity-v0.md.json.json
 │       ├── contratos_m02-s35-canon-node-reading-mode-and-typing-v0.md.json.json
+│       ├── contratos_m02-s36-canon-semantic-function-and-asset-separation-v0.md.json.json
+│       ├── contratos_semantic_semantic_rules.md.json
 │       ├── contratos_typing_node_reading_mode_rules.md.json
 │       ├── data_data.txt.json
 │       ├── esquemas_esquemas.txt copy.json
@@ -519,6 +532,7 @@
 │       ├── go_canon_collision.go.json
 │       ├── go_canon_export_identity_integration_test.go.json
 │       ├── go_canon_export_reading_mode_integration_test.go.json
+│       ├── go_canon_export_semantic_integration_test.go.json
 │       ├── go_canon_exporter_tiddler.go.json
 │       ├── go_canon_exporter_tiddler_test.go.json
 │       ├── go_canon_gate_acceptance_test.go.json
@@ -528,6 +542,8 @@
 │       ├── go_canon_reading_mode_test.go.json
 │       ├── go_canon_schema.go.json
 │       ├── go_canon_schema_test.go.json
+│       ├── go_canon_semantic.go.json
+│       ├── go_canon_semantic_test.go.json
 │       ├── go_canon_verdict.go.json
 │       ├── go_canon_verdict_test.go.json
 │       ├── go_canon_verify.go.json
@@ -741,6 +757,7 @@
 │       ├── tests_fixtures_s34_identity_sample_output.json.json
 │       ├── tests_fixtures_s35_reading_mode_expected.json.json
 │       ├── tests_fixtures_s35_reading_mode_fixture.json.json
+│       ├── tests_fixtures_s36_semantic_fixture.json.json
 │       ├── tests_golden_baseline_v1_batch_snapshot.json.json
 │       ├── tests_smoke_test_pipeline_smoke.sh.json
 │       ├── tests_test.txt copy.json
@@ -767,7 +784,9 @@
 │   ├── s33-manifest.json
 │   ├── s34-export-log.jsonl
 │   ├── s34-functional-tiddlers.jsonl
-│   └── s34-manifest.json
+│   ├── s34-manifest.json
+│   ├── s37-export-log.jsonl
+│   └── s37-manifest.json
 ├── go
 │   ├── bridge
 │   │   ├── adapter_real_html.go
@@ -808,6 +827,9 @@
 │   │   │   └── emit
 │   │   │       └── main.go
 │   │   ├── collision.go
+│   │   ├── context_relations.go
+│   │   ├── context_relations_test.go
+│   │   ├── export_context_relations_integration_test.go
 │   │   ├── export_identity_integration_test.go
 │   │   ├── export_reading_mode_integration_test.go
 │   │   ├── export_semantic_integration_test.go
@@ -845,10 +867,12 @@
 │       ├── report.go
 │       └── tiddler.go
 ├── LICENSE
+├── out
 ├── packaging
 │   └── packaging.txt
 ├── python
 │   └── python.txt
+├── README
 ├── runtime
 │   └── runtime.txt
 ├── rust
@@ -922,8 +946,10 @@
 │   │   ├── s35
 │   │   │   ├── reading_mode_expected.json
 │   │   │   └── reading_mode_fixture.json
-│   │   └── s36
-│   │       └── semantic_fixture.json
+│   │   ├── s36
+│   │   │   └── semantic_fixture.json
+│   │   └── s37
+│   │       └── context_relations_fixture.json
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1

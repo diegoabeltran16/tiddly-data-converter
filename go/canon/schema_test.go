@@ -36,7 +36,7 @@ func TestSchemaV0RequiredFields(t *testing.T) {
 
 // TestSchemaV0OptionalFields validates the declared optional field list.
 func TestSchemaV0OptionalFields(t *testing.T) {
-	want := []string{"text", "source_type", "source_position", "created", "modified"}
+	want := []string{"text", "source_type", "source_position", "created", "modified", "source_fields"}
 	got := canon.SchemaV0OptionalFields
 	if len(got) != len(want) {
 		t.Fatalf("SchemaV0OptionalFields: got %d fields, want %d", len(got), len(want))
@@ -240,6 +240,12 @@ func TestWriteJSONL_SchemaV0ShapeComplete(t *testing.T) {
 		allDeclared[f] = true
 	}
 	for _, f := range canon.SchemaV0ReadingModeFields {
+		allDeclared[f] = true
+	}
+	for _, f := range canon.SchemaV0SemanticFields {
+		allDeclared[f] = true
+	}
+	for _, f := range canon.SchemaV0ContextRelationFields {
 		allDeclared[f] = true
 	}
 	for _, f := range canon.SchemaV0OptionalFields {
