@@ -35,7 +35,14 @@ const SchemaV0 = "v0"
 
 // SchemaV0RequiredFields lists the JSON field names that MUST be present
 // in every emitted canon.jsonl line under schema v0.
+//
+// S34 enrichment: id, canonical_slug, and version_id are now required
+// when the identity layer has been computed (BuildNodeIdentity).
 var SchemaV0RequiredFields = []string{"schema_version", "key", "title"}
+
+// SchemaV0IdentityFields lists the identity fields added by S34.
+// These are required when identity has been computed.
+var SchemaV0IdentityFields = []string{"id", "canonical_slug", "version_id"}
 
 // SchemaV0OptionalFields lists the JSON field names that MAY be present
 // (omitted when the underlying value is nil/zero).
