@@ -24,12 +24,24 @@ import (
 )
 
 // ExportLogEntry records the export decision for a single tiddler.
+//
+// S34 enrichment: ExportIdentity captures the computed identity fields
+// for included tiddlers; nil for excluded tiddlers.
 type ExportLogEntry struct {
-	TiddlerID string `json:"tiddler_id"`
-	Action    string `json:"action"` // "included" or "excluded"
-	RuleID    string `json:"rule_id"`
-	Reason    string `json:"reason"`
-	RunID     string `json:"run_id"`
+	TiddlerID      string            `json:"tiddler_id"`
+	Action         string            `json:"action"` // "included" or "excluded"
+	RuleID         string            `json:"rule_id"`
+	Reason         string            `json:"reason"`
+	RunID          string            `json:"run_id"`
+	ExportIdentity *ExportIdentityRef `json:"export_identity,omitempty"`
+}
+
+// ExportIdentityRef holds the identity fields emitted for an included tiddler.
+// Ref: S34 §17.1 — export log shape.
+type ExportIdentityRef struct {
+	ID            string `json:"id"`
+	CanonicalSlug string `json:"canonical_slug"`
+	VersionID     string `json:"version_id"`
 }
 
 // ExportManifest contains metadata about the export run.
@@ -97,6 +109,19 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		// Stamp schema version.
 		e.SchemaVersion = SchemaV0
 
+		// S34: compute structural identity (id, canonical_slug, version_id).
+		if err := BuildNodeIdentity(&e); err != nil {
+			skipped++
+			result.LogEntries = append(result.LogEntries, ExportLogEntry{
+				TiddlerID: e.Title,
+				Action:    "excluded",
+				RuleID:    "identity-s34",
+				Reason:    fmt.Sprintf("identity_failed: %v", err),
+				RunID:     runID,
+			})
+			continue
+		}
+
 		line, err := json.Marshal(e)
 		if err != nil {
 			return nil, fmt.Errorf("exporter: marshal entry[%d] %q: %w", i, e.Title, err)
@@ -115,6 +140,11 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 			RuleID:    "gate-v0-pass",
 			Reason:    "validated and emitted",
 			RunID:     runID,
+			ExportIdentity: &ExportIdentityRef{
+				ID:            e.ID,
+				CanonicalSlug: e.CanonicalSlug,
+				VersionID:     e.VersionID,
+			},
 		})
 	}
 
