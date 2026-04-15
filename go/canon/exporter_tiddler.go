@@ -29,14 +29,17 @@ import (
 // for included tiddlers; nil for excluded tiddlers.
 // S35 enrichment: ReadingMode captures the computed reading mode fields
 // for included tiddlers; nil for excluded tiddlers.
+// S36 enrichment: SemanticInfo captures the semantic function and
+// traceability fields for included tiddlers; nil for excluded tiddlers.
 type ExportLogEntry struct {
-	TiddlerID      string            `json:"tiddler_id"`
-	Action         string            `json:"action"` // "included" or "excluded"
-	RuleID         string            `json:"rule_id"`
-	Reason         string            `json:"reason"`
-	RunID          string            `json:"run_id"`
-	ExportIdentity *ExportIdentityRef `json:"export_identity,omitempty"`
-	ReadingMode    *ReadingMode       `json:"reading_mode,omitempty"`
+	TiddlerID      string              `json:"tiddler_id"`
+	Action         string              `json:"action"` // "included" or "excluded"
+	RuleID         string              `json:"rule_id"`
+	Reason         string              `json:"reason"`
+	RunID          string              `json:"run_id"`
+	ExportIdentity *ExportIdentityRef  `json:"export_identity,omitempty"`
+	ReadingMode    *ReadingMode        `json:"reading_mode,omitempty"`
+	SemanticInfo   *ExportSemanticRef  `json:"semantic_info,omitempty"`
 }
 
 // ExportIdentityRef holds the identity fields emitted for an included tiddler.
@@ -47,10 +50,24 @@ type ExportIdentityRef struct {
 	VersionID     string `json:"version_id"`
 }
 
+// ExportSemanticRef holds the semantic function traceability fields for
+// an included tiddler in the export log.
+// Ref: S36 §16 — export log enrichment.
+type ExportSemanticRef struct {
+	RolePrimary      string `json:"role_primary"`
+	RoleSource       string `json:"role_source"`
+	TaxonomySource   string `json:"taxonomy_source"`
+	SemanticTextMode string `json:"semantic_text_mode"`
+	MimeSource       string `json:"mime_source"`
+	AssetMode        string `json:"asset_mode"`
+}
+
 // ExportManifest contains metadata about the export run.
 //
 // S35 enrichment: adds conteos by content_type, modality, is_binary,
 // and is_reference_only for observability.
+// S36 enrichment: adds conteos by role_primary and has_asset for
+// semantic observability.
 type ExportManifest struct {
 	RunID          string            `json:"run_id"`
 	Timestamp      time.Time         `json:"timestamp"`
@@ -66,6 +83,10 @@ type ExportManifest struct {
 	ModalityCounts       map[string]int `json:"modality_counts,omitempty"`
 	BinaryCount          int            `json:"binary_count"`
 	ReferenceOnlyCount   int            `json:"reference_only_count"`
+	// S36 conteos
+	RolePrimaryCounts    map[string]int `json:"role_primary_counts,omitempty"`
+	AssetCount           int            `json:"asset_count"`
+	SemanticTextCount    int            `json:"semantic_text_count"`
 }
 
 // ExportTiddlersResult holds the complete result of an S33 export.
@@ -95,6 +116,7 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 			SchemaVersion:     SchemaV0,
 			ContentTypeCounts: make(map[string]int),
 			ModalityCounts:    make(map[string]int),
+			RolePrimaryCounts: make(map[string]int),
 		},
 	}
 
@@ -143,6 +165,17 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		e.IsBinary = rm.IsBinary
 		e.IsReferenceOnly = rm.IsReferenceOnly
 
+		// S36: compute semantic function and asset separation.
+		sem := BuildNodeSemantics(e)
+		e.RolePrimary = sem.RolePrimary
+		e.RolesSecondary = sem.RolesSecondary
+		e.Tags = sem.Tags
+		e.TaxonomyPath = sem.TaxonomyPath
+		e.SemanticText = sem.SemanticText
+		e.RawPayloadRef = sem.RawPayloadRef
+		e.AssetID = sem.AssetID
+		e.MimeType = sem.MimeType
+
 		line, err := json.Marshal(e)
 		if err != nil {
 			return nil, fmt.Errorf("exporter: marshal entry[%d] %q: %w", i, e.Title, err)
@@ -164,6 +197,14 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		if rm.IsReferenceOnly {
 			result.Manifest.ReferenceOnlyCount++
 		}
+		// S36: track semantic conteos for manifest.
+		result.Manifest.RolePrimaryCounts[sem.RolePrimary]++
+		if sem.AssetID != "" {
+			result.Manifest.AssetCount++
+		}
+		if sem.SemanticText != "" {
+			result.Manifest.SemanticTextCount++
+		}
 		result.LogEntries = append(result.LogEntries, ExportLogEntry{
 			TiddlerID: e.Title,
 			Action:    "included",
@@ -176,6 +217,14 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 				VersionID:     e.VersionID,
 			},
 			ReadingMode: &rm,
+			SemanticInfo: &ExportSemanticRef{
+				RolePrimary:      sem.RolePrimary,
+				RoleSource:       sem.RoleSource,
+				TaxonomySource:   sem.TaxonomySource,
+				SemanticTextMode: sem.SemanticTextMode,
+				MimeSource:       sem.MimeSource,
+				AssetMode:        sem.AssetMode,
+			},
 		})
 	}
 
