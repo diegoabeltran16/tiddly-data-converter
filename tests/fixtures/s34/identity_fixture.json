@@ -1,0 +1,9 @@
+[
+  {"key": "Alpha", "title": "Alpha", "text": "Content of Alpha"},
+  {"key": "Beta Node", "title": "Beta Node", "text": "Content of Beta"},
+  {"key": "🌀 Sesión 34", "title": "🌀 Sesión 34", "text": "Emoji title tiddler"},
+  {"key": "Résumé Café", "title": "Résumé Café", "text": "Diacritics title"},
+  {"key": "Hello World", "title": "Hello World", "text": "Collision base A"},
+  {"key": "hello world", "title": "hello world", "text": "Collision base B"},
+  {"key": "Simple", "title": "Simple", "text": null}
+]
