@@ -1,0 +1,17 @@
+[
+  {"title": "Plain Text Node", "type": "text/plain", "text": "Hello, world. This is a simple plain text node."},
+  {"title": "Markdown Document", "type": "text/markdown", "text": "# Heading\n\nParagraph with **bold** and *italic*."},
+  {"title": "JSON Data", "type": "application/json", "text": "{\"name\": \"test\", \"value\": 42, \"nested\": {\"key\": \"val\"}}"},
+  {"title": "CSV Table", "type": "text/csv", "text": "name,age,city\nAlice,30,NYC\nBob,25,LA"},
+  {"title": "PNG Image", "type": "image/png", "text": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="},
+  {"title": "TiddlyWiki Native", "type": "text/vnd.tiddlywiki", "text": "This is ''wikitext'' with //emphasis// and a {{transclusion}}."},
+  {"title": "Equation LaTeX Widget", "type": "text/vnd.tiddlywiki", "text": "<$latex>E = mc^2</$latex>"},
+  {"title": "Equation Display Math", "type": "text/vnd.tiddlywiki", "text": "$$\\int_0^1 x^2 dx = \\frac{1}{3}$$"},
+  {"title": "External Image Reference", "type": "image/png", "text": ""},
+  {"title": "No Type Textual", "text": "Content without explicit type field."},
+  {"title": "No Type JSON-like", "text": "{\"auto\": \"detected\"}"},
+  {"title": "Empty Content Node", "type": "text/vnd.tiddlywiki"},
+  {"title": "🌀 Emojis y Diacríticos", "type": "text/vnd.tiddlywiki", "text": "Sesión con ñ, ü, ß y 🎯 emojis."},
+  {"title": "HTML Content", "type": "text/html", "text": "<div><h1>Title</h1><p>Paragraph</p></div>"},
+  {"title": "SVG Image", "type": "image/svg+xml", "text": "<svg xmlns='http://www.w3.org/2000/svg'><circle r='10'/></svg>"}
+]
