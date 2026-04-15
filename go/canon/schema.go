@@ -51,6 +51,14 @@ var SchemaV0IdentityFields = []string{"id", "canonical_slug", "version_id"}
 // is_binary and is_reference_only are always present (booleans default to false).
 var SchemaV0ReadingModeFields = []string{"content_type", "modality", "encoding", "is_binary", "is_reference_only"}
 
+// SchemaV0SemanticFields lists the semantic function and asset separation
+// fields added by S36. These are always present when the semantic layer
+// has been computed, though some may be empty when evidence is insufficient.
+var SchemaV0SemanticFields = []string{
+	"role_primary", "roles_secondary", "tags", "taxonomy_path",
+	"semantic_text", "raw_payload_ref", "asset_id", "mime_type",
+}
+
 // SchemaV0OptionalFields lists the JSON field names that MAY be present
 // (omitted when the underlying value is nil/zero).
 var SchemaV0OptionalFields = []string{"text", "source_type", "source_position", "created", "modified"}

@@ -1,0 +1,62 @@
+[
+  {
+    "title": "Node with Explicit Role",
+    "text": "This node has a documented role from its source metadata.",
+    "type": "text/vnd.tiddlywiki",
+    "source_role": "policy",
+    "tags": "arquitectura sesión"
+  },
+  {
+    "title": "Node with Roles and Tags",
+    "text": "This node has explicit roles plus tags that suggest additional semantics.",
+    "type": "text/markdown",
+    "source_role": "concept",
+    "tags": "hipótesis procedencia glosario"
+  },
+  {
+    "title": "Node Without Role But With Tags",
+    "text": "This node has no explicit role but carries internal and native tags.",
+    "type": "text/vnd.tiddlywiki",
+    "tags": "glosario definición ## 🧰🧱 Elementos específicos"
+  },
+  {
+    "title": "Code Repository Tiddler",
+    "text": "function main() { console.log('hello'); }",
+    "type": "text/plain",
+    "tags": "código"
+  },
+  {
+    "title": "Conflicting Role and Tags",
+    "text": "This node has an explicit role that conflicts with its tags.",
+    "type": "text/vnd.tiddlywiki",
+    "source_role": "evidence",
+    "tags": "glosario warning política"
+  },
+  {
+    "title": "Normal Textual Tiddler",
+    "text": "This is a normal textual tiddler with no special markers.",
+    "type": "text/plain"
+  },
+  {
+    "title": "TiddlyWiki Content Tiddler",
+    "text": "This is ''wikitext'' with [[links]] and widgets.",
+    "type": "text/vnd.tiddlywiki",
+    "tags": "#### 🌀 Sesión 36 ## 🧭🧱 Protocolo de Sesión"
+  },
+  {
+    "title": "Equation Tiddler",
+    "text": "$$E = mc^2$$",
+    "type": "text/vnd.tiddlywiki"
+  },
+  {
+    "title": "Binary Image Tiddler",
+    "text": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "type": "image/png"
+  },
+  {
+    "title": "Mixed Text and Asset Tiddler",
+    "text": "This tiddler has both descriptive text and references to assets. <$image source=\"photo.png\"/>",
+    "type": "text/vnd.tiddlywiki",
+    "tags": "asset nota"
+  }
+]

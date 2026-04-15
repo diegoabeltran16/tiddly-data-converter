@@ -126,6 +126,78 @@ type CanonEntry struct {
 	// Ref: S35 §16.5 — is_reference_only definition.
 	IsReferenceOnly bool `json:"is_reference_only"`
 
+	// --- S36: Semantic function and asset separation fields ---
+
+	// RolePrimary is the canonical semantic function of the node.
+	// Drawn from a controlled vocabulary: concept, procedure, evidence,
+	// definition, glossary, policy, log, asset, config, code, narrative,
+	// note, warning, unclassified.
+	//
+	// Ref: S36 §10 — role_primary definition.
+	RolePrimary string `json:"role_primary,omitempty"`
+
+	// RolesSecondary preserves additional explicit roles, semantic terms,
+	// or specific labels that do not fit as role_primary.
+	//
+	// Ref: S36 §10 — roles_secondary preservation.
+	RolesSecondary []string `json:"roles_secondary,omitempty"`
+
+	// Tags is the normalized, deduplicated union of internal declared tags
+	// and native TiddlyWiki tags. Internal tags appear first, then native
+	// tags that are not already present.
+	//
+	// Ref: S36 §11 — tag merge policy.
+	Tags []string `json:"tags,omitempty"`
+
+	// TaxonomyPath is a conservative, stable taxonomy path derived
+	// from declared tags. Empty when evidence is insufficient.
+	//
+	// Ref: S36 §12 — taxonomy_path policy.
+	TaxonomyPath []string `json:"taxonomy_path,omitempty"`
+
+	// SemanticText is the text content useful for semantic reading,
+	// retrieval, or reasoning. Empty for binary or reference-only nodes.
+	// Preserves equations embedded in textual content.
+	//
+	// Ref: S36 §13 — semantic_text policy.
+	SemanticText string `json:"semantic_text,omitempty"`
+
+	// RawPayloadRef is a traceable, deterministic, non-interpretive
+	// reference to the raw payload or its logical location.
+	//
+	// Ref: S36 §13 — raw_payload_ref definition.
+	RawPayloadRef string `json:"raw_payload_ref,omitempty"`
+
+	// AssetID is emitted only when a distinguishable asset exists
+	// separate from the semantic text. Not emitted for purely textual nodes.
+	//
+	// Ref: S36 §13 — asset_id policy.
+	AssetID string `json:"asset_id,omitempty"`
+
+	// MimeType is the MIME type of the node, derived preferentially from
+	// content_type, then from metadata, then from conservative mapping.
+	// Explicitly supports text/vnd.tiddlywiki.
+	//
+	// Ref: S36 §13 — mime_type policy.
+	MimeType string `json:"mime_type,omitempty"`
+
+	// --- S36: Source semantic fields (input from TiddlyWiki) ---
+
+	// SourceTags carries the raw TiddlyWiki tags from the source tiddler.
+	// Used by the semantic detector to merge with internal tags.
+	// This field is NOT part of the normative shape for version_id.
+	//
+	// Ref: S36 §11 — native TiddlyWiki tags.
+	SourceTags []string `json:"source_tags,omitempty"`
+
+	// SourceRole carries explicit role declarations from the source tiddler
+	// (e.g., from structured JSON fields inside the tiddler content).
+	// Used by the semantic detector for precedence-based role resolution.
+	// This field is NOT part of the normative shape for version_id.
+	//
+	// Ref: S36 §9 — precedence hierarchy.
+	SourceRole *string `json:"source_role,omitempty"`
+
 	// --- Content and source fields ---
 
 	// Text is the body content of the tiddler (nil if absent).
