@@ -1,2 +1,0 @@
-Zona de contratos estructurales del sistema.
-Aquí se organizan las formas esperadas de entrada, salida, validación, reverse, reportes y sesiones asistidas. Su función es hacer explícitas las reglas de interoperabilidad entre capas y artefactos
