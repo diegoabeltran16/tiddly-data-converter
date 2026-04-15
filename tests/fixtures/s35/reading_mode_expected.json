@@ -1,0 +1,17 @@
+[
+  {"title": "Plain Text Node", "content_type": "text/plain", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "Markdown Document", "content_type": "text/markdown", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "JSON Data", "content_type": "application/json", "modality": "metadata", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "CSV Table", "content_type": "text/csv", "modality": "table", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "PNG Image", "content_type": "image/png", "modality": "image", "encoding": "base64", "is_binary": true, "is_reference_only": false},
+  {"title": "TiddlyWiki Native", "content_type": "text/vnd.tiddlywiki", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "Equation LaTeX Widget", "content_type": "text/vnd.tiddlywiki", "modality": "equation", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "Equation Display Math", "content_type": "text/vnd.tiddlywiki", "modality": "equation", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "External Image Reference", "content_type": "image/png", "modality": "image", "encoding": "binary", "is_binary": true, "is_reference_only": true},
+  {"title": "No Type Textual", "content_type": "text/vnd.tiddlywiki", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "No Type JSON-like", "content_type": "application/json", "modality": "metadata", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "Empty Content Node", "content_type": "text/vnd.tiddlywiki", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "🌀 Emojis y Diacríticos", "content_type": "text/vnd.tiddlywiki", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "HTML Content", "content_type": "text/html", "modality": "text", "encoding": "utf-8", "is_binary": false, "is_reference_only": false},
+  {"title": "SVG Image", "content_type": "image/svg+xml", "modality": "image", "encoding": "utf-8", "is_binary": false, "is_reference_only": false}
+]

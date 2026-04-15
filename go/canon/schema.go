@@ -13,21 +13,23 @@ import "fmt"
 //	schema_version  string   required  always "v0"
 //	key             string   required  non-empty canonical identity key
 //	title           string   required  human-readable tiddler identifier
+//	id              string   enriched  S34 structural UUID
+//	canonical_slug  string   enriched  S34 normalized slug
+//	version_id      string   enriched  S34 content-sensitive hash
+//	content_type    string   enriched  S35 content type
+//	modality        string   enriched  S35 reading modality
+//	encoding        string   enriched  S35 payload encoding
+//	is_binary       bool     enriched  S35 binary flag (always present)
+//	is_reference_only bool   enriched  S35 reference-only flag (always present)
 //	text            *string  optional  body content (omitted when nil)
+//	source_type     *string  optional  S35 raw tiddler type (omitted when nil)
 //	source_position *string  optional  extraction origin (omitted when nil)
 //	created         *string  optional  TW5 17-digit timestamp (omitted when nil)
 //	modified        *string  optional  TW5 17-digit timestamp (omitted when nil)
 //
-// Fields deliberately absent from v0:
-//   - UUID v5 stable identity (deferred)
-//   - primary_role, relations, provenance, meta blocks (deferred)
-//   - deduplication resolution (deferred)
-//
-// PROVISIONAL: This is NOT the definitive Canon schema. It formalizes the
-// current bootstrap shape so it is declared, tested and observable — not
-// merely "whatever the code happens to emit today."
-//
 // Ref: S18 — schema v0 explícito para canon.jsonl.
+// Ref: S34 — structural identity enrichment.
+// Ref: S35 — reading mode and typing enrichment.
 // Ref: S13 §B — CanonEntry shape.
 // Ref: S16 §A — writer mínimo.
 // Ref: S17 — created/modified enrichment.
@@ -44,9 +46,14 @@ var SchemaV0RequiredFields = []string{"schema_version", "key", "title"}
 // These are required when identity has been computed.
 var SchemaV0IdentityFields = []string{"id", "canonical_slug", "version_id"}
 
+// SchemaV0ReadingModeFields lists the reading mode fields added by S35.
+// These are always present when the reading mode layer has been computed.
+// is_binary and is_reference_only are always present (booleans default to false).
+var SchemaV0ReadingModeFields = []string{"content_type", "modality", "encoding", "is_binary", "is_reference_only"}
+
 // SchemaV0OptionalFields lists the JSON field names that MAY be present
 // (omitted when the underlying value is nil/zero).
-var SchemaV0OptionalFields = []string{"text", "source_position", "created", "modified"}
+var SchemaV0OptionalFields = []string{"text", "source_type", "source_position", "created", "modified"}
 
 // ValidateEntryV0 checks that a CanonEntry satisfies the schema v0 invariants.
 //
