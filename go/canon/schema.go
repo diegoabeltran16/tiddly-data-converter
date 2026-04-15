@@ -59,9 +59,17 @@ var SchemaV0SemanticFields = []string{
 	"semantic_text", "raw_payload_ref", "asset_id", "mime_type",
 }
 
+// SchemaV0ContextRelationFields lists the document context and explicit
+// relations fields added by S37.
+var SchemaV0ContextRelationFields = []string{
+	"document_id", "section_path", "order_in_document", "relations",
+}
+
 // SchemaV0OptionalFields lists the JSON field names that MAY be present
 // (omitted when the underlying value is nil/zero).
-var SchemaV0OptionalFields = []string{"text", "source_type", "source_position", "created", "modified"}
+var SchemaV0OptionalFields = []string{
+	"text", "source_type", "source_position", "created", "modified", "source_fields",
+}
 
 // ValidateEntryV0 checks that a CanonEntry satisfies the schema v0 invariants.
 //

@@ -1,23 +1,24 @@
 // Package canon — identity.go
 //
-// S34 — canon-node-structural-identity-v0
+// # S34 — canon-node-structural-identity-v0
 //
 // Defines the structural identity of each node in the canonical JSONL export.
 // Every exported line must expose five semantically separated identity fields:
 //
-//   id             — structural, immutable, deterministic UUID (UUIDv5)
-//   key            — operational/human key for debugging and traceability
-//   title          — visible name, preserved faithfully from source
-//   canonical_slug — legible, normalized, reproducible slug
-//   version_id     — content-sensitive version hash (sha256)
+//	id             — structural, immutable, deterministic UUID (UUIDv5)
+//	key            — operational/human key for debugging and traceability
+//	title          — visible name, preserved faithfully from source
+//	canonical_slug — legible, normalized, reproducible slug
+//	version_id     — content-sensitive version hash (sha256)
 //
 // These five fields must not collapse into each other.
 //
 // Dependencies on prior sessions (not reopened here):
-//   S30 — UUIDv5 recipe (UUIDNamespaceURL, UUIDSpecVersionV1)
-//   S30 — Canonical JSON policy
-//   S30 — Zero-field checksum policy
-//   S29 — Fold order and checksum truth pins
+//
+//	S30 — UUIDv5 recipe (UUIDNamespaceURL, UUIDSpecVersionV1)
+//	S30 — Canonical JSON policy
+//	S30 — Zero-field checksum policy
+//	S29 — Fold order and checksum truth pins
 //
 // Ref: S34 — canon-node-structural-identity-v0.
 // Ref: S30 — UUIDv5 and canonical JSON.
@@ -181,6 +182,31 @@ type CanonEntry struct {
 	// Ref: S36 §13 — mime_type policy.
 	MimeType string `json:"mime_type,omitempty"`
 
+	// --- S37: Document context and explicit relations fields ---
+
+	// DocumentID is the canonical deterministic identity of the source
+	// document from which this node was exported.
+	//
+	// Ref: S37 §10.1 — document_id definition.
+	DocumentID string `json:"document_id,omitempty"`
+
+	// SectionPath is the conservative structural route where this node
+	// lives inside its source document, ordered from general to specific.
+	//
+	// Ref: S37 §10.2 — section_path definition.
+	SectionPath []string `json:"section_path"`
+
+	// OrderInDocument is the stable 0-based source order of the node.
+	//
+	// Ref: S37 §10.3 — order_in_document definition.
+	OrderInDocument int `json:"order_in_document"`
+
+	// Relations contains explicit resolvable relations from this node to
+	// other nodes in the same export corpus.
+	//
+	// Ref: S37 §10.4 — relations definition.
+	Relations []NodeRelation `json:"relations"`
+
 	// --- S36: Source semantic fields (input from TiddlyWiki) ---
 
 	// SourceTags carries the raw TiddlyWiki tags from the source tiddler.
@@ -189,6 +215,13 @@ type CanonEntry struct {
 	//
 	// Ref: S36 §11 — native TiddlyWiki tags.
 	SourceTags []string `json:"source_tags,omitempty"`
+
+	// SourceFields carries raw source fields preserved from Ingesta.
+	// Used by S37 to read explicit document context hints (e.g. document_key
+	// or section_path) without inventing metadata.
+	//
+	// This field is NOT part of the normative shape for version_id.
+	SourceFields map[string]string `json:"source_fields,omitempty"`
 
 	// SourceRole carries explicit role declarations from the source tiddler
 	// (e.g., from structured JSON fields inside the tiddler content).
@@ -253,13 +286,13 @@ var multiHyphenRe = regexp.MustCompile(`-{2,}`)
 // CanonicalSlugOf computes the canonical slug for a tiddler title.
 //
 // The function is pure and deterministic. Steps:
-//   1. NFKC normalization (compatibility decomposition + canonical composition)
-//   2. NFD decomposition → strip combining marks (removes diacritics)
-//   3. Lowercase
-//   4. Replace whitespace runs with single hyphen
-//   5. Remove any character that is not [a-z0-9-]
-//   6. Collapse consecutive hyphens
-//   7. Trim leading/trailing hyphens
+//  1. NFKC normalization (compatibility decomposition + canonical composition)
+//  2. NFD decomposition → strip combining marks (removes diacritics)
+//  3. Lowercase
+//  4. Replace whitespace runs with single hyphen
+//  5. Remove any character that is not [a-z0-9-]
+//  6. Collapse consecutive hyphens
+//  7. Trim leading/trailing hyphens
 //
 // Treatment of special characters:
 //   - Diacritics (é, ñ, ü, etc.): transliterated to ASCII via NFD decomposition
@@ -342,7 +375,8 @@ func stripDiacritics(s string) string {
 // structural UUID. The payload is deterministic: same key → same UUID.
 //
 // Payload keys (sorted in canonical JSON):
-//   key, type, uuid_spec_version
+//
+//	key, type, uuid_spec_version
 //
 // The key is the stable source anchor (title). The id does NOT depend on
 // the canonical_slug or version_id, avoiding circular dependencies.
@@ -351,16 +385,17 @@ func stripDiacritics(s string) string {
 // Ref: S30 — UUIDv5 payload pattern.
 func NodeUUIDPayload(key string) map[string]interface{} {
 	return map[string]interface{}{
-		"type":               "tiddler_node",
-		"uuid_spec_version":  UUIDSpecVersionV1,
-		"key":                key,
+		"type":              "tiddler_node",
+		"uuid_spec_version": UUIDSpecVersionV1,
+		"key":               key,
 	}
 }
 
 // ComputeNodeUUID computes the deterministic UUIDv5 for a tiddler node.
 //
 // The UUID is computed as:
-//   UUIDv5(UUIDNamespaceURL, CanonicalJSON({key, type:"tiddler_node", uuid_spec_version:"v1"}))
+//
+//	UUIDv5(UUIDNamespaceURL, CanonicalJSON({key, type:"tiddler_node", uuid_spec_version:"v1"}))
 //
 // The id depends only on the source key (title), not on slug or version_id.
 //
@@ -384,20 +419,27 @@ func ComputeNodeUUID(key string) (string, error) {
 // excluded (zero-field policy from S30).
 //
 // Normative shape fields (sorted by canonical JSON):
-//   created, key, modified, text, title
+//
+//	created, key, modified, text, title
 //
 // Excluded fields:
-//   version_id      — self-referential (zero-field policy)
-//   id              — derived from key, not material content
-//   canonical_slug  — derived from title, not material content
-//   schema_version  — emission metadata, not node content
-//   source_position — extraction metadata, not node content
-//   source_type     — extraction metadata, not node content
-//   content_type    — S35: derived from source_type + structure
-//   modality        — S35: derived from content_type
-//   encoding        — S35: derived from content_type
-//   is_binary       — S35: derived from content_type + encoding
-//   is_reference_only — S35: derived from content_type + structure
+//
+//	version_id      — self-referential (zero-field policy)
+//	id              — derived from key, not material content
+//	canonical_slug  — derived from title, not material content
+//	schema_version  — emission metadata, not node content
+//	source_position — extraction metadata, not node content
+//	source_type     — extraction metadata, not node content
+//	source_fields   — extraction metadata, not node content
+//	content_type    — S35: derived from source_type + structure
+//	modality        — S35: derived from content_type
+//	encoding        — S35: derived from content_type
+//	is_binary       — S35: derived from content_type + encoding
+//	is_reference_only — S35: derived from content_type + structure
+//	document_id     — S37: derived from source metadata
+//	section_path    — S37: derived from source signals
+//	order_in_document — S37: export position metadata
+//	relations       — S37: explicit resolvable links, not node material
 //
 // Ref: S34 §14.5 — version_id normative shape.
 // Ref: S35 — reading mode fields are derived, not material.
@@ -428,7 +470,8 @@ func versionIDNormativeShape(e CanonEntry) map[string]interface{} {
 // ComputeVersionID computes the version identifier for a CanonEntry.
 //
 // The version_id is computed as:
-//   sha256:<hex> of CanonicalJSON(normative shape)
+//
+//	sha256:<hex> of CanonicalJSON(normative shape)
 //
 // where the normative shape includes only material fields (key, title,
 // text, created, modified) and excludes version_id itself (zero-field

@@ -32,14 +32,15 @@ import (
 // S36 enrichment: SemanticInfo captures the semantic function and
 // traceability fields for included tiddlers; nil for excluded tiddlers.
 type ExportLogEntry struct {
-	TiddlerID      string              `json:"tiddler_id"`
-	Action         string              `json:"action"` // "included" or "excluded"
-	RuleID         string              `json:"rule_id"`
-	Reason         string              `json:"reason"`
-	RunID          string              `json:"run_id"`
-	ExportIdentity *ExportIdentityRef  `json:"export_identity,omitempty"`
-	ReadingMode    *ReadingMode        `json:"reading_mode,omitempty"`
-	SemanticInfo   *ExportSemanticRef  `json:"semantic_info,omitempty"`
+	TiddlerID      string             `json:"tiddler_id"`
+	Action         string             `json:"action"` // "included" or "excluded"
+	RuleID         string             `json:"rule_id"`
+	Reason         string             `json:"reason"`
+	RunID          string             `json:"run_id"`
+	ExportIdentity *ExportIdentityRef `json:"export_identity,omitempty"`
+	ReadingMode    *ReadingMode       `json:"reading_mode,omitempty"`
+	SemanticInfo   *ExportSemanticRef `json:"semantic_info,omitempty"`
+	ContextInfo    *ExportContextRef  `json:"context_info,omitempty"`
 }
 
 // ExportIdentityRef holds the identity fields emitted for an included tiddler.
@@ -62,6 +63,22 @@ type ExportSemanticRef struct {
 	AssetMode        string `json:"asset_mode"`
 }
 
+// ExportContextRef holds S37 context/relations traceability fields for
+// included tiddlers in the export log.
+type ExportContextRef struct {
+	DocumentID               string `json:"document_id"`
+	OrderInDocument          int    `json:"order_in_document"`
+	SectionPathLength        int    `json:"section_path_length"`
+	RelationCount            int    `json:"relation_count"`
+	RelationResolutionStatus string `json:"relation_resolution_status"`
+}
+
+// RelationCounts stores per-type relation counters in the manifest.
+type RelationCounts struct {
+	ChildOf    int `json:"child_of"`
+	References int `json:"references"`
+}
+
 // ExportManifest contains metadata about the export run.
 //
 // S35 enrichment: adds conteos by content_type, modality, is_binary,
@@ -69,29 +86,34 @@ type ExportSemanticRef struct {
 // S36 enrichment: adds conteos by role_primary and has_asset for
 // semantic observability.
 type ExportManifest struct {
-	RunID          string            `json:"run_id"`
-	Timestamp      time.Time         `json:"timestamp"`
-	InputCount     int               `json:"input_count"`
-	FilteredCount  int               `json:"filtered_count"`
-	ExportedCount  int               `json:"exported_count"`
-	SkippedByGate  int               `json:"skipped_by_gate"`
-	SHA256         string            `json:"sha256"`
-	OutputPath     string            `json:"output_path"`
-	SchemaVersion  string            `json:"schema_version"`
+	RunID         string    `json:"run_id"`
+	Timestamp     time.Time `json:"timestamp"`
+	InputCount    int       `json:"input_count"`
+	FilteredCount int       `json:"filtered_count"`
+	ExportedCount int       `json:"exported_count"`
+	SkippedByGate int       `json:"skipped_by_gate"`
+	SHA256        string    `json:"sha256"`
+	OutputPath    string    `json:"output_path"`
+	SchemaVersion string    `json:"schema_version"`
 	// S35 conteos
-	ContentTypeCounts    map[string]int `json:"content_type_counts,omitempty"`
-	ModalityCounts       map[string]int `json:"modality_counts,omitempty"`
-	BinaryCount          int            `json:"binary_count"`
-	ReferenceOnlyCount   int            `json:"reference_only_count"`
+	ContentTypeCounts  map[string]int `json:"content_type_counts,omitempty"`
+	ModalityCounts     map[string]int `json:"modality_counts,omitempty"`
+	BinaryCount        int            `json:"binary_count"`
+	ReferenceOnlyCount int            `json:"reference_only_count"`
 	// S36 conteos
-	RolePrimaryCounts    map[string]int `json:"role_primary_counts,omitempty"`
-	AssetCount           int            `json:"asset_count"`
-	SemanticTextCount    int            `json:"semantic_text_count"`
+	RolePrimaryCounts map[string]int `json:"role_primary_counts,omitempty"`
+	AssetCount        int            `json:"asset_count"`
+	SemanticTextCount int            `json:"semantic_text_count"`
+	// S37 conteos
+	DocumentCount             int            `json:"document_count"`
+	NodesWithSectionPathCount int            `json:"nodes_with_section_path_count"`
+	NodesWithRelationsCount   int            `json:"nodes_with_relations_count"`
+	RelationCounts            RelationCounts `json:"relation_counts"`
 }
 
 // ExportTiddlersResult holds the complete result of an S33 export.
 type ExportTiddlersResult struct {
-	Manifest  ExportManifest   `json:"manifest"`
+	Manifest   ExportManifest   `json:"manifest"`
 	LogEntries []ExportLogEntry `json:"log_entries"`
 }
 
@@ -108,6 +130,13 @@ type ExportTiddlersResult struct {
 //
 // Returns an ExportTiddlersResult with the manifest and per-tiddler log.
 func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*ExportTiddlersResult, error) {
+	type preparedEntry struct {
+		SourceIndex int
+		Entry       CanonEntry
+		ReadingMode ReadingMode
+		Semantics   Semantics
+	}
+
 	result := &ExportTiddlersResult{
 		Manifest: ExportManifest{
 			RunID:             runID,
@@ -127,6 +156,9 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 	var exported int
 	var skipped int
 
+	prepared := make([]preparedEntry, 0, len(entries))
+
+	// Pass 1: gate + deterministic enrichment (S34/S35/S36).
 	for i, e := range entries {
 		// S19 gate: validate before emission.
 		if err := ValidateEntryV0(e); err != nil {
@@ -176,18 +208,58 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		e.AssetID = sem.AssetID
 		e.MimeType = sem.MimeType
 
+		prepared = append(prepared, preparedEntry{
+			SourceIndex: i,
+			Entry:       e,
+			ReadingMode: rm,
+			Semantics:   sem,
+		})
+	}
+
+	// Pass 2: build resolver for intra-export context/relations.
+	resolverEntries := make([]CanonEntry, 0, len(prepared))
+	for _, p := range prepared {
+		resolverEntries = append(resolverEntries, p.Entry)
+	}
+	resolver := BuildContextResolver(resolverEntries)
+	documentSet := make(map[string]bool)
+
+	// Pass 3: compute S37 + write JSONL.
+	for _, p := range prepared {
+		e := p.Entry
+		rm := p.ReadingMode
+		sem := p.Semantics
+
+		ctx, err := BuildNodeContextAndRelations(e, p.SourceIndex, resolver)
+		if err != nil {
+			skipped++
+			result.LogEntries = append(result.LogEntries, ExportLogEntry{
+				TiddlerID: e.Title,
+				Action:    "excluded",
+				RuleID:    "context-s37",
+				Reason:    fmt.Sprintf("context_failed: %v", err),
+				RunID:     runID,
+			})
+			continue
+		}
+		e.DocumentID = ctx.DocumentID
+		e.SectionPath = ctx.SectionPath
+		e.OrderInDocument = ctx.OrderInDocument
+		e.Relations = ctx.Relations
+
 		line, err := json.Marshal(e)
 		if err != nil {
-			return nil, fmt.Errorf("exporter: marshal entry[%d] %q: %w", i, e.Title, err)
+			return nil, fmt.Errorf("exporter: marshal entry[%d] %q: %w", p.SourceIndex, e.Title, err)
 		}
 		if _, err := multi.Write(line); err != nil {
-			return nil, fmt.Errorf("exporter: write entry[%d] %q: %w", i, e.Title, err)
+			return nil, fmt.Errorf("exporter: write entry[%d] %q: %w", p.SourceIndex, e.Title, err)
 		}
 		if _, err := multi.Write([]byte("\n")); err != nil {
-			return nil, fmt.Errorf("exporter: write newline after entry[%d]: %w", i, err)
+			return nil, fmt.Errorf("exporter: write newline after entry[%d]: %w", p.SourceIndex, err)
 		}
 
 		exported++
+		documentSet[e.DocumentID] = true
 		// S35: track conteos for manifest.
 		result.Manifest.ContentTypeCounts[rm.ContentType]++
 		result.Manifest.ModalityCounts[rm.Modality]++
@@ -204,6 +276,21 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		}
 		if sem.SemanticText != "" {
 			result.Manifest.SemanticTextCount++
+		}
+		// S37: track context + relation conteos.
+		if len(e.SectionPath) > 0 {
+			result.Manifest.NodesWithSectionPathCount++
+		}
+		if len(e.Relations) > 0 {
+			result.Manifest.NodesWithRelationsCount++
+		}
+		for _, rel := range e.Relations {
+			switch rel.Type {
+			case RelationTypeChildOf:
+				result.Manifest.RelationCounts.ChildOf++
+			case RelationTypeReferences:
+				result.Manifest.RelationCounts.References++
+			}
 		}
 		result.LogEntries = append(result.LogEntries, ExportLogEntry{
 			TiddlerID: e.Title,
@@ -225,11 +312,19 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 				MimeSource:       sem.MimeSource,
 				AssetMode:        sem.AssetMode,
 			},
+			ContextInfo: &ExportContextRef{
+				DocumentID:               e.DocumentID,
+				OrderInDocument:          e.OrderInDocument,
+				SectionPathLength:        len(e.SectionPath),
+				RelationCount:            len(e.Relations),
+				RelationResolutionStatus: ctx.RelationResolutionStatus,
+			},
 		})
 	}
 
 	result.Manifest.ExportedCount = exported
 	result.Manifest.SkippedByGate = skipped
+	result.Manifest.DocumentCount = len(documentSet)
 	result.Manifest.SHA256 = fmt.Sprintf("sha256:%x", h.Sum(nil))
 
 	return result, nil

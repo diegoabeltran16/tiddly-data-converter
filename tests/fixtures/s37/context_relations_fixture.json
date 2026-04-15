@@ -1,0 +1,31 @@
+[
+  {
+    "title": "# Root",
+    "text": "Root node",
+    "tags": [],
+    "source_fields": {
+      "document_key": "fixtures/s37/doc-001"
+    }
+  },
+  {
+    "title": "## Section",
+    "text": "Section references [[# Root]]",
+    "tags": [
+      "# Root"
+    ],
+    "source_fields": {
+      "document_key": "fixtures/s37/doc-001"
+    }
+  },
+  {
+    "title": "### Child",
+    "text": "{\"relations\":[{\"type\":\"references\",\"target\":\"# Root\"}],\"content\":{\"markdown\":\"child\"}}",
+    "tags": [
+      "# Root",
+      "## Section"
+    ],
+    "source_fields": {
+      "document_key": "fixtures/s37/doc-001"
+    }
+  }
+]
