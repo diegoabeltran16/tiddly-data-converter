@@ -36,7 +36,7 @@ func TestSchemaV0RequiredFields(t *testing.T) {
 
 // TestSchemaV0OptionalFields validates the declared optional field list.
 func TestSchemaV0OptionalFields(t *testing.T) {
-	want := []string{"text", "source_position", "created", "modified"}
+	want := []string{"text", "source_type", "source_position", "created", "modified"}
 	got := canon.SchemaV0OptionalFields
 	if len(got) != len(want) {
 		t.Fatalf("SchemaV0OptionalFields: got %d fields, want %d", len(got), len(want))
@@ -183,8 +183,12 @@ func TestWriteJSONL_SchemaVersionDoesNotMutateInput(t *testing.T) {
 	}
 }
 
-// TestWriteJSONL_SchemaV0ShapeComplete validates that the full schema v0 shape
-// is correct: all required and optional fields appear as expected.
+// TestWriteJSONL_SchemaV0ShapeComplete validates that the basic WriteJSONL
+// writer produces the correct shape: required + optional fields only.
+// Identity (S34) and reading mode (S35) fields are computed by
+// ExportTiddlersJSONL, not by the basic WriteJSONL writer. The boolean
+// reading mode fields (is_binary, is_reference_only) always appear because
+// Go serializes bool zero values.
 //
 // Ref: S18 — schema v0 shape validation.
 func TestWriteJSONL_SchemaV0ShapeComplete(t *testing.T) {
@@ -213,21 +217,36 @@ func TestWriteJSONL_SchemaV0ShapeComplete(t *testing.T) {
 		t.Fatalf("invalid JSON: %v", err)
 	}
 
-	// All schema v0 fields should be present for a fully-populated entry.
-	allFields := append(canon.SchemaV0RequiredFields, canon.SchemaV0OptionalFields...)
-	for _, f := range allFields {
+	// Basic required fields must be present.
+	for _, f := range canon.SchemaV0RequiredFields {
 		if _, ok := parsed[f]; !ok {
-			t.Errorf("missing field %q in fully-populated entry", f)
+			t.Errorf("missing required field %q in basic writer output", f)
 		}
 	}
 
-	// No extra fields beyond declared schema v0 should be present.
-	declared := make(map[string]bool)
-	for _, f := range allFields {
-		declared[f] = true
+	// Boolean reading mode fields are always present (Go zero values).
+	for _, f := range []string{"is_binary", "is_reference_only"} {
+		if _, ok := parsed[f]; !ok {
+			t.Errorf("missing boolean field %q in basic writer output", f)
+		}
+	}
+
+	// No extra fields beyond the full declared schema should be present.
+	allDeclared := make(map[string]bool)
+	for _, f := range canon.SchemaV0RequiredFields {
+		allDeclared[f] = true
+	}
+	for _, f := range canon.SchemaV0IdentityFields {
+		allDeclared[f] = true
+	}
+	for _, f := range canon.SchemaV0ReadingModeFields {
+		allDeclared[f] = true
+	}
+	for _, f := range canon.SchemaV0OptionalFields {
+		allDeclared[f] = true
 	}
 	for k := range parsed {
-		if !declared[k] {
+		if !allDeclared[k] {
 			t.Errorf("unexpected field %q in output (not in schema v0)", k)
 		}
 	}

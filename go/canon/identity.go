@@ -97,8 +97,46 @@ type CanonEntry struct {
 	// Ref: S30 — Canonical JSON and zero-field policy.
 	VersionID string `json:"version_id,omitempty"`
 
+	// --- S35: Reading mode and typing fields ---
+
+	// ContentType identifies the type of content the node carries.
+	// Derived by BuildNodeReadingMode from source signals and structure.
+	//
+	// Ref: S35 §16.1 — content_type definition.
+	ContentType string `json:"content_type,omitempty"`
+
+	// Modality identifies the primary reading channel for the node.
+	//
+	// Ref: S35 §16.2 — modality definition.
+	Modality string `json:"modality,omitempty"`
+
+	// Encoding identifies how the payload is represented.
+	//
+	// Ref: S35 §16.3 — encoding definition.
+	Encoding string `json:"encoding,omitempty"`
+
+	// IsBinary indicates whether the content requires binary treatment.
+	//
+	// Ref: S35 §16.4 — is_binary definition.
+	IsBinary bool `json:"is_binary"`
+
+	// IsReferenceOnly indicates whether the node is a reference/pointer
+	// rather than carrying its primary content directly.
+	//
+	// Ref: S35 §16.5 — is_reference_only definition.
+	IsReferenceOnly bool `json:"is_reference_only"`
+
+	// --- Content and source fields ---
+
 	// Text is the body content of the tiddler (nil if absent).
 	Text *string `json:"text,omitempty"`
+
+	// SourceType carries the raw tiddler "type" field from the source,
+	// used by the reading mode detector to derive content_type.
+	// This field is NOT part of the normative shape for version_id.
+	//
+	// Ref: S35 §17.2 — explicit source signal priority.
+	SourceType *string `json:"source_type,omitempty"`
 
 	// SourcePosition traces back to the extraction origin for auditability.
 	SourcePosition *string `json:"source_position,omitempty"`
@@ -277,13 +315,20 @@ func ComputeNodeUUID(key string) (string, error) {
 //   created, key, modified, text, title
 //
 // Excluded fields:
-//   version_id  — self-referential (zero-field policy)
-//   id          — derived from key, not material content
-//   canonical_slug — derived from title, not material content
-//   schema_version — emission metadata, not node content
+//   version_id      — self-referential (zero-field policy)
+//   id              — derived from key, not material content
+//   canonical_slug  — derived from title, not material content
+//   schema_version  — emission metadata, not node content
 //   source_position — extraction metadata, not node content
+//   source_type     — extraction metadata, not node content
+//   content_type    — S35: derived from source_type + structure
+//   modality        — S35: derived from content_type
+//   encoding        — S35: derived from content_type
+//   is_binary       — S35: derived from content_type + encoding
+//   is_reference_only — S35: derived from content_type + structure
 //
 // Ref: S34 §14.5 — version_id normative shape.
+// Ref: S35 — reading mode fields are derived, not material.
 // Ref: S30 — zero-field checksum policy.
 func versionIDNormativeShape(e CanonEntry) map[string]interface{} {
 	shape := map[string]interface{}{

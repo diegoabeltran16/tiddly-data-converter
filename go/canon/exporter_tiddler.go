@@ -27,6 +27,8 @@ import (
 //
 // S34 enrichment: ExportIdentity captures the computed identity fields
 // for included tiddlers; nil for excluded tiddlers.
+// S35 enrichment: ReadingMode captures the computed reading mode fields
+// for included tiddlers; nil for excluded tiddlers.
 type ExportLogEntry struct {
 	TiddlerID      string            `json:"tiddler_id"`
 	Action         string            `json:"action"` // "included" or "excluded"
@@ -34,6 +36,7 @@ type ExportLogEntry struct {
 	Reason         string            `json:"reason"`
 	RunID          string            `json:"run_id"`
 	ExportIdentity *ExportIdentityRef `json:"export_identity,omitempty"`
+	ReadingMode    *ReadingMode       `json:"reading_mode,omitempty"`
 }
 
 // ExportIdentityRef holds the identity fields emitted for an included tiddler.
@@ -45,16 +48,24 @@ type ExportIdentityRef struct {
 }
 
 // ExportManifest contains metadata about the export run.
+//
+// S35 enrichment: adds conteos by content_type, modality, is_binary,
+// and is_reference_only for observability.
 type ExportManifest struct {
-	RunID          string    `json:"run_id"`
-	Timestamp      time.Time `json:"timestamp"`
-	InputCount     int       `json:"input_count"`
-	FilteredCount  int       `json:"filtered_count"`
-	ExportedCount  int       `json:"exported_count"`
-	SkippedByGate  int       `json:"skipped_by_gate"`
-	SHA256         string    `json:"sha256"`
-	OutputPath     string    `json:"output_path"`
-	SchemaVersion  string    `json:"schema_version"`
+	RunID          string            `json:"run_id"`
+	Timestamp      time.Time         `json:"timestamp"`
+	InputCount     int               `json:"input_count"`
+	FilteredCount  int               `json:"filtered_count"`
+	ExportedCount  int               `json:"exported_count"`
+	SkippedByGate  int               `json:"skipped_by_gate"`
+	SHA256         string            `json:"sha256"`
+	OutputPath     string            `json:"output_path"`
+	SchemaVersion  string            `json:"schema_version"`
+	// S35 conteos
+	ContentTypeCounts    map[string]int `json:"content_type_counts,omitempty"`
+	ModalityCounts       map[string]int `json:"modality_counts,omitempty"`
+	BinaryCount          int            `json:"binary_count"`
+	ReferenceOnlyCount   int            `json:"reference_only_count"`
 }
 
 // ExportTiddlersResult holds the complete result of an S33 export.
@@ -78,10 +89,12 @@ type ExportTiddlersResult struct {
 func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*ExportTiddlersResult, error) {
 	result := &ExportTiddlersResult{
 		Manifest: ExportManifest{
-			RunID:         runID,
-			Timestamp:     time.Now().UTC(),
-			InputCount:    len(entries),
-			SchemaVersion: SchemaV0,
+			RunID:             runID,
+			Timestamp:         time.Now().UTC(),
+			InputCount:        len(entries),
+			SchemaVersion:     SchemaV0,
+			ContentTypeCounts: make(map[string]int),
+			ModalityCounts:    make(map[string]int),
 		},
 	}
 
@@ -122,6 +135,14 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 			continue
 		}
 
+		// S35: compute reading mode (content_type, modality, encoding, is_binary, is_reference_only).
+		rm := BuildNodeReadingMode(e)
+		e.ContentType = rm.ContentType
+		e.Modality = rm.Modality
+		e.Encoding = rm.Encoding
+		e.IsBinary = rm.IsBinary
+		e.IsReferenceOnly = rm.IsReferenceOnly
+
 		line, err := json.Marshal(e)
 		if err != nil {
 			return nil, fmt.Errorf("exporter: marshal entry[%d] %q: %w", i, e.Title, err)
@@ -134,6 +155,15 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		}
 
 		exported++
+		// S35: track conteos for manifest.
+		result.Manifest.ContentTypeCounts[rm.ContentType]++
+		result.Manifest.ModalityCounts[rm.Modality]++
+		if rm.IsBinary {
+			result.Manifest.BinaryCount++
+		}
+		if rm.IsReferenceOnly {
+			result.Manifest.ReferenceOnlyCount++
+		}
 		result.LogEntries = append(result.LogEntries, ExportLogEntry{
 			TiddlerID: e.Title,
 			Action:    "included",
@@ -145,6 +175,7 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 				CanonicalSlug: e.CanonicalSlug,
 				VersionID:     e.VersionID,
 			},
+			ReadingMode: &rm,
 		})
 	}
 
