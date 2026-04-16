@@ -31,5 +31,6 @@ user_input*.html
 # Binario Go compilado manualmente (se reconstruye con go build)
 go/ingesta/ingest
 go/canon/emit
+go/canon/canon_preflight
 /.codex
 
