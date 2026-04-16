@@ -157,11 +157,14 @@ type CanonEntry struct {
 	TaxonomyPath []string `json:"taxonomy_path,omitempty"`
 
 	// SemanticText is the text content useful for semantic reading,
-	// retrieval, or reasoning. Empty for binary or reference-only nodes.
-	// Preserves equations embedded in textual content.
+	// retrieval, or reasoning. Nil when:
+	//   - binary or reference-only nodes (no semantic text available)
+	//   - textual nodes where semantic_text == text (suppressed to avoid duplication)
+	// Populated only when a distinct semantic transformation exists.
 	//
 	// Ref: S36 §13 — semantic_text policy.
-	SemanticText string `json:"semantic_text,omitempty"`
+	// Ref: S38 §9.1 — semantic_text nullable when redundant.
+	SemanticText *string `json:"semantic_text"`
 
 	// RawPayloadRef is a traceable, deterministic, non-interpretive
 	// reference to the raw payload or its logical location.
