@@ -99,7 +99,7 @@ func TestExportContextRelationsIntegration_LogContextInfo(t *testing.T) {
 		t.Fatalf("ExportTiddlersJSONL: %v", err)
 	}
 	for i, logEntry := range result.LogEntries {
-		if logEntry.Action != "included" {
+		if logEntry.Decision != "exported" {
 			continue
 		}
 		if logEntry.ContextInfo == nil {

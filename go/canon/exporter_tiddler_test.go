@@ -27,11 +27,14 @@ func TestExportTiddlersJSONL_Basic(t *testing.T) {
 	if result.Manifest.ExportedCount != 2 {
 		t.Errorf("ExportedCount = %d, want 2", result.Manifest.ExportedCount)
 	}
-	if result.Manifest.SkippedByGate != 0 {
-		t.Errorf("SkippedByGate = %d, want 0", result.Manifest.SkippedByGate)
+	if result.Manifest.ExcludedCount != 0 {
+		t.Errorf("ExcludedCount = %d, want 0", result.Manifest.ExcludedCount)
 	}
-	if result.Manifest.InputCount != 2 {
-		t.Errorf("InputCount = %d, want 2", result.Manifest.InputCount)
+	if result.Manifest.SourceCandidateCount != 2 {
+		t.Errorf("SourceCandidateCount = %d, want 2", result.Manifest.SourceCandidateCount)
+	}
+	if result.Manifest.ArtifactRole != "canon_export" {
+		t.Errorf("ArtifactRole = %q, want %q", result.Manifest.ArtifactRole, "canon_export")
 	}
 	if !strings.HasPrefix(result.Manifest.SHA256, "sha256:") {
 		t.Errorf("SHA256 = %q, want sha256: prefix", result.Manifest.SHA256)
@@ -63,8 +66,8 @@ func TestExportTiddlersJSONL_Basic(t *testing.T) {
 		t.Fatalf("LogEntries = %d, want 2", len(result.LogEntries))
 	}
 	for _, entry := range result.LogEntries {
-		if entry.Action != "included" {
-			t.Errorf("log entry %q action = %q, want %q", entry.TiddlerID, entry.Action, "included")
+		if entry.Decision != "exported" {
+			t.Errorf("log entry %q decision = %q, want %q", entry.SourceRef, entry.Decision, "exported")
 		}
 		if entry.RunID != "test-run-001" {
 			t.Errorf("log entry run_id = %q, want %q", entry.RunID, "test-run-001")
@@ -91,8 +94,8 @@ func TestExportTiddlersJSONL_GateRejection(t *testing.T) {
 	if result.Manifest.ExportedCount != 1 {
 		t.Errorf("ExportedCount = %d, want 1", result.Manifest.ExportedCount)
 	}
-	if result.Manifest.SkippedByGate != 2 {
-		t.Errorf("SkippedByGate = %d, want 2", result.Manifest.SkippedByGate)
+	if result.Manifest.ExcludedCount != 2 {
+		t.Errorf("ExcludedCount = %d, want 2", result.Manifest.ExcludedCount)
 	}
 
 	// Verify JSONL output: only 1 line
@@ -108,7 +111,7 @@ func TestExportTiddlersJSONL_GateRejection(t *testing.T) {
 
 	excludedCount := 0
 	for _, entry := range result.LogEntries {
-		if entry.Action == "excluded" {
+		if entry.Decision == "excluded" {
 			excludedCount++
 			if entry.RuleID != "gate-v0" {
 				t.Errorf("excluded entry rule_id = %q, want %q", entry.RuleID, "gate-v0")
