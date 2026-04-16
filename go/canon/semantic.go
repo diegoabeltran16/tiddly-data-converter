@@ -174,15 +174,16 @@ var tagRoleMapping = map[string]string{
 // for a canonical node.
 //
 // Ref: S36 §1 — semantic layer output.
+// Ref: S38 §9.1 — SemanticText nullable when redundant.
 type Semantics struct {
-	RolePrimary   string   `json:"role_primary"`
+	RolePrimary    string   `json:"role_primary"`
 	RolesSecondary []string `json:"roles_secondary"`
-	Tags          []string `json:"tags"`
-	TaxonomyPath  []string `json:"taxonomy_path"`
-	SemanticText  string   `json:"semantic_text"`
-	RawPayloadRef string   `json:"raw_payload_ref"`
-	AssetID       string   `json:"asset_id"`
-	MimeType      string   `json:"mime_type"`
+	Tags           []string `json:"tags"`
+	TaxonomyPath   []string `json:"taxonomy_path"`
+	SemanticText   *string  `json:"semantic_text"`
+	RawPayloadRef  string   `json:"raw_payload_ref"`
+	AssetID        string   `json:"asset_id"`
+	MimeType       string   `json:"mime_type"`
 
 	// Traceability fields for the export log (not emitted in JSONL).
 	RoleSource       string `json:"role_source"`
@@ -423,42 +424,54 @@ func extractTaxonomySegment(tag string) string {
 // ExtractSemanticText extracts the text content useful for semantic
 // reading, retrieval, or reasoning.
 //
-// Rules:
-//   - For textual nodes (text/plain, text/markdown, text/vnd.tiddlywiki,
-//     text/html, text/csv): return the full text content.
-//   - For binary/reference-only nodes: return empty string.
-//   - For JSON metadata: return the text if it's readable JSON.
-//   - Equations embedded in text are preserved (S36 §14).
-//   - Never invents content or produces summaries.
+// S38 hardening: returns nil (*string) when:
+//   - Binary or reference-only nodes
+//   - No text content available
+//   - The extracted semantic text is identical to the source text
+//     (suppressed to avoid trivial duplication, S38 §9.1)
+//
+// Returns a non-nil *string only when the semantic text adds a distinct
+// transformation over the raw text.
 //
 // Ref: S36 §13 — semantic_text policy.
 // Ref: S36 §14 — equation preservation rule.
-func ExtractSemanticText(e CanonEntry) (text string, mode string) {
+// Ref: S38 §9.1 — suppress redundant semantic_text.
+func ExtractSemanticText(e CanonEntry) (text *string, mode string) {
 	// Binary or reference-only nodes have no semantic text.
 	if e.IsBinary {
-		return "", "empty_for_binary"
+		return nil, "not_applicable"
 	}
 	if e.IsReferenceOnly {
-		return "", "reference_only"
+		return nil, "not_applicable"
 	}
 
 	if e.Text == nil || *e.Text == "" {
-		return "", "empty_for_binary"
+		return nil, "not_applicable"
 	}
 
-	// For textual content types, preserve the full text including equations.
+	// For textual content types, check whether extraction adds value.
+	var extracted string
 	switch e.ContentType {
 	case ContentTypePlain, ContentTypeMarkdown, ContentTypeTiddlyWiki,
 		ContentTypeHTML, ContentTypeCSV, ContentTypeJSON, ContentTypeTiddler:
-		return *e.Text, "direct_text"
+		extracted = *e.Text
 	default:
 		// If content_type is unknown but we have text and it's not binary,
 		// preserve it conservatively.
 		if e.ContentType == ContentTypeUnknown && e.Text != nil && *e.Text != "" {
-			return *e.Text, "direct_text"
+			extracted = *e.Text
+		} else {
+			return nil, "not_applicable"
 		}
-		return "", "empty_for_binary"
 	}
+
+	// S38 §9.1: suppress semantic_text when it equals the source text.
+	if extracted == *e.Text {
+		return nil, "suppressed_equal_to_text"
+	}
+
+	// If we ever add transformations above, this path would produce distinct text.
+	return &extracted, "distinct"
 }
 
 // ---------------------------------------------------------------------------

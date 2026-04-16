@@ -95,8 +95,8 @@ func TestS33_E2E_ExportFromFixture(t *testing.T) {
 	if exportResult.Manifest.ExportedCount != 4 {
 		t.Errorf("ExportedCount = %d, want 4", exportResult.Manifest.ExportedCount)
 	}
-	if exportResult.Manifest.SkippedByGate != 0 {
-		t.Errorf("SkippedByGate = %d, want 0", exportResult.Manifest.SkippedByGate)
+	if exportResult.Manifest.ExcludedCount != 0 {
+		t.Errorf("ExcludedCount = %d, want 0", exportResult.Manifest.ExcludedCount)
 	}
 
 	// Step 6: Compare with golden.
