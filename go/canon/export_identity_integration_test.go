@@ -119,8 +119,8 @@ func TestExportIdentityIntegration_LogContainsIdentity(t *testing.T) {
 	}
 
 	entry := result.LogEntries[0]
-	if entry.Action != "included" {
-		t.Fatalf("action = %q, want included", entry.Action)
+	if entry.Decision != "exported" {
+		t.Fatalf("decision = %q, want exported", entry.Decision)
 	}
 	if entry.ExportIdentity == nil {
 		t.Fatal("ExportIdentity is nil for included entry")
@@ -156,11 +156,11 @@ func TestExportIdentityIntegration_GateRejection(t *testing.T) {
 	}
 
 	for _, entry := range result.LogEntries {
-		if entry.Action == "excluded" && entry.ExportIdentity != nil {
+		if entry.Decision == "excluded" && entry.ExportIdentity != nil {
 			t.Error("excluded entry should have nil ExportIdentity")
 		}
-		if entry.Action == "included" && entry.ExportIdentity == nil {
-			t.Error("included entry should have non-nil ExportIdentity")
+		if entry.Decision == "exported" && entry.ExportIdentity == nil {
+			t.Error("exported entry should have non-nil ExportIdentity")
 		}
 	}
 }
