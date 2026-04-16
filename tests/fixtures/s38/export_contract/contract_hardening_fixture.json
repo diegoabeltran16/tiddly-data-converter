@@ -1,0 +1,44 @@
+[
+  {
+    "title": "## 🧰🧱 Elementos específicos",
+    "text": "This is a policy tiddler that defines specific elements for the system.",
+    "tags": ["## 🧭🧱 Protocolo de Sesión", "política"],
+    "source_fields": {
+      "document_key": "test-doc-001"
+    }
+  },
+  {
+    "title": "#### 🌀 Sesión 01 = extractor-contract",
+    "text": "Session report: the extractor contract was defined and validated.",
+    "tags": ["## 🧰🧱 Elementos específicos", "sesión"],
+    "source_fields": {
+      "document_key": "test-doc-001"
+    }
+  },
+  {
+    "title": "Binary Image Node",
+    "text": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "tags": [],
+    "source_fields": {
+      "document_key": "test-doc-001"
+    },
+    "source_type": "image/png"
+  },
+  {
+    "title": "Equation Node",
+    "text": "The fundamental theorem: $$\\int_a^b f'(x)\\,dx = f(b) - f(a)$$",
+    "tags": ["## 🧰🧱 Elementos específicos"],
+    "source_fields": {
+      "document_key": "test-doc-001"
+    }
+  },
+  {
+    "title": "Reference Only Node",
+    "text": "https://example.com/resource.pdf",
+    "tags": [],
+    "source_fields": {
+      "document_key": "test-doc-001"
+    },
+    "source_type": "application/pdf"
+  }
+]
