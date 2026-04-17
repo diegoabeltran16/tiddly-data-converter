@@ -1,0 +1,230 @@
+{
+  "canon_artifact_role": "canon_export",
+  "schema_version": "v0",
+  "source_of_truth": "tiddlers.jsonl",
+  "source_of_truth_description": "The single canonical JSONL file is the unique, authoritative, auditable, reversible, deterministic source of truth for the tiddler corpus.",
+  "required_fields": [
+    "schema_version",
+    "key",
+    "title"
+  ],
+  "identity_fields": [
+    "id",
+    "canonical_slug",
+    "version_id"
+  ],
+  "reading_mode_fields": [
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only"
+  ],
+  "semantic_fields": [
+    "role_primary",
+    "roles_secondary",
+    "tags",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type"
+  ],
+  "derived_projection_fields": [
+    "content",
+    "normalized_tags"
+  ],
+  "context_relation_fields": [
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations"
+  ],
+  "editable_fields": [
+    "key",
+    "title",
+    "text",
+    "created",
+    "modified",
+    "source_type",
+    "source_position",
+    "source_tags",
+    "source_fields",
+    "source_role"
+  ],
+  "derived_fields": [
+    "id",
+    "canonical_slug",
+    "version_id",
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only",
+    "role_primary",
+    "roles_secondary",
+    "tags",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type",
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations"
+  ],
+  "reverse_required_fields": [
+    "title",
+    "text",
+    "created",
+    "modified"
+  ],
+  "reverse_optional_fields": [
+    "source_type",
+    "source_tags"
+  ],
+  "reverse_excluded_fields": [
+    "id",
+    "canonical_slug",
+    "version_id",
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only",
+    "role_primary",
+    "roles_secondary",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type",
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations",
+    "source_fields",
+    "source_role"
+  ],
+  "allowed_top_level_fields": [
+    "schema_version",
+    "id",
+    "key",
+    "title",
+    "canonical_slug",
+    "version_id",
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only",
+    "role_primary",
+    "roles_secondary",
+    "tags",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type",
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations",
+    "source_tags",
+    "source_fields",
+    "source_type",
+    "source_position",
+    "source_role",
+    "text",
+    "created",
+    "modified"
+  ],
+  "validation_modes": {
+    "strict": {
+      "description": "Validates shape and invariants without modifying anything. Fails on any inconsistency.",
+      "corrects_derived": false,
+      "rejects_unknown_fields": true,
+      "rejects_inconsistent_derived": true
+    },
+    "normalize": {
+      "description": "Recalculates derived fields, suppresses trivial differences, emits normalized JSONL and a report.",
+      "corrects_derived": true,
+      "rejects_unknown_fields": true,
+      "rejects_inconsistent_derived": false
+    },
+    "reverse-preflight": {
+      "description": "Validates that the canon has all fields necessary for reverse to TiddlyWiki. Does not write HTML.",
+      "corrects_derived": false,
+      "rejects_unknown_fields": false,
+      "rejects_inconsistent_derived": false
+    }
+  },
+  "rejection_rules": [
+    {
+      "rule_id": "missing-required-field",
+      "description": "Every canon line must have all required_fields non-empty.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "unknown-top-level-field",
+      "description": "Top-level fields not in allowed_top_level_fields are rejected.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "inconsistent-derived-id",
+      "description": "If id is present, it must match recomputed UUIDv5 from key.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "inconsistent-derived-slug",
+      "description": "If canonical_slug is present, it must match recomputed slug from title.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "inconsistent-derived-version-id",
+      "description": "If version_id is present, it must match recomputed sha256 from normative shape.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "semantic-text-redundant",
+      "description": "semantic_text that equals text must be null per S38 policy.",
+      "severity": "warning"
+    },
+    {
+      "rule_id": "inconsistent-derived-content-plain",
+      "description": "If content.plain is present, it must match deterministic recomputation from authoritative content.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "inconsistent-derived-normalized-tags",
+      "description": "If normalized_tags is present, it must match deterministic recomputation from the authoritative tag projection.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "wrong-schema-version",
+      "description": "schema_version must be v0.",
+      "severity": "error"
+    }
+  ],
+  "derived_layers_registry_ref": "contratos/projections/derived_layers_registry.json",
+  "invariants": [
+    "Single canonical JSONL file is the unique source of truth.",
+    "One tiddler per line.",
+    "text is the reversible source; semantic_text never substitutes text.",
+    "content.plain and normalized_tags are derived helper fields and never substitute their source fields.",
+    "Decisions from S34–S38 are not degraded.",
+    "A change cannot be accepted without validation.",
+    "An inconsistent derived field is never accepted silently.",
+    "Every failure must produce an explicit reason.",
+    "The normalizer must be deterministic."
+  ]
+}

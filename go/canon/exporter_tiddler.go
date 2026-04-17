@@ -31,16 +31,22 @@ import (
 // for included tiddlers; nil for excluded tiddlers.
 // S36 enrichment: SemanticInfo captures the semantic function and
 // traceability fields for included tiddlers; nil for excluded tiddlers.
+// S38 hardening: Decision replaces Action with explicit terminal decision.
+//
+//	semantic_text_strategy added for auditability.
 type ExportLogEntry struct {
-	TiddlerID      string             `json:"tiddler_id"`
-	Action         string             `json:"action"` // "included" or "excluded"
-	RuleID         string             `json:"rule_id"`
-	Reason         string             `json:"reason"`
-	RunID          string             `json:"run_id"`
-	ExportIdentity *ExportIdentityRef `json:"export_identity,omitempty"`
-	ReadingMode    *ReadingMode       `json:"reading_mode,omitempty"`
-	SemanticInfo   *ExportSemanticRef `json:"semantic_info,omitempty"`
-	ContextInfo    *ExportContextRef  `json:"context_info,omitempty"`
+	RunID                string             `json:"run_id"`
+	SourceRef            string             `json:"source_ref"`
+	Decision             string             `json:"decision"` // "exported" or "excluded"
+	RuleID               string             `json:"rule_id"`
+	Reason               string             `json:"reason"`
+	ID                   string             `json:"id,omitempty"`
+	CanonicalSlug        string             `json:"canonical_slug,omitempty"`
+	SemanticTextStrategy string             `json:"semantic_text_strategy,omitempty"`
+	ExportIdentity       *ExportIdentityRef `json:"export_identity,omitempty"`
+	ReadingMode          *ReadingMode       `json:"reading_mode,omitempty"`
+	SemanticInfo         *ExportSemanticRef `json:"semantic_info,omitempty"`
+	ContextInfo          *ExportContextRef  `json:"context_info,omitempty"`
 }
 
 // ExportIdentityRef holds the identity fields emitted for an included tiddler.
@@ -85,16 +91,21 @@ type RelationCounts struct {
 // and is_reference_only for observability.
 // S36 enrichment: adds conteos by role_primary and has_asset for
 // semantic observability.
+// S38 hardening: artifact_role, source_candidate_count, excluded_count,
+// excluded_by_rule, semantic_text_distinct_count, semantic_text_null_count.
 type ExportManifest struct {
 	RunID         string    `json:"run_id"`
-	Timestamp     time.Time `json:"timestamp"`
-	InputCount    int       `json:"input_count"`
-	FilteredCount int       `json:"filtered_count"`
-	ExportedCount int       `json:"exported_count"`
-	SkippedByGate int       `json:"skipped_by_gate"`
-	SHA256        string    `json:"sha256"`
-	OutputPath    string    `json:"output_path"`
 	SchemaVersion string    `json:"schema_version"`
+	ArtifactRole  string    `json:"artifact_role"`
+	Timestamp     time.Time `json:"timestamp"`
+	// S38: unambiguous universe counters.
+	SourceCandidateCount int `json:"source_candidate_count"`
+	ExcludedCount        int `json:"excluded_count"`
+	ExportedCount        int `json:"exported_count"`
+	// S38: per-rule exclusion tracking.
+	ExcludedByRule map[string]int `json:"excluded_by_rule"`
+	SHA256         string         `json:"sha256"`
+	OutputPath     string         `json:"output_path"`
 	// S35 conteos
 	ContentTypeCounts  map[string]int `json:"content_type_counts,omitempty"`
 	ModalityCounts     map[string]int `json:"modality_counts,omitempty"`
@@ -103,7 +114,9 @@ type ExportManifest struct {
 	// S36 conteos
 	RolePrimaryCounts map[string]int `json:"role_primary_counts,omitempty"`
 	AssetCount        int            `json:"asset_count"`
-	SemanticTextCount int            `json:"semantic_text_count"`
+	// S38: semantic_text auditability counters.
+	SemanticTextDistinctCount int `json:"semantic_text_distinct_count"`
+	SemanticTextNullCount     int `json:"semantic_text_null_count"`
 	// S37 conteos
 	DocumentCount             int            `json:"document_count"`
 	NodesWithSectionPathCount int            `json:"nodes_with_section_path_count"`
@@ -139,13 +152,15 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 
 	result := &ExportTiddlersResult{
 		Manifest: ExportManifest{
-			RunID:             runID,
-			Timestamp:         time.Now().UTC(),
-			InputCount:        len(entries),
-			SchemaVersion:     SchemaV0,
-			ContentTypeCounts: make(map[string]int),
-			ModalityCounts:    make(map[string]int),
-			RolePrimaryCounts: make(map[string]int),
+			RunID:                runID,
+			SchemaVersion:        SchemaV0,
+			ArtifactRole:         "canon_export",
+			Timestamp:            time.Now().UTC(),
+			SourceCandidateCount: len(entries),
+			ExcludedByRule:       make(map[string]int),
+			ContentTypeCounts:    make(map[string]int),
+			ModalityCounts:       make(map[string]int),
+			RolePrimaryCounts:    make(map[string]int),
 		},
 	}
 
@@ -154,7 +169,7 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 	multi := io.MultiWriter(w, h)
 
 	var exported int
-	var skipped int
+	var excluded int
 
 	prepared := make([]preparedEntry, 0, len(entries))
 
@@ -162,13 +177,14 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 	for i, e := range entries {
 		// S19 gate: validate before emission.
 		if err := ValidateEntryV0(e); err != nil {
-			skipped++
+			excluded++
+			result.Manifest.ExcludedByRule["gate-v0"]++
 			result.LogEntries = append(result.LogEntries, ExportLogEntry{
-				TiddlerID: e.Title,
-				Action:    "excluded",
+				RunID:     runID,
+				SourceRef: e.Title,
+				Decision:  "excluded",
 				RuleID:    "gate-v0",
 				Reason:    fmt.Sprintf("gate_rejected: %v", err),
-				RunID:     runID,
 			})
 			continue
 		}
@@ -178,13 +194,14 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 
 		// S34: compute structural identity (id, canonical_slug, version_id).
 		if err := BuildNodeIdentity(&e); err != nil {
-			skipped++
+			excluded++
+			result.Manifest.ExcludedByRule["identity-s34"]++
 			result.LogEntries = append(result.LogEntries, ExportLogEntry{
-				TiddlerID: e.Title,
-				Action:    "excluded",
+				RunID:     runID,
+				SourceRef: e.Title,
+				Decision:  "excluded",
 				RuleID:    "identity-s34",
 				Reason:    fmt.Sprintf("identity_failed: %v", err),
-				RunID:     runID,
 			})
 			continue
 		}
@@ -207,6 +224,7 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		e.RawPayloadRef = sem.RawPayloadRef
 		e.AssetID = sem.AssetID
 		e.MimeType = sem.MimeType
+		ApplyDerivedProjections(&e)
 
 		prepared = append(prepared, preparedEntry{
 			SourceIndex: i,
@@ -232,13 +250,14 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 
 		ctx, err := BuildNodeContextAndRelations(e, p.SourceIndex, resolver)
 		if err != nil {
-			skipped++
+			excluded++
+			result.Manifest.ExcludedByRule["context-s37"]++
 			result.LogEntries = append(result.LogEntries, ExportLogEntry{
-				TiddlerID: e.Title,
-				Action:    "excluded",
+				RunID:     runID,
+				SourceRef: e.Title,
+				Decision:  "excluded",
 				RuleID:    "context-s37",
 				Reason:    fmt.Sprintf("context_failed: %v", err),
-				RunID:     runID,
 			})
 			continue
 		}
@@ -274,8 +293,11 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		if sem.AssetID != "" {
 			result.Manifest.AssetCount++
 		}
-		if sem.SemanticText != "" {
-			result.Manifest.SemanticTextCount++
+		// S38: track semantic_text strategy counters.
+		if sem.SemanticText != nil {
+			result.Manifest.SemanticTextDistinctCount++
+		} else {
+			result.Manifest.SemanticTextNullCount++
 		}
 		// S37: track context + relation conteos.
 		if len(e.SectionPath) > 0 {
@@ -292,12 +314,22 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 				result.Manifest.RelationCounts.References++
 			}
 		}
+
+		// Determine semantic_text_strategy for export log.
+		semTextStrategy := sem.SemanticTextMode
+		if semTextStrategy == "" {
+			semTextStrategy = "not_applicable"
+		}
+
 		result.LogEntries = append(result.LogEntries, ExportLogEntry{
-			TiddlerID: e.Title,
-			Action:    "included",
-			RuleID:    "gate-v0-pass",
-			Reason:    "validated and emitted",
-			RunID:     runID,
+			RunID:                runID,
+			SourceRef:            e.Title,
+			Decision:             "exported",
+			RuleID:               "gate-v0-pass",
+			Reason:               "validated and emitted",
+			ID:                   e.ID,
+			CanonicalSlug:        e.CanonicalSlug,
+			SemanticTextStrategy: semTextStrategy,
 			ExportIdentity: &ExportIdentityRef{
 				ID:            e.ID,
 				CanonicalSlug: e.CanonicalSlug,
@@ -323,7 +355,7 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 	}
 
 	result.Manifest.ExportedCount = exported
-	result.Manifest.SkippedByGate = skipped
+	result.Manifest.ExcludedCount = excluded
 	result.Manifest.DocumentCount = len(documentSet)
 	result.Manifest.SHA256 = fmt.Sprintf("sha256:%x", h.Sum(nil))
 

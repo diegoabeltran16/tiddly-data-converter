@@ -104,10 +104,9 @@ func main() {
 	}
 
 	exportResult.Manifest.OutputPath = *outPath
-	exportResult.Manifest.FilteredCount = excludedCount
 
-	fmt.Fprintf(os.Stderr, "[export_tiddlers] Exported: %d lines, skipped by gate: %d\n",
-		exportResult.Manifest.ExportedCount, exportResult.Manifest.SkippedByGate)
+	fmt.Fprintf(os.Stderr, "[export_tiddlers] Exported: %d lines, excluded: %d\n",
+		exportResult.Manifest.ExportedCount, exportResult.Manifest.ExcludedCount)
 	fmt.Fprintf(os.Stderr, "[export_tiddlers] SHA-256: %s\n", exportResult.Manifest.SHA256)
 
 	// ─── Step 6: Write log and manifest ────────────────────────────────────
@@ -115,11 +114,11 @@ func main() {
 	allLogEntries := make([]canon.ExportLogEntry, 0, len(filterLog)+len(exportResult.LogEntries))
 	for _, fl := range filterLog {
 		allLogEntries = append(allLogEntries, canon.ExportLogEntry{
-			TiddlerID: fl.TiddlerTitle,
-			Action:    fl.Action,
+			RunID:     fl.RunID,
+			SourceRef: fl.TiddlerTitle,
+			Decision:  fl.Action,
 			RuleID:    fl.RuleID,
 			Reason:    fl.Reason,
-			RunID:     fl.RunID,
 		})
 	}
 	allLogEntries = append(allLogEntries, exportResult.LogEntries...)

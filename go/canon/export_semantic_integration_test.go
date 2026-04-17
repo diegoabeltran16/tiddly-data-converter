@@ -112,8 +112,13 @@ func TestExportSemanticIntegration_ManifestConteos(t *testing.T) {
 	if m.RolePrimaryCounts == nil {
 		t.Fatal("RolePrimaryCounts is nil")
 	}
-	if m.SemanticTextCount < 1 {
-		t.Errorf("SemanticTextCount = %d, want >= 1", m.SemanticTextCount)
+	// S38: with semantic_text suppression, textual nodes with text==semantic_text
+	// get null semantic_text. The image node also gets null. So check total counts.
+	totalDistinct := m.SemanticTextDistinctCount
+	totalNull := m.SemanticTextNullCount
+	if totalDistinct+totalNull != m.ExportedCount {
+		t.Errorf("SemanticTextDistinctCount(%d) + SemanticTextNullCount(%d) != ExportedCount(%d)",
+			totalDistinct, totalNull, m.ExportedCount)
 	}
 	if m.AssetCount < 1 {
 		t.Errorf("AssetCount = %d, want >= 1 (from image)", m.AssetCount)

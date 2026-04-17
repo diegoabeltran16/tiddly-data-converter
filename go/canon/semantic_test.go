@@ -197,8 +197,9 @@ func TestBuildNodeSemantics_TextualNode(t *testing.T) {
 	}
 	sem := BuildNodeSemantics(e)
 
-	if sem.SemanticText != text {
-		t.Errorf("semantic_text = %q, want %q", sem.SemanticText, text)
+	// S38: semantic_text suppressed when identical to text.
+	if sem.SemanticText != nil {
+		t.Errorf("semantic_text = %v, want nil (suppressed when equal to text)", sem.SemanticText)
 	}
 	if sem.AssetID != "" {
 		t.Errorf("asset_id = %q, want empty for textual node", sem.AssetID)
@@ -206,8 +207,8 @@ func TestBuildNodeSemantics_TextualNode(t *testing.T) {
 	if sem.MimeType != ContentTypePlain {
 		t.Errorf("mime_type = %q, want %q", sem.MimeType, ContentTypePlain)
 	}
-	if sem.SemanticTextMode != "direct_text" {
-		t.Errorf("semantic_text_mode = %q, want %q", sem.SemanticTextMode, "direct_text")
+	if sem.SemanticTextMode != "suppressed_equal_to_text" {
+		t.Errorf("semantic_text_mode = %q, want %q", sem.SemanticTextMode, "suppressed_equal_to_text")
 	}
 	if sem.AssetMode != "none" {
 		t.Errorf("asset_mode = %q, want %q", sem.AssetMode, "none")
@@ -235,8 +236,8 @@ func TestBuildNodeSemantics_TiddlyWikiContent(t *testing.T) {
 	if sem.MimeType != ContentTypeTiddlyWiki {
 		t.Errorf("mime_type = %q, want %q", sem.MimeType, ContentTypeTiddlyWiki)
 	}
-	if sem.SemanticText != text {
-		t.Errorf("semantic_text not preserved: got %q", sem.SemanticText)
+	if sem.SemanticText != nil {
+		t.Errorf("semantic_text not suppressed: got %v (S38: suppressed when equal to text)", sem.SemanticText)
 	}
 	if sem.AssetID != "" {
 		t.Errorf("asset_id = %q, want empty for text/vnd.tiddlywiki", sem.AssetID)
@@ -261,8 +262,8 @@ func TestBuildNodeSemantics_EquationsInText(t *testing.T) {
 	}
 	sem := BuildNodeSemantics(e)
 
-	if sem.SemanticText != text {
-		t.Errorf("equation not preserved in semantic_text: got %q", sem.SemanticText)
+	if sem.SemanticText != nil {
+		t.Errorf("equation semantic_text not suppressed: got %v (S38: suppressed when equal to text)", sem.SemanticText)
 	}
 	if sem.AssetID != "" {
 		t.Errorf("asset_id = %q, want empty for equation in text", sem.AssetID)
@@ -289,8 +290,8 @@ func TestBuildNodeSemantics_BinaryNode(t *testing.T) {
 	}
 	sem := BuildNodeSemantics(e)
 
-	if sem.SemanticText != "" {
-		t.Errorf("semantic_text = %q, want empty for binary node", sem.SemanticText)
+	if sem.SemanticText != nil {
+		t.Errorf("semantic_text = %v, want nil for binary node", sem.SemanticText)
 	}
 	if sem.RawPayloadRef != "node:img-uuid-001" {
 		t.Errorf("raw_payload_ref = %q, want %q", sem.RawPayloadRef, "node:img-uuid-001")
@@ -316,8 +317,8 @@ func TestBuildNodeSemantics_ReferenceOnlyNode(t *testing.T) {
 	}
 	sem := BuildNodeSemantics(e)
 
-	if sem.SemanticText != "" {
-		t.Errorf("semantic_text = %q, want empty for reference-only", sem.SemanticText)
+	if sem.SemanticText != nil {
+		t.Errorf("semantic_text = %v, want nil for reference-only", sem.SemanticText)
 	}
 	if sem.AssetID == "" {
 		t.Error("asset_id should be non-empty for reference-only node")
@@ -343,8 +344,8 @@ func TestBuildNodeSemantics_MixedNode(t *testing.T) {
 	}
 	sem := BuildNodeSemantics(e)
 
-	if sem.SemanticText != text {
-		t.Errorf("semantic_text = %q, want preserved text", sem.SemanticText)
+	if sem.SemanticText != nil {
+		t.Errorf("semantic_text = %v, want nil (S38: suppressed when equal to text)", sem.SemanticText)
 	}
 	// For a textual node with asset tags but text content type,
 	// the asset_id is NOT emitted (purely textual handling).
@@ -624,8 +625,8 @@ func TestBuildNodeSemantics_FullPipeline(t *testing.T) {
 	if sem.RolePrimary != RolePolicy {
 		t.Errorf("role_primary = %q, want %q", sem.RolePrimary, RolePolicy)
 	}
-	if sem.SemanticText != text {
-		t.Errorf("semantic_text = %q, want %q", sem.SemanticText, text)
+	if sem.SemanticText != nil {
+		t.Errorf("semantic_text = %v, want nil (S38: suppressed when equal to text)", sem.SemanticText)
 	}
 	if sem.MimeType != ContentTypeTiddlyWiki {
 		t.Errorf("mime_type = %q, want %q", sem.MimeType, ContentTypeTiddlyWiki)

@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "run_id": "s40-fixture-run",
+    "schema_version": "v0",
+    "base_count": 1,
+    "candidate_count": 5,
+    "accepted_count": 1,
+    "rejected_count": 4,
+    "merged_count": 2,
+    "reverse_ready": true
+  },
+  "decision_log": [
+    {
+      "line": 1,
+      "title": "Guarded Valid Node",
+      "id": "d91f1f78-61a0-581e-9c7a-61999c70b7b9",
+      "decision": "accepted"
+    },
+    {
+      "line": 2,
+      "title": "Broken Identity Node",
+      "id": "not-the-canonical-id",
+      "decision": "rejected",
+      "rule_ids": [
+        "inconsistent-derived-id",
+        "inconsistent-raw-payload-ref"
+      ]
+    },
+    {
+      "line": 3,
+      "title": "Invented Role Node",
+      "id": "b52e6a9a-26ab-5f4e-bb01-6980157d22b0",
+      "decision": "rejected",
+      "rule_ids": [
+        "explicit-role-overridden"
+      ]
+    },
+    {
+      "line": 4,
+      "title": "Broken Relation Node",
+      "id": "ebb345e4-5ee4-5763-ba1b-251c25a7ef05",
+      "decision": "rejected",
+      "rule_ids": [
+        "unresolved-relation-target"
+      ]
+    },
+    {
+      "line": 5,
+      "title": "Placeholder Node",
+      "id": "a5a7bd37-bce7-5c3d-8770-afa987362132",
+      "decision": "rejected",
+      "rule_ids": [
+        "placeholder-not-allowed"
+      ]
+    }
+  ],
+  "validation_report": {
+    "lines_read": 2,
+    "lines_valid": 2
+  },
+  "reverse_preflight": {
+    "lines_read": 2,
+    "reverse_ready": 2,
+    "not_ready": 0
+  }
+}
