@@ -26,9 +26,15 @@
     "tags",
     "taxonomy_path",
     "semantic_text",
+    "content",
+    "normalized_tags",
     "raw_payload_ref",
     "asset_id",
     "mime_type"
+  ],
+  "derived_projection_fields": [
+    "content",
+    "normalized_tags"
   ],
   "context_relation_fields": [
     "document_id",
@@ -62,6 +68,8 @@
     "tags",
     "taxonomy_path",
     "semantic_text",
+    "content",
+    "normalized_tags",
     "raw_payload_ref",
     "asset_id",
     "mime_type",
@@ -93,6 +101,8 @@
     "roles_secondary",
     "taxonomy_path",
     "semantic_text",
+    "content",
+    "normalized_tags",
     "raw_payload_ref",
     "asset_id",
     "mime_type",
@@ -120,6 +130,8 @@
     "tags",
     "taxonomy_path",
     "semantic_text",
+    "content",
+    "normalized_tags",
     "raw_payload_ref",
     "asset_id",
     "mime_type",
@@ -188,6 +200,16 @@
       "severity": "warning"
     },
     {
+      "rule_id": "inconsistent-derived-content-plain",
+      "description": "If content.plain is present, it must match deterministic recomputation from authoritative content.",
+      "severity": "error"
+    },
+    {
+      "rule_id": "inconsistent-derived-normalized-tags",
+      "description": "If normalized_tags is present, it must match deterministic recomputation from the authoritative tag projection.",
+      "severity": "error"
+    },
+    {
       "rule_id": "wrong-schema-version",
       "description": "schema_version must be v0.",
       "severity": "error"
@@ -198,6 +220,7 @@
     "Single canonical JSONL file is the unique source of truth.",
     "One tiddler per line.",
     "text is the reversible source; semantic_text never substitutes text.",
+    "content.plain and normalized_tags are derived helper fields and never substitute their source fields.",
     "Decisions from S34–S38 are not degraded.",
     "A change cannot be accepted without validation.",
     "An inconsistent derived field is never accepted silently.",

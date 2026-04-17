@@ -166,6 +166,11 @@ type CanonEntry struct {
 	// Ref: S38 §9.1 — semantic_text nullable when redundant.
 	SemanticText *string `json:"semantic_text"`
 
+	// Content carries non-authoritative derived content projections.
+	// These projections exist for inspection, validation and comparison;
+	// they must never replace Text as the canonical reversible source.
+	Content *ContentProjection `json:"content,omitempty"`
+
 	// RawPayloadRef is a traceable, deterministic, non-interpretive
 	// reference to the raw payload or its logical location.
 	//
@@ -218,6 +223,10 @@ type CanonEntry struct {
 	//
 	// Ref: S36 §11 — native TiddlyWiki tags.
 	SourceTags []string `json:"source_tags,omitempty"`
+
+	// NormalizedTags is a derived projection used for stable comparison and
+	// filtering. It must never replace the authoritative tag source field.
+	NormalizedTags []string `json:"normalized_tags,omitempty"`
 
 	// SourceFields carries raw source fields preserved from Ingesta.
 	// Used by S37 to read explicit document context hints (e.g. document_key

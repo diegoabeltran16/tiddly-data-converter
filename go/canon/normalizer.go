@@ -1,10 +1,11 @@
 // Package canon — normalizer.go
 //
-// S39 — canon-executable-policy-and-reverse-readiness-v0
+// # S39 — canon-executable-policy-and-reverse-readiness-v0
 //
 // Normalizes a candidate canonical JSONL by:
 //   - Recalculating derived fields (id, canonical_slug, version_id).
 //   - Applying the S38 semantic_text suppression policy.
+//   - Recomputing S41 helper projections (content.plain, normalized_tags).
 //   - Emitting deterministic JSONL output.
 //   - Producing a normalization report.
 //
@@ -170,5 +171,36 @@ func normalizeLine(data []byte) (CanonEntry, []string, string) {
 		actions = append(actions, "suppressed redundant semantic_text (S38)")
 	}
 
+	oldPlain := ""
+	if entry.Content != nil && entry.Content.Plain != nil {
+		oldPlain = *entry.Content.Plain
+	}
+	oldNormalizedTags := append([]string(nil), entry.NormalizedTags...)
+
+	ApplyDerivedProjections(&entry)
+
+	newPlain := ""
+	if entry.Content != nil && entry.Content.Plain != nil {
+		newPlain = *entry.Content.Plain
+	}
+	if oldPlain != newPlain {
+		actions = append(actions, "recomputed content.plain")
+	}
+	if !stringSliceEqual(oldNormalizedTags, entry.NormalizedTags) {
+		actions = append(actions, "recomputed normalized_tags")
+	}
+
 	return entry, actions, ""
+}
+
+func stringSliceEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

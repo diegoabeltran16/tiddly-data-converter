@@ -60,6 +60,12 @@ func TestPolicyIsDerivedField(t *testing.T) {
 	if p.IsDerivedField("text") {
 		t.Error("text should not be derived")
 	}
+	if !p.IsDerivedField("content") {
+		t.Error("content should be derived")
+	}
+	if !p.IsDerivedField("normalized_tags") {
+		t.Error("normalized_tags should be derived")
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +209,69 @@ func TestValidateStrict_SemanticTextRedundant(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected semantic-text-redundant warning")
+	}
+}
+
+func TestValidateStrict_InconsistentContentPlain(t *testing.T) {
+	txt := "Hello\nworld"
+	entry := CanonEntry{
+		SchemaVersion: SchemaV0,
+		Key:           "Test",
+		Title:         "Test",
+		Text:          &txt,
+		ContentType:   ContentTypePlain,
+		Content: &ContentProjection{
+			Plain: strPtr("tampered plain"),
+		},
+	}
+	if err := BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity: %v", err)
+	}
+	data, _ := json.Marshal(entry)
+	report := ValidateCanonJSONL(strings.NewReader(string(data)+"\n"), DefaultCanonPolicy())
+
+	if report.OK() {
+		t.Fatal("expected failure for inconsistent content.plain")
+	}
+	found := false
+	for _, issue := range report.Issues {
+		if issue.RuleID == "inconsistent-derived-content-plain" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected inconsistent-derived-content-plain issue")
+	}
+}
+
+func TestValidateStrict_InconsistentNormalizedTags(t *testing.T) {
+	txt := "Hello"
+	entry := CanonEntry{
+		SchemaVersion:  SchemaV0,
+		Key:            "Test",
+		Title:          "Test",
+		Text:           &txt,
+		ContentType:    ContentTypePlain,
+		Tags:           []string{"Árbol", "🚀 Launch"},
+		NormalizedTags: []string{"wrong"},
+	}
+	if err := BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity: %v", err)
+	}
+	data, _ := json.Marshal(entry)
+	report := ValidateCanonJSONL(strings.NewReader(string(data)+"\n"), DefaultCanonPolicy())
+
+	if report.OK() {
+		t.Fatal("expected failure for inconsistent normalized_tags")
+	}
+	found := false
+	for _, issue := range report.Issues {
+		if issue.RuleID == "inconsistent-derived-normalized-tags" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected inconsistent-derived-normalized-tags issue")
 	}
 }
 
