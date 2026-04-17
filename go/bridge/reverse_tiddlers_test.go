@@ -29,11 +29,11 @@ func TestReverseInsertOnlyHTML_SuccessAndDeterminism(t *testing.T) {
 		t.Fatal("reverse output is not deterministic across identical inputs")
 	}
 
-	if first.Report.RawTiddlersEvaluated != 3 {
-		t.Fatalf("RawTiddlersEvaluated = %d, want 3", first.Report.RawTiddlersEvaluated)
+	if first.Report.EligibleEntriesEvaluated != 3 {
+		t.Fatalf("EligibleEntriesEvaluated = %d, want 3", first.Report.EligibleEntriesEvaluated)
 	}
-	if first.Report.NonRawRecordsSkipped != 0 {
-		t.Fatalf("NonRawRecordsSkipped = %d, want 0", first.Report.NonRawRecordsSkipped)
+	if first.Report.OutOfScopeSkipped != 0 {
+		t.Fatalf("OutOfScopeSkipped = %d, want 0", first.Report.OutOfScopeSkipped)
 	}
 	if first.Report.InsertedCount != 1 {
 		t.Fatalf("InsertedCount = %d, want 1", first.Report.InsertedCount)
@@ -139,6 +139,150 @@ func TestReverseInsertOnlyFiles_DoesNotMutateBaseHTML(t *testing.T) {
 	}
 }
 
+func TestReverseInsertOnlyFiles_AcceptsShardDirectoryWithFullCanonicalEntries(t *testing.T) {
+	baseHTML := mustReadReverseFixture(t, "s42", "base.html")
+
+	tmpDir := t.TempDir()
+	basePath := filepath.Join(tmpDir, "base.html")
+	shardDir := filepath.Join(tmpDir, "canon")
+	outPath := filepath.Join(tmpDir, "reversed.html")
+
+	if err := os.WriteFile(basePath, baseHTML, 0o644); err != nil {
+		t.Fatalf("write base fixture: %v", err)
+	}
+	if err := os.MkdirAll(shardDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+
+	shardOne, err := canon.MarshalCanonJSONL([]canon.CanonEntry{
+		buildFullCanonicalReverseEntry(t, fullCanonicalReverseSpec{
+			Title:      "Existing Alpha",
+			Text:       "Alpha body",
+			Created:    "20260101120000000",
+			Modified:   "20260101130000000",
+			SourceType: "text/vnd.tiddlywiki",
+			SourceTags: []string{"base", "fixture"},
+			SourceFields: map[string]string{
+				"created":  "20260101120000000",
+				"modified": "20260101130000000",
+				"tags":     "base fixture",
+				"type":     "text/vnd.tiddlywiki",
+				"custom":   "preserve-me",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("MarshalCanonJSONL shardOne: %v", err)
+	}
+	shardTwo, err := canon.MarshalCanonJSONL([]canon.CanonEntry{
+		buildFullCanonicalReverseEntry(t, fullCanonicalReverseSpec{
+			Title:      "#### 🌀 Sesión 44 = canon-sharded-homogeneous-records-and-robust-reverse-v0",
+			Text:       "{\"title\":\"#### 🌀 Sesión 44 = canon-sharded-homogeneous-records-and-robust-reverse-v0\"}",
+			Created:    "20260417010101000",
+			Modified:   "20260417010202000",
+			SourceType: "application/json",
+			SourceTags: []string{"session:m03-s44", "milestone:m03"},
+			SourceFields: map[string]string{
+				"created":  "20260417010101000",
+				"modified": "20260417010202000",
+				"tags":     "session:m03-s44 milestone:m03",
+				"type":     "application/json",
+				"tmap.id":  "sharded-s44",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("MarshalCanonJSONL shardTwo: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(shardDir, "tiddlers_2.jsonl"), shardTwo, 0o644); err != nil {
+		t.Fatalf("write tiddlers_2.jsonl: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(shardDir, "tiddlers_1.jsonl"), shardOne, 0o644); err != nil {
+		t.Fatalf("write tiddlers_1.jsonl: %v", err)
+	}
+
+	result, err := ReverseInsertOnlyFiles(basePath, shardDir, outPath)
+	if err != nil {
+		t.Fatalf("ReverseInsertOnlyFiles: %v report=%+v", err, result.Report)
+	}
+	if result.Report.CanonSource.Mode != canon.CanonSourceModeSharded {
+		t.Fatalf("CanonSource.Mode = %q, want %q", result.Report.CanonSource.Mode, canon.CanonSourceModeSharded)
+	}
+	if result.Report.EligibleEntriesEvaluated != 2 {
+		t.Fatalf("EligibleEntriesEvaluated = %d, want 2", result.Report.EligibleEntriesEvaluated)
+	}
+	if result.Report.AlreadyPresentCount != 1 {
+		t.Fatalf("AlreadyPresentCount = %d, want 1", result.Report.AlreadyPresentCount)
+	}
+	if result.Report.InsertedCount != 1 {
+		t.Fatalf("InsertedCount = %d, want 1", result.Report.InsertedCount)
+	}
+
+	output := string(result.HTML)
+	if !strings.Contains(output, "\"custom\":\"preserve-me\"") {
+		t.Fatal("existing canonical entry did not preserve custom field equivalence")
+	}
+	if !strings.Contains(output, "\"tmap.id\":\"sharded-s44\"") {
+		t.Fatal("inserted sharded canonical entry is missing projected extra fields")
+	}
+}
+
+func TestReverseAuthoritativeFiles_UpdatesExistingTitleFromCanon(t *testing.T) {
+	baseHTML := mustReadReverseFixture(t, "s42", "base.html")
+
+	tmpDir := t.TempDir()
+	basePath := filepath.Join(tmpDir, "base.html")
+	canonPath := filepath.Join(tmpDir, "canon.jsonl")
+	outPath := filepath.Join(tmpDir, "reversed.html")
+
+	if err := os.WriteFile(basePath, baseHTML, 0o644); err != nil {
+		t.Fatalf("write base fixture: %v", err)
+	}
+
+	canonJSONL, err := canon.MarshalCanonJSONL([]canon.CanonEntry{
+		buildFullCanonicalReverseEntry(t, fullCanonicalReverseSpec{
+			Title:      "Existing Beta",
+			Text:       "Beta body updated from canon",
+			Created:    "20260102120000000",
+			Modified:   "20260417020202000",
+			SourceType: "text/plain",
+			SourceTags: []string{"base"},
+			SourceFields: map[string]string{
+				"created":  "20260102120000000",
+				"modified": "20260417020202000",
+				"tags":     "base",
+				"type":     "text/plain",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("MarshalCanonJSONL: %v", err)
+	}
+	if err := os.WriteFile(canonPath, canonJSONL, 0o644); err != nil {
+		t.Fatalf("write canon fixture: %v", err)
+	}
+
+	result, err := ReverseAuthoritativeFiles(basePath, canonPath, outPath)
+	if err != nil {
+		t.Fatalf("ReverseAuthoritativeFiles: %v", err)
+	}
+	if result.Report.UpdatedCount != 1 {
+		t.Fatalf("UpdatedCount = %d, want 1", result.Report.UpdatedCount)
+	}
+	if result.Report.InsertedCount != 0 {
+		t.Fatalf("InsertedCount = %d, want 0", result.Report.InsertedCount)
+	}
+
+	output := string(result.HTML)
+	if !strings.Contains(output, "\"text\":\"Beta body updated from canon\"") {
+		t.Fatal("authoritative reverse did not update the existing title from canon")
+	}
+	if !strings.Contains(output, "\"modified\":\"20260417020202000\"") {
+		t.Fatal("authoritative reverse did not update reserved fields from canon")
+	}
+}
+
 func TestReverseInsertOnlyHTML_MixedCanonInsertsMultipleRawTiddlers(t *testing.T) {
 	baseHTML := mustReadReverseFixture(t, "s42", "base.html")
 	canonJSONL := mustReadReverseFixture(t, "s43", "canon_mixed_multi.jsonl")
@@ -151,11 +295,11 @@ func TestReverseInsertOnlyHTML_MixedCanonInsertsMultipleRawTiddlers(t *testing.T
 	if result.Report.CanonLinesRead != 7 {
 		t.Fatalf("CanonLinesRead = %d, want 7", result.Report.CanonLinesRead)
 	}
-	if result.Report.RawTiddlersEvaluated != 5 {
-		t.Fatalf("RawTiddlersEvaluated = %d, want 5", result.Report.RawTiddlersEvaluated)
+	if result.Report.EligibleEntriesEvaluated != 5 {
+		t.Fatalf("EligibleEntriesEvaluated = %d, want 5", result.Report.EligibleEntriesEvaluated)
 	}
-	if result.Report.NonRawRecordsSkipped != 2 {
-		t.Fatalf("NonRawRecordsSkipped = %d, want 2", result.Report.NonRawRecordsSkipped)
+	if result.Report.OutOfScopeSkipped != 2 {
+		t.Fatalf("OutOfScopeSkipped = %d, want 2", result.Report.OutOfScopeSkipped)
 	}
 	if result.Report.InsertedCount != 4 {
 		t.Fatalf("InsertedCount = %d, want 4", result.Report.InsertedCount)
@@ -227,21 +371,22 @@ func TestReverseInsertOnlyHTML_RejectsInvalidRawCandidates(t *testing.T) {
 	if len(result.HTML) != 0 {
 		t.Fatal("result HTML should be empty when rejections stop the write")
 	}
-	if result.Report.RawTiddlersEvaluated != 5 {
-		t.Fatalf("RawTiddlersEvaluated = %d, want 5", result.Report.RawTiddlersEvaluated)
+	if result.Report.EligibleEntriesEvaluated != 3 {
+		t.Fatalf("EligibleEntriesEvaluated = %d, want 3", result.Report.EligibleEntriesEvaluated)
 	}
 	if result.Report.AlreadyPresentCount != 1 {
 		t.Fatalf("AlreadyPresentCount = %d, want 1", result.Report.AlreadyPresentCount)
 	}
-	if result.Report.RejectedCount != 4 {
-		t.Fatalf("RejectedCount = %d, want 4", result.Report.RejectedCount)
+	if result.Report.OutOfScopeSkipped != 2 {
+		t.Fatalf("OutOfScopeSkipped = %d, want 2", result.Report.OutOfScopeSkipped)
+	}
+	if result.Report.RejectedCount != 2 {
+		t.Fatalf("RejectedCount = %d, want 2", result.Report.RejectedCount)
 	}
 
 	expectedRules := []string{
-		"unsupported-system-title",
 		"invalid-source-tags",
-		"unsupported-source-type",
-		"source-fields-reserved-key",
+		"source-fields-reserved-conflict",
 	}
 	for _, ruleID := range expectedRules {
 		if result.Report.RejectedByRule[ruleID] != 1 {
@@ -395,4 +540,60 @@ func mustReadReverseFixture(t *testing.T, session, name string) []byte {
 		t.Fatalf("read fixture %s: %v", path, err)
 	}
 	return data
+}
+
+type fullCanonicalReverseSpec struct {
+	Title        string
+	Text         string
+	Created      string
+	Modified     string
+	SourceType   string
+	SourceTags   []string
+	SourceFields map[string]string
+}
+
+func buildFullCanonicalReverseEntry(t *testing.T, spec fullCanonicalReverseSpec) canon.CanonEntry {
+	t.Helper()
+
+	entry := canon.CanonEntry{
+		SchemaVersion:   canon.SchemaV0,
+		Key:             canon.KeyOf(spec.Title),
+		Title:           spec.Title,
+		Text:            stringPtr(spec.Text),
+		Created:         stringPtr(spec.Created),
+		Modified:        stringPtr(spec.Modified),
+		SourceType:      stringPtr(spec.SourceType),
+		SourceTags:      append([]string(nil), spec.SourceTags...),
+		SourceFields:    mapsClone(spec.SourceFields),
+		ContentType:     spec.SourceType,
+		Encoding:        "utf-8",
+		IsBinary:        false,
+		IsReferenceOnly: false,
+		RolePrimary:     "config",
+	}
+	if spec.SourceType == "application/json" {
+		entry.Modality = "metadata"
+	} else {
+		entry.Modality = "text"
+	}
+	if err := canon.BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity(%q): %v", spec.Title, err)
+	}
+	canon.ApplyDerivedProjections(&entry)
+	return entry
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
+func mapsClone(source map[string]string) map[string]string {
+	if len(source) == 0 {
+		return nil
+	}
+	cloned := make(map[string]string, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
 }

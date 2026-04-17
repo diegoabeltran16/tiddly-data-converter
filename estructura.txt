@@ -59,6 +59,7 @@
 │   ├── m02-s41-canon-minimal-derived-hardening-for-reverse-v0.md.json
 │   ├── m02-s42-canon-minimal-deterministic-reverse-v0.md.json
 │   ├── m03-s43-canon-robust-textual-reverse-v0.md.json
+│   ├── m03-s44-canon-sharded-homogeneous-records-and-robust-reverse-v0.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -76,7 +77,8 @@
 │       ├── s40-local-checks.md
 │       ├── s41-local-checks.md
 │       ├── s42-local-checks.md
-│       └── s43-local-checks.md
+│       ├── s43-local-checks.md
+│       └── s44-local-checks.md
 ├── data
 │   └── data.txt
 ├── docs
@@ -330,6 +332,8 @@
 │   │   ├── batch_report_persist.go
 │   │   ├── batch_report_persist_test.go
 │   │   ├── batch_report_test.go
+│   │   ├── canon_source.go
+│   │   ├── canon_source_test.go
 │   │   ├── canon_test.go
 │   │   ├── canonical.go
 │   │   ├── canonical_test.go
@@ -338,7 +342,9 @@
 │   │   │   │   └── main.go
 │   │   │   ├── canon_preflight
 │   │   │   │   └── main.go
-│   │   │   └── emit
+│   │   │   ├── emit
+│   │   │   │   └── main.go
+│   │   │   └── shard_canon
 │   │   │       └── main.go
 │   │   ├── collision.go
 │   │   ├── context_relations.go
@@ -370,6 +376,8 @@
 │   │   ├── schema_test.go
 │   │   ├── semantic.go
 │   │   ├── semantic_test.go
+│   │   ├── shard_canon.go
+│   │   ├── shard_canon_test.go
 │   │   ├── validator.go
 │   │   ├── verdict.go
 │   │   ├── verdict_test.go
@@ -396,7 +404,15 @@
 ├── out
 │   ├── export.log
 │   ├── manifest.json
-│   └── tiddlers.jsonl
+│   ├── reverse-report.json
+│   ├── tiddlers_1.jsonl
+│   ├── tiddlers_2.jsonl
+│   ├── tiddlers_3.jsonl
+│   ├── tiddlers_4.jsonl
+│   ├── tiddlers_5.jsonl
+│   ├── tiddlers_6.jsonl
+│   ├── tiddlers_7.jsonl
+│   └── tiddly-data-converter.derived.html
 ├── packaging
 │   └── packaging.txt
 ├── python

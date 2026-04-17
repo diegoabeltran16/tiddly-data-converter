@@ -1,8 +1,8 @@
 {
   "canon_artifact_role": "canon_export",
   "schema_version": "v0",
-  "source_of_truth": "tiddlers.jsonl",
-  "source_of_truth_description": "The single canonical JSONL file is the unique, authoritative, auditable, reversible, deterministic source of truth for the tiddler corpus.",
+  "source_of_truth": "ordered shard set `tiddlers_1.jsonl` .. `tiddlers_7.jsonl`",
+  "source_of_truth_description": "The ordered shard set is the unique, authoritative, auditable, reversible, deterministic source of truth for the tiddler corpus. A monolithic JSONL view may exist temporarily, but it is derived and non-authoritative.",
   "required_fields": [
     "schema_version",
     "key",
@@ -79,16 +79,20 @@
     "relations"
   ],
   "reverse_required_fields": [
+    "schema_version",
+    "key",
+    "title"
+  ],
+  "reverse_authoritative_fields": [
     "title",
     "text",
     "created",
-    "modified"
-  ],
-  "reverse_optional_fields": [
+    "modified",
     "source_type",
     "source_tags",
     "source_fields"
   ],
+  "reverse_optional_fields": [],
   "reverse_excluded_fields": [
     "id",
     "canonical_slug",
@@ -162,7 +166,7 @@
       "rejects_inconsistent_derived": false
     },
     "reverse-preflight": {
-      "description": "Validates that the canon has all fields necessary for reverse to TiddlyWiki. Does not write HTML.",
+      "description": "Validates that the canon has all fields necessary for reverse to TiddlyWiki. Accepts a single JSONL file or an ordered shard directory. Does not write HTML.",
       "corrects_derived": false,
       "rejects_unknown_fields": false,
       "rejects_inconsistent_derived": false
@@ -215,13 +219,25 @@
       "severity": "error"
     }
   ],
+  "canon_source_preflight": {
+    "accepts": [
+      "single_jsonl_file",
+      "ordered_shard_directory"
+    ],
+    "ordered_shard_pattern": "tiddlers_<n>.jsonl",
+    "rejects_duplicate_shard_content": true,
+    "rejects_duplicate_exact_lines": true,
+    "rejects_duplicate_titles": true,
+    "rejects_duplicate_keys": true
+  },
   "derived_layers_registry_ref": "contratos/projections/derived_layers_registry.json",
   "invariants": [
-    "Single canonical JSONL file is the unique source of truth.",
+    "The ordered shard set is the unique source of truth.",
     "One tiddler per line.",
     "text is the reversible source; semantic_text never substitutes text.",
     "content.plain and normalized_tags are derived helper fields and never substitute their source fields.",
-    "Decisions from S34–S38 are not degraded.",
+    "The reverse contract may read from a shard directory or a single canonical JSONL file, but shard directories remain the primary operational mode.",
+    "Decisions from S34–S43 are not degraded.",
     "A change cannot be accepted without validation.",
     "An inconsistent derived field is never accepted silently.",
     "Every failure must produce an explicit reason.",
