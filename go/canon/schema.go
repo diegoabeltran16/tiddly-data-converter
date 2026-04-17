@@ -21,6 +21,8 @@ import "fmt"
 //	encoding        string   enriched  S35 payload encoding
 //	is_binary       bool     enriched  S35 binary flag (always present)
 //	is_reference_only bool   enriched  S35 reference-only flag (always present)
+//	content         object   enriched  S41 non-authoritative derived projections
+//	normalized_tags []string enriched  S41 comparison-oriented tag projection
 //	text            *string  optional  body content (omitted when nil)
 //	source_type     *string  optional  S35 raw tiddler type (omitted when nil)
 //	source_position *string  optional  extraction origin (omitted when nil)
@@ -56,7 +58,7 @@ var SchemaV0ReadingModeFields = []string{"content_type", "modality", "encoding",
 // has been computed, though some may be empty when evidence is insufficient.
 var SchemaV0SemanticFields = []string{
 	"role_primary", "roles_secondary", "tags", "taxonomy_path",
-	"semantic_text", "raw_payload_ref", "asset_id", "mime_type",
+	"semantic_text", "content", "normalized_tags", "raw_payload_ref", "asset_id", "mime_type",
 }
 
 // SchemaV0ContextRelationFields lists the document context and explicit
