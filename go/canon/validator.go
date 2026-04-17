@@ -1,6 +1,6 @@
 // Package canon — validator.go
 //
-// S39 — canon-executable-policy-and-reverse-readiness-v0
+// # S39 — canon-executable-policy-and-reverse-readiness-v0
 //
 // Validates a candidate canonical JSONL file or individual canon lines
 // against the executable policy. Supports strict mode (reject on any
@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 )
 
@@ -225,6 +226,38 @@ func validateLine(lineNum int, data []byte, policy CanonPolicy) []ValidationIssu
 			RuleID:   "semantic-text-redundant",
 			Message:  "semantic_text equals text; should be null per S38 policy",
 			Severity: "warning",
+		})
+	}
+
+	expectedPlain := DeriveContentPlain(entry)
+	actualPlain := ""
+	hasActualPlain := entry.Content != nil && entry.Content.Plain != nil
+	if hasActualPlain {
+		actualPlain = *entry.Content.Plain
+	}
+	expectedPlainValue := ""
+	hasExpectedPlain := expectedPlain != nil
+	if hasExpectedPlain {
+		expectedPlainValue = *expectedPlain
+	}
+	if hasActualPlain && (!hasExpectedPlain || actualPlain != expectedPlainValue) {
+		issues = append(issues, ValidationIssue{
+			Line:     lineNum,
+			Field:    "content",
+			RuleID:   "inconsistent-derived-content-plain",
+			Message:  fmt.Sprintf("content.plain does not match deterministic recomputation (got %q, expected %q)", actualPlain, expectedPlainValue),
+			Severity: "error",
+		})
+	}
+
+	expectedNormalizedTags := DeriveNormalizedTags(entry)
+	if len(entry.NormalizedTags) > 0 && !reflect.DeepEqual(entry.NormalizedTags, expectedNormalizedTags) {
+		issues = append(issues, ValidationIssue{
+			Line:     lineNum,
+			Field:    "normalized_tags",
+			RuleID:   "inconsistent-derived-normalized-tags",
+			Message:  fmt.Sprintf("normalized_tags do not match deterministic recomputation (got %v, expected %v)", entry.NormalizedTags, expectedNormalizedTags),
+			Severity: "error",
 		})
 	}
 

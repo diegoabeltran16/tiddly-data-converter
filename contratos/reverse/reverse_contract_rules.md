@@ -48,7 +48,7 @@ They are computed by the canonizer and would be recomputed on re-ingestion:
 - `id`, `canonical_slug`, `version_id` — structural identity (S34)
 - `content_type`, `modality`, `encoding`, `is_binary`, `is_reference_only` — reading mode (S35)
 - `role_primary`, `roles_secondary`, `tags`, `taxonomy_path` — semantic function (S36)
-- `semantic_text`, `raw_payload_ref`, `asset_id`, `mime_type` — semantic/asset (S36)
+- `semantic_text`, `content.plain`, `normalized_tags`, `raw_payload_ref`, `asset_id`, `mime_type` — semantic/derived helper projections
 - `document_id`, `section_path`, `order_in_document`, `relations` — context (S37)
 - `schema_version` — emission metadata
 - `key` — derived from title
@@ -66,6 +66,10 @@ Given a canonical node `n`:
 6. **Tags**: `n.source_tags` → TW5 `tags` (omit if empty)
 
 No other fields are emitted in reverse.
+
+`content.plain` and `normalized_tags` may help local validation, filtering or
+comparison, but reverse must ignore them and continue using `text` and
+`source_tags` as the authoritative reversible sources.
 
 ## 5. Reverse Readiness Preconditions
 

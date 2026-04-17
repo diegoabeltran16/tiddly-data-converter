@@ -32,20 +32,21 @@ import (
 // S36 enrichment: SemanticInfo captures the semantic function and
 // traceability fields for included tiddlers; nil for excluded tiddlers.
 // S38 hardening: Decision replaces Action with explicit terminal decision.
-//   semantic_text_strategy added for auditability.
+//
+//	semantic_text_strategy added for auditability.
 type ExportLogEntry struct {
-	RunID               string             `json:"run_id"`
-	SourceRef           string             `json:"source_ref"`
-	Decision            string             `json:"decision"` // "exported" or "excluded"
-	RuleID              string             `json:"rule_id"`
-	Reason              string             `json:"reason"`
-	ID                  string             `json:"id,omitempty"`
-	CanonicalSlug       string             `json:"canonical_slug,omitempty"`
-	SemanticTextStrategy string            `json:"semantic_text_strategy,omitempty"`
-	ExportIdentity      *ExportIdentityRef `json:"export_identity,omitempty"`
-	ReadingMode         *ReadingMode       `json:"reading_mode,omitempty"`
-	SemanticInfo        *ExportSemanticRef `json:"semantic_info,omitempty"`
-	ContextInfo         *ExportContextRef  `json:"context_info,omitempty"`
+	RunID                string             `json:"run_id"`
+	SourceRef            string             `json:"source_ref"`
+	Decision             string             `json:"decision"` // "exported" or "excluded"
+	RuleID               string             `json:"rule_id"`
+	Reason               string             `json:"reason"`
+	ID                   string             `json:"id,omitempty"`
+	CanonicalSlug        string             `json:"canonical_slug,omitempty"`
+	SemanticTextStrategy string             `json:"semantic_text_strategy,omitempty"`
+	ExportIdentity       *ExportIdentityRef `json:"export_identity,omitempty"`
+	ReadingMode          *ReadingMode       `json:"reading_mode,omitempty"`
+	SemanticInfo         *ExportSemanticRef `json:"semantic_info,omitempty"`
+	ContextInfo          *ExportContextRef  `json:"context_info,omitempty"`
 }
 
 // ExportIdentityRef holds the identity fields emitted for an included tiddler.
@@ -93,10 +94,10 @@ type RelationCounts struct {
 // S38 hardening: artifact_role, source_candidate_count, excluded_count,
 // excluded_by_rule, semantic_text_distinct_count, semantic_text_null_count.
 type ExportManifest struct {
-	RunID                string    `json:"run_id"`
-	SchemaVersion        string    `json:"schema_version"`
-	ArtifactRole         string    `json:"artifact_role"`
-	Timestamp            time.Time `json:"timestamp"`
+	RunID         string    `json:"run_id"`
+	SchemaVersion string    `json:"schema_version"`
+	ArtifactRole  string    `json:"artifact_role"`
+	Timestamp     time.Time `json:"timestamp"`
 	// S38: unambiguous universe counters.
 	SourceCandidateCount int `json:"source_candidate_count"`
 	ExcludedCount        int `json:"excluded_count"`
@@ -223,6 +224,7 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		e.RawPayloadRef = sem.RawPayloadRef
 		e.AssetID = sem.AssetID
 		e.MimeType = sem.MimeType
+		ApplyDerivedProjections(&e)
 
 		prepared = append(prepared, preparedEntry{
 			SourceIndex: i,

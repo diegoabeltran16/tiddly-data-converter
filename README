@@ -1,4 +1,4 @@
-Solución (recomendada — entrar al módulo y ejecutar):
+Entrar al módulo y ejecutar:
 ```bash
 cd /repositorios/tiddly-data-converter/go/bridge
 mkdir -p ../../out
@@ -9,21 +9,18 @@ go run ./cmd/export_tiddlers \
   --manifest "../../out/manifest.json"
 ```
 
-construir el binario y ejecutarlo:
+Construir el binario y ejecutarlo:
 ```bash
 cd /repositorios/tiddly-data-converter/go/bridge
 go build -o export_tiddlers ./cmd/export_tiddlers
 ./export_tiddlers --html "../../data/tiddly-data-converter (Saved).html" --out "../../out/tiddlers.jsonl"
 ```
 
-Alternativa (si prefieres ejecutar desde la raíz): crear un workspace Go que incluya los módulos
+Crear un workspace Go que incluya los módulos
 ```bash
 cd /repositorios/tiddly-data-converter
-go work init ./go/bridge ./go/ingesta ./go/canon
-go run ./go/bridge/cmd/export_tiddlers --html "data/tiddly-data-converter (Saved).html" --out "out/tiddlers.jsonl"
+go run ./go/bridge/cmd/export_tiddlers \
+  --html "data/tiddly-data-converter (Saved).html" \
+  --out  "out/tiddlers.jsonl"
 ```
 
-Comprobaciones útiles:
-- `go version`
-- Asegúrate de que el archivo HTML existe: `ls -l "data/tiddly-data-converter (Saved).html"`
-- Si ves errores posteriores, copia aquí stderr para que te ayude a depurarlos.

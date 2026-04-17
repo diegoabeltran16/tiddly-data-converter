@@ -1,6 +1,6 @@
 // Package canon — policy.go
 //
-// S39 — canon-executable-policy-and-reverse-readiness-v0
+// # S39 — canon-executable-policy-and-reverse-readiness-v0
 //
 // Defines the machine-readable policy for the canonical JSONL export.
 // The policy declares which fields are required, editable, derived,
@@ -16,15 +16,15 @@ package canon
 
 // CanonPolicy holds the machine-readable governance rules for canon JSONL.
 type CanonPolicy struct {
-	RequiredFields       []string `json:"required_fields"`
-	DerivedFields        []string `json:"derived_fields"`
-	EditableFields       []string `json:"editable_fields"`
-	AllowedTopLevel      []string `json:"allowed_top_level_fields"`
-	ReverseRequired      []string `json:"reverse_required_fields"`
-	ReverseOptional      []string `json:"reverse_optional_fields"`
-	ReverseExcluded      []string `json:"reverse_excluded_fields"`
-	SchemaVersion        string   `json:"schema_version"`
-	CanonArtifactRole    string   `json:"canon_artifact_role"`
+	RequiredFields    []string `json:"required_fields"`
+	DerivedFields     []string `json:"derived_fields"`
+	EditableFields    []string `json:"editable_fields"`
+	AllowedTopLevel   []string `json:"allowed_top_level_fields"`
+	ReverseRequired   []string `json:"reverse_required_fields"`
+	ReverseOptional   []string `json:"reverse_optional_fields"`
+	ReverseExcluded   []string `json:"reverse_excluded_fields"`
+	SchemaVersion     string   `json:"schema_version"`
+	CanonArtifactRole string   `json:"canon_artifact_role"`
 }
 
 // DefaultCanonPolicy returns the canonical policy for schema v0.
@@ -44,7 +44,7 @@ func DefaultCanonPolicy() CanonPolicy {
 			"id", "canonical_slug", "version_id",
 			"content_type", "modality", "encoding", "is_binary", "is_reference_only",
 			"role_primary", "roles_secondary", "tags", "taxonomy_path",
-			"semantic_text", "raw_payload_ref", "asset_id", "mime_type",
+			"semantic_text", "content", "normalized_tags", "raw_payload_ref", "asset_id", "mime_type",
 			"document_id", "section_path", "order_in_document", "relations",
 		},
 		EditableFields: []string{
@@ -55,7 +55,7 @@ func DefaultCanonPolicy() CanonPolicy {
 			"schema_version", "id", "key", "title", "canonical_slug", "version_id",
 			"content_type", "modality", "encoding", "is_binary", "is_reference_only",
 			"role_primary", "roles_secondary", "tags", "taxonomy_path",
-			"semantic_text", "raw_payload_ref", "asset_id", "mime_type",
+			"semantic_text", "content", "normalized_tags", "raw_payload_ref", "asset_id", "mime_type",
 			"document_id", "section_path", "order_in_document", "relations",
 			"source_tags", "source_fields", "source_type", "source_position", "source_role",
 			"text", "created", "modified",
@@ -66,7 +66,7 @@ func DefaultCanonPolicy() CanonPolicy {
 			"id", "canonical_slug", "version_id",
 			"content_type", "modality", "encoding", "is_binary", "is_reference_only",
 			"role_primary", "roles_secondary", "taxonomy_path",
-			"semantic_text", "raw_payload_ref", "asset_id", "mime_type",
+			"semantic_text", "content", "normalized_tags", "raw_payload_ref", "asset_id", "mime_type",
 			"document_id", "section_path", "order_in_document", "relations",
 			"source_fields", "source_role",
 		},

@@ -81,8 +81,8 @@ func TestExportTiddlersJSONL_GateRejection(t *testing.T) {
 	text := "valid content"
 	entries := []CanonEntry{
 		{Key: "valid", Title: "Valid", Text: &text},
-		{Key: "", Title: "EmptyKey", Text: &text},      // will be rejected
-		{Key: "notitle", Title: "", Text: &text},        // will be rejected
+		{Key: "", Title: "EmptyKey", Text: &text}, // will be rejected
+		{Key: "notitle", Title: "", Text: &text},  // will be rejected
 	}
 
 	var buf bytes.Buffer
@@ -175,5 +175,56 @@ func TestExportTiddlersJSONL_NoDuplication(t *testing.T) {
 
 	if result.Manifest.ExportedCount != 3 {
 		t.Errorf("ExportedCount = %d, want 3", result.Manifest.ExportedCount)
+	}
+}
+
+func TestExportTiddlersJSONL_DerivedProjections(t *testing.T) {
+	textual := "  Alpha\n\nbody  "
+	binary := "iVBORw0KGgoAAAANSUhEUgAA"
+	imageType := "image/png"
+	entries := []CanonEntry{
+		{
+			Key:        "alpha",
+			Title:      "Alpha",
+			Text:       &textual,
+			SourceType: strPtr("text/vnd.tiddlywiki"),
+			SourceTags: []string{"Árbol", "🚀 Launch", "arbol"},
+		},
+		{
+			Key:        "img",
+			Title:      "Image",
+			Text:       &binary,
+			SourceType: &imageType,
+		},
+	}
+
+	var buf bytes.Buffer
+	_, err := ExportTiddlersJSONL(&buf, entries, "test-run-derived")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("JSONL lines = %d, want 2", len(lines))
+	}
+
+	var first, second CanonEntry
+	if err := json.Unmarshal([]byte(lines[0]), &first); err != nil {
+		t.Fatalf("unmarshal first: %v", err)
+	}
+	if err := json.Unmarshal([]byte(lines[1]), &second); err != nil {
+		t.Fatalf("unmarshal second: %v", err)
+	}
+
+	if first.Content == nil || first.Content.Plain == nil || *first.Content.Plain != "Alpha body" {
+		t.Fatalf("first content.plain = %+v, want %q", first.Content, "Alpha body")
+	}
+	wantTags := []string{"arbol", "🚀 launch"}
+	if !stringSliceEqual(first.NormalizedTags, wantTags) {
+		t.Fatalf("first normalized_tags = %v, want %v", first.NormalizedTags, wantTags)
+	}
+	if second.Content != nil {
+		t.Fatalf("second content should be nil for binary node, got %+v", second.Content)
 	}
 }
