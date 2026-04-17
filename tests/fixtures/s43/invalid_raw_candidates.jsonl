@@ -1,0 +1,5 @@
+{"schema_version":"v0","key":"Existing Beta","title":"Existing Beta","text":"Beta body","created":"20260102120000000","modified":"20260102130000000","source_tags":["base"]}
+{"schema_version":"v0","key":"$:/S43/System","title":"$:/S43/System","text":"system","created":"20260417020101000","modified":"20260417020102000","source_type":"text/plain","source_tags":["session:m03-s43"]}
+{"schema_version":"v0","key":"Invalid Source Tags","title":"Invalid Source Tags","text":"broken tags","created":"20260417020201000","modified":"20260417020202000","source_type":"text/plain","source_tags":["session:m03-s43"," "]}
+{"schema_version":"v0","key":"Binary Asset","title":"Binary Asset","text":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB","created":"20260417020301000","modified":"20260417020302000","source_type":"image/png","source_tags":["session:m03-s43","topic:asset"]}
+{"schema_version":"v0","key":"Reserved Field","title":"Reserved Field","text":"bad source_fields","created":"20260417020401000","modified":"20260417020402000","source_type":"text/plain","source_tags":["session:m03-s43"],"source_fields":{"tags":"override-me"}}

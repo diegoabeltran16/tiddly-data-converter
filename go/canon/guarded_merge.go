@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sort"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -60,9 +60,9 @@ type GuardedMergeManifest struct {
 }
 
 type GuardedMergeEvidence struct {
-	Manifest         GuardedMergeManifest  `json:"manifest"`
-	DecisionLog      []CandidateDecision   `json:"decision_log"`
-	ValidationReport ValidationReport      `json:"validation_report"`
+	Manifest         GuardedMergeManifest   `json:"manifest"`
+	DecisionLog      []CandidateDecision    `json:"decision_log"`
+	ValidationReport ValidationReport       `json:"validation_report"`
 	ReversePreflight ReversePreflightReport `json:"reverse_preflight"`
 }
 
@@ -278,7 +278,7 @@ func BuildMergeEvidence(runID string, base []CanonEntry, validation CandidateBat
 func ParseCanonJSONL(r io.Reader) ([]CanonEntry, error) {
 	scanner := bufio.NewScanner(r)
 	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	scanner.Buffer(buf, 64*1024*1024)
 
 	var entries []CanonEntry
 	for scanner.Scan() {

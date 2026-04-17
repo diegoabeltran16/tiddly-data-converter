@@ -39,6 +39,7 @@ the tiddler is reconstructed with an empty body.
 | `modified` | Preserved as TW5 `modified` field if present |
 | `source_type` | Restored as TW5 `type` field if present |
 | `source_tags` | Restored as TW5 `tags` field if present |
+| `source_fields` | Optional source of extra TW5 fields under controlled validation |
 
 ### 3.3 Excluded from Reverse
 
@@ -52,7 +53,7 @@ They are computed by the canonizer and would be recomputed on re-ingestion:
 - `document_id`, `section_path`, `order_in_document`, `relations` — context (S37)
 - `schema_version` — emission metadata
 - `key` — derived from title
-- `source_fields`, `source_role` — extraction metadata
+- `source_role` — extraction metadata
 
 ## 4. Tiddler Reconstruction Rules
 
@@ -64,12 +65,22 @@ Given a canonical node `n`:
 4. **Modified**: `deref(n.modified)` → TW5 `modified` (omit if null)
 5. **Type**: `deref(n.source_type)` → TW5 `type` (omit if null)
 6. **Tags**: `n.source_tags` → TW5 `tags` (omit if empty)
+7. **Extra fields**: `n.source_fields[k]` → TW5 field `k` only when:
+   - `source_fields` is a flat object of strings
+   - `k` is not a reserved reverse/TW5 field
+   - `k` is not a derived canon field
+   - the field is carried explicitly by the canon line
 
 No other fields are emitted in reverse.
 
 `content.plain` and `normalized_tags` may help local validation, filtering or
 comparison, but reverse must ignore them and continue using `text` and
 `source_tags` as the authoritative reversible sources.
+
+`source_fields` never overrides `title`, `text`, `type`, `tags`, `created`,
+`modified`, `source_type`, `source_tags`, or `source_fields` itself. It is an
+optional authority only for explicit extra tiddler fields such as `caption`,
+`list`, or `tmap.id`.
 
 ## 5. Reverse Readiness Preconditions
 
