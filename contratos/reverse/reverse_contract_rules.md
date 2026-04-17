@@ -1,112 +1,168 @@
-# Reverse Contract Rules — S39
+# Reverse Contract Rules — S44
 
 ## 1. Purpose
 
-This contract defines the precise conditions under which a canonical JSONL node
-can be reversed (reconstructed) into a TiddlyWiki tiddler. It specifies which
-fields participate in reverse, which do not, and what preconditions must be met.
+This contract defines the exact reverse behavior for the S44 flow:
+
+- source of truth: canonical JSONL shard set or a single canonical JSONL file
+- reverse target: the TiddlyWiki store block inside an existing HTML shell
+- merge mode: `authoritative-upsert` or `insert-only`
+
+Reverse is not a full HTML rebuild. It is a controlled store update over a real
+base HTML.
 
 ## 2. Reverse Source
 
-Reverse depends **only** on the canonical JSONL export (`tiddlers.jsonl`).
-It does **not** depend on:
+Reverse accepts either:
+
+- a single canonical JSONL file
+- or a directory containing ordered shards `tiddlers_<n>.jsonl`
+
+When a shard directory is used, the ordered shard set is treated as a single
+canonical sequence. The loader must fail before reverse when it detects:
+
+- invalid JSONL shard content
+- unstable shard naming / ordering
+- duplicate shard content
+- duplicate exact canon lines
+- duplicate `title`
+- duplicate `key`
+
+Derived layers do not participate in reverse:
 
 - `semantic_text`
 - manifest
-- export.log
-- AI-derived layers (`tiddlers.ai.jsonl`, `chunks.ai.jsonl`)
+- `export.log`
+- AI-derived layers
 - embeddings
 - chunking
 - Parquet / Arrow serializations
 
-## 3. Fields That Participate in Reverse
+## 3. Authoritative Fields
 
-### 3.1 Required for Reverse
+### 3.1 Reverse-ready prerequisites
 
-| Field | Role in Reverse |
-|-------|----------------|
-| `title` | Becomes the tiddler title |
-| `text` | Becomes the tiddler body content |
+A canon line is reverse-ready when:
 
-A node **must** have a non-empty `title` to be reversible. If `text` is `null`,
-the tiddler is reconstructed with an empty body.
+- `schema_version == "v0"`
+- `key` is non-empty
+- `title` is non-empty
 
-### 3.2 Optional for Reverse
+### 3.2 Reverse-authoritative fields
 
-| Field | Role in Reverse |
-|-------|----------------|
-| `created` | Preserved as TW5 `created` field if present |
-| `modified` | Preserved as TW5 `modified` field if present |
-| `source_type` | Restored as TW5 `type` field if present |
-| `source_tags` | Restored as TW5 `tags` field if present |
-| `source_fields` | Optional source of extra TW5 fields under controlled validation |
+The reverse projection is built only from:
 
-### 3.3 Excluded from Reverse
+- `title`
+- `text`
+- `created`
+- `modified`
+- `source_type`
+- `source_tags`
+- `source_fields`
 
-The following fields are **derived** and do not participate in reverse.
-They are computed by the canonizer and would be recomputed on re-ingestion:
+`key`, when present, must equal `title`.
 
-- `id`, `canonical_slug`, `version_id` — structural identity (S34)
-- `content_type`, `modality`, `encoding`, `is_binary`, `is_reference_only` — reading mode (S35)
-- `role_primary`, `roles_secondary`, `tags`, `taxonomy_path` — semantic function (S36)
-- `semantic_text`, `content.plain`, `normalized_tags`, `raw_payload_ref`, `asset_id`, `mime_type` — semantic/derived helper projections
-- `document_id`, `section_path`, `order_in_document`, `relations` — context (S37)
-- `schema_version` — emission metadata
-- `key` — derived from title
-- `source_role` — extraction metadata
+### 3.3 `source_fields`
 
-## 4. Tiddler Reconstruction Rules
+`source_fields` is optional authority only for explicit extra TiddlyWiki fields.
+It must be a flat object of strings.
 
-Given a canonical node `n`:
+Allowed behavior:
 
-1. **Title**: `n.title` → TW5 `title`
-2. **Body**: `deref(n.text)` → TW5 `text` (if `n.text` is null, body is empty string)
-3. **Created**: `deref(n.created)` → TW5 `created` (omit if null)
-4. **Modified**: `deref(n.modified)` → TW5 `modified` (omit if null)
-5. **Type**: `deref(n.source_type)` → TW5 `type` (omit if null)
-6. **Tags**: `n.source_tags` → TW5 `tags` (omit if empty)
-7. **Extra fields**: `n.source_fields[k]` → TW5 field `k` only when:
-   - `source_fields` is a flat object of strings
-   - `k` is not a reserved reverse/TW5 field
-   - `k` is not a derived canon field
-   - the field is carried explicitly by the canon line
+- extra fields such as `caption`, `list`, `tmap.id`
+- reserved copies of authoritative fields only when they are consistent with the authoritative projection
 
-No other fields are emitted in reverse.
+Rejected behavior:
 
-`content.plain` and `normalized_tags` may help local validation, filtering or
-comparison, but reverse must ignore them and continue using `text` and
-`source_tags` as the authoritative reversible sources.
+- conflicting reserved fields (`title`, `text`, `type`, `tags`, `created`, `modified`, etc.)
+- derived canon fields (`id`, `canonical_slug`, `version_id`, `content`, `normalized_tags`, `document_id`, `section_path`, `order_in_document`, `relations`, etc.)
 
-`source_fields` never overrides `title`, `text`, `type`, `tags`, `created`,
-`modified`, `source_type`, `source_tags`, or `source_fields` itself. It is an
-optional authority only for explicit extra tiddler fields such as `caption`,
-`list`, or `tmap.id`.
+## 4. Non-Authoritative Fields
 
-## 5. Reverse Readiness Preconditions
+The following fields never drive reverse decisions and never overwrite source
+authority:
 
-A canonical JSONL file is **reverse-ready** when every exported node satisfies:
+- `id`
+- `canonical_slug`
+- `version_id`
+- `content_type`
+- `modality`
+- `encoding`
+- `is_binary`
+- `is_reference_only`
+- `role_primary`
+- `roles_secondary`
+- `tags`
+- `taxonomy_path`
+- `semantic_text`
+- `content.plain`
+- `normalized_tags`
+- `raw_payload_ref`
+- `asset_id`
+- `mime_type`
+- `document_id`
+- `section_path`
+- `order_in_document`
+- `relations`
 
-1. `title` is present and non-empty.
-2. `schema_version` is `"v0"`.
-3. `key` is present and non-empty.
+If a source field conflicts with one of these derived projections, the source
+field wins and the derived field remains non-authoritative.
 
-Nodes that fail these checks are **not reversible** and must be reported
-as failures in the reverse-preflight diagnostic.
+## 5. Reverse Scope
 
-## 6. Reverse Does Not Guarantee Round-Trip Identity
+Reverse does not materialize these nodes from canon:
 
-Reverse produces a valid TiddlyWiki tiddler, but re-ingesting that tiddler
-through the canon pipeline may produce different derived fields (e.g., different
-`order_in_document`, different `relations` resolution). The **material content**
-(`title`, `text`, `created`, `modified`) will be preserved, but derived identity
-fields (`id`, `version_id`) will be deterministically recomputed and should match
-if the material content is unchanged.
+- system titles `$:/...`
+- binary nodes
+- reference-only nodes
+- nodes whose `source_type` is outside the current textual/metadata scope
 
-## 7. Deferred
+These lines are skipped explicitly and reported, not silently normalized.
 
-- Full reverse writer implementation (HTML output).
-- Template selection for TiddlyWiki HTML wrapper.
-- Batch reverse with index generation.
-- Round-trip verification tests.
+## 6. Merge Behavior
 
-These are planned for future sessions and are not part of S39.
+### 6.1 `insert-only`
+
+- new titles are inserted
+- existing titles with equivalent projection are `already_present`
+- existing titles with conflicting authoritative projection are rejected
+
+### 6.2 `authoritative-upsert`
+
+- new titles are inserted
+- existing titles with equivalent projection are `already_present`
+- existing titles with different authoritative projection are updated in place
+- unrelated fields already present in the base HTML but not projected by canon are preserved
+
+## 7. HTML Preservation
+
+Reverse must:
+
+- preserve the original HTML shell
+- locate the existing TiddlyWiki store block deterministically
+- rewrite only the store content
+- preserve non-target zones of the HTML
+
+Reverse must not:
+
+- regenerate the whole HTML document from scratch
+- reinterpret derived canon fields as authority
+- silently invent missing content
+
+## 8. Fail Conditions Before Write
+
+Reverse must fail before writing output when any of these checks fails:
+
+- shard/source preflight
+- strict canon validation
+- reverse-preflight
+- malformed reverse candidate
+- invalid `source_tags`
+- invalid `source_fields`
+- ambiguous key/title mismatch
+
+## 9. Round-Trip Note
+
+Round-trip may recompute derived projections on re-export, but reverse authority
+remains anchored in the source fields listed in section 3. Derived projections
+must never overwrite those fields.

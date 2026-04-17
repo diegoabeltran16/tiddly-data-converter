@@ -34,3 +34,4 @@ go/canon/emit
 go/canon/canon_preflight
 /.codex
 
+/out

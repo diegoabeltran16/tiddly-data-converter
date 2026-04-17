@@ -10,10 +10,10 @@ import (
 
 func main() {
 	htmlPath := flag.String("html", "", "Path to the base TiddlyWiki HTML file (required)")
-	canonPath := flag.String("canon", "", "Path to the canonical JSONL file (required)")
+	canonPath := flag.String("canon", "", "Path to the canonical JSONL file or shard directory (required)")
 	outHTMLPath := flag.String("out-html", "", "Path for the reversed HTML output (required)")
 	reportPath := flag.String("report", "", "Path for the reverse report JSON (optional)")
-	mode := flag.String("mode", bridge.ReverseModeInsertOnly, "Reverse mode (only insert-only is supported in S43)")
+	mode := flag.String("mode", bridge.ReverseModeAuthoritativeUpsert, "Reverse mode: authoritative-upsert or insert-only")
 	flag.Parse()
 
 	if *htmlPath == "" || *canonPath == "" || *outHTMLPath == "" {
@@ -21,12 +21,19 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if *mode != bridge.ReverseModeInsertOnly {
-		fmt.Fprintf(os.Stderr, "[reverse_tiddlers] ERROR: unsupported mode %q; expected %q\n", *mode, bridge.ReverseModeInsertOnly)
+	if *mode != bridge.ReverseModeInsertOnly && *mode != bridge.ReverseModeAuthoritativeUpsert {
+		fmt.Fprintf(os.Stderr, "[reverse_tiddlers] ERROR: unsupported mode %q; expected %q or %q\n", *mode, bridge.ReverseModeAuthoritativeUpsert, bridge.ReverseModeInsertOnly)
 		os.Exit(1)
 	}
 
-	result, err := bridge.ReverseInsertOnlyFiles(*htmlPath, *canonPath, *outHTMLPath)
+	var result *bridge.ReverseResult
+	var err error
+	switch *mode {
+	case bridge.ReverseModeInsertOnly:
+		result, err = bridge.ReverseInsertOnlyFiles(*htmlPath, *canonPath, *outHTMLPath)
+	default:
+		result, err = bridge.ReverseAuthoritativeFiles(*htmlPath, *canonPath, *outHTMLPath)
+	}
 	if *reportPath != "" && result != nil {
 		if writeErr := bridge.WriteReverseReport(*reportPath, result.Report); writeErr != nil {
 			fmt.Fprintf(os.Stderr, "[reverse_tiddlers] WARNING: cannot write report: %v\n", writeErr)
@@ -37,8 +44,8 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[reverse_tiddlers] ERROR: %v\n", err)
 		if result != nil {
-			fmt.Fprintf(os.Stderr, "[reverse_tiddlers] Summary: raw_evaluated=%d inserted=%d already_present=%d rejected=%d\n",
-				result.Report.RawTiddlersEvaluated, result.Report.InsertedCount, result.Report.AlreadyPresentCount, result.Report.RejectedCount)
+			fmt.Fprintf(os.Stderr, "[reverse_tiddlers] Summary: eligible=%d skipped=%d inserted=%d updated=%d already_present=%d rejected=%d\n",
+				result.Report.EligibleEntriesEvaluated, result.Report.OutOfScopeSkipped, result.Report.InsertedCount, result.Report.UpdatedCount, result.Report.AlreadyPresentCount, result.Report.RejectedCount)
 		}
 		os.Exit(3)
 	}
@@ -47,10 +54,11 @@ func main() {
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Mode:            %s\n", result.Report.Mode)
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Store blocks:    %d\n", result.Report.StoreBlocksFound)
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Canon lines:     %d\n", result.Report.CanonLinesRead)
-	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Raw evaluated:   %d\n", result.Report.RawTiddlersEvaluated)
-	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Non-raw skipped: %d\n", result.Report.NonRawRecordsSkipped)
+	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Eligible:        %d\n", result.Report.EligibleEntriesEvaluated)
+	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Out-of-scope:    %d\n", result.Report.OutOfScopeSkipped)
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Already present: %d\n", result.Report.AlreadyPresentCount)
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Inserted:        %d\n", result.Report.InsertedCount)
+	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Updated:         %d\n", result.Report.UpdatedCount)
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Rejected:        %d\n", result.Report.RejectedCount)
 	fmt.Fprintf(os.Stderr, "[reverse_tiddlers]   Source fields:   %t (%d candidates)\n",
 		result.Report.SourceFieldsUsed, result.Report.SourceFieldsUsedCount)

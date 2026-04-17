@@ -1,13 +1,13 @@
 {
   "registry_version": "v0",
-  "source_of_truth": "tiddlers.jsonl",
-  "description": "Registry of derived layers that are built from the canonical JSONL export. None of these layers are canonical. They must never replace the canon.",
+  "source_of_truth": "ordered shard set `tiddlers_1.jsonl` .. `tiddlers_7.jsonl`",
+  "description": "Registry of derived layers built from the authoritative shard set. None of these layers are canonical. They must never replace the shard-based canon.",
   "layers": [
     {
       "artifact": "tiddlers.ai.jsonl",
       "artifact_role": "ai_projection",
       "is_canonical": false,
-      "derived_from": "tiddlers.jsonl",
+      "derived_from": "ordered shard set",
       "allowed_uses": ["retrieval", "semantic_search", "ai_reading"],
       "must_not_replace_canon": true,
       "status": "planned",
@@ -17,7 +17,7 @@
       "artifact": "chunks.ai.jsonl",
       "artifact_role": "chunked_text",
       "is_canonical": false,
-      "derived_from": "tiddlers.jsonl",
+      "derived_from": "ordered shard set",
       "allowed_uses": ["retrieval", "embedding_input", "rag"],
       "must_not_replace_canon": true,
       "status": "planned",
@@ -27,7 +27,7 @@
       "artifact": "*.parquet",
       "artifact_role": "columnar_serialization",
       "is_canonical": false,
-      "derived_from": "tiddlers.jsonl",
+      "derived_from": "ordered shard set",
       "allowed_uses": ["analytics", "batch_processing", "data_exploration"],
       "must_not_replace_canon": true,
       "status": "planned",
@@ -37,7 +37,7 @@
       "artifact": "*.arrow",
       "artifact_role": "columnar_serialization",
       "is_canonical": false,
-      "derived_from": "tiddlers.jsonl",
+      "derived_from": "ordered shard set",
       "allowed_uses": ["analytics", "streaming", "inter_process_communication"],
       "must_not_replace_canon": true,
       "status": "planned",
@@ -47,7 +47,7 @@
       "artifact": "embeddings",
       "artifact_role": "vector_representation",
       "is_canonical": false,
-      "derived_from": "tiddlers.jsonl",
+      "derived_from": "ordered shard set",
       "allowed_uses": ["semantic_search", "similarity", "clustering"],
       "must_not_replace_canon": true,
       "status": "planned",
@@ -57,11 +57,11 @@
       "artifact": "reverse_html_output",
       "artifact_role": "reverse_reconstruction",
       "is_canonical": false,
-      "derived_from": "tiddlers.jsonl",
+      "derived_from": "ordered shard set",
       "allowed_uses": ["tiddlywiki_import", "human_reading", "round_trip_verification"],
       "must_not_replace_canon": true,
       "status": "planned",
-      "description": "TiddlyWiki HTML reconstruction from canonical JSONL."
+      "description": "TiddlyWiki HTML reconstruction derived from the canonical shard set."
     }
   ]
 }

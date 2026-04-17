@@ -1,27 +1,32 @@
 // cmd/canon_preflight/main.go — S39 CLI: canon validation and preflight
 //
 // Usage:
-//   canon_preflight --mode <strict|normalize|reverse-preflight> --input <jsonl_path> [--output <jsonl_path>]
+//
+//	canon_preflight --mode <strict|normalize|reverse-preflight> --input <jsonl_path> [--output <jsonl_path>]
 //
 // Modes:
-//   strict             — validates shape and invariants; fails on any inconsistency
-//   normalize          — recalculates derived fields, emits normalized JSONL
-//   reverse-preflight  — certifies whether the canon is ready for reverse
+//
+//	strict             — validates shape and invariants; fails on any inconsistency
+//	normalize          — recalculates derived fields, emits normalized JSONL
+//	reverse-preflight  — certifies whether the canon is ready for reverse
 //
 // Exit codes:
-//   0 — passed / all checks OK
-//   1 — usage error
-//   2 — validation or preflight failure (issues found)
-//   3 — I/O error
+//
+//	0 — passed / all checks OK
+//	1 — usage error
+//	2 — validation or preflight failure (issues found)
+//	3 — I/O error
 //
 // Contract reference: contratos/m02-s39-canon-executable-policy-and-reverse-readiness-v0.md.json
 // Ref: S39 — canon executable policy and reverse readiness.
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/tiddly-data-converter/canon"
@@ -29,39 +34,41 @@ import (
 
 func main() {
 	mode := flag.String("mode", "", "Validation mode: strict, normalize, reverse-preflight (required)")
-	input := flag.String("input", "", "Path to input JSONL file (required)")
+	input := flag.String("input", "", "Path to input JSONL file or shard directory (required)")
 	output := flag.String("output", "", "Path for normalized output JSONL (normalize mode only)")
 	flag.Parse()
 
 	if *mode == "" || *input == "" {
-		fmt.Fprintln(os.Stderr, "[canon_preflight] usage: canon_preflight --mode <strict|normalize|reverse-preflight> --input <jsonl_path>")
+		fmt.Fprintln(os.Stderr, "[canon_preflight] usage: canon_preflight --mode <strict|normalize|reverse-preflight> --input <jsonl_path|shard_dir>")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	inFile, err := os.Open(*input)
+	inputData, sourceReport, err := canon.LoadCanonSource(*input)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[canon_preflight] ERROR: cannot open %s: %v\n", *input, err)
-		os.Exit(3)
+		sourceJSON, _ := json.MarshalIndent(sourceReport, "", "  ")
+		fmt.Println(string(sourceJSON))
+		fmt.Fprintf(os.Stderr, "[canon_preflight] ERROR: cannot load canon source %s: %v\n", *input, err)
+		os.Exit(2)
 	}
-	defer inFile.Close()
+	printSourceSummary(sourceReport)
 
 	switch *mode {
 	case "strict":
-		runStrict(inFile)
+		runStrict(bytes.NewReader(inputData))
 	case "normalize":
-		runNormalize(inFile, *output)
+		runNormalize(bytes.NewReader(inputData), *output)
 	case "reverse-preflight":
-		runReversePreflight(inFile)
+		runReversePreflight(bytes.NewReader(inputData))
 	default:
 		fmt.Fprintf(os.Stderr, "[canon_preflight] ERROR: unknown mode %q\n", *mode)
 		os.Exit(1)
 	}
 }
 
-func runStrict(f *os.File) {
+func runStrict(r io.Reader) {
 	policy := canon.DefaultCanonPolicy()
-	report := canon.ValidateCanonJSONL(f, policy)
+	report := canon.ValidateCanonJSONL(r, policy)
 
 	reportJSON, _ := json.MarshalIndent(report, "", "  ")
 	fmt.Println(string(reportJSON))
@@ -74,7 +81,7 @@ func runStrict(f *os.File) {
 	fmt.Fprintf(os.Stderr, "[canon_preflight] STRICT PASSED — %d line(s) valid\n", report.LinesValid)
 }
 
-func runNormalize(f *os.File, outputPath string) {
+func runNormalize(r io.Reader, outputPath string) {
 	var outW *os.File
 	var err error
 	if outputPath == "" {
@@ -88,7 +95,7 @@ func runNormalize(f *os.File, outputPath string) {
 		defer outW.Close()
 	}
 
-	report := canon.NormalizeCanonJSONL(f, outW)
+	report := canon.NormalizeCanonJSONL(r, outW)
 
 	reportJSON, _ := json.MarshalIndent(report, "", "  ")
 	fmt.Fprintln(os.Stderr, string(reportJSON))
@@ -101,8 +108,8 @@ func runNormalize(f *os.File, outputPath string) {
 	fmt.Fprintf(os.Stderr, "[canon_preflight] NORMALIZE OK — %d line(s) normalized\n", report.LinesNormalized)
 }
 
-func runReversePreflight(f *os.File) {
-	report := canon.ReversePreflightCanonJSONL(f)
+func runReversePreflight(r io.Reader) {
+	report := canon.ReversePreflightCanonJSONL(r)
 
 	reportJSON, _ := json.MarshalIndent(report, "", "  ")
 	fmt.Println(string(reportJSON))
@@ -113,4 +120,14 @@ func runReversePreflight(f *os.File) {
 		os.Exit(2)
 	}
 	fmt.Fprintf(os.Stderr, "[canon_preflight] REVERSE-PREFLIGHT PASSED — %d line(s) ready\n", report.ReverseReady)
+}
+
+func printSourceSummary(report canon.CanonSourceReport) {
+	if report.Mode == canon.CanonSourceModeSharded {
+		fmt.Fprintf(os.Stderr, "[canon_preflight] Canon source: %s (%d shard(s), %d line(s))\n",
+			report.RootPath, len(report.Shards), report.LinesRead)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "[canon_preflight] Canon source: %s (%d line(s))\n",
+		report.InputPath, report.LinesRead)
 }
