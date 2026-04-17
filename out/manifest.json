@@ -1,0 +1,45 @@
+{
+  "run_id": "s33-run-20260417T142718Z",
+  "schema_version": "v0",
+  "artifact_role": "canon_export",
+  "timestamp": "2026-04-17T14:27:20.597529519Z",
+  "source_candidate_count": 618,
+  "excluded_count": 0,
+  "exported_count": 618,
+  "excluded_by_rule": {},
+  "sha256": "sha256:ad962b308c8971e540953166246220ca1cfa6047fe72c863f4dcc2e5ac8766e2",
+  "output_path": "../../out/tiddlers.jsonl",
+  "content_type_counts": {
+    "application/json": 162,
+    "image/png": 43,
+    "text/csv": 1,
+    "text/markdown": 395,
+    "text/plain": 8,
+    "text/vnd.tiddlywiki": 8,
+    "unknown": 1
+  },
+  "modality_counts": {
+    "image": 43,
+    "metadata": 162,
+    "table": 1,
+    "text": 411,
+    "unknown": 1
+  },
+  "binary_count": 43,
+  "reference_only_count": 0,
+  "role_primary_counts": {
+    "asset": 43,
+    "config": 162,
+    "unclassified": 413
+  },
+  "asset_count": 43,
+  "semantic_text_distinct_count": 0,
+  "semantic_text_null_count": 618,
+  "document_count": 1,
+  "nodes_with_section_path_count": 268,
+  "nodes_with_relations_count": 447,
+  "relation_counts": {
+    "child_of": 115,
+    "references": 904
+  }
+}

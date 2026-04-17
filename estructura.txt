@@ -396,17 +396,7 @@
 ├── out
 │   ├── export.log
 │   ├── manifest.json
-│   ├── reverse-report.json
-│   ├── roundtrip.export.log
-│   ├── roundtrip.manifest.json
-│   ├── roundtrip.tiddlers.jsonl
-│   ├── s42-canon-augmented.jsonl
-│   ├── s42-reverse-report.json
-│   ├── s43-raw-tiddlers.jsonl
-│   ├── tiddlers.base.jsonl
-│   ├── tiddlers.jsonl
-│   ├── tiddly-data-converter.derived.html
-│   └── tiddly-data-converter.reversed.html
+│   └── tiddlers.jsonl
 ├── packaging
 │   └── packaging.txt
 ├── python
