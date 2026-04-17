@@ -58,6 +58,7 @@
 │   ├── m02-s40-canon-guarded-local-session-test-v0.md.json
 │   ├── m02-s41-canon-minimal-derived-hardening-for-reverse-v0.md.json
 │   ├── m02-s42-canon-minimal-deterministic-reverse-v0.md.json
+│   ├── m03-s43-canon-robust-textual-reverse-v0.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -74,7 +75,8 @@
 │       ├── s39-local-checks.md
 │       ├── s40-local-checks.md
 │       ├── s41-local-checks.md
-│       └── s42-local-checks.md
+│       ├── s42-local-checks.md
+│       └── s43-local-checks.md
 ├── data
 │   └── data.txt
 ├── docs
@@ -181,6 +183,7 @@
 │       ├── #### 🌀 Sesión 40 = canon-guarded-local-session-test-v0.json
 │       ├── #### 🌀 Sesión 41 = canon-minimal-derived-hardening-for-reverse-v0.json
 │       ├── #### 🌀 Sesión 42 = canon-minimal-deterministic-reverse-v0.json
+│       ├── #### 🌀 Sesión 43 = canon-robust-textual-reverse-v0.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -226,6 +229,7 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 40 = canon-guarded-local-session-test-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 41 = canon-minimal-derived-hardening-for-reverse-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 42 = canon-minimal-deterministic-reverse-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 43 = canon-robust-textual-reverse-v0.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -266,6 +270,7 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 40.json
 │       ├── #### 🌀🧾 Procedencia de sesión 41.json
 │       ├── #### 🌀🧾 Procedencia de sesión 42.json
+│       ├── #### 🌀🧾 Procedencia de sesión 43.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
 │       ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
@@ -281,8 +286,14 @@
 │   └── esquemas.txt
 ├── estructura.txt
 ├── export
+│   ├── s33-export-log.jsonl
+│   ├── s33-functional-tiddlers.jsonl
 │   ├── s33-manifest.json
+│   ├── s34-export-log.jsonl
+│   ├── s34-functional-tiddlers.jsonl
 │   ├── s34-manifest.json
+│   ├── s37-export-log.jsonl
+│   ├── s37-functional-tiddlers.jsonl
 │   └── s37-manifest.json
 ├── go
 │   ├── bridge
@@ -385,14 +396,22 @@
 ├── out
 │   ├── export.log
 │   ├── manifest.json
+│   ├── reverse-report.json
 │   ├── roundtrip.export.log
 │   ├── roundtrip.manifest.json
-│   └── s42-reverse-report.json
+│   ├── roundtrip.tiddlers.jsonl
+│   ├── s42-canon-augmented.jsonl
+│   ├── s42-reverse-report.json
+│   ├── s43-raw-tiddlers.jsonl
+│   ├── tiddlers.base.jsonl
+│   ├── tiddlers.jsonl
+│   ├── tiddly-data-converter.derived.html
+│   └── tiddly-data-converter.reversed.html
 ├── packaging
 │   └── packaging.txt
 ├── python
 │   └── python.txt
-├── README
+├── README.md
 ├── runtime
 │   └── runtime.txt
 ├── rust
@@ -438,6 +457,10 @@
 │   │   │       │   ├── run-002.json
 │   │   │       │   └── run-003.json
 │   │   │       └── manifest.json
+│   │   ├── canon_gate_accept.jsonl
+│   │   ├── canon_gate_batch_audit_mixed.jsonl
+│   │   ├── canon_gate_reject.jsonl
+│   │   ├── minimal_tiddlywiki.html
 │   │   ├── raw_tiddlers_d1_exact_duplicate.json
 │   │   ├── raw_tiddlers_d2_same_title_diff_content.json
 │   │   ├── raw_tiddlers_d3_exact_content_diff_title.json
@@ -455,6 +478,7 @@
 │   │   │   ├── run-002.json
 │   │   │   └── run-003.json
 │   │   ├── s33_sample
+│   │   │   └── s33_fixture.html
 │   │   ├── s34
 │   │   │   ├── identity_fixture.json
 │   │   │   └── identity_sample_output.json
@@ -469,14 +493,28 @@
 │   │   │   └── export_contract
 │   │   │       └── contract_hardening_fixture.json
 │   │   ├── s40
+│   │   │   ├── base_canon.jsonl
+│   │   │   ├── candidate_batch_invalid.jsonl
+│   │   │   ├── candidate_batch_mixed.jsonl
+│   │   │   ├── candidate_batch_valid.jsonl
 │   │   │   ├── expected_manifest_summary.json
+│   │   │   ├── expected_merged_canon.jsonl
 │   │   │   └── expected_rejection_report.json
-│   │   └── s42
+│   │   ├── s42
+│   │   │   ├── base.html
+│   │   │   ├── canon_base.jsonl
+│   │   │   ├── canon_with_collision.jsonl
+│   │   │   └── canon_with_new_valid.jsonl
+│   │   └── s43
+│   │       ├── canon_mixed_multi.jsonl
+│   │       └── invalid_raw_candidates.jsonl
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1
-│   │   │       └── batch_snapshot.json
+│   │   │       ├── batch_snapshot.json
+│   │   │       └── export.jsonl
 │   │   └── s33
+│   │       └── export.jsonl
 │   ├── smoke
 │   │   └── test_pipeline_smoke.sh
 │   └── test.txt

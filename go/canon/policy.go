@@ -61,14 +61,14 @@ func DefaultCanonPolicy() CanonPolicy {
 			"text", "created", "modified",
 		},
 		ReverseRequired: []string{"title", "text", "created", "modified"},
-		ReverseOptional: []string{"source_type", "source_tags"},
+		ReverseOptional: []string{"source_type", "source_tags", "source_fields"},
 		ReverseExcluded: []string{
 			"id", "canonical_slug", "version_id",
 			"content_type", "modality", "encoding", "is_binary", "is_reference_only",
 			"role_primary", "roles_secondary", "taxonomy_path",
 			"semantic_text", "content", "normalized_tags", "raw_payload_ref", "asset_id", "mime_type",
 			"document_id", "section_path", "order_in_document", "relations",
-			"source_fields", "source_role",
+			"source_role",
 		},
 	}
 }

@@ -20,6 +20,8 @@ del `tdc-extractor` y componentes relacionados del milestone M01.
 | `raw_tiddlers_d1_exact_duplicate.json` | Caso reproducible D1: 2 tiddlers con mismo título y mismo contenido; documenta comportamiento de passthrough pre-canónico de Ingesta | **Activo S11** — derivado del caso `LICENSE` observado en `docs/tiddlers_esp.jsonl`; 2 tiddlers idénticos; `source_position` distinto |
 | `raw_tiddlers_d2_same_title_diff_content.json` | Caso reproducible D2: 2 tiddlers con mismo título y contenido distinto; documenta que Ingesta no resuelve colisiones de versión | **Activo S11** — derivado del caso `estructura.txt` (3 versiones observadas); 2 snapshots de árbol en momentos distintos |
 | `raw_tiddlers_d4_near_duplicate.json` | Caso reproducible D4: 2 tiddlers con títulos distintos y contenido textualmente muy similar (Jaccard≈1.0); documenta que Ingesta no realiza comparación semántica | **Activo S11** — derivado del par `#### 🌀 Sesión 08` / `#### 🌀🧾 Procedencia de sesión 08` observado en corpus |
+| `s43/canon_mixed_multi.jsonl` | Canon mixto mínimo para S43: mezcla líneas exportadas y raw-tiddlers nuevos para validar detección selectiva, inserción múltiple y `source_fields` | **Activo S43** — 2 líneas no raw, 1 raw ya presente y 4 inserciones textuales nuevas |
+| `s43/invalid_raw_candidates.jsonl` | Matriz negativa de S43 para validar rechazo de raw-tiddlers con system title, `source_tags` inválidos, tipo fuera de subalcance y `source_fields` reservados | **Activo S43** — 1 raw ya presente y 4 rechazos explícitos |
 
 ## Cómo añadir un fixture
 
