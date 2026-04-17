@@ -18,12 +18,72 @@ const (
 
 	ReverseDecisionInserted       = "inserted"
 	ReverseDecisionAlreadyPresent = "already_present"
-	ReverseDecisionExcluded       = "excluded"
 	ReverseDecisionRejected       = "rejected"
 )
 
-// ReverseDecision records the disposition taken for a canon line during S42
-// reverse insert-only processing.
+var allowedRawReverseTopLevelFields = map[string]struct{}{
+	"schema_version": {},
+	"key":            {},
+	"title":          {},
+	"text":           {},
+	"created":        {},
+	"modified":       {},
+	"source_type":    {},
+	"source_tags":    {},
+	"source_fields":  {},
+	"source_role":    {},
+}
+
+var reservedReverseSourceFields = map[string]struct{}{
+	"schema_version":  {},
+	"key":             {},
+	"title":           {},
+	"text":            {},
+	"type":            {},
+	"tags":            {},
+	"created":         {},
+	"modified":        {},
+	"source_type":     {},
+	"source_tags":     {},
+	"source_fields":   {},
+	"source_position": {},
+	"source_role":     {},
+}
+
+var derivedReverseSourceFields = map[string]struct{}{
+	"id":                {},
+	"canonical_slug":    {},
+	"version_id":        {},
+	"content":           {},
+	"content.plain":     {},
+	"content_type":      {},
+	"modality":          {},
+	"encoding":          {},
+	"is_binary":         {},
+	"is_reference_only": {},
+	"role_primary":      {},
+	"roles_secondary":   {},
+	"taxonomy_path":     {},
+	"semantic_text":     {},
+	"normalized_tags":   {},
+	"raw_payload_ref":   {},
+	"asset_id":          {},
+	"mime_type":         {},
+	"document_id":       {},
+	"section_path":      {},
+	"order_in_document": {},
+	"relations":         {},
+}
+
+var supportedReverseSourceTypes = map[string]struct{}{
+	"text/vnd.tiddlywiki": {},
+	"text/markdown":       {},
+	"text/plain":          {},
+	"text/csv":            {},
+	"application/json":    {},
+}
+
+// ReverseDecision records the disposition taken for a raw reverse candidate.
 type ReverseDecision struct {
 	Line     int    `json:"line"`
 	Title    string `json:"title,omitempty"`
@@ -34,21 +94,29 @@ type ReverseDecision struct {
 
 // ReverseReport exposes deterministic evidence for one reverse run.
 type ReverseReport struct {
-	Mode                string                       `json:"mode"`
-	StoreBlocksFound    int                          `json:"store_blocks_found"`
-	ExistingTiddlers    int                          `json:"existing_tiddlers"`
-	CanonLinesRead      int                          `json:"canon_lines_read"`
-	InsertedCount       int                          `json:"inserted_count"`
-	AlreadyPresentCount int                          `json:"already_present_count"`
-	ExcludedCount       int                          `json:"excluded_count"`
-	RejectedCount       int                          `json:"rejected_count"`
-	Decisions           []ReverseDecision            `json:"decisions,omitempty"`
-	ValidationReport    canon.ValidationReport       `json:"validation_report"`
-	ReversePreflight    canon.ReversePreflightReport `json:"reverse_preflight"`
+	Mode                  string                       `json:"mode"`
+	StoreBlocksFound      int                          `json:"store_blocks_found"`
+	ExistingTiddlers      int                          `json:"existing_tiddlers"`
+	CanonLinesRead        int                          `json:"canon_lines_read"`
+	RawTiddlersEvaluated  int                          `json:"raw_tiddlers_evaluated"`
+	NonRawRecordsSkipped  int                          `json:"non_raw_records_skipped"`
+	InsertedCount         int                          `json:"inserted_count"`
+	AlreadyPresentCount   int                          `json:"already_present_count"`
+	RejectedCount         int                          `json:"rejected_count"`
+	RejectedByRule        map[string]int               `json:"rejected_by_rule,omitempty"`
+	ProcessedSourceTypes  map[string]int               `json:"processed_source_types,omitempty"`
+	SourceFieldsUsed      bool                         `json:"source_fields_used"`
+	SourceFieldsUsedCount int                          `json:"source_fields_used_count"`
+	HTMLInputPath         string                       `json:"html_input_path,omitempty"`
+	CanonInputPath        string                       `json:"canon_input_path,omitempty"`
+	OutputHTMLPath        string                       `json:"output_html_path,omitempty"`
+	Decisions             []ReverseDecision            `json:"decisions,omitempty"`
+	ValidationReport      canon.ValidationReport       `json:"validation_report"`
+	ReversePreflight      canon.ReversePreflightReport `json:"reverse_preflight"`
 }
 
-// OK reports whether the reverse run completed without entry-level rejections
-// and with both canon prechecks satisfied.
+// OK reports whether the reverse run completed without raw-candidate
+// rejections and with both canon prechecks satisfied.
 func (r ReverseReport) OK() bool {
 	return r.RejectedCount == 0 &&
 		r.ValidationReport.OK() &&
@@ -62,8 +130,9 @@ type ReverseResult struct {
 }
 
 type reverseCanonLine struct {
-	Line  int
-	Entry canon.CanonEntry
+	Line   int
+	Entry  canon.CanonEntry
+	Fields map[string]json.RawMessage
 }
 
 type reverseStoreBlock struct {
@@ -74,12 +143,13 @@ type reverseStoreBlock struct {
 }
 
 type reverseShape struct {
-	Title      string
-	Text       *string
-	Created    *string
-	Modified   *string
-	SourceType *string
-	SourceTags []string
+	Title       string
+	Text        *string
+	Created     *string
+	Modified    *string
+	SourceType  *string
+	SourceTags  []string
+	ExtraFields map[string]string
 }
 
 type storedTiddler struct {
@@ -89,16 +159,19 @@ type storedTiddler struct {
 type reverseIssue struct {
 	RuleID  string
 	Message string
-	Fatal   bool
 }
 
-// ReverseInsertOnlyHTML executes the S42 reverse path:
-// canon JSONL -> controlled insert-only merge -> re-openable TiddlyWiki HTML.
+// ReverseInsertOnlyHTML executes the S43 reverse path:
+// mixed canon JSONL -> raw-tiddler selection -> controlled insert-only merge.
 //
 // The function never mutates the input HTML. It returns an HTML byte slice for
 // the caller to persist explicitly to a separate file.
 func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) {
-	report := ReverseReport{Mode: ReverseModeInsertOnly}
+	report := ReverseReport{
+		Mode:                 ReverseModeInsertOnly,
+		RejectedByRule:       make(map[string]int),
+		ProcessedSourceTypes: make(map[string]int),
+	}
 
 	policy := canon.DefaultCanonPolicy()
 	report.ValidationReport = canon.ValidateCanonJSONL(bytes.NewReader(canonJSONL), policy)
@@ -135,39 +208,49 @@ func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) 
 		return &ReverseResult{Report: report}, fmt.Errorf("reverse_tiddlers: parse base HTML store: %w", err)
 	}
 
-	seenCanonTitles := make(map[string]int, len(lines))
+	seenRawTitles := make(map[string]int, len(lines))
 	newItems := make([]string, 0, len(lines))
 
 	for _, line := range lines {
+		if !isRawReverseCandidate(line.Fields) {
+			report.NonRawRecordsSkipped++
+			continue
+		}
+
+		report.RawTiddlersEvaluated++
+		report.ProcessedSourceTypes[normalizedReverseSourceTypeLabel(line.Entry.SourceType)]++
+		if len(line.Entry.SourceFields) > 0 {
+			report.SourceFieldsUsed = true
+			report.SourceFieldsUsedCount++
+		}
+
 		entry := line.Entry
 		title := entry.Title
 
-		if prevLine, duplicated := seenCanonTitles[title]; duplicated {
+		if prevLine, duplicated := seenRawTitles[title]; duplicated {
+			reportRuleRejection(&report, "batch-duplicate-title")
 			report.RejectedCount++
 			report.Decisions = append(report.Decisions, ReverseDecision{
 				Line:     line.Line,
 				Title:    title,
 				Decision: ReverseDecisionRejected,
 				RuleID:   "batch-duplicate-title",
-				Message:  fmt.Sprintf("canon title duplicates line %d; insert-only reverse requires unique titles", prevLine),
+				Message:  fmt.Sprintf("raw reverse candidate duplicates line %d; insert-only reverse requires unique titles", prevLine),
 			})
 			continue
 		}
-		seenCanonTitles[title] = line.Line
+		seenRawTitles[title] = line.Line
 
-		issues := validateReverseInsertable(entry)
+		projected, issues := projectReverseShape(entry)
 		if len(issues) > 0 {
-			if reverseIssuesContainFatal(issues) {
-				report.RejectedCount++
-				report.Decisions = append(report.Decisions, buildRejectedReverseDecision(line.Line, title, issues))
-			} else {
-				report.ExcludedCount++
-				report.Decisions = append(report.Decisions, buildExcludedReverseDecision(line.Line, title, issues))
+			report.RejectedCount++
+			for _, issue := range issues {
+				reportRuleRejection(&report, issue.RuleID)
 			}
+			report.Decisions = append(report.Decisions, buildRejectedReverseDecision(line.Line, title, issues))
 			continue
 		}
 
-		projected := reverseShapeFromCanonEntry(entry)
 		if existing, found := existingByTitle[projected.Title]; found {
 			if reverseShapesEquivalent(existing.Shape, projected) {
 				report.AlreadyPresentCount++
@@ -181,6 +264,7 @@ func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) 
 				continue
 			}
 
+			reportRuleRejection(&report, "existing-title-conflict")
 			report.RejectedCount++
 			report.Decisions = append(report.Decisions, ReverseDecision{
 				Line:     line.Line,
@@ -194,6 +278,7 @@ func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) 
 
 		itemJSON, err := marshalReverseStoreTiddler(projected)
 		if err != nil {
+			reportRuleRejection(&report, "reverse-projection-failed")
 			report.RejectedCount++
 			report.Decisions = append(report.Decisions, ReverseDecision{
 				Line:     line.Line,
@@ -216,9 +301,16 @@ func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) 
 		})
 	}
 
+	if len(report.RejectedByRule) == 0 {
+		report.RejectedByRule = nil
+	}
+	if len(report.ProcessedSourceTypes) == 0 {
+		report.ProcessedSourceTypes = nil
+	}
+
 	if report.RejectedCount > 0 {
 		return &ReverseResult{Report: report}, fmt.Errorf(
-			"reverse_tiddlers: rejected %d canon line(s); no HTML written",
+			"reverse_tiddlers: rejected %d raw reverse candidate(s); no HTML written",
 			report.RejectedCount,
 		)
 	}
@@ -245,7 +337,7 @@ func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) 
 }
 
 // ReverseInsertOnlyFiles is a filesystem helper used by the CLI and tests.
-// It reads the inputs, runs S42 reverse, and writes the output HTML to a new
+// It reads the inputs, runs S43 reverse, and writes the output HTML to a new
 // path without modifying the source HTML in place.
 func ReverseInsertOnlyFiles(htmlPath, canonPath, outHTMLPath string) (*ReverseResult, error) {
 	baseHTML, err := os.ReadFile(htmlPath)
@@ -259,6 +351,11 @@ func ReverseInsertOnlyFiles(htmlPath, canonPath, outHTMLPath string) (*ReverseRe
 	}
 
 	result, err := ReverseInsertOnlyHTML(baseHTML, canonJSONL)
+	if result != nil {
+		result.Report.HTMLInputPath = htmlPath
+		result.Report.CanonInputPath = canonPath
+		result.Report.OutputHTMLPath = outHTMLPath
+	}
 	if err != nil {
 		return result, err
 	}
@@ -286,7 +383,7 @@ func WriteReverseReport(path string, report ReverseReport) error {
 func parseReverseCanonLines(data []byte) ([]reverseCanonLine, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	scanner.Buffer(buf, 64*1024*1024)
 
 	var lines []reverseCanonLine
 	lineNum := 0
@@ -297,13 +394,20 @@ func parseReverseCanonLines(data []byte) ([]reverseCanonLine, error) {
 			continue
 		}
 
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(raw), &fields); err != nil {
+			return nil, fmt.Errorf("line %d: %w", lineNum, err)
+		}
+
 		var entry canon.CanonEntry
 		if err := json.Unmarshal([]byte(raw), &entry); err != nil {
 			return nil, fmt.Errorf("line %d: %w", lineNum, err)
 		}
+
 		lines = append(lines, reverseCanonLine{
-			Line:  lineNum,
-			Entry: entry,
+			Line:   lineNum,
+			Entry:  entry,
+			Fields: fields,
 		})
 	}
 	if err := scanner.Err(); err != nil {
@@ -327,7 +431,7 @@ func locateSingleTiddlerStore(html string) (reverseStoreBlock, error) {
 		return store, nil
 	default:
 		return store, fmt.Errorf(
-			"reverse_tiddlers: found %d tiddler-store blocks; S42 insert-only reverse requires exactly 1",
+			"reverse_tiddlers: found %d tiddler-store blocks; S43 insert-only reverse requires exactly 1",
 			len(matches),
 		)
 	}
@@ -381,52 +485,145 @@ func reverseShapeFromStoredMap(raw map[string]interface{}) (reverseShape, error)
 		shape.SourceTags = append(shape.SourceTags, parsed...)
 	}
 
+	for field := range raw {
+		switch field {
+		case "title", "text", "created", "modified", "type", "tags":
+			continue
+		}
+
+		value, ok := optionalStoredString(raw, field)
+		if !ok {
+			continue
+		}
+		if shape.ExtraFields == nil {
+			shape.ExtraFields = make(map[string]string)
+		}
+		if value == nil {
+			shape.ExtraFields[field] = ""
+			continue
+		}
+		shape.ExtraFields[field] = *value
+	}
+
 	return shape, nil
 }
 
-func validateReverseInsertable(entry canon.CanonEntry) []reverseIssue {
+func isRawReverseCandidate(fields map[string]json.RawMessage) bool {
+	if len(fields) == 0 {
+		return false
+	}
+
+	for field := range fields {
+		if _, ok := allowedRawReverseTopLevelFields[field]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func projectReverseShape(entry canon.CanonEntry) (reverseShape, []reverseIssue) {
+	extraFields, issues := validateReverseInsertable(entry)
+	if len(issues) > 0 {
+		return reverseShape{}, issues
+	}
+
+	return reverseShape{
+		Title:       entry.Title,
+		Text:        cloneNonNilString(entry.Text),
+		Created:     normalizeOptionalField(entry.Created),
+		Modified:    normalizeOptionalField(entry.Modified),
+		SourceType:  normalizeTrimmedOptionalField(entry.SourceType),
+		SourceTags:  cloneStringSlice(entry.SourceTags),
+		ExtraFields: extraFields,
+	}, nil
+}
+
+func validateReverseInsertable(entry canon.CanonEntry) (map[string]string, []reverseIssue) {
 	var issues []reverseIssue
 
 	addIssue := func(ruleID, message string) {
 		issues = append(issues, reverseIssue{
 			RuleID:  ruleID,
 			Message: message,
-			Fatal:   true,
-		})
-	}
-	addExclusion := func(ruleID, message string) {
-		issues = append(issues, reverseIssue{
-			RuleID:  ruleID,
-			Message: message,
-			Fatal:   false,
 		})
 	}
 
 	if entry.Title != "" && strings.HasPrefix(entry.Title, "$:/") {
-		addExclusion("unsupported-system-title", "system tiddlers are outside the S42 insert-only reverse scope")
+		addIssue("unsupported-system-title", "system tiddlers are outside the S43 textual reverse scope")
 	}
 	if entry.Key != "" && entry.Title != "" && string(entry.Key) != entry.Title {
 		addIssue("key-title-mismatch", "key must be identical to title under the canonical identity rule")
 	}
 	if entry.IsBinary {
-		addExclusion("unsupported-binary-node", "binary nodes are outside the S42 minimal reverse scope")
+		addIssue("unsupported-binary-node", "binary nodes are outside the S43 textual reverse scope")
 	}
 	if entry.IsReferenceOnly {
-		addExclusion("unsupported-reference-node", "reference-only nodes are outside the S42 minimal reverse scope")
+		addIssue("unsupported-reference-node", "reference-only nodes are outside the S43 textual reverse scope")
 	}
 	if entry.SourceType != nil && !isSupportedReverseSourceType(*entry.SourceType) {
-		addExclusion(
+		addIssue(
 			"unsupported-source-type",
-			fmt.Sprintf("source_type %q is outside the S42 minimal textual reverse scope", *entry.SourceType),
+			fmt.Sprintf("source_type %q is outside the S43 textual reverse scope", strings.TrimSpace(*entry.SourceType)),
 		)
 	}
 	for i, tag := range entry.SourceTags {
-		if strings.TrimSpace(tag) == "" {
-			addIssue("invalid-source-tags", fmt.Sprintf("source_tags[%d] is empty after trimming", i))
+		if tag == "" || strings.TrimSpace(tag) == "" || strings.TrimSpace(tag) != tag {
+			addIssue("invalid-source-tags", fmt.Sprintf("source_tags[%d] must be a non-empty trimmed string", i))
 		}
 	}
 
-	return issues
+	extraFields, fieldIssues := validateReverseSourceFields(entry.SourceFields)
+	issues = append(issues, fieldIssues...)
+	return extraFields, issues
+}
+
+func validateReverseSourceFields(sourceFields map[string]string) (map[string]string, []reverseIssue) {
+	if len(sourceFields) == 0 {
+		return nil, nil
+	}
+
+	extraFields := make(map[string]string, len(sourceFields))
+	var issues []reverseIssue
+
+	for key, value := range sourceFields {
+		trimmedKey := strings.TrimSpace(key)
+		switch {
+		case trimmedKey == "":
+			issues = append(issues, reverseIssue{
+				RuleID:  "invalid-source-fields-key",
+				Message: "source_fields contains an empty field name",
+			})
+			continue
+		case trimmedKey != key:
+			issues = append(issues, reverseIssue{
+				RuleID:  "invalid-source-fields-key",
+				Message: fmt.Sprintf("source_fields field %q must not carry leading or trailing whitespace", key),
+			})
+			continue
+		}
+
+		if _, reserved := reservedReverseSourceFields[trimmedKey]; reserved {
+			issues = append(issues, reverseIssue{
+				RuleID:  "source-fields-reserved-key",
+				Message: fmt.Sprintf("source_fields must not overwrite reserved field %q", trimmedKey),
+			})
+			continue
+		}
+		if _, derived := derivedReverseSourceFields[trimmedKey]; derived {
+			issues = append(issues, reverseIssue{
+				RuleID:  "source-fields-derived-key",
+				Message: fmt.Sprintf("source_fields must not project derived field %q as authoritative tiddler data", trimmedKey),
+			})
+			continue
+		}
+
+		extraFields[trimmedKey] = value
+	}
+
+	if len(extraFields) == 0 {
+		return nil, issues
+	}
+	return extraFields, issues
 }
 
 func buildRejectedReverseDecision(line int, title string, issues []reverseIssue) ReverseDecision {
@@ -456,71 +653,31 @@ func buildRejectedReverseDecision(line int, title string, issues []reverseIssue)
 	}
 }
 
-func buildExcludedReverseDecision(line int, title string, issues []reverseIssue) ReverseDecision {
-	if len(issues) == 1 {
-		return ReverseDecision{
-			Line:     line,
-			Title:    title,
-			Decision: ReverseDecisionExcluded,
-			RuleID:   issues[0].RuleID,
-			Message:  issues[0].Message,
-		}
+func reportRuleRejection(report *ReverseReport, ruleID string) {
+	if report.RejectedByRule == nil {
+		report.RejectedByRule = make(map[string]int)
 	}
-
-	ruleIDs := make([]string, 0, len(issues))
-	messages := make([]string, 0, len(issues))
-	for _, issue := range issues {
-		ruleIDs = append(ruleIDs, issue.RuleID)
-		messages = append(messages, issue.Message)
-	}
-
-	return ReverseDecision{
-		Line:     line,
-		Title:    title,
-		Decision: ReverseDecisionExcluded,
-		RuleID:   "multiple-reverse-exclusions",
-		Message:  fmt.Sprintf("%s (%s)", strings.Join(messages, "; "), strings.Join(ruleIDs, ",")),
-	}
-}
-
-func reverseIssuesContainFatal(issues []reverseIssue) bool {
-	for _, issue := range issues {
-		if issue.Fatal {
-			return true
-		}
-	}
-	return false
+	report.RejectedByRule[ruleID]++
 }
 
 func isSupportedReverseSourceType(sourceType string) bool {
-	st := strings.TrimSpace(strings.ToLower(sourceType))
-	if st == "" {
+	label := strings.ToLower(strings.TrimSpace(sourceType))
+	if label == "" {
 		return true
 	}
-	if strings.HasPrefix(st, "text/") {
-		return true
-	}
-
-	switch st {
-	case "application/json",
-		"application/javascript",
-		"application/x-tiddler-dictionary",
-		"application/xml":
-		return true
-	default:
-		return false
-	}
+	_, ok := supportedReverseSourceTypes[label]
+	return ok
 }
 
-func reverseShapeFromCanonEntry(entry canon.CanonEntry) reverseShape {
-	return reverseShape{
-		Title:      entry.Title,
-		Text:       cloneNonNilString(entry.Text),
-		Created:    normalizeOptionalField(entry.Created),
-		Modified:   normalizeOptionalField(entry.Modified),
-		SourceType: normalizeOptionalField(entry.SourceType),
-		SourceTags: cloneStringSlice(entry.SourceTags),
+func normalizedReverseSourceTypeLabel(sourceType *string) string {
+	if sourceType == nil {
+		return "unspecified"
 	}
+	trimmed := strings.TrimSpace(*sourceType)
+	if trimmed == "" {
+		return "unspecified"
+	}
+	return strings.ToLower(trimmed)
 }
 
 func reverseShapesEquivalent(existing, projected reverseShape) bool {
@@ -539,11 +696,22 @@ func reverseShapesEquivalent(existing, projected reverseShape) bool {
 	if normalizedOptionalValue(existing.SourceType) != normalizedOptionalValue(projected.SourceType) {
 		return false
 	}
-	return slices.Equal(existing.SourceTags, projected.SourceTags)
+	if !slices.Equal(existing.SourceTags, projected.SourceTags) {
+		return false
+	}
+
+	for key, projectedValue := range projected.ExtraFields {
+		existingValue, ok := existing.ExtraFields[key]
+		if !ok || existingValue != projectedValue {
+			return false
+		}
+	}
+
+	return true
 }
 
 func marshalReverseStoreTiddler(shape reverseShape) (string, error) {
-	item := make(map[string]string, 6)
+	item := make(map[string]string, 6+len(shape.ExtraFields))
 	item["title"] = shape.Title
 
 	if shape.Text != nil {
@@ -567,6 +735,9 @@ func marshalReverseStoreTiddler(shape reverseShape) (string, error) {
 			item["tags"] = tags
 		}
 	}
+	for key, value := range shape.ExtraFields {
+		item[key] = value
+	}
 
 	data, err := json.Marshal(item)
 	if err != nil {
@@ -582,16 +753,15 @@ func formatTW5Tags(tags []string) (string, error) {
 
 	formatted := make([]string, 0, len(tags))
 	for i, tag := range tags {
-		value := strings.TrimSpace(tag)
-		if value == "" {
-			return "", fmt.Errorf("tag[%d] is empty after trimming", i)
+		if tag == "" || strings.TrimSpace(tag) == "" || strings.TrimSpace(tag) != tag {
+			return "", fmt.Errorf("tag[%d] must be a non-empty trimmed string", i)
 		}
 
-		if strings.ContainsAny(value, " []") {
-			formatted = append(formatted, "[["+value+"]]")
+		if strings.ContainsAny(tag, " []") {
+			formatted = append(formatted, "[["+tag+"]]")
 			continue
 		}
-		formatted = append(formatted, value)
+		formatted = append(formatted, tag)
 	}
 
 	return strings.Join(formatted, " "), nil
@@ -655,6 +825,17 @@ func normalizeOptionalField(value *string) *string {
 	}
 	cloned := *value
 	return &cloned
+}
+
+func normalizeTrimmedOptionalField(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 func normalizedOptionalValue(value *string) string {

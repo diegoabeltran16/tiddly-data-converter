@@ -75,7 +75,7 @@ func ValidateCanonJSONL(r io.Reader, policy CanonPolicy) ValidationReport {
 
 	// Increase buffer for large lines.
 	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	scanner.Buffer(buf, 64*1024*1024)
 
 	lineNum := 0
 	for scanner.Scan() {
@@ -91,6 +91,14 @@ func ValidateCanonJSONL(r io.Reader, policy CanonPolicy) ValidationReport {
 			report.LinesValid++
 		}
 		report.Issues = append(report.Issues, issues...)
+	}
+	if err := scanner.Err(); err != nil {
+		report.Issues = append(report.Issues, ValidationIssue{
+			Line:     lineNum + 1,
+			RuleID:   "read-error",
+			Message:  fmt.Sprintf("cannot continue scanning canon JSONL: %v", err),
+			Severity: "error",
+		})
 	}
 	return report
 }
