@@ -1,6 +1,6 @@
 // Package canon — reverse_readiness.go
 //
-// S39 — canon-executable-policy-and-reverse-readiness-v0
+// # S39 — canon-executable-policy-and-reverse-readiness-v0
 //
 // Checks whether a canonical JSONL file is ready for reverse
 // (reconstruction to TiddlyWiki tiddlers). This is a preflight check
@@ -59,7 +59,7 @@ func ReversePreflightCanonJSONL(r io.Reader) ReversePreflightReport {
 	scanner := bufio.NewScanner(r)
 
 	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	scanner.Buffer(buf, 64*1024*1024)
 
 	lineNum := 0
 	for scanner.Scan() {
@@ -77,6 +77,14 @@ func ReversePreflightCanonJSONL(r io.Reader) ReversePreflightReport {
 			report.NotReady++
 			report.Issues = append(report.Issues, issues...)
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		report.NotReady++
+		report.Issues = append(report.Issues, ReverseIssue{
+			Line:    lineNum + 1,
+			RuleID:  "read-error",
+			Message: fmt.Sprintf("cannot continue scanning canon JSONL: %v", err),
+		})
 	}
 	return report
 }

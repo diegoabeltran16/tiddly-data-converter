@@ -62,7 +62,7 @@ func NormalizeCanonJSONL(r io.Reader, w io.Writer) NormalizationReport {
 
 	// Increase buffer for large lines.
 	buf := make([]byte, 0, 1024*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	scanner.Buffer(buf, 64*1024*1024)
 
 	lineNum := 0
 	for scanner.Scan() {

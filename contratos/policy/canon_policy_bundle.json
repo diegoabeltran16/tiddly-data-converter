@@ -86,7 +86,8 @@
   ],
   "reverse_optional_fields": [
     "source_type",
-    "source_tags"
+    "source_tags",
+    "source_fields"
   ],
   "reverse_excluded_fields": [
     "id",
@@ -110,7 +111,6 @@
     "section_path",
     "order_in_document",
     "relations",
-    "source_fields",
     "source_role"
   ],
   "allowed_top_level_fields": [
