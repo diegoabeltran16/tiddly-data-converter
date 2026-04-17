@@ -102,8 +102,93 @@ env GOCACHE=/tmp/go-build go run ./cmd/export_tiddlers \
 - reporte auditable de reverse: `out/reverse-report.json`
 - manifest/log del round-trip local: `out/roundtrip.manifest.json`, `out/roundtrip.export.log`
 
+## 6. Derivación local (capas enriquecida y AI-friendly)
+
+El entrypoint estable para derivación local es `scripts/derive_layers.py` (S46+).
+
+### ¿Qué genera cada capa?
+
+| Capa | Descripción | Directorio |
+|------|-------------|------------|
+| **Canon** | Fuente de verdad autoritativa fragmentada. No tocar directamente. | `out/tiddlers_*.jsonl` |
+| **Enriched** | Capa A: copia enriquecida del canon con campos derivados deterministas (`preview_text`, `semantic_text`, `secondary_roles`, `quality_flags`, `taxonomy_path` mejorado). | `out/enriched/` |
+| **AI-friendly** | Capa B: proyección compacta orientada a ingesta por IA. Incluye `ai_summary`, `retrieval_terms`, `retrieval_aliases`, relaciones validadas y señales de clasificación semántica. | `out/ai/` |
+| **Chunks** | Fragmentación jerárquica del contenido textual largo. Hard max: 4000 tokens. | `out/ai/chunks_ai_*.jsonl` |
+| **QC Reports** | Reportes de calidad auditables: clasificación, chunking, retrieval, relaciones. | `out/ai/reports/` |
+
+### Archivos de salida
+
+```
+out/enriched/
+  tiddlers_enriched_1.jsonl  ...  tiddlers_enriched_N.jsonl
+  manifest.json
+
+out/ai/
+  tiddlers_ai_1.jsonl  ...  tiddlers_ai_N.jsonl
+  chunks_ai_1.jsonl    ...  chunks_ai_M.jsonl
+  manifest.json
+  reports/
+    classification_report.json
+    chunk_qc_report.json
+    retrieval_qc_report.json
+    relations_qc_report.json
+    derivation_report.json
+```
+
+### Ejecución de la derivación local
+
+```bash
+python3 scripts/derive_layers.py \
+  --input-dir out \
+  --enriched-dir out/enriched \
+  --ai-dir out/ai
+```
+
+Con parámetros explícitos:
+
+```bash
+python3 scripts/derive_layers.py \
+  --input-dir out \
+  --enriched-dir out/enriched \
+  --ai-dir out/ai \
+  --reports-dir out/ai/reports \
+  --chunk-target-tokens 1800 \
+  --chunk-max-tokens 4000 \
+  --tiddler-shard-size 100 \
+  --chunk-shard-size 200
+```
+
+Con guardrail estricto (falla si algún chunk supera el hard max):
+
+```bash
+python3 scripts/derive_layers.py \
+  --input-dir out \
+  --enriched-dir out/enriched \
+  --ai-dir out/ai \
+  --fail-on-chunk-violation
+```
+
+### Si ya existen artefactos
+
+El script siempre sobreescribe los artefactos existentes en `out/enriched/` y `out/ai/`. No es necesario borrarlos antes. Para hacer explícita la sobreescritura voluntaria, se puede usar `--overwrite`.
+
+### Qué revisar después de ejecutar
+
+1. **Manifests**: `out/enriched/manifest.json` y `out/ai/manifest.json` — confirmar `total_records` y `shard_count`.
+2. **`classification_report.json`** — revisar `role_primary_distribution`, `unclassified_count`, cobertura de `taxonomy_path` y `section_path`.
+3. **`chunk_qc_report.json`** — confirmar `chunks_above_hard_max: 0` (hard max jamás debe violarse).
+4. **`retrieval_qc_report.json`** — revisar `avg_hints_per_node` y `nodes_with_empty_hints`.
+5. **`relations_qc_report.json`** — revisar `total_invalid_relations_discarded`.
+
+### Compatibilidad con S45
+
+`scripts/s45_derive_layers.py` es ahora un wrapper de compatibilidad que redirige a `derive_layers.py`. No usarlo directamente para trabajo nuevo.
+
+---
+
 ## Notas operativas
 
 - Los archivos en `/tmp` son temporales y prescindibles.
 - `content.plain`, `normalized_tags`, `semantic_text` y demás derivados no son autoridad de reverse.
 - Si un shard directory falla preflight, no se debe normalizar ni reescribir en silencio: primero hay que corregir la anomalía fuente.
+- La derivación local (capas enriched y AI) no modifica el canon. Siempre puede regenerarse desde `out/tiddlers_*.jsonl`.

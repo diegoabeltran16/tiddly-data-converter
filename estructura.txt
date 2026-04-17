@@ -61,6 +61,7 @@
 │   ├── m03-s43-canon-robust-textual-reverse-v0.md.json
 │   ├── m03-s44-canon-sharded-homogeneous-records-and-robust-reverse-v0.md.json
 │   ├── m03-s45-canon-enriched-ai-projection-v0.md.json
+│   ├── m03-s46-ai-projection-v1-hardening-local.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -188,6 +189,7 @@
 │       ├── #### 🌀 Sesión 42 = canon-minimal-deterministic-reverse-v0.json
 │       ├── #### 🌀 Sesión 43 = canon-robust-textual-reverse-v0.json
 │       ├── #### 🌀 Sesión 45 = canon-enriched-ai-projection-v0.json
+│       ├── #### 🌀 Sesión 46 = ai-projection-v1-hardening-local.json
 │       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
 │       ├── #### 🌀📦 Política de dependencias.json
 │       ├── #### 🌀📦 Procedencia de dependencias = m01.json
@@ -235,6 +237,7 @@
 │       ├── #### 🌀🧪 Hipótesis de sesión 42 = canon-minimal-deterministic-reverse-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 43 = canon-robust-textual-reverse-v0.json
 │       ├── #### 🌀🧪 Hipótesis de sesión 45 = canon-enriched-ai-projection-v0.json
+│       ├── #### 🌀🧪 Hipótesis de sesión 46 = ai-projection-v1-hardening-local.json
 │       ├── #### 🌀🧾 Procedencia de sesión 02.json
 │       ├── #### 🌀🧾 Procedencia de sesión 03.json
 │       ├── #### 🌀🧾 Procedencia de sesión 04.json
@@ -277,6 +280,7 @@
 │       ├── #### 🌀🧾 Procedencia de sesión 42.json
 │       ├── #### 🌀🧾 Procedencia de sesión 43.json
 │       ├── #### 🌀🧾 Procedencia de sesión 45.json
+│       ├── #### 🌀🧾 Procedencia de sesión 46.json
 │       ├── #### 📚 Diccionario 🌀.csv
 │       ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
 │       ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
@@ -409,7 +413,19 @@
 │   ├── ai
 │   │   ├── chunks_ai_1.jsonl
 │   │   ├── chunks_ai_2.jsonl
+│   │   ├── chunks_ai_3.jsonl
+│   │   ├── chunks_ai_4.jsonl
+│   │   ├── chunks_ai_5.jsonl
+│   │   ├── chunks_ai_6.jsonl
+│   │   ├── chunks_ai_7.jsonl
+│   │   ├── chunks_ai_8.jsonl
 │   │   ├── manifest.json
+│   │   ├── reports
+│   │   │   ├── chunk_qc_report.json
+│   │   │   ├── classification_report.json
+│   │   │   ├── derivation_report.json
+│   │   │   ├── relations_qc_report.json
+│   │   │   └── retrieval_qc_report.json
 │   │   ├── tiddlers_ai_1.jsonl
 │   │   ├── tiddlers_ai_2.jsonl
 │   │   ├── tiddlers_ai_3.jsonl
@@ -417,7 +433,6 @@
 │   │   ├── tiddlers_ai_5.jsonl
 │   │   ├── tiddlers_ai_6.jsonl
 │   │   └── tiddlers_ai_7.jsonl
-│   ├── derivation-report-s45.json
 │   ├── enriched
 │   │   ├── manifest.json
 │   │   ├── tiddlers_enriched_1.jsonl
@@ -427,15 +442,15 @@
 │   │   ├── tiddlers_enriched_5.jsonl
 │   │   ├── tiddlers_enriched_6.jsonl
 │   │   └── tiddlers_enriched_7.jsonl
-│   ├── reverse-report.json
+│   ├── export.log
+│   ├── manifest.json
 │   ├── tiddlers_1.jsonl
 │   ├── tiddlers_2.jsonl
 │   ├── tiddlers_3.jsonl
 │   ├── tiddlers_4.jsonl
 │   ├── tiddlers_5.jsonl
 │   ├── tiddlers_6.jsonl
-│   ├── tiddlers_7.jsonl
-│   └── tiddly-data-converter.derived.html
+│   └── tiddlers_7.jsonl
 ├── packaging
 │   └── packaging.txt
 ├── python
@@ -471,6 +486,7 @@
 ├── scripts
 │   ├── baseline_regen.sh
 │   ├── baseline_verify.sh
+│   ├── derive_layers.py
 │   ├── export_s33_regen.sh
 │   ├── export_s33_verify.sh
 │   ├── pick_and_place.sh

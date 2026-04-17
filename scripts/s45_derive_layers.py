@@ -1,22 +1,41 @@
 #!/usr/bin/env python3
 """
-S45 — Derivation script: Enriched Canonical Export + AI-friendly Projection.
+S45 — DEPRECATED compatibility wrapper.
 
-Reads out/tiddlers_{1..7}.jsonl (canon shards) and produces:
-  - out/enriched/tiddlers_enriched_{N}.jsonl  (Capa A)
-  - out/ai/tiddlers_ai_{N}.jsonl              (Capa B)
-  - out/ai/chunks_ai_{N}.jsonl                (Capa B — chunks)
-  - out/enriched/manifest.json
-  - out/ai/manifest.json
-  - out/derivation-report-s45.json
+This script has been superseded by scripts/derive_layers.py (S46+).
 
-Derivation rules:
-  - Copied fields: deterministic, unchanged from canon.
-  - Derived fields: deterministic computation from existing data.
-  - Heuristic fields: marked explicitly as heuristic.
-  - Absent fields: explicitly marked as absent.
-  - Prohibited: no provenance fabrication, no metacognition invention.
+This wrapper forwards to derive_layers.py with S45-compatible defaults.
+For new usage, call derive_layers.py directly:
+
+    python3 scripts/derive_layers.py \\
+        --input-dir out \\
+        --enriched-dir out/enriched \\
+        --ai-dir out/ai
+
+S45 original docstring preserved for reference:
+  Reads out/tiddlers_{1..7}.jsonl (canon shards) and produces:
+    - out/enriched/tiddlers_enriched_{N}.jsonl  (Capa A)
+    - out/ai/tiddlers_ai_{N}.jsonl              (Capa B)
+    - out/ai/chunks_ai_{N}.jsonl                (Capa B — chunks)
+    - out/enriched/manifest.json
+    - out/ai/manifest.json
+    - out/derivation-report-s45.json
 """
+import subprocess
+import sys
+from pathlib import Path
+
+if __name__ == "__main__":
+    print("[s45_derive_layers.py] DEPRECATED — forwarding to scripts/derive_layers.py (S46+)")
+    derive = Path(__file__).resolve().parent / "derive_layers.py"
+    result = subprocess.run(
+        [sys.executable, str(derive)] + sys.argv[1:],
+        cwd=str(Path(__file__).resolve().parent.parent),
+    )
+    sys.exit(result.returncode)
+
+# ── Legacy code preserved below for reference only ────────────────────────────
+# (Not executed — all derivation logic now lives in derive_layers.py)
 
 import json
 import os
