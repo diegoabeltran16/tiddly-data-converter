@@ -221,6 +221,13 @@ def classify_role(rec: dict) -> str:
     if "dofa" in title_lower:
         return "dofa"
 
+    # ── Canon role inheritance ──
+    # Preserve explicit canon typing for concrete nodes once structural
+    # session/protocol roles have had a chance to resolve.
+    existing = rec.get("role_primary")
+    if existing in VALID_ROLES and existing != "unclassified":
+        return existing
+
     # ── Algorithm ──
     if "algoritmos" in title_lower or "matematicas" in title_lower or "matemáticas" in title_lower:
         return "algorithm"
@@ -320,11 +327,6 @@ def classify_role(rec: dict) -> str:
                                        "application/octet-stream"):
         return "asset"
 
-    # ── Config: keep for clearly structural JSON nodes ──
-    existing = rec.get("role_primary")
-    if existing in VALID_ROLES and existing != "unclassified":
-        return existing
-
     # ── Default ──
     return "unclassified"
 
@@ -415,6 +417,12 @@ def compute_semantic_text(rec: dict, max_chars: int = 600) -> str:
     Uses content.plain preferentially; falls back to text.
     This is usable base text for AI indexing — not a summary.
     """
+    existing = rec.get("semantic_text")
+    if isinstance(existing, str):
+        existing = existing.strip()
+        if existing:
+            return existing
+
     content = rec.get("content") or {}
     plain = safe_str(content.get("plain")).strip()
     if plain:
@@ -593,6 +601,19 @@ def build_secondary_roles(rec: dict, role: str) -> list:
     Derive secondary_roles with deduplication and maximum of 4.
     Must not be a semantic garbage dump.
     """
+    existing = rec.get("roles_secondary")
+    if isinstance(existing, list):
+        seen = {role}
+        final = []
+        for item in existing:
+            val = safe_str(item).strip()
+            if not val or val in seen or len(final) >= 4:
+                continue
+            seen.add(val)
+            final.append(val)
+        if final:
+            return final
+
     roles = []
     title_lower = safe_str(rec.get("title")).lower()
     tags_lower = [safe_str(t).lower() for t in (rec.get("tags") or [])]

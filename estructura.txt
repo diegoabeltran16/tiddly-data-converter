@@ -10,6 +10,7 @@
 ├── contratos
 │   ├── context_relations
 │   │   └── context_relations_rules.md
+│   ├── estructura_de_commits_tiddly-data-converter.JSON
 │   ├── export_contract
 │   │   └── export_contract_rules.md
 │   ├── identity
@@ -62,6 +63,8 @@
 │   ├── m03-s44-canon-sharded-homogeneous-records-and-robust-reverse-v0.md.json
 │   ├── m03-s45-canon-enriched-ai-projection-v0.md.json
 │   ├── m03-s46-ai-projection-v1-hardening-local.md.json
+│   ├── m03-s47-normative-self-audit-and-projection-refinement-v0.md.json
+│   ├── m03-s48-canonical-enrichment-target-scope-v0.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -84,7 +87,6 @@
 ├── data
 │   └── data.txt
 ├── docs
-│   ├── estructura_de_commits_tiddly-data-converter.JSON
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
@@ -109,202 +111,13 @@
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.docx
 │   │   ├── 07. Nested learning, the illusion of deep learnin arch.pdf
 │   │   └── 07. Nested learning, the illusion of deep learnin arch.txt
-│   ├── Technical_Report_Tiddler_Sys_(Eng).md
-│   └── tiddlers_de_sesiones
-│       ├── # 1_tiddly-data-converter.json
-│       ├── # 2_🧾 Procedencia inicial.json
-│       ├── # 3_🧪 Hipótesis inicial.json
-│       ├── ## 🌀🧱 Desarrollo y Evolución.json
-│       ├── ## 🎯🧱 Detalles del tema.json
-│       ├── ## 📚🧱 Glosario y Convenciones.json
-│       ├── ## 📦🧱 Dependencias y superficie externa.json
-│       ├── ## 🗂🧱 Arquitectura (del desarrollo).json
-│       ├── ## 🗂🧱 Buen gusto.json
-│       ├── ## 🗂🧱 Calidad de referencias.json
-│       ├── ## 🗂🧱 Complejidad Esencial vs Accidental.json
-│       ├── ## 🗂🧱 Diseño.json
-│       ├── ## 🗂🧱 Epigenética Computacional.json
-│       ├── ## 🗂🧱 Estilo Mosston y Ashworth.json
-│       ├── ## 🗂🧱 Estructura de trazabilidad.json
-│       ├── ## 🗂🧱 Evolución Semántica.json
-│       ├── ## 🗂🧱 Modularidad y Estado.json
-│       ├── ## 🗂🧱 Principios de Gestion.json
-│       ├── ## 🗂🧱 Reglas de relaciones.json
-│       ├── ## 🗂🧱 Usabilidad y Robustez.json
-│       ├── ## 🧠🧱 Política de Memoria Activa.json
-│       ├── ## 🧪🧱 Hipótesis.json
-│       ├── ## 🧭🧱 Protocolo de Sesión.json
-│       ├── ## 🧰🧱 Elementos específicos.json
-│       ├── ## 🧾🧱 Procedencia epistemológica.json
-│       ├── ### 🎯 1. Objetivos 🧱.json
-│       ├── ### 🎯 2. Requisitos 🧱.json
-│       ├── ### 🎯 3. DOFA 🧱.json
-│       ├── ### 🎯 4. Flujo de interaccion 🧱.json
-│       ├── ### 🎯 5. Arquitectura 🌀.json
-│       ├── ### 🎯 6. Componentes 🌀.json
-│       ├── ### 🎯 7. Algoritmos y matematicas 🌀.json
-│       ├── ### 🎯 8. Ingeniería asistida por IA 🌀.json
-│       ├── #### referencias especificas 🌀.json
-│       ├── #### 🌀 Sesión 01 = extractor-contract.json
-│       ├── #### 🌀 Sesión 02 = extractor-bootstrap.json
-│       ├── #### 🌀 Sesión 03 = extractor-env-wsl.json
-│       ├── #### 🌀 Sesión 04 = doctor-contract.json
-│       ├── #### 🌀 Sesión 05 = ingesta-contract.json
-│       ├── #### 🌀 Sesión 06 = ingesta-go-env-wsl.json
-│       ├── #### 🌀 Sesión 07 = ingesta-bootstrap.json
-│       ├── #### 🌀 Sesión 08 = ingesta-data-triage.json
-│       ├── #### 🌀 Sesión 09 = ingesta-timestamp-policy.json
-│       ├── #### 🌀 Sesión 10 = doctor-audit.json
-│       ├── #### 🌀 Sesión 11 = ingesta-dedup-triage.json
-│       ├── #### 🌀 Sesión 12 = pipeline-costura.json
-│       ├── #### 🌀 Sesión 13 = canon-bootstrap.json
-│       ├── #### 🌀 Sesión 14 = bridge-ingesta-canon.json
-│       ├── #### 🌀 Sesión 15 = canon-collision-acceptance.json
-│       ├── #### 🌀 Sesión 16 = canon-jsonl-writer.json
-│       ├── #### 🌀 Sesión 17 = canon-admit-v0.json
-│       ├── #### 🌀 Sesión 18 = canon-schema-v0.json
-│       ├── #### 🌀 Sesión 19 = canon-jsonl-gate-v0.json
-│       ├── #### 🌀 Sesión 20 = canon-gate-e2e-smoke.json
-│       ├── #### 🌀 Sesión 21 = canon-gate-acceptance-matrix.json
-│       ├── #### 🌀 Sesión 22 = canon-gate-ci-integration.json
-│       ├── #### 🌀 Sesión 23 = canon-gate-docs.json
-│       ├── #### 🌀 Sesión 24 = canon-gate-ci-integration.json
-│       ├── #### 🌀 Sesión 25 = canon-gate-batch-contract-v1.json
-│       ├── #### 🌀 Sesión 26 = canon-gate-batch-report-persist-v0.json
-│       ├── #### 🌀 Sesión 27 = canon-gate-batch-report-persist-v0.json
-│       ├── #### 🌀 Sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
-│       ├── #### 🌀 Sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
-│       ├── #### 🌀 Sesión 30 = canon-uuidv5-and-memory-policy-v0.json
-│       ├── #### 🌀 Sesión 31 = canon-accumulate-replay-verify-and-ci-v0.json
-│       ├── #### 🌀 Sesión 32 = canon-freeze-baseline-oracle-and-first-jsonl-v0.json
-│       ├── #### 🌀 Sesión 33 = single-jsonl-functional-tiddlers-from-real-html-v0.json
-│       ├── #### 🌀 Sesión 34 = canon-node-structural-identity-v0.json
-│       ├── #### 🌀 Sesión 35 = canon-node-reading-mode-and-typing-v0.json
-│       ├── #### 🌀 Sesión 36 = canon-semantic-function-and-asset-separation-v0.json
-│       ├── #### 🌀 Sesión 37 = canon-document-context-and-relations-v0.json
-│       ├── #### 🌀 Sesión 38 = canon-export-contract-hardening-v0.json
-│       ├── #### 🌀 Sesión 39 = canon-executable-policy-and-reverse-readiness-v0.json
-│       ├── #### 🌀 Sesión 40 = canon-guarded-local-session-test-v0.json
-│       ├── #### 🌀 Sesión 41 = canon-minimal-derived-hardening-for-reverse-v0.json
-│       ├── #### 🌀 Sesión 42 = canon-minimal-deterministic-reverse-v0.json
-│       ├── #### 🌀 Sesión 43 = canon-robust-textual-reverse-v0.json
-│       ├── #### 🌀 Sesión 45 = canon-enriched-ai-projection-v0.json
-│       ├── #### 🌀 Sesión 46 = ai-projection-v1-hardening-local.json
-│       ├── #### 🌀📦 Hipótesis de dependencias = m01.json
-│       ├── #### 🌀📦 Política de dependencias.json
-│       ├── #### 🌀📦 Procedencia de dependencias = m01.json
-│       ├── #### 🌀📦 Registro de dependencias críticas.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 01 = extractor-contract.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 02 = extractor-bootstrap.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 03 = extractor-env-wsl.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 04 = doctor-contract.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 05 = ingesta-contract.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 06 = ingesta-go-env-wsl.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 07 = ingesta-bootstrap.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 08 = ingesta-data-triage.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 09 = ingesta-timestamp-policy.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 10 = doctor-audit.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 11 = ingesta-dedup-triage.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 12 = pipeline-costura.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 13 = canon-bootstrap.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 14 = bridge-ingesta-canon.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 15 = canon-collision-acceptance.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 16 = canon-jsonl-writer.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 17 = canon-admit-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 18 = canon-schema-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 19 = canon-jsonl-gate-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 20 = canon-gate-e2e-smoke.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 21 = canon-gate-acceptance-matrix.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 22 = canon-gate-ci-integration.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 23 = canon-gate-docs.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 24 = canon-gate-ci-integration.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 25 = canon-gate-batch-contract-v1.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 26 = canon-gate-batch-report-persist-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 27 = canon-gate-batch-report-persist-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 28 = canon-gate-batch-accumulation-semantics-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 29 = canon-accumulator-truth-pin-and-impl-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 31 = canon-accumulate-replay-verify-and-ci-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 32 = canon-freeze-baseline-oracle-and-first-jsonl-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 33 = single-jsonl-functional-tiddlers-from-real-html-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 34 = canon-node-structural-identity-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 35 = canon-node-reading-mode-and-typing-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 36 = canon-semantic-function-and-asset-separation-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 37 = canon-document-context-and-relations-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 38 = canon-export-contract-hardening-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 39 = canon-executable-policy-and-reverse-readiness-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 40 = canon-guarded-local-session-test-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 41 = canon-minimal-derived-hardening-for-reverse-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 42 = canon-minimal-deterministic-reverse-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 43 = canon-robust-textual-reverse-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 45 = canon-enriched-ai-projection-v0.json
-│       ├── #### 🌀🧪 Hipótesis de sesión 46 = ai-projection-v1-hardening-local.json
-│       ├── #### 🌀🧾 Procedencia de sesión 02.json
-│       ├── #### 🌀🧾 Procedencia de sesión 03.json
-│       ├── #### 🌀🧾 Procedencia de sesión 04.json
-│       ├── #### 🌀🧾 Procedencia de sesión 05.json
-│       ├── #### 🌀🧾 Procedencia de sesión 06.json
-│       ├── #### 🌀🧾 Procedencia de sesión 07.json
-│       ├── #### 🌀🧾 Procedencia de sesión 08.json
-│       ├── #### 🌀🧾 Procedencia de sesión 09.json
-│       ├── #### 🌀🧾 Procedencia de sesión 10.json
-│       ├── #### 🌀🧾 Procedencia de sesión 11.json
-│       ├── #### 🌀🧾 Procedencia de sesión 12.json
-│       ├── #### 🌀🧾 Procedencia de sesión 13.json
-│       ├── #### 🌀🧾 Procedencia de sesión 14.json
-│       ├── #### 🌀🧾 Procedencia de sesión 15.json
-│       ├── #### 🌀🧾 Procedencia de sesión 16.json
-│       ├── #### 🌀🧾 Procedencia de sesión 17.json
-│       ├── #### 🌀🧾 Procedencia de sesión 18.json
-│       ├── #### 🌀🧾 Procedencia de sesión 19.json
-│       ├── #### 🌀🧾 Procedencia de sesión 20.json
-│       ├── #### 🌀🧾 Procedencia de sesión 21.json
-│       ├── #### 🌀🧾 Procedencia de sesión 22.json
-│       ├── #### 🌀🧾 Procedencia de sesión 23.json
-│       ├── #### 🌀🧾 Procedencia de sesión 24.json
-│       ├── #### 🌀🧾 Procedencia de sesión 25.json
-│       ├── #### 🌀🧾 Procedencia de sesión 26.json
-│       ├── #### 🌀🧾 Procedencia de sesión 27.json
-│       ├── #### 🌀🧾 Procedencia de sesión 28.json
-│       ├── #### 🌀🧾 Procedencia de sesión 29.json
-│       ├── #### 🌀🧾 Procedencia de sesión 31.json
-│       ├── #### 🌀🧾 Procedencia de sesión 32.json
-│       ├── #### 🌀🧾 Procedencia de sesión 33.json
-│       ├── #### 🌀🧾 Procedencia de sesión 34.json
-│       ├── #### 🌀🧾 Procedencia de sesión 35.json
-│       ├── #### 🌀🧾 Procedencia de sesión 36.json
-│       ├── #### 🌀🧾 Procedencia de sesión 37.json
-│       ├── #### 🌀🧾 Procedencia de sesión 38.json
-│       ├── #### 🌀🧾 Procedencia de sesión 39.json
-│       ├── #### 🌀🧾 Procedencia de sesión 40.json
-│       ├── #### 🌀🧾 Procedencia de sesión 41.json
-│       ├── #### 🌀🧾 Procedencia de sesión 42.json
-│       ├── #### 🌀🧾 Procedencia de sesión 43.json
-│       ├── #### 🌀🧾 Procedencia de sesión 45.json
-│       ├── #### 🌀🧾 Procedencia de sesión 46.json
-│       ├── #### 📚 Diccionario 🌀.csv
-│       ├── 01. The Semantic Desktop at Work_ Interlinking Notes.json
-│       ├── 02. From Genesis to Maturity_ Managing Knowledge Graph Ecosystems Through Life Cycles.json
-│       ├── 03. Managing Provenance Data in Knowledge Graph Management Platforms.json
-│       ├── 04. Provenance-based Semantic Enrichment of Interactive Notebooks for Reproducibility.json
-│       ├── 05. An ecosystem for personal knowledge graphs_ A survey and research roadmap.json
-│       ├── 06. Semantic annotation for knowledge management_ Requirements and a survey of the state of the art.json
-│       └── 07. Nested Learning_ The Illusion of Deep Learning Architecture.json
+│   └── Technical_Report_Tiddler_Sys_(Eng).md
 ├── esquemas
 │   ├── canon
 │   │   ├── canon_guarded_session_rules.md
 │   │   └── derived_field_rules.md
 │   └── esquemas.txt
 ├── estructura.txt
-├── export
-│   ├── s33-export-log.jsonl
-│   ├── s33-functional-tiddlers.jsonl
-│   ├── s33-manifest.json
-│   ├── s34-export-log.jsonl
-│   ├── s34-functional-tiddlers.jsonl
-│   ├── s34-manifest.json
-│   ├── s37-export-log.jsonl
-│   ├── s37-functional-tiddlers.jsonl
-│   └── s37-manifest.json
 ├── go
 │   ├── bridge
 │   │   ├── adapter_real_html.go
@@ -410,47 +223,6 @@
 ├── go.work
 ├── LICENSE
 ├── out
-│   ├── ai
-│   │   ├── chunks_ai_1.jsonl
-│   │   ├── chunks_ai_2.jsonl
-│   │   ├── chunks_ai_3.jsonl
-│   │   ├── chunks_ai_4.jsonl
-│   │   ├── chunks_ai_5.jsonl
-│   │   ├── chunks_ai_6.jsonl
-│   │   ├── chunks_ai_7.jsonl
-│   │   ├── chunks_ai_8.jsonl
-│   │   ├── manifest.json
-│   │   ├── reports
-│   │   │   ├── chunk_qc_report.json
-│   │   │   ├── classification_report.json
-│   │   │   ├── derivation_report.json
-│   │   │   ├── relations_qc_report.json
-│   │   │   └── retrieval_qc_report.json
-│   │   ├── tiddlers_ai_1.jsonl
-│   │   ├── tiddlers_ai_2.jsonl
-│   │   ├── tiddlers_ai_3.jsonl
-│   │   ├── tiddlers_ai_4.jsonl
-│   │   ├── tiddlers_ai_5.jsonl
-│   │   ├── tiddlers_ai_6.jsonl
-│   │   └── tiddlers_ai_7.jsonl
-│   ├── enriched
-│   │   ├── manifest.json
-│   │   ├── tiddlers_enriched_1.jsonl
-│   │   ├── tiddlers_enriched_2.jsonl
-│   │   ├── tiddlers_enriched_3.jsonl
-│   │   ├── tiddlers_enriched_4.jsonl
-│   │   ├── tiddlers_enriched_5.jsonl
-│   │   ├── tiddlers_enriched_6.jsonl
-│   │   └── tiddlers_enriched_7.jsonl
-│   ├── export.log
-│   ├── manifest.json
-│   ├── tiddlers_1.jsonl
-│   ├── tiddlers_2.jsonl
-│   ├── tiddlers_3.jsonl
-│   ├── tiddlers_4.jsonl
-│   ├── tiddlers_5.jsonl
-│   ├── tiddlers_6.jsonl
-│   └── tiddlers_7.jsonl
 ├── packaging
 │   └── packaging.txt
 ├── python
@@ -484,6 +256,7 @@
 │   │       └── test_extraction.rs
 │   └── rust.txt
 ├── scripts
+│   ├── audit_normative_projection.py
 │   ├── baseline_regen.sh
 │   ├── baseline_verify.sh
 │   ├── derive_layers.py
@@ -551,9 +324,13 @@
 │   │   │   ├── canon_base.jsonl
 │   │   │   ├── canon_with_collision.jsonl
 │   │   │   └── canon_with_new_valid.jsonl
-│   │   └── s43
-│   │       ├── canon_mixed_multi.jsonl
-│   │       └── invalid_raw_candidates.jsonl
+│   │   ├── s43
+│   │   │   ├── canon_mixed_multi.jsonl
+│   │   │   └── invalid_raw_candidates.jsonl
+│   │   └── s47
+│   │       ├── canon_minimal.jsonl
+│   │       ├── expected_audit_findings.json
+│   │       └── run_audit_test.sh
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1
