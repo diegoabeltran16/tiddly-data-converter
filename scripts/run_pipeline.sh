@@ -2,19 +2,32 @@
 # run_pipeline.sh — Runner mínimo del pipeline Extractor → Doctor → Ingesta → Canon
 #
 # Uso:
-#   ./scripts/run_pipeline.sh [<html_input>] [<out_dir>]
+#   ./scripts/run_pipeline.sh [<html_input>] [<out_dir>] [--audit] [--audit-apply]
 #
 # Parámetros:
-#   html_input  Ruta al archivo HTML vivo de TiddlyWiki
-#               (por defecto: data/tiddly-data-converter (Saved).html)
-#   out_dir     Directorio de salida para los artefactos intermedios y finales
-#               (por defecto: /tmp/tdc-pipeline-run)
+#   html_input    Ruta al archivo HTML vivo de TiddlyWiki
+#                 (por defecto: data/tiddly-data-converter (Saved).html)
+#   out_dir       Directorio de salida para los artefactos intermedios y finales
+#                 (por defecto: /tmp/tdc-pipeline-run)
+#   --audit       Ejecutar auditoría normativa después del pipeline (modo inspect-only)
+#   --audit-apply Ejecutar auditoría normativa con aplicación de safe fixes y regeneración
 #
 # Salida:
 #   <out_dir>/raw.tiddlers.json     — artefacto raw del Extractor
 #   <out_dir>/ingesta.tiddlers.json — tiddlers pre-canónicos de la Ingesta
 #   <out_dir>/canon.entries.json    — entradas canónicas del Bridge
 #   <out_dir>/canon.jsonl           — salida canónica mínima JSONL (S16 bootstrap)
+#
+# Con --audit o --audit-apply:
+#   out/audit/manifest.json         — manifest de ejecución del auditor
+#   out/audit/compliance_report.json
+#   out/audit/compliance_summary.md
+#   out/audit/warnings.jsonl
+#   out/audit/manual_review_queue.jsonl
+#   out/audit/proposed_fixes.json
+#   out/audit/applied_safe_fixes.json
+#   out/audit/pre_post_diff.json
+#   out/audit/audit_log.jsonl
 #
 # Código de salida:
 #   0 — pipeline completo (ok o warning en algún componente)
@@ -24,17 +37,30 @@
 #   4 — fallo bloqueante en la Ingesta
 #   5 — fallo bloqueante en el Bridge (admisión Canon)
 #   6 — fallo bloqueante en la emisión Canon JSONL
+#   7 — fallo bloqueante en la auditoría normativa
 #
 # Ref: contratos/m01-s12-pipeline-costura.md.json
 # Ref: contratos/m01-s14-bridge-ingesta-canon.md.json
 # Ref: contratos/m01-s16-canon-jsonl-writer.md.json
+# Ref: contratos/m03-s47-normative-self-audit-and-projection-refinement-v0.md.json
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-HTML_INPUT="${1:-${REPO_ROOT}/data/tiddly-data-converter (Saved).html}"
-OUT_DIR="${2:-/tmp/tdc-pipeline-run}"
+# Parse flags
+AUDIT_MODE=""
+POSITIONAL=()
+for arg in "$@"; do
+    case "${arg}" in
+        --audit)        AUDIT_MODE="audit" ;;
+        --audit-apply)  AUDIT_MODE="apply" ;;
+        *)              POSITIONAL+=("${arg}") ;;
+    esac
+done
+
+HTML_INPUT="${POSITIONAL[0]:-${REPO_ROOT}/data/tiddly-data-converter (Saved).html}"
+OUT_DIR="${POSITIONAL[1]:-/tmp/tdc-pipeline-run}"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"
 INGESTA_JSON="${OUT_DIR}/ingesta.tiddlers.json"
 CANON_JSON="${OUT_DIR}/canon.entries.json"
@@ -102,6 +128,19 @@ cd "${REPO_ROOT}/go/canon"
 go run ./cmd/emit "${CANON_JSON}" "${CANON_JSONL}" \
     || { echo "[pipeline] BLOQUEADO: Canon JSONL emisión falló (exit $?)"; exit 6; }
 echo "[pipeline] Canon JSONL completado → ${CANON_JSONL}"
+
+# ─── PASO 6 (opcional): Auditoría normativa ───────────────────────────────────
+if [[ -n "${AUDIT_MODE}" ]]; then
+    echo ""
+    echo "[pipeline] === Paso 6 · Auditoría normativa (modo: ${AUDIT_MODE}) ==="
+    cd "${REPO_ROOT}"
+    python3 "${REPO_ROOT}/scripts/audit_normative_projection.py" \
+        --mode "${AUDIT_MODE}" \
+        --input-root "${REPO_ROOT}/out" \
+        --docs-root "${REPO_ROOT}/docs" \
+        || { echo "[pipeline] BLOQUEADO: Auditoría normativa falló (exit $?)"; exit 7; }
+    echo "[pipeline] Auditoría normativa completada → ${REPO_ROOT}/out/audit/"
+fi
 
 # ─── RESUMEN ──────────────────────────────────────────────────────────────────
 echo ""

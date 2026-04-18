@@ -1,0 +1,32 @@
+{
+  "description": "Expected audit findings for tests/fixtures/s47/canon_minimal.jsonl",
+  "cases": [
+    {
+      "case": "1 — Fully conformant record",
+      "node_id": "aaaaaaaa-bbbb-5ccc-8ddd-eeeeeeeeeeee",
+      "expected_RULE-01": "pass",
+      "expected_RULE-05": "pass",
+      "expected_RULE-06": "pass",
+      "expected_RULE-10": "pass",
+      "expected_RULE-07": "pass",
+      "expected_fix_type": "none",
+      "notes": "No fix should be applied. All fields present and valid."
+    },
+    {
+      "case": "2 — Missing normalized_tags (no source_tags either)",
+      "node_id": "bbbbbbbb-cccc-5ddd-8eee-ffffffffffff",
+      "expected_RULE-05": "warn",
+      "expected_fix_type": "safe_autofix",
+      "expected_applied_value": [],
+      "notes": "normalized_tags absent, tags absent → backfill to [] is safe_autofix."
+    },
+    {
+      "case": "3 — Invalid role_primary",
+      "node_id": "cccccccc-dddd-5eee-8fff-000000000000",
+      "expected_RULE-10": "fail",
+      "expected_fix_type": "safe_autofix",
+      "expected_applied_value": "unclassified",
+      "notes": "role_primary not in controlled vocabulary → correct to 'unclassified'."
+    }
+  ]
+}

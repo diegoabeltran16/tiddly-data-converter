@@ -186,6 +186,91 @@ El script siempre sobreescribe los artefactos existentes en `out/enriched/` y `o
 
 ---
 
+## 7. Auditoría normativa (S47)
+
+La auditoría normativa evalúa el canon shardeado y sus capas derivadas contra 21 reglas extraídas del informe técnico bilingüe y los contratos vigentes. Detecta vacíos, incoherencias y aplica **solo correcciones automáticas seguras** (`safe_autofix`) sobre los shards canónicos.
+
+### Regla de activación
+
+La auditoría **no se integra por default** en el pipeline. Debe activarse con flag explícito.
+
+### Comandos
+
+```bash
+# 1. Solo auditoría (inspección sin escrituras al canon):
+python3 scripts/audit_normative_projection.py \
+  --mode audit \
+  --input-root out \
+  --docs-root docs
+
+# 2. Auditoría + aplicar safe fixes + regenerar capas derivadas:
+python3 scripts/audit_normative_projection.py \
+  --mode apply \
+  --input-root out \
+  --docs-root docs
+
+# 3. Auditoría + apply, sin regenerar derivados:
+python3 scripts/audit_normative_projection.py \
+  --mode apply \
+  --input-root out \
+  --no-regenerate
+
+# 4. Desde run_pipeline.sh con flag --audit (solo inspección):
+bash scripts/run_pipeline.sh --audit
+
+# 5. Desde run_pipeline.sh con flag --audit-apply (apply + regeneración):
+bash scripts/run_pipeline.sh --audit-apply
+
+# 6. Validar outputs del auditor:
+jq . out/audit/manifest.json
+jq . out/audit/compliance_report.json
+jq . out/audit/proposed_fixes.json
+jq . out/audit/applied_safe_fixes.json
+jq . out/audit/pre_post_diff.json
+
+# 7. Ejecutar tests de fixture S47:
+bash tests/fixtures/s47/run_audit_test.sh
+```
+
+### Artefactos de auditoría
+
+| Artefacto | Descripción |
+|-----------|-------------|
+| `out/audit/manifest.json` | Run ID, fecha, corpus stats, conteos de reglas y fixes |
+| `out/audit/compliance_report.json` | Cumplimiento global, por regla, por bloque, por severidad |
+| `out/audit/compliance_summary.md` | Resumen legible para humanos |
+| `out/audit/warnings.jsonl` | Todos los hallazgos con `warn` o `fail` |
+| `out/audit/manual_review_queue.jsonl` | Fixes con `review_needed` (requieren juicio humano) |
+| `out/audit/proposed_fixes.json` | Todas las propuestas clasificadas por tipo |
+| `out/audit/applied_safe_fixes.json` | Solo los fixes efectivamente aplicados al canon |
+| `out/audit/pre_post_diff.json` | Diff exacto de qué cambió en canon |
+| `out/audit/audit_log.jsonl` | Log de eventos del run |
+
+### Safe autofixes permitidos
+
+Solo se aplican automáticamente al canon cuando la evidencia es fuerte y la corrección es mecánica:
+
+- Backfill de `normalized_tags: []` cuando el campo está ausente
+- Backfill de `tags: []` cuando el campo está ausente y no hay `source_tags`
+- Corrección de `role_primary` fuera del vocabulario controlado → `"unclassified"`
+
+Todo lo demás va a `manual_review_queue.jsonl`.
+
+### Reglas normativas evaluadas
+
+21 reglas en 6 bloques: `structural`, `identity`, `semantic`, `relations`, `inter_layer`, `normative_report`.
+
+Ver catálogo completo en `contratos/m03-s47-normative-self-audit-and-projection-refinement-v0.md.json`.
+
+### Qué revisar después de ejecutar
+
+1. **`compliance_summary.md`** — resumen de cumplimiento global y deuda pendiente
+2. **`proposed_fixes.json`** — revisar `review_needed` para trabajo manual posterior
+3. **`pre_post_diff.json`** — verificar exactamente qué cambió en el canon
+4. **`warnings.jsonl`** — hallazgos con severidad `critical` o `major` requieren atención prioritaria
+
+---
+
 ## Notas operativas
 
 - Los archivos en `/tmp` son temporales y prescindibles.
