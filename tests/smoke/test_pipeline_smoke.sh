@@ -19,6 +19,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export GOCACHE="${GOCACHE:-/tmp/tdc-go-build-smoke}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/tdc-cargo-target-smoke}"
+mkdir -p "${GOCACHE}" "${CARGO_TARGET_DIR}"
 FIXTURE_HTML="${REPO_ROOT}/tests/fixtures/minimal_tiddlywiki.html"
 OUT_DIR="$(mktemp -d)"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"

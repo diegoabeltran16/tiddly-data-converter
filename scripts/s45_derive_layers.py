@@ -8,18 +8,18 @@ This wrapper forwards to derive_layers.py with S45-compatible defaults.
 For new usage, call derive_layers.py directly:
 
     python3 scripts/derive_layers.py \\
-        --input-dir out \\
-        --enriched-dir out/enriched \\
-        --ai-dir out/ai
+        --input-dir data/out/local \\
+        --enriched-dir data/out/local/enriched \\
+        --ai-dir data/out/local/ai
 
 S45 original docstring preserved for reference:
-  Reads out/tiddlers_{1..7}.jsonl (canon shards) and produces:
-    - out/enriched/tiddlers_enriched_{N}.jsonl  (Capa A)
-    - out/ai/tiddlers_ai_{N}.jsonl              (Capa B)
-    - out/ai/chunks_ai_{N}.jsonl                (Capa B — chunks)
-    - out/enriched/manifest.json
-    - out/ai/manifest.json
-    - out/derivation-report-s45.json
+  Reads data/out/local/tiddlers_{1..7}.jsonl (canon shards) and produces:
+    - data/out/local/enriched/tiddlers_enriched_{N}.jsonl  (Capa A)
+    - data/out/local/ai/tiddlers_ai_{N}.jsonl              (Capa B)
+    - data/out/local/ai/chunks_ai_{N}.jsonl                (Capa B — chunks)
+    - data/out/local/enriched/manifest.json
+    - data/out/local/ai/manifest.json
+    - data/out/local/derivation-report-s45.json
 """
 import subprocess
 import sys
@@ -47,7 +47,7 @@ from datetime import datetime, timezone
 
 # ── Configuration ──────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
-OUT_DIR = BASE_DIR / "out"
+OUT_DIR = BASE_DIR / "data/out/local"
 ENRICHED_DIR = OUT_DIR / "enriched"
 AI_DIR = OUT_DIR / "ai"
 

@@ -192,6 +192,19 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 		// Stamp schema version.
 		e.SchemaVersion = SchemaV0
 
+		if _, err := NormalizeEmbeddedJSONText(&e); err != nil {
+			excluded++
+			result.Manifest.ExcludedByRule["embedded-json-text"]++
+			result.LogEntries = append(result.LogEntries, ExportLogEntry{
+				RunID:     runID,
+				SourceRef: e.Title,
+				Decision:  "excluded",
+				RuleID:    "embedded-json-text",
+				Reason:    fmt.Sprintf("embedded_json_normalization_failed: %v", err),
+			})
+			continue
+		}
+
 		// S34: compute structural identity (id, canonical_slug, version_id).
 		if err := BuildNodeIdentity(&e); err != nil {
 			excluded++

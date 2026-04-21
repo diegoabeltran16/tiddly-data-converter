@@ -17,6 +17,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export GOCACHE="${GOCACHE:-/tmp/tdc-go-build}"
+mkdir -p "${GOCACHE}"
 
 # Paths defined in manifest.json
 INPUT_DIR="${REPO_ROOT}/tests/fixtures/baseline/v1/input"

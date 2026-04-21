@@ -5,7 +5,7 @@
 #   ./scripts/export_s33_verify.sh
 #
 # Checks:
-#   1. export/s33-functional-tiddlers.jsonl exists
+#   1. data/out/local/export/s33-functional-tiddlers.jsonl exists
 #   2. Every line is valid JSON (parseable)
 #   3. Every line has required schema v0 fields (schema_version, key, title)
 #   4. No duplicate keys
@@ -22,8 +22,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-JSONL="${REPO_ROOT}/export/s33-functional-tiddlers.jsonl"
-MANIFEST="${REPO_ROOT}/export/s33-manifest.json"
+JSONL="${REPO_ROOT}/data/out/local/export/s33-functional-tiddlers.jsonl"
+MANIFEST="${REPO_ROOT}/data/out/local/export/s33-manifest.json"
 FAILURES=0
 
 echo "[s33-verify] ============================================"
