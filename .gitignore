@@ -18,7 +18,13 @@ data/extraction_output/
 # Solo se versionan fixtures controlados bajo tests/fixtures/
 *.tiddlywiki.html
 user_input*.html
+data/in/*.html
+data/in/*:Zone.Identifier
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Cache local de Python
+__pycache__/
+*.pyc
 
 /docs/tiddlers_esp
 
@@ -35,3 +41,9 @@ go/canon/canon_preflight
 /.codex
 
 /out
+/data/out
+/data/reverse_html
+/data/out
+/data/out/local
+/data/out/remote
+/data/reverse_html

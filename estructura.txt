@@ -2,7 +2,17 @@
 │   ├── dependabot.yml
 │   ├── instructions
 │   │   ├── contratos.instructions.md
+│   │   ├── dependencia_y_superficie_externa.instructions.md
+│   │   ├── desarrollo_y_evolucion.instructions.md
+│   │   ├── detalles_del_tema.instructions.md
+│   │   ├── elementos_especificos.istructions.md
+│   │   ├── glosario_y_convenciones.instructions.md
+│   │   ├── hipotesis.instructions.md
+│   │   ├── politica_de_memoria_activa.instructions.md
 │   │   ├── PRcommits.instructions.md
+│   │   ├── principios_de_gestion.instructions.md
+│   │   ├── procedencia_epistemologica.instructions.md
+│   │   ├── protocolo_de_sesion.instructions.md
 │   │   └── tiddlers_sesiones.instructions.md
 │   └── workflows
 │       └── ci.yml
@@ -65,6 +75,11 @@
 │   ├── m03-s46-ai-projection-v1-hardening-local.md.json
 │   ├── m03-s47-normative-self-audit-and-projection-refinement-v0.md.json
 │   ├── m03-s48-canonical-enrichment-target-scope-v0.md.json
+│   ├── m03-s49-mcp-onedrive-canon-proposals-v0.md.json
+│   ├── m03-s50-rutas-manifests-reverse-governance-v0.md.json
+│   ├── m03-s50a-session-identity-repair-v0.md.json
+│   ├── m03-s51-canon-semantic-hardening-v0.md.json
+│   ├── m03-s52-chunking-structure-traceability-v0.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -85,9 +100,61 @@
 │       ├── s43-local-checks.md
 │       └── s44-local-checks.md
 ├── data
-│   └── data.txt
+│   ├── in
+│   ├── out
+│   │   ├── local
+│   │   │   ├── ai
+│   │   │   │   ├── chunks_ai_1.jsonl
+│   │   │   │   ├── chunks_ai_10.jsonl
+│   │   │   │   ├── chunks_ai_2.jsonl
+│   │   │   │   ├── chunks_ai_3.jsonl
+│   │   │   │   ├── chunks_ai_4.jsonl
+│   │   │   │   ├── chunks_ai_5.jsonl
+│   │   │   │   ├── chunks_ai_6.jsonl
+│   │   │   │   ├── chunks_ai_7.jsonl
+│   │   │   │   ├── chunks_ai_8.jsonl
+│   │   │   │   ├── chunks_ai_9.jsonl
+│   │   │   │   ├── manifest.json
+│   │   │   │   ├── reports
+│   │   │   │   │   ├── chunk_qc_report.json
+│   │   │   │   │   ├── classification_report.json
+│   │   │   │   │   ├── derivation_report.json
+│   │   │   │   │   ├── relations_qc_report.json
+│   │   │   │   │   └── retrieval_qc_report.json
+│   │   │   │   ├── tiddlers_ai_1.jsonl
+│   │   │   │   ├── tiddlers_ai_2.jsonl
+│   │   │   │   ├── tiddlers_ai_3.jsonl
+│   │   │   │   ├── tiddlers_ai_4.jsonl
+│   │   │   │   ├── tiddlers_ai_5.jsonl
+│   │   │   │   ├── tiddlers_ai_6.jsonl
+│   │   │   │   └── tiddlers_ai_7.jsonl
+│   │   │   ├── audit
+│   │   │   ├── enriched
+│   │   │   │   ├── manifest.json
+│   │   │   │   ├── tiddlers_enriched_1.jsonl
+│   │   │   │   ├── tiddlers_enriched_2.jsonl
+│   │   │   │   ├── tiddlers_enriched_3.jsonl
+│   │   │   │   ├── tiddlers_enriched_4.jsonl
+│   │   │   │   ├── tiddlers_enriched_5.jsonl
+│   │   │   │   ├── tiddlers_enriched_6.jsonl
+│   │   │   │   └── tiddlers_enriched_7.jsonl
+│   │   │   ├── export
+│   │   │   ├── proposals.jsonl
+│   │   │   ├── tiddlers_1.jsonl
+│   │   │   ├── tiddlers_2.jsonl
+│   │   │   ├── tiddlers_3.jsonl
+│   │   │   ├── tiddlers_4.jsonl
+│   │   │   ├── tiddlers_5.jsonl
+│   │   │   ├── tiddlers_6.jsonl
+│   │   │   └── tiddlers_7.jsonl
+│   │   └── remote
+│   ├── README.md
+│   └── reverse_html
+│       ├── reverse-report.json
+│       └── tiddly-data-converter.derived.html
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
+│   ├── Instruccion de sesion agente (Plantilla).txt
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
@@ -172,6 +239,8 @@
 │   │   ├── context_relations_test.go
 │   │   ├── derived_fields.go
 │   │   ├── derived_fields_test.go
+│   │   ├── embedded_json_text.go
+│   │   ├── embedded_json_text_test.go
 │   │   ├── export_context_relations_integration_test.go
 │   │   ├── export_contract_integration_test.go
 │   │   ├── export_identity_integration_test.go
@@ -222,7 +291,6 @@
 │       └── tiddler.go
 ├── go.work
 ├── LICENSE
-├── out
 ├── packaging
 │   └── packaging.txt
 ├── python
@@ -256,12 +324,15 @@
 │   │       └── test_extraction.rs
 │   └── rust.txt
 ├── scripts
+│   ├── __pycache__
 │   ├── audit_normative_projection.py
 │   ├── baseline_regen.sh
 │   ├── baseline_verify.sh
+│   ├── canon_proposal.py
 │   ├── derive_layers.py
 │   ├── export_s33_regen.sh
 │   ├── export_s33_verify.sh
+│   ├── path_governance.py
 │   ├── pick_and_place.sh
 │   ├── run_pipeline.sh
 │   ├── s45_derive_layers.py
@@ -327,10 +398,16 @@
 │   │   ├── s43
 │   │   │   ├── canon_mixed_multi.jsonl
 │   │   │   └── invalid_raw_candidates.jsonl
-│   │   └── s47
-│   │       ├── canon_minimal.jsonl
-│   │       ├── expected_audit_findings.json
-│   │       └── run_audit_test.sh
+│   │   ├── s47
+│   │   │   ├── canon_minimal.jsonl
+│   │   │   ├── expected_audit_findings.json
+│   │   │   └── run_audit_test.sh
+│   │   ├── s49
+│   │   │   ├── candidate_line.json
+│   │   │   └── run_canon_proposal_test.sh
+│   │   └── s52
+│   │       ├── run_chunking_structure_test.sh
+│   │       └── test_chunking_structure.py
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1

@@ -269,5 +269,35 @@ func validateLine(lineNum int, data []byte, policy CanonPolicy) []ValidationIssu
 		})
 	}
 
+	issues = append(issues, validateEmbeddedJSONText(lineNum, entry)...)
+
 	return issues
+}
+
+func validateEmbeddedJSONText(lineNum int, entry CanonEntry) []ValidationIssue {
+	if entry.Text == nil {
+		return nil
+	}
+
+	normalized, actions, changed, err := normalizeEmbeddedJSONTextValue(*entry.Text, entry)
+	if err != nil {
+		return []ValidationIssue{{
+			Line:     lineNum,
+			Field:    "text",
+			RuleID:   "invalid-embedded-json-text",
+			Message:  err.Error(),
+			Severity: "error",
+		}}
+	}
+	if !changed || normalized == *entry.Text {
+		return nil
+	}
+
+	return []ValidationIssue{{
+		Line:     lineNum,
+		Field:    "text",
+		RuleID:   "non-normalized-embedded-json-text",
+		Message:  fmt.Sprintf("embedded JSON text requires normalization: %s", strings.Join(actions, ", ")),
+		Severity: "error",
+	}}
 }

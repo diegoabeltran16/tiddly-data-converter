@@ -1,0 +1,51 @@
+{
+  "schema_version": "v0",
+  "id": "d91f1f78-61a0-581e-9c7a-61999c70b7b9",
+  "key": "Guarded Valid Node",
+  "title": "Guarded Valid Node",
+  "canonical_slug": "guarded-valid-node",
+  "version_id": "sha256:33fcb3f320336b875b5ca3d8cb52500680431a6a4b7fffb22588f2c22836de60",
+  "content_type": "text/markdown",
+  "modality": "text",
+  "encoding": "utf-8",
+  "is_binary": false,
+  "is_reference_only": false,
+  "role_primary": "policy",
+  "tags": [
+    "## 🧭🧱 Protocolo de Sesión",
+    "policy"
+  ],
+  "taxonomy_path": [
+    "🧭🧱 Protocolo de Sesión"
+  ],
+  "semantic_text": null,
+  "raw_payload_ref": "node:d91f1f78-61a0-581e-9c7a-61999c70b7b9",
+  "mime_type": "text/markdown",
+  "document_id": "219d8336-f433-5e63-9b56-2e20a845b679",
+  "section_path": [
+    "## Base Root",
+    "Guarded Valid Node"
+  ],
+  "order_in_document": 1,
+  "relations": [
+    {
+      "type": "references",
+      "target_id": "af0eda8e-9f5e-5df8-ac1f-52a2dfd79494",
+      "evidence": "explicit_field"
+    }
+  ],
+  "source_tags": [
+    "## 🧭🧱 Protocolo de Sesión",
+    "policy"
+  ],
+  "source_fields": {
+    "document_key": "s40-test-doc",
+    "section_path": "[\"## Base Root\",\"Guarded Valid Node\"]"
+  },
+  "source_role": "policy",
+  "text": "Valid candidate body",
+  "source_type": "text/markdown",
+  "source_position": "fixture:block0:tiddler1",
+  "created": "20260419000000000",
+  "modified": "20260419000000000"
+}

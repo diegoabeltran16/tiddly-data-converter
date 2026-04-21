@@ -1,42 +1,55 @@
 #!/usr/bin/env python3
 """
-derive_layers.py — Stable entrypoint for local derivation (S46+).
+derive_layers.py — Stable entrypoint for local derivation (S52+).
 
-Reads canon shards (out/tiddlers_*.jsonl) and produces:
-  - out/enriched/tiddlers_enriched_{N}.jsonl  (Capa A: Enriched Canonical Export)
-  - out/ai/tiddlers_ai_{N}.jsonl              (Capa B: AI-friendly Projection)
-  - out/ai/chunks_ai_{N}.jsonl                (Capa B: Chunks)
-  - out/enriched/manifest.json
-  - out/ai/manifest.json
-  - out/ai/reports/classification_report.json
-  - out/ai/reports/chunk_qc_report.json
-  - out/ai/reports/retrieval_qc_report.json
-  - out/ai/reports/relations_qc_report.json
-  - out/ai/reports/derivation_report.json
+Reads canon shards from the governed local canon root and produces:
+  - data/out/local/enriched/tiddlers_enriched_{N}.jsonl
+  - data/out/local/ai/tiddlers_ai_{N}.jsonl
+  - data/out/local/ai/chunks_ai_{N}.jsonl
+  - data/out/local/enriched/manifest.json
+  - data/out/local/ai/manifest.json
+  - data/out/local/ai/reports/classification_report.json
+  - data/out/local/ai/reports/chunk_qc_report.json
+  - data/out/local/ai/reports/retrieval_qc_report.json
+  - data/out/local/ai/reports/relations_qc_report.json
+  - data/out/local/ai/reports/derivation_report.json
 
-Hardening principles (S46):
+Hardening principles (S52):
   - 100% shard-aware: no monolithic input, no hardcoded shard count
   - Controlled vocabulary for role_primary (26 types)
-  - Hierarchical chunker with hard max guardrail
+  - Token-aware structural chunker with hard max guardrail
+  - Corpus eligibility policy for archival and legacy derived artifacts
   - Retrieval hints: normalized dedup, split into terms + aliases
   - Relations validated against known node IDs
   - Three distinct text fields: preview_text, semantic_text, ai_summary
   - Deterministic: no fabrication, no metadata invention
+  - Chunk-level traceability back to canon shard, line and structural context
 """
 
 import argparse
 import json
+import math
 import os
 import re
+import statistics
 import sys
 import unicodedata
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from path_governance import (
+    DEFAULT_AI_DIR,
+    DEFAULT_AI_REPORTS_DIR,
+    DEFAULT_CANON_DIR,
+    DEFAULT_ENRICHED_DIR,
+    as_display_path,
+    resolve_repo_path,
+)
+
 # ── Derivation session identifier ────────────────────────────────────────────
-SESSION = "S46"
-SCHEMA_VERSION = "v1"
+SESSION = "S52"
+SCHEMA_VERSION = "v2"
 
 # ── Default configuration ─────────────────────────────────────────────────────
 DEFAULT_ENRICHED_SHARD_SIZE = 100
@@ -69,13 +82,40 @@ STOP_WORDS = {
     "they", "them", "what", "when", "also",
 }
 
+PATHISH_SUFFIX_RE = re.compile(r"\.[A-Za-z0-9._-]+$")
+NON_SPACE_RE = re.compile(r"\S")
+WORDLIKE_RE = re.compile(r"\w+", flags=re.UNICODE)
+PUNCTLIKE_RE = re.compile(r"[^\w\s]", flags=re.UNICODE)
+MARKDOWN_HEADER_RE = re.compile(r"^#{1,6}\s+")
+CODE_BOUNDARY_RE = re.compile(
+    r"^(?:"
+    r"def\s+|async\s+def\s+|class\s+|func\s+|type\s+\w+|"
+    r"const\s*\(|var\s*\(|package\s+\w+|impl\b|pub\s+fn\s+|fn\s+|"
+    r"[A-Za-z_][A-Za-z0-9_]*\s*\(\)\s*\{|"
+    r"//\s*[─=-]{2,}|#\s*[─=-]{2,}"
+    r")"
+)
+HEADING_LINE_RE = re.compile(r"^(#{1,6}\s+.+|//\s*[^\s].+|#\s+[^\s].+)$")
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def estimate_tokens(text: str) -> int:
-    """Rough token estimate: ~4 chars per token for mixed content."""
+    """Robust local proxy for token count across prose, markdown and code."""
     if not text:
         return 0
-    return max(1, len(text) // 4)
+    stripped = text.strip()
+    if not stripped:
+        return 0
+
+    non_space_chars = len(NON_SPACE_RE.findall(stripped))
+    word_units = len(WORDLIKE_RE.findall(stripped))
+    punct_units = len(PUNCTLIKE_RE.findall(stripped))
+
+    # Blend a word-like estimate with a conservative char-based floor so that
+    # prose, markup and code do not undercount too aggressively.
+    word_based = word_units + math.ceil(punct_units * 0.35)
+    char_based = math.ceil(non_space_chars / 4.2)
+    return max(1, max(word_based, char_based))
 
 
 def safe_str(val) -> str:
@@ -102,6 +142,17 @@ def strip_emoji(s: str) -> str:
         flags=re.UNICODE,
     )
     return emoji_pattern.sub("", s).strip()
+
+
+def looks_like_repo_path(title: str) -> bool:
+    title = safe_str(title)
+    if not title:
+        return False
+    return (
+        "/" in title
+        or title in {".gitignore", "README.md", "estructura.txt", "scripts.txt", "contratos.txt"}
+        or bool(PATHISH_SUFFIX_RE.search(title))
+    )
 
 
 # ── Semantic classifier ────────────────────────────────────────────────────────
@@ -228,6 +279,34 @@ def classify_role(rec: dict) -> str:
     if existing in VALID_ROLES and existing != "unclassified":
         return existing
 
+    # ── Path-shaped repository artifacts ──
+    # Filesystem-like titles should resolve by artifact family before generic
+    # topical keywords such as "audit", "semantic" or "report".
+    if looks_like_repo_path(title):
+        if title_lower in (".gitignore", "gitignore", ".gitattributes"):
+            return "config"
+        if "instructions/" in title_lower and title_lower.endswith(".md"):
+            return "policy"
+        if title_lower.startswith("contratos/") or "contratos/" in title_lower:
+            return "contract"
+        if title_lower.startswith("esquemas/") or "esquemas/" in title_lower:
+            return "schema"
+        if "readme" in title_lower or title.lower().endswith("readme.md"):
+            return "readme"
+        if "manifest" in title_lower or title_lower in ("estructura.txt", "scripts.txt", "contratos.txt"):
+            return "manifest"
+        if title_lower.endswith("_test.go") or "tests/" in title_lower or "fixture" in title_lower:
+            return "test_fixture"
+        if re.search(r"\.(go|rs|py|sh|ts|js)$", title_lower):
+            if not title_lower.endswith("_test.go") and "test" not in title_lower.rsplit("/", 1)[-1]:
+                return "code_source"
+        if re.search(r"\.(ya?ml|toml|ini|env|cfg|conf)$", title_lower):
+            return "config"
+        if ct == "text/html" or title_lower.endswith(".html") or title_lower.endswith(".derived.html"):
+            return "html_artifact"
+        if title_lower.endswith(".txt") and "data" in title_lower:
+            return "dataset"
+
     # ── Algorithm ──
     if "algoritmos" in title_lower or "matematicas" in title_lower or "matemáticas" in title_lower:
         return "algorithm"
@@ -236,24 +315,10 @@ def classify_role(rec: dict) -> str:
         return "algorithm"
 
     # ── Contract ──
-    if "contratos/" in title_lower or title_lower.startswith("contratos/"):
-        return "contract"
     if re.search(r"m\d+-s\d+-.+-contract", title_lower):
         return "contract"
     if re.search(r"m\d+-s\d+", title_lower) and title_lower.endswith((".json", ".md", ".md.json")):
         return "contract"
-
-    # ── Report ──
-    if "report" in title_lower or "reporte" in title_lower:
-        return "report"
-    if "audit" in title_lower and "session" not in title_lower:
-        return "report"
-
-    # ── Schema ──
-    if "schema" in title_lower and "canon" in title_lower:
-        return "schema"
-    if title_lower.startswith("esquemas/") or "esquemas/" in title_lower:
-        return "schema"
 
     # ── Reference (academic papers) ──
     # Pattern: "NN. Some Title" typical of paper lists (both "01. Title" and "08. ¿Puede...")
@@ -262,48 +327,25 @@ def classify_role(rec: dict) -> str:
     if re.search(r"(self-referential|learning module|semantic|knowledge graph|provenance|ecosystem|annotation)", title_lower):
         return "reference"
 
-    # ── README ──
-    if "readme" in title_lower or title.lower().endswith("readme.md"):
-        return "readme"
+    # ── Schema ──
+    if "schema" in title_lower and "canon" in title_lower:
+        return "schema"
 
-    # ── Manifest ──
-    if "manifest" in title_lower:
-        return "manifest"
+    # ── Report ──
+    if "report" in title_lower or "reporte" in title_lower:
+        return "report"
+    if "audit" in title_lower and "session" not in title_lower:
+        return "report"
 
-    # ── HTML artifact ──
-    if ct == "text/html" or title_lower.endswith(".html") or title_lower.endswith(".derived.html"):
-        return "html_artifact"
-
-    # ── Test fixture: Go test files or fixture paths ──
-    if title_lower.endswith("_test.go") or "tests/" in title_lower or "fixture" in title_lower:
-        return "test_fixture"
-
-    # ── Code source: Go, Rust, Python, shell source files ──
-    if re.search(r"\.(go|rs|py|sh|ts|js)$", title_lower):
-        if not title_lower.endswith("_test.go") and "test" not in title_lower.rsplit("/", 1)[-1]:
-            return "code_source"
-
-    # ── Config: YAML, TOML, env, gitignore, CI files ──
-    if re.search(r"\.(ya?ml|toml|ini|env|cfg|conf)$", title_lower):
-        return "config"
-    if title_lower in (".gitignore", "gitignore", ".gitattributes"):
-        return "config"
+    # ── Config: workflows and CI ──
     if "workflows/" in title_lower or "github/workflows" in title_lower:
         return "config"
-
-    # ── Policy: instruction files ──
-    if "instructions/" in title_lower and title_lower.endswith(".md"):
-        return "policy"
 
     # ── Dataset / data files ──
     if title_lower.endswith(".txt") and "data" in title_lower:
         return "dataset"
     if title_lower.endswith(".csv"):
         return "dataset"
-
-    # ── Manifest for structure files ──
-    if title_lower in ("estructura.txt", "scripts.txt", "contratos.txt"):
-        return "manifest"
 
     # ── Documentation stubs: "-- Emoji.md" pattern ──
     if re.match(r"^--\s+", title) and title.endswith(".md"):
@@ -730,53 +772,128 @@ def compute_is_reference_only(rec: dict, role: str) -> bool:
     return False
 
 
+def derive_corpus_policy(rec: dict, role: str) -> dict:
+    """Assign corpus state and chunking policy from canonical evidence."""
+    title = safe_str(rec.get("title"))
+    title_lower = title.lower()
+    tags_lower = [safe_str(t).lower() for t in (rec.get("tags") or [])]
+
+    is_live = "state:live-path" in tags_lower
+    is_historical = "state:historical-snapshot" in tags_lower
+    is_archival_only = "status:archival-only" in tags_lower
+    is_superseded = any(tag.startswith("superseded-by:") for tag in tags_lower)
+    is_legacy_out_artifact = title_lower.startswith("out/") and title_lower.endswith((".json", ".html"))
+
+    if is_archival_only:
+        return {
+            "corpus_state": "archival_only",
+            "chunk_eligibility": "excluded",
+            "chunk_exclusion_reason": "archival_only_skip",
+        }
+    if is_legacy_out_artifact and not is_live:
+        return {
+            "corpus_state": "historical_artifact",
+            "chunk_eligibility": "excluded",
+            "chunk_exclusion_reason": "historical_out_artifact_skip",
+        }
+    if is_historical or is_superseded:
+        return {
+            "corpus_state": "historical_snapshot",
+            "chunk_eligibility": "deprioritized",
+            "chunk_exclusion_reason": None,
+        }
+    if is_live:
+        return {
+            "corpus_state": "live_path",
+            "chunk_eligibility": "eligible",
+            "chunk_exclusion_reason": None,
+        }
+    if looks_like_repo_path(title) and not title_lower.startswith("out/"):
+        return {
+            "corpus_state": "repo_path",
+            "chunk_eligibility": "eligible",
+            "chunk_exclusion_reason": None,
+        }
+    return {
+        "corpus_state": "general",
+        "chunk_eligibility": "eligible",
+        "chunk_exclusion_reason": None,
+    }
+
+
 # ── Chunker ────────────────────────────────────────────────────────────────────
 
-def classify_payload(rec: dict) -> dict:
+def classify_payload(rec: dict, role: str, target_tokens: int) -> dict:
     """
-    Classify payload for chunking decisions.
-    Returns dict with is_large_payload, is_chunkable_text, chunk_strategy.
+    Classify payload for chunking decisions and corpus eligibility.
     """
     ct = safe_str(rec.get("content_type"))
     text = safe_str(rec.get("text"))
     is_binary = rec.get("is_binary", False)
     token_est = estimate_tokens(text)
+    corpus_policy = derive_corpus_policy(rec, role)
 
     chunkable_types = {
-        "text/markdown", "text/vnd.tiddlywiki", "text/plain",
+        "text/markdown", "text/vnd.tiddlywiki", "text/plain", "text/html",
     }
     binary_types = {
         "image/png", "image/jpeg", "image/gif", "image/svg+xml",
         "application/octet-stream",
     }
 
-    is_large_payload = token_est > 1000
-    is_chunkable_text = (
+    is_textual_payload = (
         not is_binary
         and ct in chunkable_types
         and bool(text.strip())
     )
+    is_large_payload = token_est > target_tokens
+    is_chunkable_text = False
 
     if is_binary or ct in binary_types:
         strategy = "binary_skip"
+        eligibility = "excluded"
+        exclusion_reason = "binary_skip"
     elif ct == "application/json":
         strategy = "json_no_chunk"
+        eligibility = "excluded"
+        exclusion_reason = "json_no_chunk"
+    elif corpus_policy["chunk_eligibility"] == "excluded":
+        strategy = corpus_policy["chunk_exclusion_reason"]
+        eligibility = corpus_policy["chunk_eligibility"]
+        exclusion_reason = corpus_policy["chunk_exclusion_reason"]
+    elif not is_textual_payload:
+        strategy = "no_chunk_type"
+        eligibility = "excluded"
+        exclusion_reason = "no_chunk_type"
+    elif token_est <= target_tokens:
+        strategy = "no_chunk_small"
+        eligibility = corpus_policy["chunk_eligibility"]
+        exclusion_reason = None
+        is_chunkable_text = True
     elif ct == "text/html":
         strategy = "html_defensive"
-    elif is_chunkable_text and token_est > 4000:
-        strategy = "hierarchical_chunk"
-    elif is_chunkable_text and token_est > 1000:
-        strategy = "paragraph_chunk"
-    elif is_chunkable_text:
-        strategy = "no_chunk_small"
+        eligibility = corpus_policy["chunk_eligibility"]
+        exclusion_reason = None
+        is_chunkable_text = True
+    elif is_textual_payload:
+        strategy = "structured_chunk"
+        eligibility = corpus_policy["chunk_eligibility"]
+        exclusion_reason = None
+        is_chunkable_text = True
     else:
         strategy = "no_chunk_type"
+        eligibility = "excluded"
+        exclusion_reason = "no_chunk_type"
 
     return {
         "is_large_payload": is_large_payload,
+        "is_textual_payload": is_textual_payload,
         "is_chunkable_text": is_chunkable_text,
         "chunk_strategy": strategy,
         "token_estimate": token_est,
+        "corpus_state": corpus_policy["corpus_state"],
+        "chunk_eligibility": eligibility,
+        "chunk_exclusion_reason": exclusion_reason,
     }
 
 
@@ -786,7 +903,7 @@ def chunk_by_headers(text: str) -> list:
     sections = []
     current = []
     for line in text.splitlines(keepends=True):
-        if re.match(r"^#{1,6}\s+", line) and current:
+        if MARKDOWN_HEADER_RE.match(line) and current:
             sections.append("".join(current))
             current = [line]
         else:
@@ -808,15 +925,38 @@ def chunk_by_sentences(text: str) -> list:
     return [s.strip() for s in sentences if s.strip()]
 
 
-def hard_split(text: str, max_tokens: int) -> list:
-    """Emergency hard split: split at max_tokens boundary."""
-    max_chars = max_tokens * 4
+def chunk_by_code_boundaries(text: str) -> list:
+    """Split code-ish text by function/class/section boundaries."""
+    sections = []
+    current = []
+    for line in text.splitlines(keepends=True):
+        if CODE_BOUNDARY_RE.match(line) and current:
+            sections.append("".join(current))
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        sections.append("".join(current))
+    return [s for s in sections if s.strip()]
+
+
+def hard_split(text: str, limit_tokens: int) -> list:
+    """Emergency split near natural boundaries using a token ceiling."""
+    max_chars = max(400, int(limit_tokens * 4.2))
     chunks = []
-    while len(text) > max_chars:
-        chunks.append(text[:max_chars])
-        text = text[max_chars:]
-    if text:
-        chunks.append(text)
+    remaining = text.strip()
+    while len(remaining) > max_chars:
+        cut = remaining.rfind("\n\n", 0, max_chars)
+        if cut < int(max_chars * 0.6):
+            cut = remaining.rfind("\n", 0, max_chars)
+        if cut < int(max_chars * 0.6):
+            cut = remaining.rfind(" ", 0, max_chars)
+        if cut <= 0:
+            cut = max_chars
+        chunks.append(remaining[:cut].strip())
+        remaining = remaining[cut:].lstrip()
+    if remaining:
+        chunks.append(remaining)
     return chunks
 
 
@@ -832,15 +972,14 @@ def merge_segments(segments: list, target_tokens: int, max_tokens: int) -> list:
     for seg in segments:
         seg_tokens = estimate_tokens(seg)
 
-        # If single segment exceeds hard max, split it first
-        if seg_tokens > max_tokens:
+        # If single segment still exceeds target, split it conservatively first.
+        if seg_tokens > target_tokens:
             # Flush current
             if current.strip():
                 result.append(current.strip())
                 current = ""
                 current_tokens = 0
-            # Hard split the oversized segment
-            for part in hard_split(seg, max_tokens):
+            for part in hard_split(seg, min(target_tokens, max_tokens)):
                 result.append(part.strip())
             continue
 
@@ -858,9 +997,80 @@ def merge_segments(segments: list, target_tokens: int, max_tokens: int) -> list:
     return result
 
 
+def is_code_like_payload(title: str, role: str) -> bool:
+    title_lower = safe_str(title).lower()
+    if role in ("code_source", "test_fixture", "config"):
+        return True
+    return bool(re.search(r"\.(go|rs|py|sh|ts|js)$", title_lower))
+
+
+def split_structurally(text: str, title: str, role: str,
+                       target_tokens: int, max_tokens: int) -> list:
+    """Recursively split text while preserving high-value structural boundaries."""
+    text = text.strip()
+    if not text:
+        return []
+    if estimate_tokens(text) <= target_tokens:
+        return [text]
+
+    if is_code_like_payload(title, role):
+        code_sections = chunk_by_code_boundaries(text)
+        if len(code_sections) > 1:
+            refined = []
+            for section in code_sections:
+                refined.extend(split_structurally(section, title, role, target_tokens, max_tokens))
+            return refined
+
+    header_sections = chunk_by_headers(text)
+    if len(header_sections) > 1:
+        refined = []
+        for section in header_sections:
+            refined.extend(split_structurally(section, title, role, target_tokens, max_tokens))
+        return refined
+
+    paragraphs = chunk_by_paragraphs(text)
+    if len(paragraphs) > 1:
+        refined = []
+        for para in paragraphs:
+            if estimate_tokens(para) <= target_tokens:
+                refined.append(para.strip())
+            else:
+                refined.extend(split_structurally(para, title, role, target_tokens, max_tokens))
+        return merge_segments(refined, target_tokens, max_tokens)
+
+    sentences = chunk_by_sentences(text)
+    if len(sentences) > 1:
+        return merge_segments(sentences, target_tokens, max_tokens)
+
+    return hard_split(text, min(target_tokens, max_tokens))
+
+
+def extract_chunk_heading(chunk_text: str, section_path: list, title: str) -> str:
+    """Best-effort structural label for a chunk."""
+    for line in chunk_text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if HEADING_LINE_RE.match(stripped):
+            heading_lower = stripped.lower()
+            if "[[tags]]" in heading_lower or "[[created]]" in heading_lower or "[[modified]]" in heading_lower:
+                continue
+            return stripped[:160]
+        break
+    if section_path:
+        return safe_str(section_path[-1])[:160]
+    return safe_str(title)[:160]
+
+
 def chunk_node(
     rec: dict,
     node_id: str,
+    shard_file: str,
+    line_num: int,
+    role: str,
+    taxonomy: list,
+    section: list,
+    retrieval_hints: list,
     payload_info: dict,
     target_tokens: int,
     max_tokens: int,
@@ -872,9 +1082,15 @@ def chunk_node(
     strategy = payload_info["chunk_strategy"]
     text = safe_str(rec.get("text")).strip()
     title = safe_str(rec.get("title"))
+    source_anchor = {
+        "canon_id": node_id,
+        "shard_file": shard_file,
+        "shard_line": line_num,
+        "source_position": rec.get("source_position"),
+    }
 
     # Non-chunkable cases
-    if strategy in ("binary_skip", "no_chunk_type"):
+    if strategy in ("binary_skip", "no_chunk_type", "archival_only_skip", "historical_out_artifact_skip"):
         return [], False, strategy
     if strategy == "json_no_chunk":
         return [], False, "json_payload_no_chunk"
@@ -891,27 +1107,9 @@ def chunk_node(
         clean = re.sub(r"\s+", " ", clean).strip()
         if not clean or estimate_tokens(clean) <= target_tokens:
             return [], False, "html_small_after_strip"
-        segments = chunk_by_paragraphs(clean)
-        chunks_text = merge_segments(segments, target_tokens, max_tokens)
-    elif strategy in ("hierarchical_chunk", "paragraph_chunk"):
-        # 1. Try headers first
-        header_sections = chunk_by_headers(text)
-        if len(header_sections) > 1:
-            # Merge header sections to target size
-            chunks_text = merge_segments(header_sections, target_tokens, max_tokens)
-        else:
-            # 2. Try paragraphs
-            paras = chunk_by_paragraphs(text)
-            if len(paras) > 1:
-                chunks_text = merge_segments(paras, target_tokens, max_tokens)
-            else:
-                # 3. Try sentences
-                sentences = chunk_by_sentences(text)
-                if len(sentences) > 1:
-                    chunks_text = merge_segments(sentences, target_tokens, max_tokens)
-                else:
-                    # 4. Hard split as last resort
-                    chunks_text = hard_split(text, max_tokens)
+        chunks_text = split_structurally(clean, title, role, target_tokens, max_tokens)
+    elif strategy == "structured_chunk":
+        chunks_text = split_structurally(text, title, role, target_tokens, max_tokens)
     else:
         return [], False, "no_chunk_strategy_matched"
 
@@ -934,16 +1132,30 @@ def chunk_node(
         tok = estimate_tokens(chunk_text)
         chunks.append({
             "chunk_id": f"{node_id}::chunk:{idx}",
+            "source_id": node_id,
+            "tiddler_id": node_id,
             "node_id": node_id,
             "title": title,
+            "role_primary": role,
             "chunk_index": idx,
             "chunk_total": len(validated),
+            "chunk_heading": extract_chunk_heading(chunk_text, section, title),
             "text": chunk_text,
             "token_estimate": tok,
             "within_target": tok <= target_tokens,
             "within_hard_max": tok <= max_tokens,
             "derivation_method": strategy,
             "fallback": fallback_used,
+            "content_type": rec.get("content_type"),
+            "document_id": rec.get("document_id"),
+            "section_path": section,
+            "taxonomy_path": taxonomy,
+            "retrieval_hints": retrieval_hints[:8],
+            "corpus_state": payload_info["corpus_state"],
+            "chunk_eligibility": payload_info["chunk_eligibility"],
+            "source_anchor": source_anchor,
+            "source_position": rec.get("source_position"),
+            "source_version_id": rec.get("version_id"),
         })
 
     return chunks, fallback_used, None
@@ -1044,9 +1256,9 @@ def write_manifest(output_dir: Path, layer_name: str, shards_info: list,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": {
             "canon_shard_count": source_shard_count,
-            "canon_dir": "out/",
+            "canon_dir": "data/out/local",
             "canon_pattern": "tiddlers_*.jsonl",
-            "canon_shard_files": [str(p) for p in source_shard_files],
+            "canon_shard_files": [as_display_path(p) if hasattr(p, 'parts') else str(p) for p in source_shard_files],
         },
         "output": {
             "total_records": total_records,
@@ -1125,8 +1337,8 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
             "session": SESSION,
             "source_shard": shard_file,
             "source_line": line_num,
-            "role_source": "s46_classifier",
-            "taxonomy_source": "s46_derived" if not rec.get("taxonomy_path") else "canon_inherited",
+            "role_source": "canon_inherited" if rec.get("role_primary") in VALID_ROLES and rec.get("role_primary") != "unclassified" else "s52_classifier",
+            "taxonomy_source": "s52_derived" if not rec.get("taxonomy_path") else "canon_inherited",
         },
     }
     return enriched
@@ -1146,9 +1358,11 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
     token_est = estimate_tokens(text)
     qflags = compute_quality_flags(rec)
     node_id = rec.get("id")
+    canon_role = rec.get("role_primary")
 
     hints = build_retrieval_hints(rec, role)
-    payload_info = classify_payload(rec)
+    payload_info = classify_payload(rec, role, target_tokens)
+    role_source = "canon_inherited" if canon_role in VALID_ROLES and canon_role != "unclassified" else "s52_classifier"
 
     # Validate relations
     raw_rels = rec.get("relations") or []
@@ -1163,9 +1377,12 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         rel_targets.append(rt)
 
     ai_rec = {
+        "id": node_id,
         "node_id": node_id,
         "title": rec.get("title"),
+        "canon_role_primary": canon_role,
         "role_primary": role,
+        "role_primary_source": role_source,
         "secondary_roles": build_secondary_roles(rec, role),
         # Three distinct text fields
         "preview_text": compute_preview_text(rec),
@@ -1182,6 +1399,7 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
             "canon_id": node_id,
             "shard_file": shard_file,
             "shard_line": line_num,
+            "source_position": rec.get("source_position"),
         },
         # Quality and classification signals
         "quality_flags": qflags,
@@ -1190,7 +1408,11 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         "is_foundational": _is_foundational(rec, role),
         # Payload signals
         "is_large_payload": payload_info["is_large_payload"],
+        "is_textual_payload": payload_info["is_textual_payload"],
         "is_chunkable_text": payload_info["is_chunkable_text"],
+        "chunk_eligibility": payload_info["chunk_eligibility"],
+        "chunk_exclusion_reason": payload_info["chunk_exclusion_reason"],
+        "corpus_state": payload_info["corpus_state"],
         "chunk_strategy": payload_info["chunk_strategy"],
         "token_estimate": token_est,
         # Structure
@@ -1200,15 +1422,27 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         "content_type": rec.get("content_type"),
         "derivation": {
             "session": SESSION,
-            "method": "projection_v1",
-            "role_source": "s46_classifier",
+            "method": "projection_v2",
+            "role_source": role_source,
         },
     }
 
     # Generate chunks
     chunks = []
     if payload_info["is_chunkable_text"] and token_est > target_tokens:
-        chunks, _, _ = chunk_node(rec, node_id, payload_info, target_tokens, max_tokens)
+        chunks, _, _ = chunk_node(
+            rec,
+            node_id,
+            shard_file,
+            line_num,
+            role,
+            taxonomy,
+            section,
+            hints["retrieval_hints"],
+            payload_info,
+            target_tokens,
+            max_tokens,
+        )
 
     return ai_rec, chunks, invalid_rels, payload_info
 
@@ -1275,9 +1509,9 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
                             all_chunks: list,
                             chunk_qc_events: list,
                             target_tokens: int, max_tokens: int) -> Path:
+    text_capable_nodes = [r for r in ai_records if r.get("is_textual_payload")]
     chunkable_nodes = [r for r in ai_records if r.get("is_chunkable_text")]
-    chunked_nodes = [r for r in ai_records if r.get("chunk_strategy") in
-                     ("hierarchical_chunk", "paragraph_chunk", "html_defensive")]
+    chunked_node_ids = {c.get("node_id") for c in all_chunks if c.get("node_id")}
 
     over_target = [c for c in all_chunks if not c.get("within_target")]
     over_max = [c for c in all_chunks if not c.get("within_hard_max")]
@@ -1288,6 +1522,22 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
         if ev.get("exclusion_reason"):
             excluded_reasons[ev["exclusion_reason"]] += 1
 
+    eligibility_dist = Counter(r.get("chunk_eligibility", "unknown") for r in ai_records)
+    token_sizes = [c.get("token_estimate", 0) for c in all_chunks]
+    size_stats = {}
+    if token_sizes:
+        ordered = sorted(token_sizes)
+        size_stats = {
+            "avg_tokens": round(statistics.mean(token_sizes), 2),
+            "median_tokens": statistics.median(ordered),
+            "p95_tokens": ordered[max(0, math.ceil(len(ordered) * 0.95) - 1)],
+            "max_tokens": ordered[-1],
+        }
+    top_oversized = Counter(
+        (c.get("title"), c.get("node_id"))
+        for c in over_target
+    )
+
     report = {
         "session": SESSION,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -1296,16 +1546,33 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
             "chunk_hard_max_tokens": max_tokens,
         },
         "total_nodes": len(ai_records),
+        "text_capable_nodes": len(text_capable_nodes),
         "chunkable_nodes": len(chunkable_nodes),
-        "nodes_that_produced_chunks": len(chunked_nodes),
+        "nodes_that_produced_chunks": len(chunked_node_ids),
         "total_chunks_generated": len(all_chunks),
         "chunks_above_target": len(over_target),
         "chunks_above_hard_max": len(over_max),
         "chunks_with_fallback": len(with_fallback),
         "nodes_excluded_from_chunking": sum(excluded_reasons.values()),
         "exclusion_reasons": dict(excluded_reasons),
+        "chunk_eligibility_distribution": dict(eligibility_dist),
+        "chunk_size_distribution": size_stats,
+        "traceability_summary": {
+            "chunks_with_source_anchor": sum(1 for c in all_chunks if c.get("source_anchor")),
+            "chunks_with_section_path": sum(1 for c in all_chunks if c.get("section_path")),
+            "chunks_with_taxonomy_path": sum(1 for c in all_chunks if c.get("taxonomy_path")),
+        },
         "hard_max_violated": len(over_max) > 0,
     }
+    if over_target:
+        report["top_oversized_nodes"] = [
+            {
+                "title": title,
+                "node_id": node_id,
+                "oversized_chunks": count,
+            }
+            for (title, node_id), count in top_oversized.most_common(10)
+        ]
     if over_max:
         report["hard_max_violations"] = [
             {"chunk_id": c["chunk_id"], "token_estimate": c["token_estimate"]}
@@ -1420,14 +1687,17 @@ def write_derivation_report(output_dir: Path, canon: list,
             "hard_max_tokens": max_tokens,
             "total_chunks": len(all_chunks),
             "over_hard_max": sum(1 for c in all_chunks if not c.get("within_hard_max")),
+            "over_target": sum(1 for c in all_chunks if not c.get("within_target")),
         },
         "hardening_notes": {
             "shard_discovery": "dynamic — pattern tiddlers_*.jsonl",
             "role_vocabulary": "controlled — 26 roles",
-            "chunker": "hierarchical with hard max guardrail",
+            "chunker": "token-aware structural chunker with recursive boundary refinement",
+            "chunk_eligibility": "archival-only and legacy out/*.json/html artifacts excluded from general chunking",
             "retrieval": "normalized dedup with terms + aliases",
             "relations": "validated against known node IDs",
             "text_fields": "three distinct: preview_text, semantic_text, ai_summary",
+            "traceability": "chunks include source_id/tiddler_id aliases, source_anchor, section_path and taxonomy_path",
         },
     }
     p = output_dir / "derivation_report.json"
@@ -1440,19 +1710,19 @@ def write_derivation_report(output_dir: Path, canon: list,
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="derive_layers.py — S46 stable derivation entrypoint for tiddly-data-converter"
+        description="derive_layers.py — S52 stable derivation entrypoint for tiddly-data-converter"
     )
     parser.add_argument(
-        "--input-dir", default="out",
-        help="Directory containing canon shards tiddlers_*.jsonl (default: out)"
+        "--input-dir", default=None,
+        help="Directory containing canon shards tiddlers_*.jsonl (default: data/out/local)"
     )
     parser.add_argument(
-        "--enriched-dir", default="out/enriched",
-        help="Output directory for enriched layer (default: out/enriched)"
+        "--enriched-dir", default=None,
+        help="Output directory for enriched layer (default: data/out/local/enriched)"
     )
     parser.add_argument(
-        "--ai-dir", default="out/ai",
-        help="Output directory for AI-friendly layer (default: out/ai)"
+        "--ai-dir", default=None,
+        help="Output directory for AI-friendly layer (default: data/out/local/ai)"
     )
     parser.add_argument(
         "--reports-dir", default=None,
@@ -1494,11 +1764,10 @@ def parse_args():
 def main():
     args = parse_args()
 
-    base_dir = Path(__file__).resolve().parent.parent
-    input_dir = (base_dir / args.input_dir).resolve()
-    enriched_dir = (base_dir / args.enriched_dir).resolve()
-    ai_dir = (base_dir / args.ai_dir).resolve()
-    reports_dir = (base_dir / (args.reports_dir or (args.ai_dir + "/reports"))).resolve()
+    input_dir = resolve_repo_path(args.input_dir, DEFAULT_CANON_DIR)
+    enriched_dir = resolve_repo_path(args.enriched_dir, DEFAULT_ENRICHED_DIR)
+    ai_dir = resolve_repo_path(args.ai_dir, DEFAULT_AI_DIR)
+    reports_dir = resolve_repo_path(args.reports_dir, DEFAULT_AI_REPORTS_DIR)
 
     target_tokens = args.chunk_target_tokens
     max_tokens = args.chunk_max_tokens
@@ -1559,7 +1828,7 @@ def main():
     print(f"  Wrote {len(enriched_records)} enriched records → {len(enriched_shards_info)} shards in {enriched_dir}")
 
     # ── Phase 3: Build AI layer (Capa B) ──
-    print(f"\n[{SESSION}] Phase 3: Building Capa B — AI-friendly Projection v1...")
+    print(f"\n[{SESSION}] Phase 3: Building Capa B — AI-friendly Projection v2...")
     ai_records = []
     all_chunks = []
     all_invalid_rels = []
@@ -1576,7 +1845,7 @@ def main():
         chunk_qc_events.append({
             "node_id": rec.get("id"),
             "chunk_strategy": payload_info["chunk_strategy"],
-            "exclusion_reason": None if payload_info["is_chunkable_text"] else payload_info["chunk_strategy"],
+            "exclusion_reason": payload_info.get("chunk_exclusion_reason"),
         })
 
     ai_shards_info = write_sharded(
@@ -1589,7 +1858,7 @@ def main():
         )
 
     write_manifest(
-        ai_dir, "ai_friendly_projection_v1",
+        ai_dir, "ai_friendly_projection_v2",
         ai_shards_info, len(ai_records),
         len(shard_paths), shard_paths,
         extra={
@@ -1618,11 +1887,11 @@ def main():
     p5 = write_derivation_report(reports_dir, canon, enriched_records, ai_records,
                                    all_chunks, shard_paths, target_tokens, max_tokens)
 
-    print(f"  {p1.relative_to(base_dir)}")
-    print(f"  {p2.relative_to(base_dir)}")
-    print(f"  {p3.relative_to(base_dir)}")
-    print(f"  {p4.relative_to(base_dir)}")
-    print(f"  {p5.relative_to(base_dir)}")
+    print(f"  {p1}")
+    print(f"  {p2}")
+    print(f"  {p3}")
+    print(f"  {p4}")
+    print(f"  {p5}")
 
     # ── Summary ──
     over_max = sum(1 for c in all_chunks if not c.get("within_hard_max"))

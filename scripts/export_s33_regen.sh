@@ -6,12 +6,12 @@
 #
 # Parameters:
 #   html_input  Path to the TiddlyWiki HTML file
-#               (default: data/tiddly-data-converter (Saved).html)
+#               (default: data/in/tiddly-data-converter (Saved).html)
 #
 # Output:
-#   export/s33-functional-tiddlers.jsonl  — JSONL with 1 tiddler per line
-#   export/s33-export-log.jsonl           — per-tiddler filtering/export log
-#   export/s33-manifest.json              — metadata + SHA-256 + conteos
+#   data/out/local/export/s33-functional-tiddlers.jsonl  — JSONL with 1 tiddler per line
+#   data/out/local/export/s33-export-log.jsonl           — per-tiddler filtering/export log
+#   data/out/local/export/s33-manifest.json              — metadata + SHA-256 + conteos
 #
 # Exit codes:
 #   0 — export completed
@@ -22,9 +22,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export GOCACHE="${GOCACHE:-/tmp/tdc-go-build}"
+mkdir -p "${GOCACHE}"
 
-HTML_INPUT="${1:-${REPO_ROOT}/data/tiddly-data-converter (Saved).html}"
-EXPORT_DIR="${REPO_ROOT}/export"
+HTML_INPUT="${1:-${REPO_ROOT}/data/in/tiddly-data-converter (Saved).html}"
+EXPORT_DIR="${REPO_ROOT}/data/out/local/export"
 
 mkdir -p "${EXPORT_DIR}"
 

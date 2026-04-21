@@ -1,279 +1,381 @@
 # tiddly-data-converter
 
-## Flujo operativo S44
+Repositorio local-first para extraer, canonizar, derivar, auditar y revertir
+un corpus TiddlyWiki sin perder trazabilidad ni reversibilidad.
 
-La fuente de verdad operativa es el canon fragmentado:
+## Layout operativo
 
-- `out/tiddlers_1.jsonl`
-- `out/tiddlers_2.jsonl`
-- `out/tiddlers_3.jsonl`
-- `out/tiddlers_4.jsonl`
-- `out/tiddlers_5.jsonl`
-- `out/tiddlers_6.jsonl`
-- `out/tiddlers_7.jsonl`
+`data/` usa solo tres raíces:
 
-`out/tiddlers.jsonl` ya no es el artefacto operativo principal. Si hace falta una vista monolítica para export o validación, se genera solo como artefacto temporal local.
+| Ruta | Rol |
+|---|---|
+| `data/in/` | entradas locales, incluido el HTML vivo |
+| `data/out/` | zona de salida gobernada, dividida en `local/` y `remote/` |
+| `data/reverse_html/` | HTML derivado por reverse y su reporte |
 
-## 1. Export temporal desde HTML
+Regla central:
+
+- `data/out/local/tiddlers_*.jsonl` es la fuente de verdad.
+- `data/out/local/enriched/`, `data/out/local/ai/` y `data/out/local/audit/` son derivados locales.
+- `data/out/local/proposals.jsonl` acumula las líneas de propuestas canonizadas, incluidas líneas de sesión y de dependencias.
+- `data/out/remote/` queda reservado para proyección o intercambio remoto.
+- `data/reverse_html/` no es canon; es salida de reverse
+
+## Qué hace hoy
+
+- extrae tiddlers desde HTML local
+- ejecuta doctor e ingesta
+- admite entradas a canon y emite JSONL
+- valida el canon shardeado
+- genera capas `enriched`, `ai`, `chunks` y reportes de auditoría
+- ejecuta reverse desde canon hacia HTML
+- permite emitir líneas JSONL de sesión ya canonizadas y compatibles con canon
+
+## Preparación rápida
+
+Los comandos de Go y Rust funcionan mejor si fijan cache local escribible:
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/bridge
-env GOCACHE=/tmp/go-build go run ./cmd/export_tiddlers \
-  --html "../../data/tiddly-data-converter (Saved).html" \
-  --out "/tmp/tiddlers.export.jsonl" \
-  --log "../../out/export.log" \
-  --manifest "../../out/manifest.json"
+export GOCACHE=/tmp/tdc-go-build
+export CARGO_TARGET_DIR=/tmp/tdc-cargo-target
+mkdir -p "$GOCACHE" "$CARGO_TARGET_DIR"
 ```
 
-## 2. Fragmentar el canon al layout S44
+El HTML vivo esperado por defecto es:
+
+- `data/in/tiddly-data-converter (Saved).html`
+
+## Flujo recomendado
+
+Flujo operativo normal:
+
+1. Exportar desde `data/in/` a un JSONL temporal.
+2. Shardizar ese JSONL hacia `data/out/local/tiddlers_*.jsonl`.
+3. Validar el canon local con `canon_preflight --mode strict`.
+4. Generar derivados locales si hacen falta (`enriched`, `ai`, `chunks`, `audit`).
+5. Validar `reverse-preflight` y ejecutar reverse hacia `data/reverse_html/`.
+
+La diferencia importante es esta:
+
+- `export_tiddlers` produce un JSONL temporal o de export.
+- `shard_canon` convierte ese export en el canon operativo local.
+- `reverse_tiddlers` nunca escribe canon; solo proyecta HTML derivado.
+
+## Canon local
+
+La fuente de verdad local es el conjunto shardeado:
+
+- `data/out/local/tiddlers_1.jsonl`
+- `data/out/local/tiddlers_2.jsonl`
+- `data/out/local/tiddlers_3.jsonl`
+- `data/out/local/tiddlers_4.jsonl`
+- `data/out/local/tiddlers_5.jsonl`
+- `data/out/local/tiddlers_6.jsonl`
+- `data/out/local/tiddlers_7.jsonl`
+
+Si `data/out/local/` no contiene esos shards, `canon_preflight` va a fallar
+correctamente con `missing-shards`.
+
+Validación estricta del canon:
 
 ```bash
 cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/go-build go run ./cmd/shard_canon \
-  --input "/tmp/tiddlers.export.jsonl" \
-  --out-dir "../../out"
-```
-
-Política de fragmentación S44:
-
-- `tiddlers_2.jsonl`: `#### 🌀 Sesión ...`
-- `tiddlers_3.jsonl`: bloque fijo de dependencias (`#### 🌀📦 ...`) + `#### 🌀🧪 Hipótesis de sesión ...`
-- `tiddlers_4.jsonl`: `#### 🌀🧾 Procedencia de sesión ...` + bloque bibliográfico (`#### 📚 Diccionario 🌀.csv`, `#### referencias especificas 🌀`, referencias numeradas `NN. ...`)
-- `tiddlers_1.jsonl`, `tiddlers_5.jsonl`, `tiddlers_6.jsonl`, `tiddlers_7.jsonl`: resto del corpus en orden estable
-
-El helper conserva las líneas del canon sin reserializarlas y falla si el corpus restante excede la capacidad actual del layout S44.
-
-## 3. Validar el canon fragmentado
-
-```bash
-cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/go-build go run ./cmd/canon_preflight \
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode strict \
-  --input "../../out"
+  --input ../../data/out/local
 ```
+
+Chequeo previo para reverse:
 
 ```bash
 cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/go-build go run ./cmd/canon_preflight \
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode reverse-preflight \
-  --input "../../out"
+  --input ../../data/out/local
 ```
 
-`canon_preflight` acepta un archivo JSONL único o un directorio con shards `tiddlers_<n>.jsonl`. En modo shard valida parseo, orden estable, duplicados accidentales de shard, duplicados exactos de línea y duplicados de `title`/`key` antes de correr la validación del canon combinado.
+## Flujo de exportación
 
-## 4. Reverse desde shards
+Este flujo es el correcto cuando se quiere reconstruir o regenerar el canon
+local desde el HTML vivo.
+
+Paso 1. Exportar desde HTML a un JSONL temporal.
+Qué hace:
+
+- extrae el store del HTML
+- filtra tiddlers funcionales
+- ejecuta ingesta y bridge
+- emite un JSONL plano con una línea por tiddler
 
 ```bash
 cd /repositorios/tiddly-data-converter/go/bridge
-env GOCACHE=/tmp/go-build go run ./cmd/reverse_tiddlers \
-  --html "../../data/tiddly-data-converter (Saved).html" \
-  --canon "../../out" \
-  --out-html "../../out/tiddly-data-converter.derived.html" \
-  --report "../../out/reverse-report.json" \
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/export_tiddlers \
+  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --out /tmp/tiddlers.export.jsonl \
+  --log /tmp/tiddlers.export.log \
+  --manifest /tmp/tiddlers.export.manifest.json
+```
+
+Paso 2. Convertir ese export temporal en shards canónicos.
+Qué hace:
+
+- lee el JSONL exportado
+- distribuye por el layout canónico vigente
+- escribe `tiddlers_*.jsonl` en `data/out/local/`
+
+Importante:
+
+- este paso se ejecuta desde `go/canon`, no desde `go/bridge`
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/shard_canon \
+  --input /tmp/tiddlers.export.jsonl \
+  --out-dir ../../data/out/local
+```
+
+Paso 3. Validar el resultado antes de seguir:
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
+  --mode strict \
+  --input ../../data/out/local
+```
+
+Atajo soportado para la exportación S33:
+
+```bash
+bash scripts/export_s33_regen.sh
+bash scripts/export_s33_verify.sh
+```
+
+Orden correcto:
+
+- primero `export_s33_regen.sh`
+- después `export_s33_verify.sh`
+
+Artefactos:
+
+- `data/out/local/export/s33-functional-tiddlers.jsonl`
+- `data/out/local/export/s33-export-log.jsonl`
+- `data/out/local/export/s33-manifest.json`
+
+## Flujo de reverse
+
+El reverse siempre parte del canon local validado y nunca reescribe
+`data/out/local/tiddlers_*.jsonl`.
+
+Paso 1. Certificar que el canon es reverse-ready:
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
+  --mode reverse-preflight \
+  --input ../../data/out/local
+```
+
+Paso 2. Ejecutar reverse hacia `data/reverse_html/`.
+Qué hace:
+
+- lee el HTML base en `data/in/`
+- compara contra el canon en `data/out/local/`
+- inserta o actualiza solo lo autorizado por el contrato de reverse
+- escribe un HTML derivado y un reporte auditable
+
+```bash
+cd /repositorios/tiddly-data-converter/go/bridge
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
+  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --canon ../../data/out/local \
+  --out-html ../../data/reverse_html/tiddly-data-converter.derived.html \
+  --report ../../data/reverse_html/reverse-report.json \
   --mode authoritative-upsert
 ```
 
-`authoritative-upsert`:
+Salidas:
 
-- preserva el shell HTML y solo actualiza el store
-- usa autoridad desde `title`, `text`, `created`, `modified`, `source_type`, `source_tags`
-- usa `source_fields` solo para campos extra válidos y no derivados
-- actualiza títulos existentes cuando el canon autoritativo cambió
-- inserta títulos nuevos cuando no existen
-- deja fuera de scope system tiddlers, binarios, nodos `reference_only` y `source_type` fuera del alcance textual/metadata actual
+- `data/reverse_html/tiddly-data-converter.derived.html`
+- `data/reverse_html/reverse-report.json`
 
-## 5. Verificación de round-trip local
+Modo recomendado: `authoritative-upsert`
+
+Usar `insert-only` solo cuando se quiera impedir actualización de títulos ya
+presentes en el HTML base.
+
+## Derivados locales
+
+El entrypoint estable es `scripts/derive_layers.py`.
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/bridge
-env GOCACHE=/tmp/go-build go run ./cmd/export_tiddlers \
-  --html "../../out/tiddly-data-converter.derived.html" \
-  --out "/tmp/tiddlers.roundtrip.jsonl" \
-  --log "../../out/roundtrip.export.log" \
-  --manifest "../../out/roundtrip.manifest.json"
+python3 scripts/derive_layers.py
 ```
 
-## Artefactos esperados
-
-- canon autoritativo: `out/tiddlers_1.jsonl` ... `out/tiddlers_7.jsonl`
-- manifest del export base: `out/manifest.json`
-- log del export base: `out/export.log`
-- HTML derivado: `out/tiddly-data-converter.derived.html`
-- reporte auditable de reverse: `out/reverse-report.json`
-- manifest/log del round-trip local: `out/roundtrip.manifest.json`, `out/roundtrip.export.log`
-
-## 6. Derivación local (capas enriquecida y AI-friendly)
-
-El entrypoint estable para derivación local es `scripts/derive_layers.py` (S46+).
-
-### ¿Qué genera cada capa?
-
-| Capa | Descripción | Directorio |
-|------|-------------|------------|
-| **Canon** | Fuente de verdad autoritativa fragmentada. No tocar directamente. | `out/tiddlers_*.jsonl` |
-| **Enriched** | Capa A: copia enriquecida del canon con campos derivados deterministas (`preview_text`, `semantic_text`, `secondary_roles`, `quality_flags`, `taxonomy_path` mejorado). | `out/enriched/` |
-| **AI-friendly** | Capa B: proyección compacta orientada a ingesta por IA. Incluye `ai_summary`, `retrieval_terms`, `retrieval_aliases`, relaciones validadas y señales de clasificación semántica. | `out/ai/` |
-| **Chunks** | Fragmentación jerárquica del contenido textual largo. Hard max: 4000 tokens. | `out/ai/chunks_ai_*.jsonl` |
-| **QC Reports** | Reportes de calidad auditables: clasificación, chunking, retrieval, relaciones. | `out/ai/reports/` |
-
-### Archivos de salida
-
-```
-out/enriched/
-  tiddlers_enriched_1.jsonl  ...  tiddlers_enriched_N.jsonl
-  manifest.json
-
-out/ai/
-  tiddlers_ai_1.jsonl  ...  tiddlers_ai_N.jsonl
-  chunks_ai_1.jsonl    ...  chunks_ai_M.jsonl
-  manifest.json
-  reports/
-    classification_report.json
-    chunk_qc_report.json
-    retrieval_qc_report.json
-    relations_qc_report.json
-    derivation_report.json
-```
-
-### Ejecución de la derivación local
+Ejecución explícita:
 
 ```bash
 python3 scripts/derive_layers.py \
-  --input-dir out \
-  --enriched-dir out/enriched \
-  --ai-dir out/ai
-```
-
-Con parámetros explícitos:
-
-```bash
-python3 scripts/derive_layers.py \
-  --input-dir out \
-  --enriched-dir out/enriched \
-  --ai-dir out/ai \
-  --reports-dir out/ai/reports \
+  --input-dir data/out/local \
+  --enriched-dir data/out/local/enriched \
+  --ai-dir data/out/local/ai \
+  --reports-dir data/out/local/ai/reports \
   --chunk-target-tokens 1800 \
-  --chunk-max-tokens 4000 \
-  --tiddler-shard-size 100 \
-  --chunk-shard-size 200
+  --chunk-max-tokens 4000
 ```
 
-Con guardrail estricto (falla si algún chunk supera el hard max):
+Artefactos derivados esperados:
+
+- `data/out/local/enriched/tiddlers_enriched_*.jsonl`
+- `data/out/local/enriched/manifest.json`
+- `data/out/local/ai/tiddlers_ai_*.jsonl`
+- `data/out/local/ai/chunks_ai_*.jsonl`
+- `data/out/local/ai/manifest.json`
+- `data/out/local/ai/reports/*.json`
+
+Política vigente de chunking:
+
+- el chunking parte del canon local y no de atajos desde `enriched/` o `ai/`
+- el estimador es local y token-aware por proxy; no usa un tokenizador remoto
+- el chunker refina por fronteras útiles: secciones, párrafos, oraciones y, en código, bloques estructurales
+- cada chunk queda trazable al nodo fuente mediante `source_id`, `tiddler_id`, `source_anchor`, `section_path` y `taxonomy_path`
+- nodos marcados `status:archival-only` y artefactos históricos `out/*.json` o `out/*.html` quedan fuera del chunking general para no distorsionar RAG
+- que un nodo quede fuera del chunking no significa que deje de existir en canon; solo cambia su elegibilidad dentro de la capa `ai/chunks`
+
+## Auditoría normativa
+
+Solo auditoría:
 
 ```bash
-python3 scripts/derive_layers.py \
-  --input-dir out \
-  --enriched-dir out/enriched \
-  --ai-dir out/ai \
-  --fail-on-chunk-violation
-```
-
-### Si ya existen artefactos
-
-El script siempre sobreescribe los artefactos existentes en `out/enriched/` y `out/ai/`. No es necesario borrarlos antes. Para hacer explícita la sobreescritura voluntaria, se puede usar `--overwrite`.
-
-### Qué revisar después de ejecutar
-
-1. **Manifests**: `out/enriched/manifest.json` y `out/ai/manifest.json` — confirmar `total_records` y `shard_count`.
-2. **`classification_report.json`** — revisar `role_primary_distribution`, `unclassified_count`, cobertura de `taxonomy_path` y `section_path`.
-3. **`chunk_qc_report.json`** — confirmar `chunks_above_hard_max: 0` (hard max jamás debe violarse).
-4. **`retrieval_qc_report.json`** — revisar `avg_hints_per_node` y `nodes_with_empty_hints`.
-5. **`relations_qc_report.json`** — revisar `total_invalid_relations_discarded`.
-
-### Compatibilidad con S45
-
-`scripts/s45_derive_layers.py` es ahora un wrapper de compatibilidad que redirige a `derive_layers.py`. No usarlo directamente para trabajo nuevo.
-
----
-
-## 7. Auditoría normativa (S47)
-
-La auditoría normativa evalúa el canon shardeado y sus capas derivadas contra 21 reglas extraídas del informe técnico bilingüe y los contratos vigentes. Detecta vacíos, incoherencias y aplica **solo correcciones automáticas seguras** (`safe_autofix`) sobre los shards canónicos.
-
-### Regla de activación
-
-La auditoría **no se integra por default** en el pipeline. Debe activarse con flag explícito.
-
-### Comandos
-
-```bash
-# 1. Solo auditoría (inspección sin escrituras al canon):
 python3 scripts/audit_normative_projection.py \
   --mode audit \
-  --input-root out \
+  --input-root data/out/local \
   --docs-root docs
-
-# 2. Auditoría + aplicar safe fixes + regenerar capas derivadas:
-python3 scripts/audit_normative_projection.py \
-  --mode apply \
-  --input-root out \
-  --docs-root docs
-
-# 3. Auditoría + apply, sin regenerar derivados:
-python3 scripts/audit_normative_projection.py \
-  --mode apply \
-  --input-root out \
-  --no-regenerate
-
-# 4. Desde run_pipeline.sh con flag --audit (solo inspección):
-bash scripts/run_pipeline.sh --audit
-
-# 5. Desde run_pipeline.sh con flag --audit-apply (apply + regeneración):
-bash scripts/run_pipeline.sh --audit-apply
-
-# 6. Validar outputs del auditor:
-jq . out/audit/manifest.json
-jq . out/audit/compliance_report.json
-jq . out/audit/proposed_fixes.json
-jq . out/audit/applied_safe_fixes.json
-jq . out/audit/pre_post_diff.json
-
-# 7. Ejecutar tests de fixture S47:
-bash tests/fixtures/s47/run_audit_test.sh
 ```
 
-### Artefactos de auditoría
+Auditoría con safe fixes y regeneración:
 
-| Artefacto | Descripción |
-|-----------|-------------|
-| `out/audit/manifest.json` | Run ID, fecha, corpus stats, conteos de reglas y fixes |
-| `out/audit/compliance_report.json` | Cumplimiento global, por regla, por bloque, por severidad |
-| `out/audit/compliance_summary.md` | Resumen legible para humanos |
-| `out/audit/warnings.jsonl` | Todos los hallazgos con `warn` o `fail` |
-| `out/audit/manual_review_queue.jsonl` | Fixes con `review_needed` (requieren juicio humano) |
-| `out/audit/proposed_fixes.json` | Todas las propuestas clasificadas por tipo |
-| `out/audit/applied_safe_fixes.json` | Solo los fixes efectivamente aplicados al canon |
-| `out/audit/pre_post_diff.json` | Diff exacto de qué cambió en canon |
-| `out/audit/audit_log.jsonl` | Log de eventos del run |
+```bash
+python3 scripts/audit_normative_projection.py \
+  --mode apply \
+  --input-root data/out/local \
+  --docs-root docs
+```
 
-### Safe autofixes permitidos
+Salidas:
 
-Solo se aplican automáticamente al canon cuando la evidencia es fuerte y la corrección es mecánica:
+- `data/out/local/audit/manifest.json`
+- `data/out/local/audit/compliance_report.json`
+- `data/out/local/audit/compliance_summary.md`
+- `data/out/local/audit/proposed_fixes.json`
+- `data/out/local/audit/applied_safe_fixes.json`
+- `data/out/local/audit/pre_post_diff.json`
 
-- Backfill de `normalized_tags: []` cuando el campo está ausente
-- Backfill de `tags: []` cuando el campo está ausente y no hay `source_tags`
-- Corrección de `role_primary` fuera del vocabulario controlado → `"unclassified"`
+## Propuestas de sesión
 
-Todo lo demás va a `manual_review_queue.jsonl`.
+Las propuestas ya no usan un sobre JSON separado ni un archivo por sesión.
+Se acumulan como líneas JSONL ya canonizadas, con la forma completa del canon,
+en `data/out/local/proposals.jsonl`.
 
-### Reglas normativas evaluadas
+Agregar propuestas canonizadas:
 
-21 reglas en 6 bloques: `structural`, `identity`, `semantic`, `relations`, `inter_layer`, `normative_report`.
+```bash
+python3 scripts/canon_proposal.py create \
+  --session m03-s49-mcp-onedrive-canon-proposals-v0 \
+  --payload-file tests/fixtures/s49/candidate_line.json \
+  --canon-dir data/out/local
+```
 
-Ver catálogo completo en `contratos/m03-s47-normative-self-audit-and-projection-refinement-v0.md.json`.
+Eso agrega líneas por defecto a:
 
-### Qué revisar después de ejecutar
+- `data/out/local/proposals.jsonl`
 
-1. **`compliance_summary.md`** — resumen de cumplimiento global y deuda pendiente
-2. **`proposed_fixes.json`** — revisar `review_needed` para trabajo manual posterior
-3. **`pre_post_diff.json`** — verificar exactamente qué cambió en el canon
-4. **`warnings.jsonl`** — hallazgos con severidad `critical` o `major` requieren atención prioritaria
+Validar el archivo consolidado de propuestas:
 
----
+```bash
+python3 scripts/canon_proposal.py validate \
+  --proposal-file data/out/local/proposals.jsonl \
+  --canon-dir data/out/local
+```
 
-## Notas operativas
+Si una propuesta reutiliza una línea ya existente del canon, usar
+`--allow-existing`.
 
-- Los archivos en `/tmp` son temporales y prescindibles.
-- `content.plain`, `normalized_tags`, `semantic_text` y demás derivados no son autoridad de reverse.
-- Si un shard directory falla preflight, no se debe normalizar ni reescribir en silencio: primero hay que corregir la anomalía fuente.
-- La derivación local (capas enriched y AI) no modifica el canon. Siempre puede regenerarse desde `out/tiddlers_*.jsonl`.
+La validación ahora exige que el archivo ya esté canonizado: si el normalizador
+del canon todavía corregiría `id`, `canonical_slug`, `version_id`,
+`normalized_tags` o `content.plain`, el archivo se rechaza.
+
+Lo que no debe hacerse por defecto:
+
+- escribir directo en `data/out/local/tiddlers_*.jsonl`
+- tratar `data/reverse_html/` como fuente de verdad
+- usar `data/out/remote/` como fuente de verdad local
+
+## Pipeline bootstrap
+
+`scripts/run_pipeline.sh` sigue existiendo para el flujo mínimo
+Extractor -> Doctor -> Ingesta -> Canon JSONL bootstrap.
+
+Por defecto:
+
+```bash
+bash scripts/run_pipeline.sh
+```
+
+Notas:
+
+- toma por defecto `data/in/tiddly-data-converter (Saved).html`
+- escribe por defecto en `data/out/local/pipeline/`
+- si se usa `--audit` o `--audit-apply`, el auditor opera sobre `data/out/local`
+- no reemplaza la shardización del canon local; deja un bootstrap monolítico para inspección o costura mínima
+
+## Export S33
+
+Regeneración:
+
+```bash
+bash scripts/export_s33_regen.sh
+```
+
+Verificación:
+
+```bash
+bash scripts/export_s33_verify.sh
+```
+
+Los artefactos quedan en `data/out/local/export/`.
+
+## Validación local
+
+Checks útiles ya verificados:
+
+```bash
+bash tests/fixtures/s49/run_canon_proposal_test.sh
+bash tests/fixtures/s47/run_audit_test.sh
+env GOCACHE=/tmp/tdc-go-build-smoke CARGO_TARGET_DIR=/tmp/tdc-cargo-target-smoke bash tests/smoke/test_pipeline_smoke.sh
+```
+
+Entry points operativos:
+
+```bash
+bash scripts/run_pipeline.sh
+python3 scripts/derive_layers.py
+python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
+python3 scripts/canon_proposal.py validate --proposal-file data/out/local/proposals.jsonl --canon-dir data/out/local
+```
+
+Suites principales:
+
+```bash
+cd go/canon && env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
+cd /repositorios/tiddly-data-converter/go/bridge && env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
+cd /repositorios/tiddly-data-converter/go/ingesta && env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
+cd /repositorios/tiddly-data-converter/rust/extractor && env CARGO_TARGET_DIR=/tmp/tdc-cargo-target cargo test
+cd /repositorios/tiddly-data-converter/rust/doctor && env CARGO_TARGET_DIR=/tmp/tdc-cargo-target cargo test
+```
+
+## Referencias activas
+
+- `.github/instructions/tiddlers_sesiones.instructions.md`
+- `esquemas/canon/canon_guarded_session_rules.md`
+- `contratos/policy/canon_policy_bundle.json`
+- `scripts/path_governance.py`

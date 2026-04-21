@@ -6,9 +6,9 @@
 #
 # Parámetros:
 #   html_input    Ruta al archivo HTML vivo de TiddlyWiki
-#                 (por defecto: data/tiddly-data-converter (Saved).html)
+#                 (por defecto: data/in/tiddly-data-converter (Saved).html)
 #   out_dir       Directorio de salida para los artefactos intermedios y finales
-#                 (por defecto: /tmp/tdc-pipeline-run)
+#                 (por defecto: data/out/local/pipeline)
 #   --audit       Ejecutar auditoría normativa después del pipeline (modo inspect-only)
 #   --audit-apply Ejecutar auditoría normativa con aplicación de safe fixes y regeneración
 #
@@ -19,15 +19,19 @@
 #   <out_dir>/canon.jsonl           — salida canónica mínima JSONL (S16 bootstrap)
 #
 # Con --audit o --audit-apply:
-#   out/audit/manifest.json         — manifest de ejecución del auditor
-#   out/audit/compliance_report.json
-#   out/audit/compliance_summary.md
-#   out/audit/warnings.jsonl
-#   out/audit/manual_review_queue.jsonl
-#   out/audit/proposed_fixes.json
-#   out/audit/applied_safe_fixes.json
-#   out/audit/pre_post_diff.json
-#   out/audit/audit_log.jsonl
+#   data/out/local/audit/manifest.json         — manifest de ejecución del auditor
+#   data/out/local/audit/compliance_report.json
+#   data/out/local/audit/compliance_summary.md
+#   data/out/local/audit/warnings.jsonl
+#   data/out/local/audit/manual_review_queue.jsonl
+#   data/out/local/audit/proposed_fixes.json
+#   data/out/local/audit/applied_safe_fixes.json
+#   data/out/local/audit/pre_post_diff.json
+#   data/out/local/audit/audit_log.jsonl
+#
+# Nota:
+#   La auditoría opera sobre el canon local gobernado en data/out/local/.
+#   El pipeline bootstrap también escribe por defecto dentro de data/out/local/.
 #
 # Código de salida:
 #   0 — pipeline completo (ok o warning en algún componente)
@@ -47,6 +51,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export GOCACHE="${GOCACHE:-/tmp/tdc-go-build}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/tdc-cargo-target}"
+mkdir -p "${GOCACHE}" "${CARGO_TARGET_DIR}"
 
 # Parse flags
 AUDIT_MODE=""
@@ -59,8 +66,9 @@ for arg in "$@"; do
     esac
 done
 
-HTML_INPUT="${POSITIONAL[0]:-${REPO_ROOT}/data/tiddly-data-converter (Saved).html}"
-OUT_DIR="${POSITIONAL[1]:-/tmp/tdc-pipeline-run}"
+HTML_INPUT="${POSITIONAL[0]:-${REPO_ROOT}/data/in/tiddly-data-converter (Saved).html}"
+OUT_DIR="${POSITIONAL[1]:-${REPO_ROOT}/data/out/local/pipeline}"
+LOCAL_CANON_ROOT="${REPO_ROOT}/data/out/local"
 RAW_JSON="${OUT_DIR}/raw.tiddlers.json"
 INGESTA_JSON="${OUT_DIR}/ingesta.tiddlers.json"
 CANON_JSON="${OUT_DIR}/canon.entries.json"
@@ -136,10 +144,10 @@ if [[ -n "${AUDIT_MODE}" ]]; then
     cd "${REPO_ROOT}"
     python3 "${REPO_ROOT}/scripts/audit_normative_projection.py" \
         --mode "${AUDIT_MODE}" \
-        --input-root "${REPO_ROOT}/out" \
+        --input-root "${LOCAL_CANON_ROOT}" \
         --docs-root "${REPO_ROOT}/docs" \
         || { echo "[pipeline] BLOQUEADO: Auditoría normativa falló (exit $?)"; exit 7; }
-    echo "[pipeline] Auditoría normativa completada → ${REPO_ROOT}/out/audit/"
+    echo "[pipeline] Auditoría normativa completada → ${LOCAL_CANON_ROOT}/audit/"
 fi
 
 # ─── RESUMEN ──────────────────────────────────────────────────────────────────

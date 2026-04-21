@@ -133,6 +133,12 @@ func normalizeLine(data []byte) (CanonEntry, []string, string) {
 		entry.SchemaVersion = SchemaV0
 	}
 
+	textActions, err := NormalizeEmbeddedJSONText(&entry)
+	if err != nil {
+		return CanonEntry{}, nil, fmt.Sprintf("embedded JSON normalization failed: %v", err)
+	}
+	actions = append(actions, textActions...)
+
 	// Recompute identity fields.
 	oldID := entry.ID
 	oldSlug := entry.CanonicalSlug

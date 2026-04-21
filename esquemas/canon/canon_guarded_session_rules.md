@@ -1,8 +1,16 @@
-# S40 Guarded Canon Session Rules
+# Guarded Canon Session Rules
 
 ## Purpose
 
-S40 adds a narrow, testable admission circuit on top of the canon governance from S39. The canon remains the only source of truth; candidate lines are accepted only if they already satisfy the canon contract and can be merged without mutating existing nodes.
+S40 adds a narrow, testable admission circuit on top of the canon governance
+from S39. S49 keeps that guarded merge circuit but simplifies the local layout:
+
+- `data/out/local/tiddlers_*.jsonl` remains the only local source of truth
+- autonomous agent output defaults to the consolidated proposals file under `data/out/local/`
+- `data/out/remote/` is reserved for remote exchange or cloud projection
+- reverse HTML outputs live under `data/reverse_html/`
+
+Guarded merge remains available only for explicit merge or repair sessions.
 
 ## Scope
 
@@ -11,15 +19,36 @@ S40 adds a narrow, testable admission circuit on top of the canon governance fro
 - Reject invalid or ambiguous nodes with explicit reasons.
 - Preserve base canon entries byte-for-byte at merge time.
 - Produce reproducible evidence for acceptance, rejection, merge, and reverse readiness.
+- Keep direct writes to `data/out/local/tiddlers_*.jsonl` as an explicit exception.
+- Treat `data/out/local/proposals.jsonl` as the default writable output for canonized proposals.
+
+## Default Workflow After S49
+
+### Session-proposal first
+
+- Agents may read `data/out/local/tiddlers_*.jsonl`.
+- Agents may derive from the canon and inspect local derived layers in `data/out/local/enriched/` and `data/out/local/ai/`.
+- Agents write default autonomous proposal output to `data/out/local/proposals.jsonl`.
+- The proposals file is plain JSONL: one already canonized canon line per row.
+
+### Direct canon merge is exceptional
+
+Direct canon writes are allowed only when:
+
+- the user explicitly requests a guarded merge or canon repair
+- or a session explicitly scopes itself as a governed merge session
+
+When that happens, the S40 merge rules below still apply in full.
 
 ## Required Candidate Fields
 
-Each candidate line must already expose, at minimum:
+Each candidate line must already expose the full session-proposal shape:
 
 - Structural identity: `schema_version`, `id`, `key`, `title`, `canonical_slug`, `version_id`
 - Reading mode: `content_type`, `modality`, `encoding`, `is_binary`, `is_reference_only`
-- Semantic layer: `role_primary`, `tags`, `taxonomy_path`, `raw_payload_ref`, `mime_type`
+- Semantic layer: `role_primary`, `tags`, `taxonomy_path`, `semantic_text`, `content`, `raw_payload_ref`, `mime_type`
 - Context layer: `document_id`, `section_path`, `order_in_document`, `relations`
+- Provenance layer: `source_tags`, `normalized_tags`, `source_fields`, `text`, `source_type`, `source_position`, `created`, `modified`
 
 ## Deterministic Checks
 

@@ -3,24 +3,24 @@
 audit_normative_projection.py — Normative self-audit for canon shards + derived layers (S47).
 
 Reads:
-  - out/tiddlers_*.jsonl               (canon shards)
-  - out/enriched/tiddlers_enriched_*.jsonl
-  - out/ai/tiddlers_ai_*.jsonl
-  - out/ai/chunks_ai_*.jsonl
-  - out/ai/reports/*.json
+  - data/out/local/tiddlers_*.jsonl
+  - data/out/local/enriched/tiddlers_enriched_*.jsonl
+  - data/out/local/ai/tiddlers_ai_*.jsonl
+  - data/out/local/ai/chunks_ai_*.jsonl
+  - data/out/local/ai/reports/*.json
   - docs/ (normative reference)
 
 Evaluates 21 normative rules, classifies findings, applies safe autofixes,
 rewrites affected canon shards, optionally regenerates derived layers, and emits:
-  - out/audit/manifest.json
-  - out/audit/compliance_report.json
-  - out/audit/compliance_summary.md
-  - out/audit/warnings.jsonl
-  - out/audit/manual_review_queue.jsonl
-  - out/audit/proposed_fixes.json
-  - out/audit/applied_safe_fixes.json
-  - out/audit/pre_post_diff.json
-  - out/audit/audit_log.jsonl
+  - data/out/local/audit/manifest.json
+  - data/out/local/audit/compliance_report.json
+  - data/out/local/audit/compliance_summary.md
+  - data/out/local/audit/warnings.jsonl
+  - data/out/local/audit/manual_review_queue.jsonl
+  - data/out/local/audit/proposed_fixes.json
+  - data/out/local/audit/applied_safe_fixes.json
+  - data/out/local/audit/pre_post_diff.json
+  - data/out/local/audit/audit_log.jsonl
 
 Modes:
   --mode audit   : inspect only, no writes to canon
@@ -28,8 +28,8 @@ Modes:
 
 Usage:
   python3 scripts/audit_normative_projection.py --help
-  python3 scripts/audit_normative_projection.py --mode audit --input-root out --docs-root docs
-  python3 scripts/audit_normative_projection.py --mode apply --input-root out --docs-root docs
+  python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
+  python3 scripts/audit_normative_projection.py --mode apply --input-root data/out/local --docs-root docs
 
 Session: S47
 """
@@ -45,6 +45,15 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from path_governance import (
+    DEFAULT_AI_DIR,
+    DEFAULT_AI_REPORTS_DIR,
+    DEFAULT_AUDIT_DIR,
+    DEFAULT_CANON_DIR,
+    DEFAULT_ENRICHED_DIR,
+    resolve_repo_path,
+)
 
 # ── Session metadata ──────────────────────────────────────────────────────────
 SESSION = "S47"
@@ -866,13 +875,13 @@ def parse_args():
         epilog="""
 Examples:
   # Audit only (no writes to canon):
-  python3 scripts/audit_normative_projection.py --mode audit --input-root out --docs-root docs
+  python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
 
   # Audit + apply safe fixes + regenerate derived layers:
-  python3 scripts/audit_normative_projection.py --mode apply --input-root out --docs-root docs
+  python3 scripts/audit_normative_projection.py --mode apply --input-root data/out/local --docs-root docs
 
   # Custom output directory:
-  python3 scripts/audit_normative_projection.py --mode audit --input-root out --audit-dir out/audit
+  python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --audit-dir data/out/local/audit
 
   # Skip layer regeneration even in apply mode:
   python3 scripts/audit_normative_projection.py --mode apply --no-regenerate
@@ -886,8 +895,8 @@ Examples:
     )
     parser.add_argument(
         "--input-root",
-        default="out",
-        help="Root directory containing canon shard files tiddlers_*.jsonl (default: out)",
+        default=None,
+        help="Root directory containing canon shard files tiddlers_*.jsonl (default: data/out)",
     )
     parser.add_argument(
         "--enriched-dir",
@@ -929,11 +938,11 @@ def main():
 
     # Resolve paths
     repo_root = Path(__file__).parent.parent
-    input_root = (repo_root / args.input_root).resolve()
-    enriched_dir = Path(args.enriched_dir).resolve() if args.enriched_dir else input_root / "enriched"
-    ai_dir = Path(args.ai_dir).resolve() if args.ai_dir else input_root / "ai"
-    reports_dir = Path(args.reports_dir).resolve() if args.reports_dir else ai_dir / "reports"
-    audit_dir = Path(args.audit_dir).resolve() if args.audit_dir else input_root / "audit"
+    input_root = resolve_repo_path(args.input_root, DEFAULT_CANON_DIR)
+    enriched_dir = resolve_repo_path(args.enriched_dir, DEFAULT_ENRICHED_DIR)
+    ai_dir = resolve_repo_path(args.ai_dir, DEFAULT_AI_DIR)
+    reports_dir = resolve_repo_path(args.reports_dir, DEFAULT_AI_REPORTS_DIR)
+    audit_dir = resolve_repo_path(args.audit_dir, DEFAULT_AUDIT_DIR)
 
     print(f"[audit] Run ID: {run_id}")
     print(f"[audit] Mode: {mode}")
