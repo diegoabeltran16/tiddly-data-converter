@@ -11,6 +11,9 @@ This contract defines the exact reverse behavior for the S44 flow:
 Reverse is not a full HTML rebuild. It is a controlled store update over a real
 base HTML.
 
+Operational reverse outputs live under `data/out/local/reverse_html/` as local,
+derived, reproducible artifacts. They never become canon.
+
 ## 2. Reverse Source
 
 Reverse accepts either:
@@ -133,6 +136,19 @@ These lines are skipped explicitly and reported, not silently normalized.
 - existing titles with equivalent projection are `already_present`
 - existing titles with different authoritative projection are updated in place
 - unrelated fields already present in the base HTML but not projected by canon are preserved
+
+### 6.3 `store-policy`
+
+`reverse_tiddlers` exposes two explicit store policies:
+
+- `preserve` keeps the base store and applies the selected merge mode over it
+- `replace` rebuilds the store array from the eligible canon projections only
+
+Current rule for `replace`:
+
+- non-system base tiddlers are not carried forward implicitly
+- system titles from the base HTML are preserved as structural exceptions so the HTML remains reopenable
+- system titles from canon remain out of scope under the current textual/metadata reverse contract
 
 ## 7. HTML Preservation
 

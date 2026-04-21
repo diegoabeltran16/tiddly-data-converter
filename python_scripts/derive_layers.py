@@ -14,11 +14,11 @@ Reads canon shards from the governed local canon root and produces:
   - data/out/local/ai/reports/relations_qc_report.json
   - data/out/local/ai/reports/derivation_report.json
 
-Hardening principles (S52):
+Hardening principles (S55):
   - 100% shard-aware: no monolithic input, no hardcoded shard count
   - Controlled vocabulary for role_primary (26 types)
   - Token-aware structural chunker with hard max guardrail
-  - Corpus eligibility policy for archival and legacy derived artifacts
+  - Corpus eligibility policy loaded from machine-readable governance rules
   - Retrieval hints: normalized dedup, split into terms + aliases
   - Relations validated against known node IDs
   - Three distinct text fields: preview_text, semantic_text, ai_summary
@@ -38,6 +38,13 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from corpus_governance import (
+    CANON_POLICY_BUNDLE_REL,
+    DERIVED_LAYERS_REGISTRY_REL,
+    load_canon_policy_bundle,
+    load_layer_registry,
+    resolve_corpus_policy,
+)
 from path_governance import (
     DEFAULT_AI_DIR,
     DEFAULT_AI_REPORTS_DIR,
@@ -48,8 +55,10 @@ from path_governance import (
 )
 
 # ── Derivation session identifier ────────────────────────────────────────────
-SESSION = "S52"
+SESSION = "S55"
 SCHEMA_VERSION = "v2"
+CANON_POLICY_BUNDLE = load_canon_policy_bundle()
+LAYER_REGISTRY = load_layer_registry()
 
 # ── Default configuration ─────────────────────────────────────────────────────
 DEFAULT_ENRICHED_SHARD_SIZE = 100
@@ -57,6 +66,7 @@ DEFAULT_AI_SHARD_SIZE = 100
 DEFAULT_CHUNK_SHARD_SIZE = 200
 DEFAULT_CHUNK_TARGET_TOKENS = 1800
 DEFAULT_CHUNK_MAX_TOKENS = 4000   # hard max — no chunk may exceed this
+DEFAULT_MICROCHUNK_MIN_TOKENS = 80
 DEFAULT_TIDDLER_SHARD_SIZE = 100
 DEFAULT_CHUNK_SHARD_SIZE_ARG = 200
 
@@ -153,6 +163,31 @@ def looks_like_repo_path(title: str) -> bool:
         or title in {".gitignore", "README.md", "estructura.txt", "scripts.txt", "contratos.txt"}
         or bool(PATHISH_SUFFIX_RE.search(title))
     )
+
+
+def looks_like_build_artifact_path(title: str) -> bool:
+    title_lower = safe_str(title).lower()
+    return (
+        "/target/" in title_lower
+        or ".fingerprint/" in title_lower
+        or "/debug/build/" in title_lower
+    )
+
+
+def looks_like_inventory_manifest(title: str) -> bool:
+    title_lower = safe_str(title).lower()
+    inventory_names = {"contratos.txt", "estructura.txt", "scripts.txt"}
+    inventory_suffixes = (
+        "/contratos.txt",
+        "/esquemas.txt",
+        "/go.txt",
+        "/packaging.txt",
+        "/python.txt",
+        "/rust.txt",
+        "/runtime.txt",
+        "/scripts.txt",
+    )
+    return title_lower in inventory_names or title_lower.endswith(inventory_suffixes)
 
 
 # ── Semantic classifier ────────────────────────────────────────────────────────
@@ -283,6 +318,14 @@ def classify_role(rec: dict) -> str:
     # Filesystem-like titles should resolve by artifact family before generic
     # topical keywords such as "audit", "semantic" or "report".
     if looks_like_repo_path(title):
+        if looks_like_build_artifact_path(title):
+            if ct == "text/html" or title_lower.endswith(".html") or title_lower.endswith(".derived.html"):
+                return "html_artifact"
+            if title_lower.endswith((".rs", ".go", ".py", ".sh")):
+                return "code_source"
+            if title_lower.endswith(".json") and "bin-" in title_lower:
+                return "report"
+            return "manifest"
         if title_lower in (".gitignore", "gitignore", ".gitattributes"):
             return "config"
         if "instructions/" in title_lower and title_lower.endswith(".md"):
@@ -291,8 +334,14 @@ def classify_role(rec: dict) -> str:
             return "contract"
         if title_lower.startswith("esquemas/") or "esquemas/" in title_lower:
             return "schema"
+        if looks_like_inventory_manifest(title):
+            if title_lower.startswith("esquemas/"):
+                return "schema"
+            return "manifest"
         if "readme" in title_lower or title.lower().endswith("readme.md"):
             return "readme"
+        if re.search(r"m\d+-s\d+", title_lower):
+            return "contract"
         if "manifest" in title_lower or title_lower in ("estructura.txt", "scripts.txt", "contratos.txt"):
             return "manifest"
         if title_lower.endswith("_test.go") or "tests/" in title_lower or "fixture" in title_lower:
@@ -300,12 +349,20 @@ def classify_role(rec: dict) -> str:
         if re.search(r"\.(go|rs|py|sh|ts|js)$", title_lower):
             if not title_lower.endswith("_test.go") and "test" not in title_lower.rsplit("/", 1)[-1]:
                 return "code_source"
+        if title_lower.endswith(("/spec.md", "spec.md")):
+            return "schema"
+        if title_lower.endswith(".md"):
+            return "policy"
         if re.search(r"\.(ya?ml|toml|ini|env|cfg|conf)$", title_lower):
             return "config"
         if ct == "text/html" or title_lower.endswith(".html") or title_lower.endswith(".derived.html"):
             return "html_artifact"
+        if title_lower.endswith(".json"):
+            return "manifest"
         if title_lower.endswith(".txt") and "data" in title_lower:
             return "dataset"
+        if title_lower.endswith(".txt"):
+            return "manifest"
 
     # ── Algorithm ──
     if "algoritmos" in title_lower or "matematicas" in title_lower or "matemáticas" in title_lower:
@@ -772,53 +829,17 @@ def compute_is_reference_only(rec: dict, role: str) -> bool:
     return False
 
 
+def get_layer_registry_entry(layer_id: str) -> dict:
+    for layer in LAYER_REGISTRY["layers"]:
+        if layer.get("layer_id") == layer_id:
+            return layer
+    raise KeyError(f"unknown governed layer: {layer_id}")
+
+
 def derive_corpus_policy(rec: dict, role: str) -> dict:
-    """Assign corpus state and chunking policy from canonical evidence."""
-    title = safe_str(rec.get("title"))
-    title_lower = title.lower()
-    tags_lower = [safe_str(t).lower() for t in (rec.get("tags") or [])]
-
-    is_live = "state:live-path" in tags_lower
-    is_historical = "state:historical-snapshot" in tags_lower
-    is_archival_only = "status:archival-only" in tags_lower
-    is_superseded = any(tag.startswith("superseded-by:") for tag in tags_lower)
-    is_legacy_out_artifact = title_lower.startswith("out/") and title_lower.endswith((".json", ".html"))
-
-    if is_archival_only:
-        return {
-            "corpus_state": "archival_only",
-            "chunk_eligibility": "excluded",
-            "chunk_exclusion_reason": "archival_only_skip",
-        }
-    if is_legacy_out_artifact and not is_live:
-        return {
-            "corpus_state": "historical_artifact",
-            "chunk_eligibility": "excluded",
-            "chunk_exclusion_reason": "historical_out_artifact_skip",
-        }
-    if is_historical or is_superseded:
-        return {
-            "corpus_state": "historical_snapshot",
-            "chunk_eligibility": "deprioritized",
-            "chunk_exclusion_reason": None,
-        }
-    if is_live:
-        return {
-            "corpus_state": "live_path",
-            "chunk_eligibility": "eligible",
-            "chunk_exclusion_reason": None,
-        }
-    if looks_like_repo_path(title) and not title_lower.startswith("out/"):
-        return {
-            "corpus_state": "repo_path",
-            "chunk_eligibility": "eligible",
-            "chunk_exclusion_reason": None,
-        }
-    return {
-        "corpus_state": "general",
-        "chunk_eligibility": "eligible",
-        "chunk_exclusion_reason": None,
-    }
+    """Assign corpus state and chunking policy from governed machine rules."""
+    del role  # corpus_state currently depends on governed source evidence, not role
+    return resolve_corpus_policy(rec, CANON_POLICY_BUNDLE)
 
 
 # ── Chunker ────────────────────────────────────────────────────────────────────
@@ -892,6 +913,7 @@ def classify_payload(rec: dict, role: str, target_tokens: int) -> dict:
         "chunk_strategy": strategy,
         "token_estimate": token_est,
         "corpus_state": corpus_policy["corpus_state"],
+        "corpus_state_rule_id": corpus_policy["corpus_state_rule_id"],
         "chunk_eligibility": eligibility,
         "chunk_exclusion_reason": exclusion_reason,
     }
@@ -1045,6 +1067,85 @@ def split_structurally(text: str, title: str, role: str,
     return hard_split(text, min(target_tokens, max_tokens))
 
 
+def join_chunk_text(left: str, right: str) -> str:
+    left = left.rstrip()
+    right = right.lstrip()
+    if not left:
+        return right
+    if not right:
+        return left
+    return left + "\n\n" + right
+
+
+def is_separator_only_chunk(chunk_text: str) -> bool:
+    lines = [line.strip() for line in chunk_text.splitlines() if line.strip()]
+    if not lines:
+        return True
+    return all(
+        HEADING_LINE_RE.match(line)
+        or bool(re.fullmatch(r"[-=`*_]{3,}", line))
+        or line.startswith("```")
+        for line in lines
+    )
+
+
+def is_microchunk(chunk_text: str, token_estimate: int) -> bool:
+    lines = [line.strip() for line in chunk_text.splitlines() if line.strip()]
+    if token_estimate < 50:
+        return True
+    if is_separator_only_chunk(chunk_text):
+        return True
+    return token_estimate < DEFAULT_MICROCHUNK_MIN_TOKENS and len(lines) <= 3
+
+
+def densify_microchunks(chunks_text: list[str], target_tokens: int) -> list[str]:
+    """
+    Merge heading-only or context-poor fragments into adjacent chunks while
+    preserving order and respecting the target token budget.
+    """
+    dense = [chunk.strip() for chunk in chunks_text if chunk and chunk.strip()]
+    if len(dense) <= 1:
+        return dense
+
+    idx = 0
+    while idx < len(dense) - 1:
+        current = dense[idx]
+        merged = join_chunk_text(current, dense[idx + 1])
+        if is_separator_only_chunk(current) and estimate_tokens(merged) <= target_tokens:
+            dense[idx + 1] = merged
+            del dense[idx]
+            if idx:
+                idx -= 1
+            continue
+        idx += 1
+
+    idx = 0
+    while idx < len(dense) - 1:
+        current = dense[idx]
+        current_tokens = estimate_tokens(current)
+        merged = join_chunk_text(current, dense[idx + 1])
+        if is_microchunk(current, current_tokens) and estimate_tokens(merged) <= target_tokens:
+            dense[idx + 1] = merged
+            del dense[idx]
+            if idx:
+                idx -= 1
+            continue
+        idx += 1
+
+    idx = 1
+    while idx < len(dense):
+        current = dense[idx]
+        current_tokens = estimate_tokens(current)
+        merged = join_chunk_text(dense[idx - 1], current)
+        if is_microchunk(current, current_tokens) and estimate_tokens(merged) <= target_tokens:
+            dense[idx - 1] = merged
+            del dense[idx]
+            continue
+        idx += 1
+
+    return dense
+
+
 def extract_chunk_heading(chunk_text: str, section_path: list, title: str) -> str:
     """Best-effort structural label for a chunk."""
     for line in chunk_text.splitlines():
@@ -1126,6 +1227,8 @@ def chunk_node(
         else:
             validated.append(ct)
 
+    validated = densify_microchunks(validated, target_tokens)
+
     # Build chunk records
     chunks = []
     for idx, chunk_text in enumerate(validated):
@@ -1152,6 +1255,7 @@ def chunk_node(
             "taxonomy_path": taxonomy,
             "retrieval_hints": retrieval_hints[:8],
             "corpus_state": payload_info["corpus_state"],
+            "corpus_state_rule_id": payload_info["corpus_state_rule_id"],
             "chunk_eligibility": payload_info["chunk_eligibility"],
             "source_anchor": source_anchor,
             "source_position": rec.get("source_position"),
@@ -1247,7 +1351,8 @@ def write_sharded(records: list, output_dir: Path, prefix: str, shard_size: int)
 
 def write_manifest(output_dir: Path, layer_name: str, shards_info: list,
                    total_records: int, source_shard_count: int,
-                   source_shard_files: list, extra: dict = None):
+                   source_shard_files: list, extra: dict = None,
+                   layer_id: str | None = None):
     """Write manifest.json for a layer."""
     manifest = {
         "layer": layer_name,
@@ -1266,6 +1371,17 @@ def write_manifest(output_dir: Path, layer_name: str, shards_info: list,
             "shards": shards_info,
         },
     }
+    if layer_id:
+        layer = get_layer_registry_entry(layer_id)
+        manifest["governance"] = {
+            "policy_bundle_ref": CANON_POLICY_BUNDLE_REL,
+            "layer_registry_ref": DERIVED_LAYERS_REGISTRY_REL,
+            "layer_id": layer_id,
+            "layer_class": layer.get("layer_class"),
+            "authority": layer.get("authority"),
+            "lineage_parents": layer.get("lineage_parents"),
+            "validation_inputs": layer.get("validation_inputs"),
+        }
     if extra:
         manifest.update(extra)
     manifest_path = output_dir / "manifest.json"
@@ -1282,6 +1398,7 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
     content = rec.get("content") or {}
     token_est = estimate_tokens(text)
     qflags = compute_quality_flags(rec)
+    corpus_policy = derive_corpus_policy(rec, role)
 
     ct = safe_str(rec.get("content_type"))
     is_prose = ct in ("text/markdown", "text/vnd.tiddlywiki", "text/plain")
@@ -1316,6 +1433,10 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
         "source_position": rec.get("source_position"),
         "created": rec.get("created"),
         "modified": rec.get("modified"),
+        "corpus_state": corpus_policy["corpus_state"],
+        "chunk_eligibility": corpus_policy["chunk_eligibility"],
+        "chunk_exclusion_reason": corpus_policy["chunk_exclusion_reason"],
+        "corpus_state_rule_id": corpus_policy["corpus_state_rule_id"],
         # Derived deterministic fields
         "preview_text": compute_preview_text(rec),
         "semantic_text": compute_semantic_text(rec),
@@ -1339,6 +1460,8 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
             "source_line": line_num,
             "role_source": "canon_inherited" if rec.get("role_primary") in VALID_ROLES and rec.get("role_primary") != "unclassified" else "s52_classifier",
             "taxonomy_source": "s52_derived" if not rec.get("taxonomy_path") else "canon_inherited",
+            "corpus_state_rule_id": corpus_policy["corpus_state_rule_id"],
+            "governance_policy_ref": CANON_POLICY_BUNDLE_REL,
         },
     }
     return enriched
@@ -1413,6 +1536,7 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         "chunk_eligibility": payload_info["chunk_eligibility"],
         "chunk_exclusion_reason": payload_info["chunk_exclusion_reason"],
         "corpus_state": payload_info["corpus_state"],
+        "corpus_state_rule_id": payload_info["corpus_state_rule_id"],
         "chunk_strategy": payload_info["chunk_strategy"],
         "token_estimate": token_est,
         # Structure
@@ -1424,6 +1548,8 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
             "session": SESSION,
             "method": "projection_v2",
             "role_source": role_source,
+            "corpus_state_rule_id": payload_info["corpus_state_rule_id"],
+            "governance_policy_ref": CANON_POLICY_BUNDLE_REL,
         },
     }
 
@@ -1524,6 +1650,8 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
 
     eligibility_dist = Counter(r.get("chunk_eligibility", "unknown") for r in ai_records)
     token_sizes = [c.get("token_estimate", 0) for c in all_chunks]
+    microchunks = [c for c in all_chunks if c.get("token_estimate", 0) < DEFAULT_MICROCHUNK_MIN_TOKENS]
+    heading_only = [c for c in all_chunks if is_separator_only_chunk(safe_str(c.get("text")))]
     size_stats = {}
     if token_sizes:
         ordered = sorted(token_sizes)
@@ -1544,6 +1672,7 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
         "config": {
             "chunk_target_tokens": target_tokens,
             "chunk_hard_max_tokens": max_tokens,
+            "microchunk_threshold_tokens": DEFAULT_MICROCHUNK_MIN_TOKENS,
         },
         "total_nodes": len(ai_records),
         "text_capable_nodes": len(text_capable_nodes),
@@ -1552,6 +1681,8 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
         "total_chunks_generated": len(all_chunks),
         "chunks_above_target": len(over_target),
         "chunks_above_hard_max": len(over_max),
+        "chunks_below_micro_threshold": len(microchunks),
+        "heading_only_chunks": len(heading_only),
         "chunks_with_fallback": len(with_fallback),
         "nodes_excluded_from_chunking": sum(excluded_reasons.values()),
         "exclusion_reasons": dict(excluded_reasons),
@@ -1653,6 +1784,8 @@ def write_derivation_report(output_dir: Path, canon: list,
                               target_tokens: int, max_tokens: int) -> Path:
     role_dist = Counter(r["role_primary"] for r in ai_records)
     ct_dist = Counter(rec.get("content_type", "<missing>") for rec, _, _ in canon)
+    corpus_state_dist = Counter(r.get("corpus_state", "unknown") for r in ai_records)
+    corpus_state_rule_dist = Counter(r.get("corpus_state_rule_id", "unknown") for r in ai_records)
 
     report = {
         "session": SESSION,
@@ -1681,6 +1814,13 @@ def write_derivation_report(output_dir: Path, canon: list,
                 role_dist.get("unclassified", 0) / len(canon), 4
             ) if canon else 0,
         },
+        "governance": {
+            "policy_bundle_ref": CANON_POLICY_BUNDLE_REL,
+            "layer_registry_ref": DERIVED_LAYERS_REGISTRY_REL,
+            "defined_corpus_states": list(CANON_POLICY_BUNDLE["corpus_state_catalog"].keys()),
+            "observed_corpus_state_distribution": dict(corpus_state_dist.most_common()),
+            "observed_corpus_state_rule_distribution": dict(corpus_state_rule_dist.most_common()),
+        },
         "content_type_distribution": dict(ct_dist.most_common()),
         "chunking_summary": {
             "target_tokens": target_tokens,
@@ -1692,8 +1832,8 @@ def write_derivation_report(output_dir: Path, canon: list,
         "hardening_notes": {
             "shard_discovery": "dynamic — pattern tiddlers_*.jsonl",
             "role_vocabulary": "controlled — 26 roles",
-            "chunker": "token-aware structural chunker with recursive boundary refinement",
-            "chunk_eligibility": "archival-only and legacy out/*.json/html artifacts excluded from general chunking",
+            "chunker": "token-aware structural chunker with recursive boundary refinement and post-pass microchunk densification",
+            "chunk_eligibility": "resolved from canon_policy_bundle.json before chunking or AI projection",
             "retrieval": "normalized dedup with terms + aliases",
             "relations": "validated against known node IDs",
             "text_fields": "three distinct: preview_text, semantic_text, ai_summary",
@@ -1710,7 +1850,7 @@ def write_derivation_report(output_dir: Path, canon: list,
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="derive_layers.py — S52 stable derivation entrypoint for tiddly-data-converter"
+        description="derive_layers.py — S55 governed derivation entrypoint for tiddly-data-converter"
     )
     parser.add_argument(
         "--input-dir", default=None,
@@ -1774,7 +1914,7 @@ def main():
     tiddler_shard_size = args.tiddler_shard_size
     chunk_shard_size = args.chunk_shard_size
 
-    print(f"[{SESSION}] derive_layers.py — hardened derivation pipeline")
+    print(f"[{SESSION}] derive_layers.py — hardened derivation pipeline with governed corpus_state")
     print(f"  input_dir:       {input_dir}")
     print(f"  enriched_dir:    {enriched_dir}")
     print(f"  ai_dir:          {ai_dir}")
@@ -1824,6 +1964,7 @@ def main():
         enriched_dir, "enriched_canonical_export",
         enriched_shards_info, len(enriched_records),
         len(shard_paths), shard_paths,
+        layer_id="enriched",
     )
     print(f"  Wrote {len(enriched_records)} enriched records → {len(enriched_shards_info)} shards in {enriched_dir}")
 
@@ -1869,7 +2010,8 @@ def main():
                 "chunk_target_tokens": target_tokens,
                 "chunk_hard_max_tokens": max_tokens,
             }
-        }
+        },
+        layer_id="ai",
     )
     print(f"  Wrote {len(ai_records)} AI records → {len(ai_shards_info)} shards")
     print(f"  Wrote {len(all_chunks)} chunks → {len(chunk_shards_info)} chunk shards")

@@ -7,7 +7,7 @@
 # Any difference causes a non-zero exit (regression detected).
 #
 # Usage:
-#   bash scripts/baseline_verify.sh
+#   bash shell_scripts/baseline_verify.sh
 #
 # Exit codes:
 #   0 — golden files match regenerated output

@@ -2,7 +2,7 @@
 # run_pipeline.sh — Runner mínimo del pipeline Extractor → Doctor → Ingesta → Canon
 #
 # Uso:
-#   ./scripts/run_pipeline.sh [<html_input>] [<out_dir>] [--audit] [--audit-apply]
+#   ./shell_scripts/run_pipeline.sh [<html_input>] [<out_dir>] [--audit] [--audit-apply]
 #
 # Parámetros:
 #   html_input    Ruta al archivo HTML vivo de TiddlyWiki
@@ -142,7 +142,7 @@ if [[ -n "${AUDIT_MODE}" ]]; then
     echo ""
     echo "[pipeline] === Paso 6 · Auditoría normativa (modo: ${AUDIT_MODE}) ==="
     cd "${REPO_ROOT}"
-    python3 "${REPO_ROOT}/scripts/audit_normative_projection.py" \
+    python3 "${REPO_ROOT}/python_scripts/audit_normative_projection.py" \
         --mode "${AUDIT_MODE}" \
         --input-root "${LOCAL_CANON_ROOT}" \
         --docs-root "${REPO_ROOT}/docs" \

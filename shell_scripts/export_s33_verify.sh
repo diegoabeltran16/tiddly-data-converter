@@ -2,7 +2,7 @@
 # export_s33_verify.sh — Verify the S33 functional tiddlers JSONL
 #
 # Usage:
-#   ./scripts/export_s33_verify.sh
+#   ./shell_scripts/export_s33_verify.sh
 #
 # Checks:
 #   1. data/out/local/export/s33-functional-tiddlers.jsonl exists

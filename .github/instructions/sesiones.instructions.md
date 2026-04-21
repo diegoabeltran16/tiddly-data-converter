@@ -1,6 +1,6 @@
 # Plantilla de instruccion de sesion para agentes
 
-## tiddly-data-converter — plantilla local-first con cierre contractual, propuestas canonizadas y merge gobernado solo por excepcion
+## tiddly-data-converter — plantilla local-first con cierre directo en canon, proposals legado y reversibilidad obligatoria
 
 ---
 
@@ -14,8 +14,9 @@
 
 Frase rectora por defecto:
 
-> El canon se protege.
-> Los agentes no lo escriben libremente: lo leen, lo respetan y proponen cambios en formato gobernado.
+> El trabajo semántico de la sesión no debe quedar fuera del sistema.
+> Debe cerrar dentro del canon.
+> Debe poder reversearse después.
 
 ---
 
@@ -26,14 +27,14 @@ La sesion debe asumir como verdad operativa el layout consolidado en S49:
 - `data/in/` = entradas locales, incluido el HTML vivo
 - `data/out/local/` = canon local, derivados locales y propuestas
 - `data/out/remote/` = proyeccion o intercambio remoto preparado, no autoritativo
-- `data/reverse_html/` = salida HTML de reverse y sus reportes
+- `data/out/local/reverse_html/` = salida HTML de reverse y sus reportes
 
 Reglas centrales:
 
 - `data/out/local/tiddlers_*.jsonl` es la fuente de verdad local
-- `data/out/local/proposals.jsonl` es la salida autonoma permitida para propuestas canonizadas
+- `data/out/local/proposals.jsonl` queda como artefacto legado o extraordinario, no como ruta diaria de cierre
 - `data/out/local/enriched/`, `data/out/local/ai/`, `data/out/local/audit/` y `data/out/local/export/` son capas derivadas
-- `data/reverse_html/` no es canon
+- `data/out/local/reverse_html/` no es canon
 - `data/out/remote/` no habilita integracion cloud productiva por si sola
 
 ---
@@ -68,12 +69,14 @@ El canon local sigue mandando:
 
 - lectura del canon: permitida
 - derivacion desde canon: permitida
-- propuestas canonizadas: permitidas
-- escritura directa sobre `data/out/local/tiddlers_*.jsonl`: prohibida por defecto
+- escritura directa gobernada sobre `data/out/local/tiddlers_*.jsonl`: requerida para la memoria semántica-documental propia de la sesión
+- `data/out/local/proposals.jsonl`: legado y extraordinario
 
-Excepcion:
+La escritura directa sigue siendo gobernada:
 
-- solo se puede escribir directo al canon si el usuario o la propia sesion ordenan explicitamente un merge canonico gobernado o una reparacion canonica puntual
+- solo puede tocar targets explícitos
+- debe preservar líneas no objetivo
+- y debe pasar validación real antes de cerrar
 
 ---
 
@@ -108,7 +111,7 @@ La sesion debe trabajar con base en:
 ### 4.4 Entradas y reverse, cuando apliquen
 
 - `data/in/`
-- `data/reverse_html/`
+- `data/out/local/reverse_html/`
 
 ---
 
@@ -120,7 +123,8 @@ La sesion debe cerrar mediante:
 
 - contrato `.md.json` en `contratos/`
 - actualizacion de documentacion, scripts o configuracion si el objetivo lo exige
-- actualizacion de `data/out/local/proposals.jsonl` cuando la sesion deba dejar lineas canonicas candidatas o ajustes canonicos sugeridos
+- escritura directa gobernada en `data/out/local/tiddlers_*.jsonl` cuando la sesion produzca memoria semántica-documental propia
+- absorción o actualización en canon del propio artefacto `contratos/mXX-sNN-<slug>.md.json` como nodo path-like del repo
 
 ### 5.2 Cierre prohibido por defecto
 
@@ -151,8 +155,9 @@ Y, cuando corresponda:
 
 Regla de soporte:
 
-- por defecto estas piezas se escriben como lineas JSONL ya canonizadas en `data/out/local/proposals.jsonl`
-- no se escriben libremente sobre los shards base salvo mandato explicito de merge gobernado
+- estas piezas deben escribirse como lineas JSONL ya canonizadas directamente en `data/out/local/tiddlers_*.jsonl`
+- `data/out/local/proposals.jsonl` queda solo para uso extraordinario o recuperación manual
+- el contrato `.md.json` de la sesión también debe quedar representado o actualizado en canon como artefacto real del repositorio
 
 ---
 
@@ -173,7 +178,7 @@ Regla de soporte:
 3. **Ejecutar**
    - cambios tecnicos necesarios
    - ajustes de rutas, scripts, docs o contratos segun corresponda
-   - sin tocar el canon base salvo autorizacion explicita
+   - y absorcion directa en canon cuando la sesion produzca memoria estructural propia
 
 4. **Validar**
    - tests automatizados pertinentes
@@ -187,21 +192,19 @@ Regla de soporte:
    - crear o actualizar contrato en `contratos/mXX-sNN-<slug>.md.json`
    - documentar lo realizado, lo no realizado, los limites y las validaciones
 
-6. **Emitir propuestas**
-   - si la sesion deja cambios canonicos sugeridos, escribir lineas JSONL ya canonizadas en `data/out/local/proposals.jsonl`
+6. **Uso extraordinario de proposals**
+   - solo si existe una razon tecnica concreta para no absorber todavia al canon base
 
 Nunca al reves.
 
 ---
 
-## 8. Flujo excepcional: merge canonico gobernado
+## 8. Flujo gobernado de cierre directo
 
-Solo cuando el usuario o la sesion lo ordenen explicitamente, el agente puede operar sobre `data/out/local/tiddlers_*.jsonl`.
-
-En ese caso debe:
+Cuando la sesion produzca memoria semántica-documental propia, el agente debe:
 
 1. identificar el target exacto en canon
-2. justificar el cambio como merge o reparacion gobernada
+2. justificar el cambio como cierre o reparacion gobernada
 3. preservar toda linea no objetivo
 4. evitar duplicaciones o colisiones
 5. validar el resultado antes de cerrar
@@ -226,6 +229,14 @@ env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
 
 Si el canon cambia efectivamente, regenerar capas derivadas y repetir las validaciones pertinentes.
 
+## 8.1 Flujo extraordinario: proposals legado
+
+Solo cuando haga falta candidate storage extraordinario o recuperación manual:
+
+1. justificar por qué no corresponde absorción directa inmediata
+2. escribir líneas ya canonizadas
+3. no usar `proposals.jsonl` como bypass del cierre normal
+
 ---
 
 ## 9. Flujo operativo del repositorio cuando la sesion toca export o reverse
@@ -244,7 +255,7 @@ Flujo correcto:
 
 1. `canon_preflight --mode reverse-preflight` sobre `data/out/local`
 2. `reverse_tiddlers` desde `go/bridge`
-3. salida en `data/reverse_html/`
+3. salida en `data/out/local/reverse_html/`
 
 Regla:
 
@@ -276,7 +287,7 @@ Si una ruta deja de existir o cambia de funcion:
 6. actualizar documentacion operativa si el cambio la afecta
 7. ejecutar verificaciones y tests pertinentes
 8. dejar trazabilidad clara del trabajo realizado
-9. cerrar con contrato y, cuando aplique, con propuestas canonizadas
+9. cerrar con contrato y, cuando aplique, con absorción canónica directa
 
 ---
 
@@ -284,12 +295,15 @@ Si una ruta deja de existir o cambia de funcion:
 
 1. reabrir decisiones cerradas sin razon tecnica fuerte
 2. crear artefactos nuevos en `docs/tiddlers_de_sesiones/`
-3. escribir libremente sobre `data/out/local/tiddlers_*.jsonl`
+3. usar `data/out/local/proposals.jsonl` como cierre diario
 4. insertar lineas canonicas antes de validar
 5. inventar rutas, relaciones o clasificaciones no sustentadas
 6. declarar integracion cloud productiva viva si no existe
 7. tratar `data/out/remote/` como fuente de verdad
 8. declarar exito sin contrato y sin evidencia de validacion
+9. envolver en `[[...]]` tags que no contienen espacio, `[` ni `]` en `source_fields.tags`
+10. derivar `canonical_slug` reemplazando `/` o `.` con guiones — esos caracteres se eliminan, no se convierten
+11. declarar el cierre semántico como completo si el reverse real no ha corrido o ha reportado `rejected > 0`
 
 ---
 
@@ -315,9 +329,9 @@ Seleccionar la familia documental correcta:
 
 ---
 
-## 14. Contenido minimo de las propuestas canonizadas
+## 14. Contenido minimo de las lineas canonicas directas
 
-Toda linea propuesta en `data/out/local/proposals.jsonl` debe salir ya canonizada y respetar el formato vigente del canon.
+Toda linea escrita directamente en `data/out/local/tiddlers_*.jsonl` debe salir ya canonizada y respetar el formato vigente del canon.
 
 Campos minimos esperados:
 
@@ -327,7 +341,70 @@ Campos minimos esperados:
 - contexto: `document_id`, `section_path`, `order_in_document`, `relations`
 - procedencia: `source_tags`, `normalized_tags`, `source_fields`, `text`, `source_type`, `source_position`, `created`, `modified`
 
-No dejar propuestas como borradores informales o JSON parcial.
+No dejar cierres semánticos como borradores informales o JSON parcial.
+
+### 14.1 Regla estricta: `source_fields.tags`
+
+El campo `source_fields.tags` debe seguir **exactamente** la misma lógica que `formatTW5Tags` del motor de reverse (`go/bridge/reverse_tiddlers.go`):
+
+- Si el tag **contiene espacio, `[` o `]`** → envolverlo en `[[tag]]`
+- Si el tag **no contiene ninguno de esos tres caracteres** → dejarlo tal cual, sin `[[...]]`
+
+Tabla de referencia:
+
+| Tag | Resultado correcto | Error común |
+|---|---|---|
+| `## 🧭🧱 Protocolo de Sesión` | `[[## 🧭🧱 Protocolo de Sesión]]` | — |
+| `#### 🌀 Sesión 58 = route-fix-...` | `[[#### 🌀 Sesión 58 = route-fix-...]]` | — |
+| `session:m03-s58` | `session:m03-s58` | `[[session:m03-s58]]` ← INCORRECTO |
+| `milestone:m03` | `milestone:m03` | `[[milestone:m03]]` ← INCORRECTO |
+| `topic:route-migration` | `topic:route-migration` | `[[topic:route-migration]]` ← INCORRECTO |
+| `contratos/m03-s58-...md.json` | `contratos/m03-s58-...md.json` | `[[contratos/m03-s58-...md.json]]` ← INCORRECTO |
+
+Los paths de archivo como `contratos/m03-s58-<slug>.md.json` **no contienen espacios** y por tanto **no deben ir envueltos** en `[[...]]`. Envolverlos produce `source-fields-reserved-conflict` en el reverse y bloquea la escritura del HTML.
+
+La cadena completa de `source_fields.tags` debe coincidir byte a byte con lo que produce `formatTW5Tags(source_tags)`. Antes de escribir la línea, verificar cada tag individualmente contra esta regla.
+
+### 14.2 Regla estricta: `canonical_slug`
+
+El `canonical_slug` se deriva de `title` mediante el algoritmo de `CanonicalSlugOf` (`go/canon/identity.go`). El algoritmo tiene cinco pasos en orden:
+
+1. Normalización NFKC (`ﬁ` → `fi`, etc.)
+2. NFD + eliminar diacríticos combinantes (`é` → `e`, `ó` → `o`, `ú` → `u`, `ñ` → `n`)
+3. Minúsculas
+4. Todo espacio o secuencia de espacios → un solo `-`
+5. **Eliminar todo carácter que no sea `[a-z0-9-]`** — esto incluye `/`, `.`, `=`, `#`, `🌀`, `🧪`, `🧾`, `@`, `_`
+
+Consecuencias críticas del paso 5:
+
+| Fragmento del título | Resultado en slug |
+|---|---|
+| `#### 🌀 Sesión 58` | `sesion-58` |
+| `contratos/m03-s58-slug.md.json` | `contratosm03-s58-slugmdjson` |
+| `= route-fix` | `-route-fix` |
+
+Los caracteres `/` y `.` **no se convierten en guión**: se **eliminan**. Un slug derivado de un path de archivo como `contratos/m03-s58-<slug>.md.json` queda sin separadores entre `contratos` y el nombre del archivo.
+
+Antes de escribir cualquier línea, verificar que `canonical_slug` coincide con lo que produce el algoritmo aplicado al `title` exacto del nodo.
+
+### 14.3 Regla estricta: `id` (UUIDv5)
+
+El campo `id` se calcula con UUIDv5 (RFC 4122 §4.3) usando:
+
+- namespace: `uuid.NAMESPACE_URL`
+- name: JSON canónico (claves ordenadas, sin espacios) de `{"key": "<title>", "type": "tiddler_node", "uuid_spec_version": "v1"}`
+
+El `key` siempre es igual al `title` completo (incluyendo emoji y caracteres especiales).
+
+Para verificar antes de escribir:
+
+```python
+import uuid, json
+title = "#### 🌀 Sesión 58 = route-fix-readme-structural-cleanup"
+payload = {"key": title, "type": "tiddler_node", "uuid_spec_version": "v1"}
+name = json.dumps(payload, sort_keys=True, separators=(',',':'), ensure_ascii=False)
+print(str(uuid.uuid5(uuid.NAMESPACE_URL, name)))
+```
 
 ---
 
@@ -340,8 +417,7 @@ Segun el objetivo, esto puede incluir:
 - tests locales del componente tocado
 - `canon_preflight --mode strict`
 - `canon_preflight --mode reverse-preflight`
-- `python3 scripts/derive_layers.py`
-- `python3 scripts/canon_proposal.py validate --proposal-file data/out/local/proposals.jsonl --canon-dir data/out/local`
+- `python3 python_scripts/derive_layers.py`
 - smoke tests del pipeline
 - verificacion de exportacion
 - verificacion de reverse
@@ -349,14 +425,39 @@ Segun el objetivo, esto puede incluir:
 
 No inflar validaciones sin relacion con la sesion, pero tampoco cerrar sin evidencia razonable.
 
+### 15.1 Compuerta obligatoria: reverse real cuando la sesion escribe nodos en canon
+
+Toda sesion que escriba nodos directamente en `data/out/local/tiddlers_*.jsonl` **debe ejecutar el reverse real** antes de declararse cerrada, no solo `reverse-preflight`:
+
+```bash
+cd /repositorios/tiddly-data-converter/go/bridge
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
+  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --canon ../../data/out/local \
+  --out-html ../../data/out/local/reverse_html/tiddly-data-converter.derived.html \
+  --report ../../data/out/local/reverse_html/reverse-report.json \
+  --mode authoritative-upsert
+```
+
+`reverse-preflight` verifica invariantes de canon pero **no detecta** conflictos en `source_fields` (como `source-fields-reserved-conflict`). Solo el reverse real los detecta.
+
+Si el reverse termina con `exit status 3` o reporta `rejected > 0`:
+
+1. leer `data/out/local/reverse_html/reverse-report.json`
+2. buscar la decisión con `"decision": "rejected"` y el `rule_id`
+3. corregir el nodo en canon antes de cerrar
+4. repetir `strict` → `reverse-preflight` → reverse real hasta que `rejected: 0`
+
+La sesión no está cerrada hasta que el reverse reporta `Rejected: 0`.
+
 ---
 
 ## 16. Si la sesion falla
 
 Si los cambios no pasan validacion, el agente debe:
 
-1. no escribir ni actualizar canon base
-2. no dejar propuestas invalidas como si fueran cierre correcto
+1. no escribir ni actualizar canon base si no pasa validación
+2. no degradar el cierre a `proposals.jsonl` como atajo
 3. dejar constancia en el contrato de:
    - que se intento
    - que fallo
@@ -368,7 +469,7 @@ Si los cambios no pasan validacion, el agente debe:
 
 ## 17. README y documentacion operativa
 
-Si la sesion altera el modo correcto de ejecutar el proyecto, derivar capas, emitir propuestas, correr export, correr reverse o cerrar el flujo, el agente debe actualizar tambien:
+Si la sesion altera el modo correcto de ejecutar el proyecto, derivar capas, correr export, correr reverse o cerrar el flujo, el agente debe actualizar tambien:
 
 - `README.md`
 - `data/README.md`, si cambia el layout o la funcion de `data/`
@@ -404,6 +505,6 @@ La documentacion actualizada debe reflejar el procedimiento vigente, no el histo
 
 ### E. Cierre canonico gobernado
 
-- si se emitieron propuestas en `data/out/local/proposals.jsonl`
-- si hubo merge directo a `data/out/local/tiddlers_*.jsonl`, explicar por que fue una excepcion gobernada
+- confirmar si la memoria semántica de la sesión quedó absorbida directamente en `data/out/local/tiddlers_*.jsonl`
+- confirmar si `data/out/local/proposals.jsonl` se mantuvo fuera del cierre diario
 - si no hubo escritura canonica, explicar brevemente por que no hacia falta

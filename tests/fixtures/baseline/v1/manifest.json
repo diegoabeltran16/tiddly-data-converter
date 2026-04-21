@@ -24,7 +24,7 @@
   },
   "promotion_policy": {
     "when": "Accumulation algorithm, fold semantics, or input fixtures change",
-    "how": "Run scripts/baseline_regen.sh, review diff, commit updated golden files",
+    "how": "Run shell_scripts/baseline_regen.sh, review diff, commit updated golden files",
     "approval": "Human review required before merging updated baseline"
   },
   "created": "2026-04-14",

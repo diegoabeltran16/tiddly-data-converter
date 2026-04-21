@@ -1,67 +1,315 @@
 {
-  "registry_version": "v0",
-  "source_of_truth": "ordered shard set `tiddlers_1.jsonl` .. `tiddlers_7.jsonl`",
-  "description": "Registry of derived layers built from the authoritative shard set. None of these layers are canonical. They must never replace the shard-based canon.",
+  "registry_version": "v1",
+  "schema_version": "v0",
+  "registry_id": "m03-s55-corpus-governance-state-lineage-v0",
+  "source_of_truth_layer": "canon",
+  "description": "Machine-readable registry of governed corpus layers rooted in the local canon. Canon is the only authoritative local layer; every other layer is candidate-only, derived or non-authoritative projection.",
+  "layer_classes": {
+    "canon": {
+      "is_canonical": true,
+      "authoritative_for_local_corpus": true,
+      "default_write_mode": "governed_direct_session_close",
+      "promotion_into_class": false
+    },
+    "proposal": {
+      "is_canonical": false,
+      "authoritative_for_local_corpus": false,
+      "default_write_mode": "manual_recovery_only",
+      "promotion_into_class": "governed_merge_only"
+    },
+    "derived": {
+      "is_canonical": false,
+      "authoritative_for_local_corpus": false,
+      "default_write_mode": "regenerate",
+      "promotion_into_class": false
+    },
+    "reverse_projection": {
+      "is_canonical": false,
+      "authoritative_for_local_corpus": false,
+      "default_write_mode": "regenerate",
+      "promotion_into_class": false
+    },
+    "remote_projection": {
+      "is_canonical": false,
+      "authoritative_for_local_corpus": false,
+      "default_write_mode": "exchange_only",
+      "promotion_into_class": false
+    }
+  },
   "layers": [
     {
-      "artifact": "tiddlers.ai.jsonl",
-      "artifact_role": "ai_projection",
-      "is_canonical": false,
-      "derived_from": "ordered shard set",
-      "allowed_uses": ["retrieval", "semantic_search", "ai_reading"],
-      "must_not_replace_canon": true,
-      "status": "planned",
-      "description": "AI-optimized projection of canonical tiddlers for retrieval and reasoning."
+      "layer_id": "canon",
+      "path": "data/out/local",
+      "path_patterns": [
+        "tiddlers_*.jsonl"
+      ],
+      "layer_class": "canon",
+      "authority": "local_source_of_truth",
+      "presence": "required",
+      "lineage_parents": [],
+      "validation_inputs": [],
+      "allowed_uses": [
+        "local_reading",
+        "derivation_source",
+        "reverse_source",
+        "governed_merge_target"
+      ],
+      "must_not_replace_layers": []
     },
     {
-      "artifact": "chunks.ai.jsonl",
-      "artifact_role": "chunked_text",
-      "is_canonical": false,
-      "derived_from": "ordered shard set",
-      "allowed_uses": ["retrieval", "embedding_input", "rag"],
-      "must_not_replace_canon": true,
-      "status": "planned",
-      "description": "Chunked text segments for retrieval-augmented generation."
+      "layer_id": "proposals",
+      "path": "data/out/local/proposals.jsonl",
+      "path_patterns": [
+        "proposals.jsonl"
+      ],
+      "layer_class": "proposal",
+      "authority": "candidate_only",
+      "presence": "optional",
+      "lineage_parents": [],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "manual_recovery",
+        "historical_candidate_storage",
+        "extraordinary_governed_buffer"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
     },
     {
-      "artifact": "*.parquet",
-      "artifact_role": "columnar_serialization",
-      "is_canonical": false,
-      "derived_from": "ordered shard set",
-      "allowed_uses": ["analytics", "batch_processing", "data_exploration"],
-      "must_not_replace_canon": true,
-      "status": "planned",
-      "description": "Parquet columnar serialization for analytical workloads."
+      "layer_id": "enriched",
+      "path": "data/out/local/enriched",
+      "path_patterns": [
+        "tiddlers_enriched_*.jsonl",
+        "manifest.json"
+      ],
+      "layer_class": "derived",
+      "authority": "derived_non_authoritative",
+      "presence": "required",
+      "lineage_parents": [
+        "canon"
+      ],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "inspection",
+        "derived_semantics",
+        "governed_export"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
     },
     {
-      "artifact": "*.arrow",
-      "artifact_role": "columnar_serialization",
-      "is_canonical": false,
-      "derived_from": "ordered shard set",
-      "allowed_uses": ["analytics", "streaming", "inter_process_communication"],
-      "must_not_replace_canon": true,
-      "status": "planned",
-      "description": "Arrow serialization for streaming and IPC."
+      "layer_id": "ai",
+      "path": "data/out/local/ai",
+      "path_patterns": [
+        "tiddlers_ai_*.jsonl",
+        "chunks_ai_*.jsonl",
+        "reports/*.json",
+        "manifest.json"
+      ],
+      "layer_class": "derived",
+      "authority": "derived_non_authoritative",
+      "presence": "required",
+      "lineage_parents": [
+        "canon"
+      ],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "retrieval",
+        "semantic_search",
+        "rag",
+        "chunk_qc"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
     },
     {
-      "artifact": "embeddings",
-      "artifact_role": "vector_representation",
-      "is_canonical": false,
-      "derived_from": "ordered shard set",
-      "allowed_uses": ["semantic_search", "similarity", "clustering"],
-      "must_not_replace_canon": true,
-      "status": "planned",
-      "description": "Embedding vectors derived from canonical text content."
+      "layer_id": "audit",
+      "path": "data/out/local/audit",
+      "path_patterns": [
+        "*.json",
+        "*.jsonl",
+        "*.md",
+        "manifest.json"
+      ],
+      "layer_class": "derived",
+      "authority": "derived_non_authoritative",
+      "presence": "required",
+      "lineage_parents": [
+        "canon"
+      ],
+      "validation_inputs": [
+        "canon",
+        "enriched",
+        "ai"
+      ],
+      "allowed_uses": [
+        "compliance_audit",
+        "safe_fix_planning",
+        "reporting"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
     },
     {
-      "artifact": "reverse_html_output",
-      "artifact_role": "reverse_reconstruction",
-      "is_canonical": false,
-      "derived_from": "ordered shard set",
-      "allowed_uses": ["tiddlywiki_import", "human_reading", "round_trip_verification"],
-      "must_not_replace_canon": true,
-      "status": "planned",
-      "description": "TiddlyWiki HTML reconstruction derived from the canonical shard set."
+      "layer_id": "reverse_html",
+      "path": "data/out/local/reverse_html",
+      "path_patterns": [
+        "*.html",
+        "*.json"
+      ],
+      "layer_class": "reverse_projection",
+      "authority": "reverse_projection_only",
+      "presence": "required",
+      "lineage_parents": [
+        "canon"
+      ],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "round_trip_verification",
+        "human_reading",
+        "tiddlywiki_import"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
+    },
+    {
+      "layer_id": "export",
+      "path": "data/out/local/export",
+      "path_patterns": [
+        "*.json",
+        "*.jsonl"
+      ],
+      "layer_class": "derived",
+      "authority": "transient_export_only",
+      "presence": "optional",
+      "lineage_parents": [
+        "canon"
+      ],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "temporary_export",
+        "regen_inputs",
+        "verification"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
+    },
+    {
+      "layer_id": "remote",
+      "path": "data/out/remote",
+      "path_patterns": [
+        "*"
+      ],
+      "layer_class": "remote_projection",
+      "authority": "remote_exchange_only",
+      "presence": "optional",
+      "lineage_parents": [
+        "canon"
+      ],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "projection",
+        "exchange",
+        "remote_preparation"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
+    }
+  ],
+  "lineage_edges": [
+    {
+      "from": "canon",
+      "to": "enriched",
+      "mode": "deterministic_projection",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
+      "to": "ai",
+      "mode": "governed_projection_and_chunking",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
+      "to": "audit",
+      "mode": "audit_projection",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
+      "to": "reverse_html",
+      "mode": "reverse_projection",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
+      "to": "export",
+      "mode": "transient_export_projection",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
+      "to": "remote",
+      "mode": "remote_projection",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
+      "to": "proposals",
+      "mode": "validation_context_only",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "proposals",
+      "to": "canon",
+      "mode": "governed_merge_only",
+      "authority_transfer": "conditional",
+      "requirements": [
+        "explicit_governed_merge_session_or_user_instruction",
+        "canon_preflight_strict",
+        "collision_free_canonical_candidate"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "assertion_id": "canon-local-source-of-truth",
+      "rule": "canon is the only authoritative local corpus layer"
+    },
+    {
+      "assertion_id": "proposals-not-canon",
+      "rule": "proposals are canonized candidates and never equal canon by default"
+    },
+    {
+      "assertion_id": "reverse-html-not-canon",
+      "rule": "reverse_html is a projection output and cannot replace canon authority"
+    },
+    {
+      "assertion_id": "remote-not-authoritative",
+      "rule": "remote output is exchange-only and has no local authority"
+    },
+    {
+      "assertion_id": "derived-layers-subordinate",
+      "rule": "enriched, ai, audit and export remain subordinate to canon"
     }
   ]
 }

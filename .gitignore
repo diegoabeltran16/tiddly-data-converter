@@ -42,8 +42,13 @@ go/canon/canon_preflight
 
 /out
 /data/out
-/data/reverse_html
+/data/out/local/reverse_html
 /data/out
 /data/out/local
 /data/out/remote
-/data/reverse_html
+/data/out/local/reverse_html
+
+/data/in
+/data/out
+/data/README.md
+

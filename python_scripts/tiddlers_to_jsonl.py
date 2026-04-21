@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Combine all .json files from a directory into a single JSON Lines file.
-Usage: python scripts/tiddlers_to_jsonl.py --input-dir docs/tiddlers_esp --output docs/tiddlers_esp.jsonl
+Usage: python python_scripts/tiddlers_to_jsonl.py --input-dir docs/tiddlers_esp --output docs/tiddlers_esp.jsonl
 """
 import argparse
 import json

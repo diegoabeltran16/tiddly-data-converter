@@ -6,7 +6,7 @@
 # The generated files should be reviewed by a human before committing.
 #
 # Usage:
-#   bash scripts/baseline_regen.sh
+#   bash shell_scripts/baseline_regen.sh
 #
 # Prerequisites:
 #   - Go 1.24+ installed

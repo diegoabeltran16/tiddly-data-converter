@@ -123,7 +123,7 @@ jobs:
             go.work
             go/canon/go.sum
       - name: Verify baseline golden files by strict diff
-        run: bash scripts/baseline_verify.sh
+        run: bash shell_scripts/baseline_verify.sh
 
   pipeline-smoke:
     name: "Pipeline · smoke (Extractor → Doctor → Ingesta → Canon → JSONL)"

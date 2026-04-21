@@ -2,12 +2,12 @@
 """
 S45 — DEPRECATED compatibility wrapper.
 
-This script has been superseded by scripts/derive_layers.py (S46+).
+This script has been superseded by python_scripts/derive_layers.py (S46+).
 
 This wrapper forwards to derive_layers.py with S45-compatible defaults.
 For new usage, call derive_layers.py directly:
 
-    python3 scripts/derive_layers.py \\
+    python3 python_scripts/derive_layers.py \\
         --input-dir data/out/local \\
         --enriched-dir data/out/local/enriched \\
         --ai-dir data/out/local/ai
@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 if __name__ == "__main__":
-    print("[s45_derive_layers.py] DEPRECATED — forwarding to scripts/derive_layers.py (S46+)")
+    print("[s45_derive_layers.py] DEPRECATED — forwarding to python_scripts/derive_layers.py (S46+)")
     derive = Path(__file__).resolve().parent / "derive_layers.py"
     result = subprocess.run(
         [sys.executable, str(derive)] + sys.argv[1:],

@@ -4,8 +4,8 @@ set -euo pipefail
 # pick_and_place.sh
 # Interactive helper to pick files from a Windows-mounted folder (e.g. Downloads)
 # and copy them into selected destinations inside the repository.
-# Usage (interactive): bash scripts/pick_and_place.sh
-# Usage (batch):       bash scripts/pick_and_place.sh -n "/mnt/c/Users/Ohana/Downloads/foo.json,/mnt/c/Users/Ohana/Downloads/bar.json" -d docs/tiddlers_esp
+# Usage (interactive): bash shell_scripts/pick_and_place.sh
+# Usage (batch):       bash shell_scripts/pick_and_place.sh -n "/mnt/c/Users/Ohana/Downloads/foo.json,/mnt/c/Users/Ohana/Downloads/bar.json" -d docs/tiddlers_esp
 
 REPO_ROOT="/repositorios/tiddly-data-converter"
 DEFAULT_SRC="/mnt/c/Users/Ohana/Downloads"
@@ -292,7 +292,7 @@ done
 
 echo "Copied $copied file(s)."
 if [[ "$common_dest_abs" == "$REPO_ROOT/docs/tiddlers_esp" || "$dest" == "$REPO_ROOT/docs/tiddlers_esp" ]]; then
-  echo "Nota: /docs/tiddlers_esp está listado en .gitignore por defecto; los archivos no serán seguidos por git a menos que fuerces el add." 
+  echo "Nota: /docs/tiddlers_esp está listado en .gitignore por defecto; los archivos no serán seguidos por git a menos que fuerces el add."
 fi
 
 exit 0

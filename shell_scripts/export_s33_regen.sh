@@ -2,7 +2,7 @@
 # export_s33_regen.sh — Regenerate S33 functional tiddlers JSONL from real HTML
 #
 # Usage:
-#   ./scripts/export_s33_regen.sh [<html_input>]
+#   ./shell_scripts/export_s33_regen.sh [<html_input>]
 #
 # Parameters:
 #   html_input  Path to the TiddlyWiki HTML file

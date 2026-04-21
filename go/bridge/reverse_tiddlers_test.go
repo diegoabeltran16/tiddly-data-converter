@@ -95,7 +95,9 @@ func TestReverseInsertOnlyFiles_DoesNotMutateBaseHTML(t *testing.T) {
 	tmpDir := t.TempDir()
 	basePath := filepath.Join(tmpDir, "base.html")
 	canonPath := filepath.Join(tmpDir, "canon.jsonl")
-	outPath := filepath.Join(tmpDir, "reversed.html")
+	outDir := filepath.Join(tmpDir, "data", "out", "local", "reverse_html")
+	outPath := filepath.Join(outDir, "tiddly-data-converter.derived.html")
+	reportPath := filepath.Join(outDir, "reverse-report.json")
 
 	if err := os.WriteFile(basePath, baseHTML, 0o644); err != nil {
 		t.Fatalf("write base fixture: %v", err)
@@ -125,6 +127,9 @@ func TestReverseInsertOnlyFiles_DoesNotMutateBaseHTML(t *testing.T) {
 	if result.Report.OutputHTMLPath != outPath {
 		t.Fatalf("OutputHTMLPath = %q, want %q", result.Report.OutputHTMLPath, outPath)
 	}
+	if result.Report.OutputTiddlers != 4 {
+		t.Fatalf("OutputTiddlers = %d, want 4", result.Report.OutputTiddlers)
+	}
 
 	after, err := os.ReadFile(basePath)
 	if err != nil {
@@ -136,6 +141,12 @@ func TestReverseInsertOnlyFiles_DoesNotMutateBaseHTML(t *testing.T) {
 
 	if _, err := os.Stat(outPath); err != nil {
 		t.Fatalf("expected output HTML to be written: %v", err)
+	}
+	if err := WriteReverseReport(reportPath, result.Report); err != nil {
+		t.Fatalf("WriteReverseReport: %v", err)
+	}
+	if _, err := os.Stat(reportPath); err != nil {
+		t.Fatalf("expected reverse report to be written: %v", err)
 	}
 }
 
@@ -280,6 +291,82 @@ func TestReverseAuthoritativeFiles_UpdatesExistingTitleFromCanon(t *testing.T) {
 	}
 	if !strings.Contains(output, "\"modified\":\"20260417020202000\"") {
 		t.Fatal("authoritative reverse did not update reserved fields from canon")
+	}
+}
+
+func TestReverseAuthoritativeHTML_PreserveStoreKeepsBaseStoreByDefault(t *testing.T) {
+	baseHTML := mustReadReverseFixture(t, "s42", "base.html")
+	canonJSONL := mustReadReverseFixture(t, "s42", "canon_with_new_valid.jsonl")
+
+	result, err := ReverseAuthoritativeHTML(baseHTML, canonJSONL)
+	if err != nil {
+		t.Fatalf("ReverseAuthoritativeHTML: %v", err)
+	}
+	if result.Report.StorePolicy != ReverseStorePolicyPreserve {
+		t.Fatalf("StorePolicy = %q, want %q", result.Report.StorePolicy, ReverseStorePolicyPreserve)
+	}
+	if result.Report.OutputTiddlers != 4 {
+		t.Fatalf("OutputTiddlers = %d, want 4", result.Report.OutputTiddlers)
+	}
+
+	items := parseStoreItemsFromHTML(t, result.HTML)
+	if len(items) != 4 {
+		t.Fatalf("store items = %d, want 4", len(items))
+	}
+	if !storeContainsTitle(items, "$:/SiteTitle") {
+		t.Fatal("preserve policy should keep the base system tiddler")
+	}
+
+	alpha := mustFindStoreItem(t, items, "Existing Alpha")
+	if got, ok := alpha["custom"].(string); !ok || got != "preserve-me" {
+		t.Fatalf("Existing Alpha custom field = %v, want %q", alpha["custom"], "preserve-me")
+	}
+}
+
+func TestReverseAuthoritativeHTML_ReplaceStoreProjectsCanonOnly(t *testing.T) {
+	baseHTML := mustReadReverseFixture(t, "s42", "base.html")
+	baseHTML = []byte(strings.Replace(
+		string(baseHTML),
+		"{\"title\":\"$:/SiteTitle\",\"text\":\"s42-base\"}",
+		"{\"title\":\"Extra Gamma\",\"text\":\"Gamma body\"},{\"title\":\"$:/SiteTitle\",\"text\":\"s42-base\"}",
+		1,
+	))
+	canonJSONL := mustReadReverseFixture(t, "s42", "canon_with_new_valid.jsonl")
+
+	result, err := reverseHTMLWithMode(baseHTML, canonJSONL, canon.CanonSourceReport{}, ReverseModeAuthoritativeUpsert, ReverseStorePolicyReplace)
+	if err != nil {
+		t.Fatalf("reverseHTMLWithMode replace: %v", err)
+	}
+	if result.Report.StorePolicy != ReverseStorePolicyReplace {
+		t.Fatalf("StorePolicy = %q, want %q", result.Report.StorePolicy, ReverseStorePolicyReplace)
+	}
+	if result.Report.OutputTiddlers != 4 {
+		t.Fatalf("OutputTiddlers = %d, want 4", result.Report.OutputTiddlers)
+	}
+	if result.Report.BaseTiddlersDropped != 1 {
+		t.Fatalf("BaseTiddlersDropped = %d, want 1", result.Report.BaseTiddlersDropped)
+	}
+	if result.Report.StructuralTiddlersKept != 1 {
+		t.Fatalf("StructuralTiddlersKept = %d, want 1", result.Report.StructuralTiddlersKept)
+	}
+
+	items := parseStoreItemsFromHTML(t, result.HTML)
+	if len(items) != 4 {
+		t.Fatalf("store items = %d, want 4", len(items))
+	}
+	if !storeContainsTitle(items, "$:/SiteTitle") {
+		t.Fatal("replace policy must keep the structural system tiddler so the HTML remains reopenable")
+	}
+	if !storeContainsTitle(items, "#### 🌀 Sesión 42 = canon-minimal-deterministic-reverse-v0") {
+		t.Fatal("replace policy should include the canon-projected session tiddler")
+	}
+	if storeContainsTitle(items, "Extra Gamma") {
+		t.Fatal("replace policy should drop non-canonical base tiddlers")
+	}
+
+	alpha := mustFindStoreItem(t, items, "Existing Alpha")
+	if _, ok := alpha["custom"]; ok {
+		t.Fatal("replace policy should rebuild Existing Alpha from canon instead of preserving base-only fields")
 	}
 }
 
@@ -516,6 +603,42 @@ func exportRoundTripEntries(t *testing.T, html []byte) []canon.CanonEntry {
 		t.Fatalf("ParseCanonJSONL(roundtrip): %v", err)
 	}
 	return roundTripEntries
+}
+
+func parseStoreItemsFromHTML(t *testing.T, html []byte) []map[string]interface{} {
+	t.Helper()
+
+	store, err := locateSingleTiddlerStore(string(html))
+	if err != nil {
+		t.Fatalf("locateSingleTiddlerStore: %v", err)
+	}
+	items, _, _, err := parseStoredTiddlers(store.ArrayRaw)
+	if err != nil {
+		t.Fatalf("parseStoredTiddlers: %v", err)
+	}
+	return items
+}
+
+func storeContainsTitle(items []map[string]interface{}, title string) bool {
+	for _, item := range items {
+		if current, ok := item["title"].(string); ok && current == title {
+			return true
+		}
+	}
+	return false
+}
+
+func mustFindStoreItem(t *testing.T, items []map[string]interface{}, title string) map[string]interface{} {
+	t.Helper()
+
+	for _, item := range items {
+		if current, ok := item["title"].(string); ok && current == title {
+			return item
+		}
+	}
+
+	t.Fatalf("store output did not contain %q", title)
+	return nil
 }
 
 func findRoundTripEntry(t *testing.T, entries []canon.CanonEntry, title string) canon.CanonEntry {

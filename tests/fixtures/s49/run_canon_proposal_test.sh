@@ -30,7 +30,7 @@ echo ""
 cp "${S40_FIXTURES}/base_canon.jsonl" "${TMP_DIR}/tiddlers_1.jsonl"
 
 echo "[s49-test] Test 1: create proposal file with a new canon line"
-python3 "${REPO_ROOT}/scripts/canon_proposal.py" create \
+python3 "${REPO_ROOT}/python_scripts/canon_proposal.py" create \
     --session "m03-s49-mcp-onedrive-canon-proposals-v0" \
     --payload-file "${FIXTURES}/candidate_line.json" \
     --canon-dir "${TMP_DIR}" \
@@ -40,7 +40,7 @@ check "proposal JSONL file created" "$([[ -f "${TMP_DIR}/session_lines.jsonl" ]]
 check "proposal JSONL has exactly one line" "$([[ $(wc -l < "${TMP_DIR}/session_lines.jsonl") -eq 1 ]] && echo 0 || echo 1)"
 
 echo "[s49-test] Test 2: validate proposal file with a new canon line"
-python3 "${REPO_ROOT}/scripts/canon_proposal.py" validate \
+python3 "${REPO_ROOT}/python_scripts/canon_proposal.py" validate \
     --proposal-file "${TMP_DIR}/session_lines.jsonl" \
     --canon-dir "${TMP_DIR}" \
     > "${TMP_DIR}/validate_new_stdout.txt" 2>&1
@@ -49,7 +49,7 @@ check "proposal file validates against fixture canon" "$?"
 cat "${TMP_DIR}/session_lines.jsonl" >> "${TMP_DIR}/tiddlers_2.jsonl"
 
 echo "[s49-test] Test 3: create proposal file that includes an existing canon line"
-python3 "${REPO_ROOT}/scripts/canon_proposal.py" create \
+python3 "${REPO_ROOT}/python_scripts/canon_proposal.py" create \
     --session "m03-s49-mcp-onedrive-canon-proposals-v0" \
     --payload-file "${TMP_DIR}/session_lines.jsonl" \
     --canon-dir "${TMP_DIR}" \
@@ -60,7 +60,7 @@ check "existing-line proposal JSONL file created" "$([[ -f "${TMP_DIR}/session_l
 check "existing-line proposal JSONL has one line" "$([[ $(wc -l < "${TMP_DIR}/session_lines_existing.jsonl") -eq 1 ]] && echo 0 || echo 1)"
 
 echo "[s49-test] Test 4: validate proposal file with allow-existing"
-python3 "${REPO_ROOT}/scripts/canon_proposal.py" validate \
+python3 "${REPO_ROOT}/python_scripts/canon_proposal.py" validate \
     --proposal-file "${TMP_DIR}/session_lines_existing.jsonl" \
     --canon-dir "${TMP_DIR}" \
     --allow-existing \
