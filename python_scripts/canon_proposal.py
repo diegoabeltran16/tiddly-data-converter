@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create and validate canonized proposal JSONL files for canon lines."""
+"""Create and validate legacy proposal JSONL files for extraordinary canon batches."""
 
 from __future__ import annotations
 
@@ -184,7 +184,7 @@ def validate_lines(lines: list[dict], canon_dir: Path | None, allow_existing: bo
 
     if normalized_lines != lines:
         errors.append(
-            "proposal file is not canonized; normalize it first or create it via scripts/canon_proposal.py"
+            "proposal file is not canonized; normalize it first or create it via python_scripts/canon_proposal.py"
         )
 
     for idx, line in enumerate(lines, start=1):
@@ -350,13 +350,13 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Create and validate canonized proposal JSONL files for canon lines."
+        description="Create and validate legacy proposal JSONL files for extraordinary canon batches."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     create_parser = subparsers.add_parser(
         "create",
-        help="Append canonized proposal lines into the governed proposals JSONL file.",
+        help="Append canonized proposal lines into a legacy proposal JSONL file.",
     )
     create_parser.add_argument("--session", help="Session id for reporting context.")
     create_parser.add_argument(
@@ -373,7 +373,7 @@ def build_parser() -> argparse.ArgumentParser:
     create_parser.add_argument(
         "--output",
         default=as_display_path(DEFAULT_PROPOSALS_FILE),
-        help="Proposal JSONL file to append into (default: data/out/local/proposals.jsonl)",
+        help="Legacy proposal JSONL file to append into (default: data/out/local/proposals.jsonl)",
     )
     create_parser.add_argument(
         "--allow-existing",

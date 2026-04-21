@@ -3,14 +3,16 @@
   "schema_version": "v0",
   "runtime_data_roots": [
     "data/in",
-    "data/out",
-    "data/reverse_html"
+    "data/out"
   ],
   "local_output_root": "data/out/local",
   "remote_output_root": "data/out/remote",
   "session_proposal_artifact_pattern": "data/out/local/proposals.jsonl",
-  "reverse_html_root": "data/reverse_html",
-  "direct_canon_write_default": "forbidden_unless_explicit_governed_session",
+  "session_semantic_close_target_pattern": "data/out/local/tiddlers_*.jsonl",
+  "session_semantic_close_default": "direct_canon",
+  "session_proposal_artifact_status": "legacy_manual_recovery_only",
+  "reverse_html_root": "data/out/local/reverse_html",
+  "direct_canon_write_default": "governed_direct_close_for_session_semantics",
   "source_of_truth": "ordered shard set `tiddlers_1.jsonl` .. `tiddlers_7.jsonl`",
   "source_of_truth_description": "The ordered shard set is the unique, authoritative, auditable, reversible, deterministic source of truth for the tiddler corpus. A monolithic JSONL view may exist temporarily, but it is derived and non-authoritative.",
   "required_fields": [
@@ -241,6 +243,278 @@
     "rejects_duplicate_keys": true
   },
   "derived_layers_registry_ref": "contratos/projections/derived_layers_registry.json",
+  "corpus_governance_validator_ref": "scripts/validate_corpus_governance.py",
+  "corpus_state_catalog": {
+    "general": {
+      "description": "Default state for canon nodes that do not expose stronger structural evidence.",
+      "evidence_mode": "fallback",
+      "outside_live_corpus": false,
+      "chunk_eligibility": "eligible",
+      "chunk_exclusion_reason": null,
+      "canonical_tags": []
+    },
+    "repo_path": {
+      "description": "Path-like node inside the current repository tree without an explicit live or historical tag.",
+      "evidence_mode": "heuristic",
+      "outside_live_corpus": false,
+      "chunk_eligibility": "eligible",
+      "chunk_exclusion_reason": null,
+      "canonical_tags": []
+    },
+    "live_path": {
+      "description": "Explicitly live repo path within the active corpus.",
+      "evidence_mode": "explicit_tag",
+      "outside_live_corpus": false,
+      "chunk_eligibility": "eligible",
+      "chunk_exclusion_reason": null,
+      "canonical_tags": [
+        "state:live-path"
+      ]
+    },
+    "historical_snapshot": {
+      "description": "Historical or superseded snapshot preserved in canon for traceability but outside the live path.",
+      "evidence_mode": "explicit_tag_or_supersession",
+      "outside_live_corpus": true,
+      "chunk_eligibility": "deprioritized",
+      "chunk_exclusion_reason": null,
+      "canonical_tags": [
+        "state:historical-snapshot"
+      ]
+    },
+    "historical_artifact": {
+      "description": "Legacy out/*.json or out/*.html artifact kept for auditability and excluded from general chunking.",
+      "evidence_mode": "heuristic",
+      "outside_live_corpus": true,
+      "chunk_eligibility": "excluded",
+      "chunk_exclusion_reason": "historical_out_artifact_skip",
+      "canonical_tags": []
+    },
+    "archival_only": {
+      "description": "Node intentionally preserved in canon while remaining outside general derived use and chunking.",
+      "evidence_mode": "explicit_tag_or_build_artifact",
+      "outside_live_corpus": true,
+      "chunk_eligibility": "excluded",
+      "chunk_exclusion_reason": "archival_only_skip",
+      "canonical_tags": [
+        "status:archival-only"
+      ]
+    }
+  },
+  "corpus_state_resolution_rules": [
+    {
+      "rule_id": "archival_only_by_tag",
+      "priority": 10,
+      "match": {
+        "tags_any": [
+          "status:archival-only"
+        ]
+      },
+      "result": {
+        "corpus_state": "archival_only"
+      }
+    },
+    {
+      "rule_id": "archival_only_build_artifact",
+      "priority": 20,
+      "match": {
+        "title_contains_any": [
+          "/target/",
+          ".fingerprint/",
+          "/debug/build/"
+        ]
+      },
+      "result": {
+        "corpus_state": "archival_only"
+      }
+    },
+    {
+      "rule_id": "historical_artifact_legacy_out",
+      "priority": 30,
+      "match": {
+        "title_prefixes": [
+          "out/"
+        ],
+        "title_suffixes": [
+          ".json",
+          ".html"
+        ],
+        "tags_absent": [
+          "state:live-path"
+        ]
+      },
+      "result": {
+        "corpus_state": "historical_artifact"
+      }
+    },
+    {
+      "rule_id": "historical_snapshot_by_tag",
+      "priority": 40,
+      "match": {
+        "tags_any": [
+          "state:historical-snapshot"
+        ]
+      },
+      "result": {
+        "corpus_state": "historical_snapshot"
+      }
+    },
+    {
+      "rule_id": "historical_snapshot_by_superseded_tag",
+      "priority": 50,
+      "match": {
+        "tags_prefix_any": [
+          "superseded-by:"
+        ]
+      },
+      "result": {
+        "corpus_state": "historical_snapshot"
+      }
+    },
+    {
+      "rule_id": "live_path_by_tag",
+      "priority": 60,
+      "match": {
+        "tags_any": [
+          "state:live-path"
+        ]
+      },
+      "result": {
+        "corpus_state": "live_path"
+      }
+    },
+    {
+      "rule_id": "repo_path_by_title",
+      "priority": 70,
+      "match": {
+        "repo_path_like": true,
+        "title_prefixes_not": [
+          "out/"
+        ]
+      },
+      "result": {
+        "corpus_state": "repo_path"
+      }
+    },
+    {
+      "rule_id": "general_fallback",
+      "priority": 999,
+      "match": {},
+      "result": {
+        "corpus_state": "general"
+      }
+    }
+  ],
+  "corpus_state_transitions": [
+    {
+      "from": "general",
+      "to": "repo_path",
+      "allowed": true,
+      "automatic": true,
+      "writes_canon": false,
+      "requires": [
+        "title is path-like inside the repo tree"
+      ]
+    },
+    {
+      "from": "repo_path",
+      "to": "live_path",
+      "allowed": true,
+      "automatic": false,
+      "writes_canon": true,
+      "requires": [
+        "governed canonical evidence via tag state:live-path"
+      ]
+    },
+    {
+      "from": "repo_path",
+      "to": "historical_snapshot",
+      "allowed": true,
+      "automatic": false,
+      "writes_canon": true,
+      "requires": [
+        "tag state:historical-snapshot or superseded-by:*"
+      ]
+    },
+    {
+      "from": "live_path",
+      "to": "historical_snapshot",
+      "allowed": true,
+      "automatic": false,
+      "writes_canon": true,
+      "requires": [
+        "tag state:historical-snapshot or superseded-by:*"
+      ]
+    },
+    {
+      "from": "historical_snapshot",
+      "to": "archival_only",
+      "allowed": true,
+      "automatic": false,
+      "writes_canon": true,
+      "requires": [
+        "tag status:archival-only or governed archival treatment"
+      ]
+    },
+    {
+      "from": "historical_artifact",
+      "to": "archival_only",
+      "allowed": true,
+      "automatic": false,
+      "writes_canon": true,
+      "requires": [
+        "tag status:archival-only or governed archival treatment"
+      ]
+    },
+    {
+      "from": "historical_snapshot",
+      "to": "live_path",
+      "allowed": false,
+      "reason": "historical snapshots never become live again implicitly"
+    },
+    {
+      "from": "archival_only",
+      "to": "repo_path",
+      "allowed": false,
+      "reason": "archival status is terminal for automatic derivation"
+    },
+    {
+      "from": "archival_only",
+      "to": "live_path",
+      "allowed": false,
+      "reason": "archival nodes require explicit governed repair or replacement evidence before returning to the live corpus"
+    }
+  ],
+  "artifact_state_transitions": [
+    {
+      "from_layer_class": "proposal",
+      "to_layer_class": "canon",
+      "allowed": true,
+      "automatic": false,
+      "requires": [
+        "explicit_governed_merge_session_or_user_instruction",
+        "canon_preflight_strict",
+        "collision_free_canonical_candidate"
+      ]
+    },
+    {
+      "from_layer_class": "derived",
+      "to_layer_class": "canon",
+      "allowed": false,
+      "reason": "derived layers never promote themselves to local authority"
+    },
+    {
+      "from_layer_class": "reverse_projection",
+      "to_layer_class": "canon",
+      "allowed": false,
+      "reason": "reverse output is projection only and cannot backfill canon"
+    },
+    {
+      "from_layer_class": "remote_projection",
+      "to_layer_class": "canon",
+      "allowed": false,
+      "reason": "remote output is exchange-only and has no local canonical authority"
+    }
+  ],
   "invariants": [
     "The ordered shard set is the unique source of truth.",
     "One tiddler per line.",
@@ -251,6 +525,11 @@
     "A change cannot be accepted without validation.",
     "An inconsistent derived field is never accepted silently.",
     "Every failure must produce an explicit reason.",
-    "The normalizer must be deterministic."
+    "The normalizer must be deterministic.",
+    "corpus_state is resolved from explicit rules before heuristics.",
+    "Proposal lines are canonized candidates and never equal canon by default.",
+    "reverse_html is non-canonical and must never backfill canon authority.",
+    "remote outputs are non-authoritative for local decisions.",
+    "Layer lineage remains rooted in canon or in an explicit governed proposal merge."
   ]
 }

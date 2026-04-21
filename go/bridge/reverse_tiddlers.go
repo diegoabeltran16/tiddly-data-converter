@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -16,6 +17,8 @@ import (
 const (
 	ReverseModeInsertOnly          = "insert-only"
 	ReverseModeAuthoritativeUpsert = "authoritative-upsert"
+	ReverseStorePolicyPreserve     = "preserve"
+	ReverseStorePolicyReplace      = "replace"
 
 	ReverseDecisionInserted       = "inserted"
 	ReverseDecisionAlreadyPresent = "already_present"
@@ -98,8 +101,12 @@ type ReverseDecision struct {
 // ReverseReport exposes deterministic evidence for one reverse run.
 type ReverseReport struct {
 	Mode                     string                       `json:"mode"`
+	StorePolicy              string                       `json:"store_policy"`
 	StoreBlocksFound         int                          `json:"store_blocks_found"`
 	ExistingTiddlers         int                          `json:"existing_tiddlers"`
+	OutputTiddlers           int                          `json:"output_tiddlers"`
+	BaseTiddlersDropped      int                          `json:"base_tiddlers_dropped,omitempty"`
+	StructuralTiddlersKept   int                          `json:"structural_tiddlers_kept,omitempty"`
 	CanonLinesRead           int                          `json:"canon_lines_read"`
 	EligibleEntriesEvaluated int                          `json:"eligible_entries_evaluated"`
 	OutOfScopeSkipped        int                          `json:"out_of_scope_skipped"`
@@ -176,18 +183,31 @@ type reverseIssue struct {
 // The function never mutates the input HTML. It returns an HTML byte slice for
 // the caller to persist explicitly to a separate file.
 func ReverseInsertOnlyHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) {
-	return reverseHTMLWithMode(baseHTML, canonJSONL, canon.CanonSourceReport{}, ReverseModeInsertOnly)
+	return reverseHTMLWithMode(baseHTML, canonJSONL, canon.CanonSourceReport{}, ReverseModeInsertOnly, ReverseStorePolicyPreserve)
 }
 
 // ReverseAuthoritativeHTML executes the S44 reverse path:
 // canonical source of truth -> authoritative upsert into the existing store.
 func ReverseAuthoritativeHTML(baseHTML, canonJSONL []byte) (*ReverseResult, error) {
-	return reverseHTMLWithMode(baseHTML, canonJSONL, canon.CanonSourceReport{}, ReverseModeAuthoritativeUpsert)
+	return reverseHTMLWithMode(baseHTML, canonJSONL, canon.CanonSourceReport{}, ReverseModeAuthoritativeUpsert, ReverseStorePolicyPreserve)
 }
 
-func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSourceReport, mode string) (*ReverseResult, error) {
+// ReverseFiles executes reverse with explicit mode and store policy.
+func ReverseFiles(htmlPath, canonPath, outHTMLPath, mode, storePolicy string) (*ReverseResult, error) {
+	return reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, mode, storePolicy)
+}
+
+func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSourceReport, mode, storePolicy string) (*ReverseResult, error) {
+	if mode != ReverseModeInsertOnly && mode != ReverseModeAuthoritativeUpsert {
+		return nil, fmt.Errorf("reverse_tiddlers: unsupported reverse mode %q", mode)
+	}
+	if storePolicy != ReverseStorePolicyPreserve && storePolicy != ReverseStorePolicyReplace {
+		return nil, fmt.Errorf("reverse_tiddlers: unsupported store policy %q", storePolicy)
+	}
+
 	report := ReverseReport{
 		Mode:                 mode,
+		StorePolicy:          storePolicy,
 		RejectedByRule:       make(map[string]int),
 		SkippedByRule:        make(map[string]int),
 		ProcessedSourceTypes: make(map[string]int),
@@ -231,7 +251,14 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 
 	seenTitles := make(map[string]int, len(lines))
 	newItems := make([]string, 0, len(lines))
+	replacedItems := make([]map[string]interface{}, 0, len(lines))
+	replacedTitles := make(map[string]struct{}, len(lines))
 	updatedStore := false
+
+	if storePolicy == ReverseStorePolicyReplace {
+		replacedItems, replacedTitles = seedStructuralStoreForReplace(storedItems)
+		report.StructuralTiddlersKept = len(replacedItems)
+	}
 
 	for _, line := range lines {
 		entry := line.Entry
@@ -278,7 +305,7 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 				Title:    title,
 				Decision: ReverseDecisionRejected,
 				RuleID:   "batch-duplicate-title",
-				Message:  fmt.Sprintf("reverse candidate duplicates line %d; insert-only reverse requires unique titles", prevLine),
+				Message:  fmt.Sprintf("reverse candidate duplicates line %d; reverse requires unique titles", prevLine),
 			})
 			continue
 		}
@@ -291,6 +318,59 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 				reportRuleRejection(&report, issue.RuleID)
 			}
 			report.Decisions = append(report.Decisions, buildRejectedReverseDecision(line.Line, title, issues))
+			continue
+		}
+
+		if storePolicy == ReverseStorePolicyReplace {
+			replacedItem, err := marshalReverseStoreTiddlerMap(projected)
+			if err != nil {
+				reportRuleRejection(&report, "reverse-projection-failed")
+				report.RejectedCount++
+				report.Decisions = append(report.Decisions, ReverseDecision{
+					Line:     line.Line,
+					Title:    title,
+					Decision: ReverseDecisionRejected,
+					RuleID:   "reverse-projection-failed",
+					Message:  err.Error(),
+				})
+				continue
+			}
+
+			replacedItems = append(replacedItems, replacedItem)
+			replacedTitles[projected.Title] = struct{}{}
+
+			if existing, found := existingByTitle[projected.Title]; found {
+				if reverseShapesEquivalent(existing.Shape, projected) {
+					report.AlreadyPresentCount++
+					report.Decisions = append(report.Decisions, ReverseDecision{
+						Line:     line.Line,
+						Title:    title,
+						Decision: ReverseDecisionAlreadyPresent,
+						RuleID:   "existing-title-match",
+						Message:  "base HTML already contains an equivalent authoritative tiddler; replace policy rewrites the store with canon-projected entries only",
+					})
+					continue
+				}
+
+				report.UpdatedCount++
+				report.Decisions = append(report.Decisions, ReverseDecision{
+					Line:     line.Line,
+					Title:    title,
+					Decision: ReverseDecisionUpdated,
+					RuleID:   "updated-authoritative-title",
+					Message:  "base HTML contained this title with stale authoritative fields; replace policy emitted the canon projection only",
+				})
+				continue
+			}
+
+			report.InsertedCount++
+			report.Decisions = append(report.Decisions, ReverseDecision{
+				Line:     line.Line,
+				Title:    title,
+				Decision: ReverseDecisionInserted,
+				RuleID:   "inserted-new-title",
+				Message:  "projected into the replacement TiddlyWiki store",
+			})
 			continue
 		}
 
@@ -393,12 +473,34 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 		)
 	}
 
+	if storePolicy == ReverseStorePolicyReplace {
+		for title := range existingByTitle {
+			if _, kept := replacedTitles[title]; !kept {
+				report.BaseTiddlersDropped++
+			}
+		}
+
+		updatedArray, err := marshalStoredArray(replacedItems)
+		if err != nil {
+			return &ReverseResult{Report: report}, fmt.Errorf("reverse_tiddlers: marshal replacement store: %w", err)
+		}
+		report.OutputTiddlers = len(replacedItems)
+
+		baseHTMLString := string(baseHTML)
+		outHTML := baseHTMLString[:store.ArrayStart] + updatedArray + baseHTMLString[store.ArrayEnd:]
+		return &ReverseResult{
+			HTML:   []byte(outHTML),
+			Report: report,
+		}, nil
+	}
+
 	if len(newItems) == 0 {
 		if updatedStore {
 			updatedArray, err := marshalStoredArray(storedItems)
 			if err != nil {
 				return &ReverseResult{Report: report}, fmt.Errorf("reverse_tiddlers: marshal updated store: %w", err)
 			}
+			report.OutputTiddlers = len(storedItems)
 
 			baseHTMLString := string(baseHTML)
 			outHTML := baseHTMLString[:store.ArrayStart] + updatedArray + baseHTMLString[store.ArrayEnd:]
@@ -407,6 +509,7 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 				Report: report,
 			}, nil
 		}
+		report.OutputTiddlers = existingCount
 		return &ReverseResult{
 			HTML:   append([]byte(nil), baseHTML...),
 			Report: report,
@@ -424,8 +527,10 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 		if err != nil {
 			return &ReverseResult{Report: report}, fmt.Errorf("reverse_tiddlers: marshal updated store: %w", err)
 		}
+		report.OutputTiddlers = len(storedItems)
 	} else {
 		updatedArray, err = appendToJSONArrayPreserveOriginal(store.ArrayRaw, newItems, existingCount)
+		report.OutputTiddlers = existingCount + len(newItems)
 	}
 	if err != nil {
 		return &ReverseResult{Report: report}, fmt.Errorf("reverse_tiddlers: append JSON items: %w", err)
@@ -444,15 +549,15 @@ func reverseHTMLWithMode(baseHTML, canonJSONL []byte, sourceReport canon.CanonSo
 // It reads the inputs, runs S43 reverse, and writes the output HTML to a new
 // path without modifying the source HTML in place.
 func ReverseInsertOnlyFiles(htmlPath, canonPath, outHTMLPath string) (*ReverseResult, error) {
-	return reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, ReverseModeInsertOnly)
+	return reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, ReverseModeInsertOnly, ReverseStorePolicyPreserve)
 }
 
 // ReverseAuthoritativeFiles runs the S44 authoritative-upsert reverse path.
 func ReverseAuthoritativeFiles(htmlPath, canonPath, outHTMLPath string) (*ReverseResult, error) {
-	return reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, ReverseModeAuthoritativeUpsert)
+	return reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, ReverseModeAuthoritativeUpsert, ReverseStorePolicyPreserve)
 }
 
-func reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, mode string) (*ReverseResult, error) {
+func reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, mode, storePolicy string) (*ReverseResult, error) {
 	baseHTML, err := os.ReadFile(htmlPath)
 	if err != nil {
 		return nil, fmt.Errorf("reverse_tiddlers: read html %s: %w", htmlPath, err)
@@ -463,6 +568,7 @@ func reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, mode string) (*Rever
 		result := &ReverseResult{
 			Report: ReverseReport{
 				Mode:           mode,
+				StorePolicy:    storePolicy,
 				HTMLInputPath:  htmlPath,
 				CanonInputPath: canonPath,
 				OutputHTMLPath: outHTMLPath,
@@ -472,7 +578,7 @@ func reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, mode string) (*Rever
 		return result, fmt.Errorf("reverse_tiddlers: load canon %s: %w", canonPath, err)
 	}
 
-	result, err := reverseHTMLWithMode(baseHTML, canonJSONL, sourceReport, mode)
+	result, err := reverseHTMLWithMode(baseHTML, canonJSONL, sourceReport, mode, storePolicy)
 	if result != nil {
 		result.Report.HTMLInputPath = htmlPath
 		result.Report.CanonInputPath = canonPath
@@ -482,6 +588,9 @@ func reverseFilesWithMode(htmlPath, canonPath, outHTMLPath, mode string) (*Rever
 		return result, err
 	}
 
+	if err := ensureParentDir(outHTMLPath); err != nil {
+		return result, fmt.Errorf("reverse_tiddlers: prepare output html %s: %w", outHTMLPath, err)
+	}
 	if err := os.WriteFile(outHTMLPath, result.HTML, 0o644); err != nil {
 		return result, fmt.Errorf("reverse_tiddlers: write output html %s: %w", outHTMLPath, err)
 	}
@@ -496,6 +605,9 @@ func WriteReverseReport(path string, report ReverseReport) error {
 		return fmt.Errorf("reverse_tiddlers: marshal report: %w", err)
 	}
 	data = append(data, '\n')
+	if err := ensureParentDir(path); err != nil {
+		return err
+	}
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return fmt.Errorf("reverse_tiddlers: write report %s: %w", path, err)
 	}
@@ -582,6 +694,30 @@ func parseStoredTiddlers(arrayRaw string) ([]map[string]interface{}, map[string]
 	}
 
 	return rawItems, byTitle, len(rawItems), nil
+}
+
+func seedStructuralStoreForReplace(items []map[string]interface{}) ([]map[string]interface{}, map[string]struct{}) {
+	seeded := make([]map[string]interface{}, 0, len(items))
+	titles := make(map[string]struct{}, len(items))
+
+	for _, item := range items {
+		title, ok := item["title"].(string)
+		if !ok || !strings.HasPrefix(title, "$:/") {
+			continue
+		}
+		seeded = append(seeded, cloneStoredItem(item))
+		titles[title] = struct{}{}
+	}
+
+	return seeded, titles
+}
+
+func cloneStoredItem(source map[string]interface{}) map[string]interface{} {
+	cloned := make(map[string]interface{}, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
 }
 
 func reverseShapeFromStoredMap(raw map[string]interface{}) (reverseShape, error) {
@@ -918,6 +1054,19 @@ func marshalReverseStoreTiddler(shape reverseShape) (string, error) {
 	return string(data), nil
 }
 
+func marshalReverseStoreTiddlerMap(shape reverseShape) (map[string]interface{}, error) {
+	itemJSON, err := marshalReverseStoreTiddler(shape)
+	if err != nil {
+		return nil, err
+	}
+
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(itemJSON), &raw); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
 func marshalStoreItems(items []string) ([]map[string]interface{}, error) {
 	decoded := make([]map[string]interface{}, 0, len(items))
 	for _, item := range items {
@@ -965,6 +1114,17 @@ func mergeStoredTiddler(existing map[string]interface{}, projected reverseShape)
 	}
 
 	return merged, nil
+}
+
+func ensureParentDir(path string) error {
+	dir := filepath.Dir(path)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("reverse_tiddlers: create parent dir %s: %w", dir, err)
+	}
+	return nil
 }
 
 func formatTW5Tags(tags []string) (string, error) {

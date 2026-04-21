@@ -27,9 +27,9 @@ Modes:
   --mode apply   : inspect + apply safe fixes + regenerate derived layers
 
 Usage:
-  python3 scripts/audit_normative_projection.py --help
-  python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
-  python3 scripts/audit_normative_projection.py --mode apply --input-root data/out/local --docs-root docs
+  python3 python_scripts/audit_normative_projection.py --help
+  python3 python_scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
+  python3 python_scripts/audit_normative_projection.py --mode apply --input-root data/out/local --docs-root docs
 
 Session: S47
 """
@@ -875,16 +875,16 @@ def parse_args():
         epilog="""
 Examples:
   # Audit only (no writes to canon):
-  python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
+  python3 python_scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
 
   # Audit + apply safe fixes + regenerate derived layers:
-  python3 scripts/audit_normative_projection.py --mode apply --input-root data/out/local --docs-root docs
+  python3 python_scripts/audit_normative_projection.py --mode apply --input-root data/out/local --docs-root docs
 
   # Custom output directory:
-  python3 scripts/audit_normative_projection.py --mode audit --input-root data/out/local --audit-dir data/out/local/audit
+  python3 python_scripts/audit_normative_projection.py --mode audit --input-root data/out/local --audit-dir data/out/local/audit
 
   # Skip layer regeneration even in apply mode:
-  python3 scripts/audit_normative_projection.py --mode apply --no-regenerate
+  python3 python_scripts/audit_normative_projection.py --mode apply --no-regenerate
 """,
     )
     parser.add_argument(

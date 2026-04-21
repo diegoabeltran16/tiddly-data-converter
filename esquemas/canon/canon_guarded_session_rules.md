@@ -3,14 +3,16 @@
 ## Purpose
 
 S40 adds a narrow, testable admission circuit on top of the canon governance
-from S39. S49 keeps that guarded merge circuit but simplifies the local layout:
+from S39. S49 keeps that guarded merge circuit and S57 changes the daily
+closure regime for session semantics:
 
 - `data/out/local/tiddlers_*.jsonl` remains the only local source of truth
-- autonomous agent output defaults to the consolidated proposals file under `data/out/local/`
+- direct canon close is the default target for session semantic-documentary work
+- `data/out/local/proposals.jsonl` remains available only as a legacy or manual-recovery buffer
 - `data/out/remote/` is reserved for remote exchange or cloud projection
-- reverse HTML outputs live under `data/reverse_html/`
+- reverse HTML outputs live under `data/out/local/reverse_html/`
 
-Guarded merge remains available only for explicit merge or repair sessions.
+Guarded direct write remains constrained and testable; it is not free-form canon editing.
 
 ## Scope
 
@@ -19,26 +21,36 @@ Guarded merge remains available only for explicit merge or repair sessions.
 - Reject invalid or ambiguous nodes with explicit reasons.
 - Preserve base canon entries byte-for-byte at merge time.
 - Produce reproducible evidence for acceptance, rejection, merge, and reverse readiness.
-- Keep direct writes to `data/out/local/tiddlers_*.jsonl` as an explicit exception.
-- Treat `data/out/local/proposals.jsonl` as the default writable output for canonized proposals.
+- Require direct canon absorption for the semantic-documentary closure emitted by a governed session.
+- Treat `data/out/local/proposals.jsonl` as an extraordinary path, not daily closure logic.
 
-## Default Workflow After S49
+## Default Workflow After S57
 
-### Session-proposal first
+### Direct canon close first
 
 - Agents may read `data/out/local/tiddlers_*.jsonl`.
 - Agents may derive from the canon and inspect local derived layers in `data/out/local/enriched/` and `data/out/local/ai/`.
-- Agents write default autonomous proposal output to `data/out/local/proposals.jsonl`.
-- The proposals file is plain JSONL: one already canonized canon line per row.
+- When a session emits semantic-documentary closure artifacts, agents write them directly into governed targets in `data/out/local/tiddlers_*.jsonl`.
+- That closure must pass `strict` and, when relevant, `reverse-preflight`.
 
-### Direct canon merge is exceptional
+### Proposals are extraordinary
 
-Direct canon writes are allowed only when:
+`data/out/local/proposals.jsonl` is still allowed only when:
+
+- a manual recovery path is required
+- or a historical candidate batch must be staged outside the daily closure flow
+
+It must not replace direct closure of session semantics in canon.
+
+### Direct canon repair outside session closure is still exceptional
+
+Canon repairs beyond the session semantic-documentary family are allowed only
+when:
 
 - the user explicitly requests a guarded merge or canon repair
-- or a session explicitly scopes itself as a governed merge session
+- or a session explicitly scopes itself as a governed merge or repair session
 
-When that happens, the S40 merge rules below still apply in full.
+When that happens, the guarded rules below still apply in full.
 
 ## Required Candidate Fields
 
@@ -92,7 +104,7 @@ Each candidate line must already expose the full session-proposal shape:
 ## Merge Rules
 
 - The base canon is copied as-is.
-- Accepted nodes are appended in candidate order.
+- Accepted nodes are appended or updated only at explicitly governed targets.
 - Rejected nodes never alter existing lines.
 - Equivalent runs over the same base and batch produce the same merged JSONL and evidence.
 

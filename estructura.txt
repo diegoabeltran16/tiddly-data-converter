@@ -13,6 +13,7 @@
 │   │   ├── principios_de_gestion.instructions.md
 │   │   ├── procedencia_epistemologica.instructions.md
 │   │   ├── protocolo_de_sesion.instructions.md
+│   │   ├── sesiones.instructions.md
 │   │   └── tiddlers_sesiones.instructions.md
 │   └── workflows
 │       └── ci.yml
@@ -80,6 +81,12 @@
 │   ├── m03-s50a-session-identity-repair-v0.md.json
 │   ├── m03-s51-canon-semantic-hardening-v0.md.json
 │   ├── m03-s52-chunking-structure-traceability-v0.md.json
+│   ├── m03-s53-instructions-normative-harmonization-v0.md.json
+│   ├── m03-s54-semantic-microchunk-historical-provenance-v0.md.json
+│   ├── m03-s55-corpus-governance-state-lineage-v0.md.json
+│   ├── m03-s56-direct-canon-session-dependency-tiddlers-v0.md.json
+│   ├── m03-s57-canon-direct-close-governance-v0.md.json
+│   ├── m03-s58-route-fix-readme-structural-cleanup.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -101,60 +108,62 @@
 │       └── s44-local-checks.md
 ├── data
 │   ├── in
-│   ├── out
-│   │   ├── local
-│   │   │   ├── ai
-│   │   │   │   ├── chunks_ai_1.jsonl
-│   │   │   │   ├── chunks_ai_10.jsonl
-│   │   │   │   ├── chunks_ai_2.jsonl
-│   │   │   │   ├── chunks_ai_3.jsonl
-│   │   │   │   ├── chunks_ai_4.jsonl
-│   │   │   │   ├── chunks_ai_5.jsonl
-│   │   │   │   ├── chunks_ai_6.jsonl
-│   │   │   │   ├── chunks_ai_7.jsonl
-│   │   │   │   ├── chunks_ai_8.jsonl
-│   │   │   │   ├── chunks_ai_9.jsonl
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── reports
-│   │   │   │   │   ├── chunk_qc_report.json
-│   │   │   │   │   ├── classification_report.json
-│   │   │   │   │   ├── derivation_report.json
-│   │   │   │   │   ├── relations_qc_report.json
-│   │   │   │   │   └── retrieval_qc_report.json
-│   │   │   │   ├── tiddlers_ai_1.jsonl
-│   │   │   │   ├── tiddlers_ai_2.jsonl
-│   │   │   │   ├── tiddlers_ai_3.jsonl
-│   │   │   │   ├── tiddlers_ai_4.jsonl
-│   │   │   │   ├── tiddlers_ai_5.jsonl
-│   │   │   │   ├── tiddlers_ai_6.jsonl
-│   │   │   │   └── tiddlers_ai_7.jsonl
-│   │   │   ├── audit
-│   │   │   ├── enriched
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── tiddlers_enriched_1.jsonl
-│   │   │   │   ├── tiddlers_enriched_2.jsonl
-│   │   │   │   ├── tiddlers_enriched_3.jsonl
-│   │   │   │   ├── tiddlers_enriched_4.jsonl
-│   │   │   │   ├── tiddlers_enriched_5.jsonl
-│   │   │   │   ├── tiddlers_enriched_6.jsonl
-│   │   │   │   └── tiddlers_enriched_7.jsonl
-│   │   │   ├── export
-│   │   │   ├── proposals.jsonl
-│   │   │   ├── tiddlers_1.jsonl
-│   │   │   ├── tiddlers_2.jsonl
-│   │   │   ├── tiddlers_3.jsonl
-│   │   │   ├── tiddlers_4.jsonl
-│   │   │   ├── tiddlers_5.jsonl
-│   │   │   ├── tiddlers_6.jsonl
-│   │   │   └── tiddlers_7.jsonl
-│   │   └── remote
-│   ├── README.md
-│   └── reverse_html
-│       ├── reverse-report.json
-│       └── tiddly-data-converter.derived.html
+│   └── out
+│       ├── local
+│       │   ├── ai
+│       │   │   ├── chunks_ai_1.jsonl
+│       │   │   ├── chunks_ai_2.jsonl
+│       │   │   ├── chunks_ai_3.jsonl
+│       │   │   ├── chunks_ai_4.jsonl
+│       │   │   ├── chunks_ai_5.jsonl
+│       │   │   ├── manifest.json
+│       │   │   ├── reports
+│       │   │   │   ├── chunk_qc_report.json
+│       │   │   │   ├── classification_report.json
+│       │   │   │   ├── derivation_report.json
+│       │   │   │   ├── relations_qc_report.json
+│       │   │   │   └── retrieval_qc_report.json
+│       │   │   ├── tiddlers_ai_1.jsonl
+│       │   │   ├── tiddlers_ai_2.jsonl
+│       │   │   ├── tiddlers_ai_3.jsonl
+│       │   │   ├── tiddlers_ai_4.jsonl
+│       │   │   ├── tiddlers_ai_5.jsonl
+│       │   │   ├── tiddlers_ai_6.jsonl
+│       │   │   └── tiddlers_ai_7.jsonl
+│       │   ├── audit
+│       │   │   ├── applied_safe_fixes.json
+│       │   │   ├── audit_log.jsonl
+│       │   │   ├── compliance_report.json
+│       │   │   ├── compliance_summary.md
+│       │   │   ├── manifest.json
+│       │   │   ├── manual_review_queue.jsonl
+│       │   │   ├── pre_post_diff.json
+│       │   │   ├── proposed_fixes.json
+│       │   │   └── warnings.jsonl
+│       │   ├── enriched
+│       │   │   ├── manifest.json
+│       │   │   ├── tiddlers_enriched_1.jsonl
+│       │   │   ├── tiddlers_enriched_2.jsonl
+│       │   │   ├── tiddlers_enriched_3.jsonl
+│       │   │   ├── tiddlers_enriched_4.jsonl
+│       │   │   ├── tiddlers_enriched_5.jsonl
+│       │   │   ├── tiddlers_enriched_6.jsonl
+│       │   │   └── tiddlers_enriched_7.jsonl
+│       │   ├── export
+│       │   ├── microsoft_copilot
+│       │   ├── reverse_html
+│       │   │   ├── reverse-report.json
+│       │   │   └── tiddly-data-converter.derived.html
+│       │   ├── tiddlers_1.jsonl
+│       │   ├── tiddlers_2.jsonl
+│       │   ├── tiddlers_3.jsonl
+│       │   ├── tiddlers_4.jsonl
+│       │   ├── tiddlers_5.jsonl
+│       │   ├── tiddlers_6.jsonl
+│       │   └── tiddlers_7.jsonl
+│       └── remote
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
-│   ├── Instruccion de sesion agente (Plantilla).txt
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
@@ -293,8 +302,16 @@
 ├── LICENSE
 ├── packaging
 │   └── packaging.txt
-├── python
-│   └── python.txt
+├── python_scripts
+│   ├── __pycache__
+│   ├── audit_normative_projection.py
+│   ├── canon_proposal.py
+│   ├── corpus_governance.py
+│   ├── derive_layers.py
+│   ├── path_governance.py
+│   ├── s45_derive_layers.py
+│   ├── tiddlers_to_jsonl.py
+│   └── validate_corpus_governance.py
 ├── README.md
 ├── runtime
 │   └── runtime.txt
@@ -323,21 +340,14 @@
 │   │   └── tests
 │   │       └── test_extraction.rs
 │   └── rust.txt
-├── scripts
+├── shell_scripts
 │   ├── __pycache__
-│   ├── audit_normative_projection.py
 │   ├── baseline_regen.sh
 │   ├── baseline_verify.sh
-│   ├── canon_proposal.py
-│   ├── derive_layers.py
 │   ├── export_s33_regen.sh
 │   ├── export_s33_verify.sh
-│   ├── path_governance.py
 │   ├── pick_and_place.sh
-│   ├── run_pipeline.sh
-│   ├── s45_derive_layers.py
-│   ├── scripts.txt
-│   └── tiddlers_to_jsonl.py
+│   └── run_pipeline.sh
 ├── tests
 │   ├── fixtures
 │   │   ├── baseline
@@ -405,9 +415,17 @@
 │   │   ├── s49
 │   │   │   ├── candidate_line.json
 │   │   │   └── run_canon_proposal_test.sh
-│   │   └── s52
-│   │       ├── run_chunking_structure_test.sh
-│   │       └── test_chunking_structure.py
+│   │   ├── s52
+│   │   │   ├── run_chunking_structure_test.sh
+│   │   │   └── test_chunking_structure.py
+│   │   ├── s54
+│   │   │   ├── run_semantic_microchunk_test.sh
+│   │   │   └── test_semantic_microchunk.py
+│   │   └── s55
+│   │       ├── __pycache__
+│   │       ├── run_corpus_governance_test.sh
+│   │       ├── session_closure_payloads.jsonl
+│   │       └── test_corpus_governance.py
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1

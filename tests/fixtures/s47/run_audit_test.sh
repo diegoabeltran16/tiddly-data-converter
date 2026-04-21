@@ -39,12 +39,12 @@ echo ""
 
 # Test 1: Help flag
 echo "[s47-test] Test 1: --help flag"
-python3 "${REPO_ROOT}/scripts/audit_normative_projection.py" --help > /dev/null 2>&1
+python3 "${REPO_ROOT}/python_scripts/audit_normative_projection.py" --help > /dev/null 2>&1
 check "--help exits 0" "$?"
 
 # Test 2: Audit mode on fixture (no writes)
 echo "[s47-test] Test 2: --mode audit on fixture"
-python3 "${REPO_ROOT}/scripts/audit_normative_projection.py" \
+python3 "${REPO_ROOT}/python_scripts/audit_normative_projection.py" \
     --mode audit \
     --input-root "${FIXTURES}" \
     --enriched-dir "${TMP_DIR}/enriched" \
@@ -61,7 +61,7 @@ check "proposed_fixes.json is valid JSON" "$(python3 -c "import json; json.load(
 # Test 3: Apply mode on fixture (with safe fixes)
 echo "[s47-test] Test 3: --mode apply on fixture"
 cp "${FIXTURES}/canon_minimal.jsonl" "${TMP_DIR}/tiddlers_1.jsonl"
-python3 "${REPO_ROOT}/scripts/audit_normative_projection.py" \
+python3 "${REPO_ROOT}/python_scripts/audit_normative_projection.py" \
     --mode apply \
     --input-root "${TMP_DIR}" \
     --enriched-dir "${TMP_DIR}/enriched" \

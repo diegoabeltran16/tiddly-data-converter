@@ -7,7 +7,7 @@ package canon_test
 // tests/golden/baseline/v1/ match the deterministic output produced
 // by FoldV1 from the frozen input fixtures.
 //
-// These tests are the in-process equivalent of scripts/baseline_verify.sh.
+// These tests are the in-process equivalent of shell_scripts/baseline_verify.sh.
 // They ensure that any change to accumulation logic, canonical JSON, UUID
 // computation, or checksum rules is immediately detected as a regression.
 //
@@ -94,7 +94,7 @@ func TestBaselineOracleSnapshotMatch(t *testing.T) {
 	if string(regenData) != string(goldenData) {
 		t.Errorf("batch_snapshot.json REGRESSION DETECTED\n"+
 			"  regenerated checksum: %s\n"+
-			"  Run scripts/baseline_regen.sh to update golden files after review",
+			"  Run shell_scripts/baseline_regen.sh to update golden files after review",
 			snap.Checksum)
 	}
 }
@@ -130,7 +130,7 @@ func TestBaselineOracleJSONLMatch(t *testing.T) {
 	// Byte-for-byte comparison.
 	if string(canonical) != string(goldenData) {
 		t.Error("export.jsonl REGRESSION DETECTED\n" +
-			"  Run scripts/baseline_regen.sh to update golden files after review")
+			"  Run shell_scripts/baseline_regen.sh to update golden files after review")
 	}
 }
 

@@ -1,2 +1,0 @@
-Zona de automatización auxiliar del proyecto.
-Aquí se concentran rutinas de apoyo para desarrollo, validación, CI y empaquetado. Su función es facilitar la operación del proyecto sin mezclar automatización con lógica nuclear.

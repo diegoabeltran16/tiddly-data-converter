@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared local/remote paths for data/in, data/out, and data/reverse_html."""
+"""Shared local/remote paths for data/in, data/out, and local reverse outputs."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ DEFAULT_ENRICHED_DIR = DEFAULT_LOCAL_OUT_DIR / "enriched"
 DEFAULT_AI_DIR = DEFAULT_LOCAL_OUT_DIR / "ai"
 DEFAULT_AI_REPORTS_DIR = DEFAULT_AI_DIR / "reports"
 DEFAULT_AUDIT_DIR = DEFAULT_LOCAL_OUT_DIR / "audit"
-DEFAULT_REVERSE_HTML_DIR = repo_path("data/reverse_html")
+DEFAULT_REVERSE_HTML_DIR = repo_path("data/out/local/reverse_html")
 DEFAULT_REVERSE_HTML = DEFAULT_REVERSE_HTML_DIR / "tiddly-data-converter.derived.html"
 DEFAULT_REVERSE_REPORT = DEFAULT_REVERSE_HTML_DIR / "reverse-report.json"
 DEFAULT_EXPORT_DIR = DEFAULT_LOCAL_OUT_DIR / "export"

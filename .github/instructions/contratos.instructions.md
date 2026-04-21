@@ -149,6 +149,14 @@ El archivo `.md.json` debe seguir la misma lógica estructural observable en los
 - un campo `text` que contenga el contrato completo en markdown estructurado;
 - metadata mínima coherente con la línea documental activa del sistema.
 
+### Regla adicional de absorción canónica
+
+Cuando una sesión cree o actualice su contrato `.md.json`, ese artefacto del repo no debe quedar solo en `contratos/`.
+
+También debe quedar absorbido en el canon local como nodo path-like del repositorio dentro de `data/out/local/tiddlers_*.jsonl`, o actualizar su nodo existente si ya estaba presente.
+
+Esta regla aplica a todas las sesiones. El contrato importable y su representación canónica como artefacto del repo son complementarios, no sustitutos.
+
 Los contratos reales compartidos ya muestran esa lógica: un wrapper JSON con metadata de tiddler y el contenido contractual dentro de `text`, lo que permite importarlos directamente a TiddlyWiki.
 
 ### Forma mínima obligatoria del `.md.json`
