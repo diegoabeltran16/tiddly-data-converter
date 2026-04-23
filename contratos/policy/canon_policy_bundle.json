@@ -243,7 +243,7 @@
     "rejects_duplicate_keys": true
   },
   "derived_layers_registry_ref": "contratos/projections/derived_layers_registry.json",
-  "corpus_governance_validator_ref": "scripts/validate_corpus_governance.py",
+  "corpus_governance_validator_ref": "python_scripts/validate_corpus_governance.py",
   "corpus_state_catalog": {
     "general": {
       "description": "Default state for canon nodes that do not expose stronger structural evidence.",

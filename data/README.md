@@ -13,10 +13,12 @@
 - `data/out/local/ai/`
 - `data/out/local/audit/`
 - `data/out/local/export/`
+- `data/out/local/microsoft_copilot/`: proyección derivada legible por Microsoft Copilot y otros agentes remotos; regenerable, trazable, no autoritativa y emitida como JSON/CSV/TXT
 
 Reglas:
 
 - los derivados pueden borrarse y regenerarse
+- `microsoft_copilot/` no usa `.jsonl` como salida final primaria de lectura; JSON estructura, CSV tabula y TXT contextualiza
 - `reverse_html/` no es canon
 - `data/out/remote/` no es autoridad local
 
@@ -32,4 +34,4 @@ Reglas:
 
 - `contratos/policy/canon_policy_bundle.json`: catálogo de `corpus_state`, resolución y transiciones
 - `contratos/projections/derived_layers_registry.json`: mapa de autoridad y linaje entre capas
-- `scripts/validate_corpus_governance.py`: validación ejecutable contra el layout real
+- `python_scripts/validate_corpus_governance.py`: validación ejecutable contra el layout real

@@ -211,6 +211,56 @@
       ]
     },
     {
+      "layer_id": "microsoft_copilot",
+      "path": "data/out/local/microsoft_copilot",
+      "path_patterns": [
+        "manifest.json",
+        "navigation_index.json",
+        "entities.json",
+        "topics.json",
+        "source_arbitration_report.json",
+        "nodes.csv",
+        "edges.csv",
+        "artifacts.csv",
+        "coverage.csv",
+        "overview.txt",
+        "reading_guide.txt",
+        "bundles/*.txt",
+        "spec/summaries/*.md",
+        "spec/summaries/*.json",
+        "spec/plan_de_implementacion_s61.md",
+        "spec/checklist_global_s61.md",
+        "spec/memoria_decisiones_s61.md"
+      ],
+      "layer_class": "derived",
+      "authority": "derived_non_authoritative_agent_projection",
+      "presence": "required",
+      "lineage_parents": [
+        "canon",
+        "enriched",
+        "ai",
+        "audit",
+        "export"
+      ],
+      "validation_inputs": [
+        "canon",
+        "enriched",
+        "ai",
+        "audit",
+        "export"
+      ],
+      "allowed_uses": [
+        "agent_reading",
+        "remote_navigation",
+        "governed_context_projection",
+        "copilot_surface"
+      ],
+      "must_not_replace_layers": [
+        "canon",
+        "enriched"
+      ]
+    },
+    {
       "layer_id": "remote",
       "path": "data/out/remote",
       "path_patterns": [
@@ -268,6 +318,36 @@
     },
     {
       "from": "canon",
+      "to": "microsoft_copilot",
+      "mode": "multi_source_projection_input",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "enriched",
+      "to": "microsoft_copilot",
+      "mode": "multi_source_projection_input",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "ai",
+      "to": "microsoft_copilot",
+      "mode": "multi_source_projection_input",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "audit",
+      "to": "microsoft_copilot",
+      "mode": "multi_source_projection_input",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "export",
+      "to": "microsoft_copilot",
+      "mode": "multi_source_projection_input",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "canon",
       "to": "remote",
       "mode": "remote_projection",
       "authority_transfer": "none"
@@ -308,8 +388,12 @@
       "rule": "remote output is exchange-only and has no local authority"
     },
     {
+      "assertion_id": "microsoft-copilot-not-authoritative",
+      "rule": "microsoft_copilot is an agent-readable derived projection and cannot replace canon or enriched authority"
+    },
+    {
       "assertion_id": "derived-layers-subordinate",
-      "rule": "enriched, ai, audit and export remain subordinate to canon"
+      "rule": "enriched, ai, audit, export and microsoft_copilot remain subordinate to canon"
     }
   ]
 }

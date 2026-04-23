@@ -27,6 +27,8 @@ DEFAULT_REVERSE_HTML_DIR = repo_path("data/out/local/reverse_html")
 DEFAULT_REVERSE_HTML = DEFAULT_REVERSE_HTML_DIR / "tiddly-data-converter.derived.html"
 DEFAULT_REVERSE_REPORT = DEFAULT_REVERSE_HTML_DIR / "reverse-report.json"
 DEFAULT_EXPORT_DIR = DEFAULT_LOCAL_OUT_DIR / "export"
+DEFAULT_MICROSOFT_COPILOT_DIR = DEFAULT_LOCAL_OUT_DIR / "microsoft_copilot"
+DEFAULT_COPILOT_AGENT_DIR = DEFAULT_MICROSOFT_COPILOT_DIR / "copilot_agent"
 DEFAULT_PROPOSALS_FILE = DEFAULT_LOCAL_OUT_DIR / "proposals.jsonl"
 
 
@@ -62,6 +64,8 @@ def ensure_runtime_directories() -> None:
         DEFAULT_AUDIT_DIR,
         DEFAULT_REVERSE_HTML_DIR,
         DEFAULT_EXPORT_DIR,
+        DEFAULT_MICROSOFT_COPILOT_DIR,
+        DEFAULT_COPILOT_AGENT_DIR,
     ):
         directory.mkdir(parents=True, exist_ok=True)
 
@@ -84,6 +88,7 @@ if __name__ == "__main__":
                 "default_reverse_html": as_display_path(DEFAULT_REVERSE_HTML),
                 "default_reverse_report": as_display_path(DEFAULT_REVERSE_REPORT),
                 "default_export_dir": as_display_path(DEFAULT_EXPORT_DIR),
+                "default_microsoft_copilot_dir": as_display_path(DEFAULT_MICROSOFT_COPILOT_DIR),
                 "default_proposals_file": as_display_path(DEFAULT_PROPOSALS_FILE),
             },
             indent=2,
