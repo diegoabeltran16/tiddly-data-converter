@@ -1,0 +1,79 @@
+{
+  "schema_version": "v0",
+  "id": "cb833376-e299-5dda-913b-7b5f01cd7225",
+  "session": "m03-s63-copilot-agent-generator-integration-and-canonicalization-v0",
+  "milestone": "m03",
+  "mode": "local",
+  "status": "cerrado",
+  "title": "contratos/m03-s63-copilot-agent-generator-integration-and-canonicalization-v0.md.json",
+  "type": "application/json",
+  "created": "20260422230000000",
+  "modified": "20260422230000000",
+  "tags": [
+    "## 🧭🧱 Protocolo de Sesión",
+    "## 🌀🧱 Desarrollo y Evolución",
+    "## 🎯🧱 Detalles del tema",
+    "session:m03-s63",
+    "milestone:m03",
+    "mode:local",
+    "topic:microsoft-copilot",
+    "topic:copilot-agent",
+    "topic:code-implementation"
+  ],
+  "objetivo": "Implementar el generador automático de `data/out/local/microsoft_copilot/copilot_agent/` con exactamente 3 archivos (`corpus.txt`, `entities.json`, `relations.csv`) dentro del pipeline `derive_layers.py`, cerrando la deuda técnica de S62 que solo produjo archivos manualmente.",
+  "alcance": {
+    "incluye": [
+      "añadir DEFAULT_COPILOT_AGENT_DIR a python_scripts/path_governance.py",
+      "implementar write_copilot_agent_artifacts() en python_scripts/derive_layers.py",
+      "integrar la llamada dentro de write_microsoft_copilot_s61_artifacts() antes del strip de campos privados",
+      "añadir constantes COPILOT_AGENT_GENERATED_FROM_SESSION, COPILOT_AGENT_FORMAT_VERSION, COPILOT_AGENT_ENTITY_LIMIT, COPILOT_AGENT_CORPUS_MAX_CHARS",
+      "ejecutar pipeline y validar generación de los 3 archivos en la ruta correcta",
+      "canonizar familia mínima S63 en tiddlers_7.jsonl (órdenes 669-672)",
+      "crear contrato S63 e informe de implementación"
+    ],
+    "excluye": [
+      "modificar el path legacy data/out/local/copilot_agent/ de S62",
+      "integrar copilot_agent en la instrucción de Copilot (no es el objetivo de esta sesión)",
+      "cambiar la estructura de los archivos S61 existentes en microsoft_copilot/"
+    ]
+  },
+  "archivos_tocados": [
+    "python_scripts/path_governance.py",
+    "python_scripts/derive_layers.py",
+    "data/out/local/tiddlers_7.jsonl",
+    "data/out/local/microsoft_copilot/copilot_agent/corpus.txt",
+    "data/out/local/microsoft_copilot/copilot_agent/entities.json",
+    "data/out/local/microsoft_copilot/copilot_agent/relations.csv",
+    "contratos/m03-s63-copilot-agent-generator-integration-and-canonicalization-v0.md.json",
+    "data/out/local/microsoft_copilot/copilot_agent/implementation_report_s63.md"
+  ],
+  "decisiones": [
+    "write_copilot_agent_artifacts() se llama desde write_microsoft_copilot_s61_artifacts() antes del strip de _canon_rec/_ai_rec",
+    "la ruta oficial es data/out/local/microsoft_copilot/copilot_agent/ — no data/out/local/copilot_agent/",
+    "corpus.txt usa SECTION_ID headers para orientación de agente: overview, architecture, governance, sessions, glossary, derived_layers_context, compression_notes",
+    "entities.json selecciona top-50 por tiers: sesiones > políticas/protocolos > hipótesis/procedencia > contratos > resto",
+    "relations.csv incluye relaciones canon, ai derivadas y sintéticas de layer_derives_from",
+    "la función no depende de DEFAULT_COPILOT_AGENT_DIR en tiempo de ejecución (usa copilot_dir / 'copilot_agent' directamente)",
+    "DEFAULT_COPILOT_AGENT_DIR se añade a path_governance.py para uso por herramientas externas"
+  ],
+  "validaciones": {
+    "pipeline_ejecutado": true,
+    "corpus_txt_generado": "data/out/local/microsoft_copilot/copilot_agent/corpus.txt (20489 bytes)",
+    "entities_json_generado": "data/out/local/microsoft_copilot/copilot_agent/entities.json (47884 bytes)",
+    "relations_csv_generado": "data/out/local/microsoft_copilot/copilot_agent/relations.csv (730 bytes)",
+    "canon_records": 673,
+    "tiddlers_7_lines": 164,
+    "familia_canonica_s63": [
+      "669",
+      "670",
+      "671",
+      "672"
+    ]
+  },
+  "notas": "S62 (deuda): los archivos en data/out/local/copilot_agent/ son artefactos legacy creados manualmente. El pipeline ahora escribe en la ruta correcta data/out/local/microsoft_copilot/copilot_agent/. La ruta legacy puede conservarse como referencia histórica.",
+  "meta": {
+    "session": "m03-s63-copilot-agent-generator-integration-and-canonicalization-v0",
+    "mode": "local",
+    "status": "cerrado"
+  }
+}

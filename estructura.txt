@@ -87,6 +87,12 @@
 │   ├── m03-s56-direct-canon-session-dependency-tiddlers-v0.md.json
 │   ├── m03-s57-canon-direct-close-governance-v0.md.json
 │   ├── m03-s58-route-fix-readme-structural-cleanup.md.json
+│   ├── m03-s59-microsoft-copilot-projection-governance-v0.md.json
+│   ├── m03-s60-microsoft-copilot-derived-projection-mvp-v0.md.json
+│   ├── m03-s61-microsoft-copilot-json-csv-txt-projection-mvp-v0.md.json
+│   ├── m03-s62-copilot-agent-three-master-files-pack-v0.md.json
+│   ├── m03-s63-copilot-agent-generator-integration-and-canonicalization-v0.md.json
+│   ├── m03-s64-copilot-agent-semantic-compression-and-reversible-canon-hardening-v0.md.json
 │   ├── policy
 │   │   └── canon_policy_bundle.json
 │   ├── projections
@@ -108,60 +114,108 @@
 │       └── s44-local-checks.md
 ├── data
 │   ├── in
-│   └── out
-│       ├── local
-│       │   ├── ai
-│       │   │   ├── chunks_ai_1.jsonl
-│       │   │   ├── chunks_ai_2.jsonl
-│       │   │   ├── chunks_ai_3.jsonl
-│       │   │   ├── chunks_ai_4.jsonl
-│       │   │   ├── chunks_ai_5.jsonl
-│       │   │   ├── manifest.json
-│       │   │   ├── reports
-│       │   │   │   ├── chunk_qc_report.json
-│       │   │   │   ├── classification_report.json
-│       │   │   │   ├── derivation_report.json
-│       │   │   │   ├── relations_qc_report.json
-│       │   │   │   └── retrieval_qc_report.json
-│       │   │   ├── tiddlers_ai_1.jsonl
-│       │   │   ├── tiddlers_ai_2.jsonl
-│       │   │   ├── tiddlers_ai_3.jsonl
-│       │   │   ├── tiddlers_ai_4.jsonl
-│       │   │   ├── tiddlers_ai_5.jsonl
-│       │   │   ├── tiddlers_ai_6.jsonl
-│       │   │   └── tiddlers_ai_7.jsonl
-│       │   ├── audit
-│       │   │   ├── applied_safe_fixes.json
-│       │   │   ├── audit_log.jsonl
-│       │   │   ├── compliance_report.json
-│       │   │   ├── compliance_summary.md
-│       │   │   ├── manifest.json
-│       │   │   ├── manual_review_queue.jsonl
-│       │   │   ├── pre_post_diff.json
-│       │   │   ├── proposed_fixes.json
-│       │   │   └── warnings.jsonl
-│       │   ├── enriched
-│       │   │   ├── manifest.json
-│       │   │   ├── tiddlers_enriched_1.jsonl
-│       │   │   ├── tiddlers_enriched_2.jsonl
-│       │   │   ├── tiddlers_enriched_3.jsonl
-│       │   │   ├── tiddlers_enriched_4.jsonl
-│       │   │   ├── tiddlers_enriched_5.jsonl
-│       │   │   ├── tiddlers_enriched_6.jsonl
-│       │   │   └── tiddlers_enriched_7.jsonl
-│       │   ├── export
-│       │   ├── microsoft_copilot
-│       │   ├── reverse_html
-│       │   │   ├── reverse-report.json
-│       │   │   └── tiddly-data-converter.derived.html
-│       │   ├── tiddlers_1.jsonl
-│       │   ├── tiddlers_2.jsonl
-│       │   ├── tiddlers_3.jsonl
-│       │   ├── tiddlers_4.jsonl
-│       │   ├── tiddlers_5.jsonl
-│       │   ├── tiddlers_6.jsonl
-│       │   └── tiddlers_7.jsonl
-│       └── remote
+│   │   └── empty-store.html
+│   ├── out
+│   │   ├── local
+│   │   │   ├── ai
+│   │   │   │   ├── chunks_ai_1.jsonl
+│   │   │   │   ├── chunks_ai_2.jsonl
+│   │   │   │   ├── chunks_ai_3.jsonl
+│   │   │   │   ├── chunks_ai_4.jsonl
+│   │   │   │   ├── chunks_ai_5.jsonl
+│   │   │   │   ├── chunks_ai_6.jsonl
+│   │   │   │   ├── manifest.json
+│   │   │   │   ├── reports
+│   │   │   │   │   ├── chunk_qc_report.json
+│   │   │   │   │   ├── classification_report.json
+│   │   │   │   │   ├── derivation_report.json
+│   │   │   │   │   ├── relations_qc_report.json
+│   │   │   │   │   └── retrieval_qc_report.json
+│   │   │   │   ├── tiddlers_ai_1.jsonl
+│   │   │   │   ├── tiddlers_ai_2.jsonl
+│   │   │   │   ├── tiddlers_ai_3.jsonl
+│   │   │   │   ├── tiddlers_ai_4.jsonl
+│   │   │   │   ├── tiddlers_ai_5.jsonl
+│   │   │   │   ├── tiddlers_ai_6.jsonl
+│   │   │   │   └── tiddlers_ai_7.jsonl
+│   │   │   ├── enriched
+│   │   │   │   ├── manifest.json
+│   │   │   │   ├── tiddlers_enriched_1.jsonl
+│   │   │   │   ├── tiddlers_enriched_2.jsonl
+│   │   │   │   ├── tiddlers_enriched_3.jsonl
+│   │   │   │   ├── tiddlers_enriched_4.jsonl
+│   │   │   │   ├── tiddlers_enriched_5.jsonl
+│   │   │   │   ├── tiddlers_enriched_6.jsonl
+│   │   │   │   └── tiddlers_enriched_7.jsonl
+│   │   │   ├── microsoft_copilot
+│   │   │   │   ├── artifacts.csv
+│   │   │   │   ├── bundles
+│   │   │   │   │   ├── governance_core.txt
+│   │   │   │   │   ├── pipeline_and_layers.txt
+│   │   │   │   │   └── recent_sessions.txt
+│   │   │   │   ├── copilot_agent
+│   │   │   │   │   ├── corpus.txt
+│   │   │   │   │   ├── entities.json
+│   │   │   │   │   └── relations.csv
+│   │   │   │   ├── coverage.csv
+│   │   │   │   ├── edges.csv
+│   │   │   │   ├── entities.json
+│   │   │   │   ├── manifest.json
+│   │   │   │   ├── navigation_index.json
+│   │   │   │   ├── nodes.csv
+│   │   │   │   ├── overview.txt
+│   │   │   │   ├── reading_guide.txt
+│   │   │   │   ├── source_arbitration_report.json
+│   │   │   │   ├── spec
+│   │   │   │   │   ├── checklist_global_s61.md
+│   │   │   │   │   ├── memoria_decisiones_s61.md
+│   │   │   │   │   ├── plan_de_implementacion_s61.md
+│   │   │   │   │   └── summaries
+│   │   │   │   │       ├── contratos-instructions.json
+│   │   │   │   │       ├── contratos-instructions.md
+│   │   │   │   │       ├── contratos-s58-s59-s60.json
+│   │   │   │   │       ├── contratos-s58-s59-s60.md
+│   │   │   │   │       ├── dependencia-y-superficie-externa.json
+│   │   │   │   │       ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       ├── desarrollo-y-evolucion.json
+│   │   │   │   │       ├── desarrollo-y-evolucion.md
+│   │   │   │   │       ├── detalles-del-tema.json
+│   │   │   │   │       ├── detalles-del-tema.md
+│   │   │   │   │       ├── elementos-especificos.json
+│   │   │   │   │       ├── elementos-especificos.md
+│   │   │   │   │       ├── glosario-y-convenciones.json
+│   │   │   │   │       ├── glosario-y-convenciones.md
+│   │   │   │   │       ├── hipotesis.json
+│   │   │   │   │       ├── hipotesis.md
+│   │   │   │   │       ├── microsoft-support-formats.json
+│   │   │   │   │       ├── microsoft-support-formats.md
+│   │   │   │   │       ├── politica-de-memoria-activa.json
+│   │   │   │   │       ├── politica-de-memoria-activa.md
+│   │   │   │   │       ├── prcommits.json
+│   │   │   │   │       ├── prcommits.md
+│   │   │   │   │       ├── principios-de-gestion.json
+│   │   │   │   │       ├── principios-de-gestion.md
+│   │   │   │   │       ├── procedencia-epistemologica.json
+│   │   │   │   │       ├── procedencia-epistemologica.md
+│   │   │   │   │       ├── protocolo-de-sesion.json
+│   │   │   │   │       ├── protocolo-de-sesion.md
+│   │   │   │   │       ├── repo-y-derivados-actuales.json
+│   │   │   │   │       ├── repo-y-derivados-actuales.md
+│   │   │   │   │       ├── sesiones.json
+│   │   │   │   │       ├── sesiones.md
+│   │   │   │   │       ├── tiddlers-sesiones.json
+│   │   │   │   │       └── tiddlers-sesiones.md
+│   │   │   │   └── topics.json
+│   │   │   ├── reverse_html
+│   │   │   ├── tiddlers_1.jsonl
+│   │   │   ├── tiddlers_2.jsonl
+│   │   │   ├── tiddlers_3.jsonl
+│   │   │   ├── tiddlers_4.jsonl
+│   │   │   ├── tiddlers_5.jsonl
+│   │   │   ├── tiddlers_6.jsonl
+│   │   │   └── tiddlers_7.jsonl
+│   │   └── remote
+│   └── README.md
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
@@ -416,16 +470,21 @@
 │   │   │   ├── candidate_line.json
 │   │   │   └── run_canon_proposal_test.sh
 │   │   ├── s52
+│   │   │   ├── __pycache__
 │   │   │   ├── run_chunking_structure_test.sh
 │   │   │   └── test_chunking_structure.py
 │   │   ├── s54
+│   │   │   ├── __pycache__
 │   │   │   ├── run_semantic_microchunk_test.sh
 │   │   │   └── test_semantic_microchunk.py
-│   │   └── s55
+│   │   ├── s55
+│   │   │   ├── __pycache__
+│   │   │   ├── run_corpus_governance_test.sh
+│   │   │   ├── session_closure_payloads.jsonl
+│   │   │   └── test_corpus_governance.py
+│   │   └── s64
 │   │       ├── __pycache__
-│   │       ├── run_corpus_governance_test.sh
-│   │       ├── session_closure_payloads.jsonl
-│   │       └── test_corpus_governance.py
+│   │       └── test_copilot_agent_projection.py
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1

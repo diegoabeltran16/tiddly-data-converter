@@ -15,6 +15,7 @@ from path_governance import (
     DEFAULT_ENRICHED_DIR,
     DEFAULT_EXPORT_DIR,
     DEFAULT_LOCAL_OUT_DIR,
+    DEFAULT_MICROSOFT_COPILOT_DIR,
     DEFAULT_PROPOSALS_FILE,
     DEFAULT_REMOTE_OUT_DIR,
     DEFAULT_REVERSE_HTML_DIR,
@@ -271,6 +272,7 @@ def validate_layer_registry(registry: dict) -> list[str]:
         "audit",
         "reverse_html",
         "export",
+        "microsoft_copilot",
         "remote",
     }
     missing_layers = sorted(required_layer_ids - set(by_id))
@@ -317,6 +319,7 @@ def validate_repository_alignment(
         "audit": as_display_path(DEFAULT_AUDIT_DIR),
         "reverse_html": as_display_path(DEFAULT_REVERSE_HTML_DIR),
         "export": as_display_path(DEFAULT_EXPORT_DIR),
+        "microsoft_copilot": as_display_path(DEFAULT_MICROSOFT_COPILOT_DIR),
         "remote": as_display_path(DEFAULT_REMOTE_OUT_DIR),
     }
     layer_map = {layer["layer_id"]: layer for layer in registry["layers"]}
@@ -451,4 +454,3 @@ def validate_repository_alignment(
         "ai_alignment": ai_alignment,
     }
     return report
-

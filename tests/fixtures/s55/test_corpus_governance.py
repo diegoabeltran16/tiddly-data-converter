@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
+sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
 
 import corpus_governance  # noqa: E402
 import derive_layers  # noqa: E402
@@ -40,6 +40,16 @@ class CorpusGovernanceTests(unittest.TestCase):
         self.assertEqual(layers["canon"]["authority"], "local_source_of_truth")
         self.assertEqual(layers["enriched"]["authority"], "derived_non_authoritative")
         self.assertEqual(layers["ai"]["authority"], "derived_non_authoritative")
+        self.assertEqual(
+            layers["microsoft_copilot"]["authority"],
+            "derived_non_authoritative_agent_projection",
+        )
+        self.assertEqual(layers["microsoft_copilot"]["presence"], "required")
+        copilot_patterns = set(layers["microsoft_copilot"]["path_patterns"])
+        self.assertIn("entities.json", copilot_patterns)
+        self.assertIn("nodes.csv", copilot_patterns)
+        self.assertIn("overview.txt", copilot_patterns)
+        self.assertNotIn("tiddlers_microsoft_copilot_*.jsonl", copilot_patterns)
         self.assertEqual(layers["reverse_html"]["authority"], "reverse_projection_only")
         self.assertEqual(layers["proposals"]["authority"], "candidate_only")
         self.assertEqual(layers["remote"]["authority"], "remote_exchange_only")
@@ -65,4 +75,3 @@ class CorpusGovernanceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

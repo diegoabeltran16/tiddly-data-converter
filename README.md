@@ -23,6 +23,7 @@ Dentro de `data/out/local/`:
 | `ai/` | capa derivada B: preparación para RAG y chunking |
 | `audit/` | capa de auditoría normativa |
 | `export/` | artefactos de exportación puntual |
+| `microsoft_copilot/` | proyección legible para Microsoft Copilot y otros agentes remotos; derivada y no autoritativa |
 | `reverse_html/` | HTML reconstruido desde el canon — no es fuente de verdad |
 | `proposals.jsonl` | buffer legado y extraordinario — no es ruta diaria de cierre |
 
@@ -137,6 +138,7 @@ python3 python_scripts/derive_layers.py \
   --input-dir data/out/local \
   --enriched-dir data/out/local/enriched \
   --ai-dir data/out/local/ai \
+  --microsoft-copilot-dir data/out/local/microsoft_copilot \
   --reports-dir data/out/local/ai/reports \
   --chunk-target-tokens 1800 \
   --chunk-max-tokens 4000
@@ -148,6 +150,7 @@ python3 python_scripts/derive_layers.py \
 |---|---|---|
 | `enriched` | `data/out/local/enriched/` | Enriquecimiento estructural: metadatos, roles, estados |
 | `ai` | `data/out/local/ai/` | Preparación RAG: registros listos para embeddings |
+| `microsoft_copilot` | `data/out/local/microsoft_copilot/` | Proyección gobernada y legible para Microsoft Copilot y agentes remotos; emite JSON/CSV/TXT y puede arbitrar canon, enriched, ai, audit y export sin ganar autoridad |
 | `chunks` | `data/out/local/ai/chunks_ai_*.jsonl` | Fragmentos trazables al nodo fuente |
 
 Artefactos producidos:
@@ -158,6 +161,25 @@ Artefactos producidos:
 - `data/out/local/ai/chunks_ai_*.jsonl`
 - `data/out/local/ai/manifest.json`
 - `data/out/local/ai/reports/*.json`
+- `data/out/local/microsoft_copilot/manifest.json`
+- `data/out/local/microsoft_copilot/navigation_index.json`
+- `data/out/local/microsoft_copilot/entities.json`
+- `data/out/local/microsoft_copilot/topics.json`
+- `data/out/local/microsoft_copilot/source_arbitration_report.json`
+- `data/out/local/microsoft_copilot/nodes.csv`
+- `data/out/local/microsoft_copilot/edges.csv`
+- `data/out/local/microsoft_copilot/artifacts.csv`
+- `data/out/local/microsoft_copilot/coverage.csv`
+- `data/out/local/microsoft_copilot/overview.txt`
+- `data/out/local/microsoft_copilot/reading_guide.txt`
+- `data/out/local/microsoft_copilot/bundles/*.txt`
+
+`data/out/local/microsoft_copilot/` forma parte del flujo de derivación local.
+Sigue siendo una proyección derivada y no autoritativa: no reemplaza al canon,
+no reemplaza a `enriched/` ni a `ai/`, y no hace writeback al canon. En S61
+la salida final de lectura de esta capa deja de ser JSONL: JSON expone
+estructura, CSV expone relaciones/tablas y TXT preserva contexto narrativo
+seleccionado con punteros explícitos a la fuente canónica.
 
 ### II.2 Política de chunking
 
@@ -247,6 +269,15 @@ o líneas mal formadas, el reverse aborta sin escribir HTML.
 ```bash
 cd /repositorios/tiddly-data-converter/go/bridge
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
+  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --canon ../../data/out/local \
+  --out-html ../../data/out/local/reverse_html/tiddly-data-converter.derived.html \
+  --report ../../data/out/local/reverse_html/reverse-report.json \
+  --mode authoritative-upsert
+```
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+env GOCACHE=/tmp/tdc-go-build go run ../bridge/cmd/reverse_tiddlers \
   --html ../../data/in/'tiddly-data-converter (Saved).html' \
   --canon ../../data/out/local \
   --out-html ../../data/out/local/reverse_html/tiddly-data-converter.derived.html \
