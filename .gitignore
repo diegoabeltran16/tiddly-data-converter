@@ -40,15 +40,7 @@ go/canon/emit
 go/canon/canon_preflight
 /.codex
 
-/out
-/data/out
-/data/out/local/reverse_html
-/data/out
-/data/out/local
-/data/out/remote
-/data/out/local/reverse_html
-
 /data/in
 /data/out
-/data/README.md
+
 

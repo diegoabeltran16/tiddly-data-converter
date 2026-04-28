@@ -3,13 +3,19 @@
   "schema_version": "v0",
   "registry_id": "m03-s55-corpus-governance-state-lineage-v0",
   "source_of_truth_layer": "canon",
-  "description": "Machine-readable registry of governed corpus layers rooted in the local canon. Canon is the only authoritative local layer; every other layer is candidate-only, derived or non-authoritative projection.",
+  "description": "Machine-readable registry of governed corpus layers rooted in the local canon. Canon is the only authoritative local layer; data/sessions/ is staging for session artifacts and candidate lines; every other layer is candidate-only, derived or non-authoritative projection.",
   "layer_classes": {
     "canon": {
       "is_canonical": true,
       "authoritative_for_local_corpus": true,
-      "default_write_mode": "governed_direct_session_close",
+      "default_write_mode": "local_admission_after_validation",
       "promotion_into_class": false
+    },
+    "session_staging": {
+      "is_canonical": false,
+      "authoritative_for_local_corpus": false,
+      "default_write_mode": "session_artifact_staging",
+      "promotion_into_class": "local_admission_only"
     },
     "proposal": {
       "is_canonical": false,
@@ -55,6 +61,30 @@
         "governed_merge_target"
       ],
       "must_not_replace_layers": []
+    },
+    {
+      "layer_id": "session_candidates",
+      "path": "data/sessions",
+      "path_patterns": [
+        "**/*.canon-candidates.jsonl",
+        "**/*.md.json"
+      ],
+      "layer_class": "session_staging",
+      "authority": "candidate_only",
+      "presence": "required",
+      "lineage_parents": [],
+      "validation_inputs": [
+        "canon"
+      ],
+      "allowed_uses": [
+        "session_closure",
+        "candidate_staging",
+        "traceability",
+        "local_admission_preflight"
+      ],
+      "must_not_replace_layers": [
+        "canon"
+      ]
     },
     {
       "layer_id": "proposals",
@@ -354,14 +384,34 @@
     },
     {
       "from": "canon",
+      "to": "session_candidates",
+      "mode": "session_candidate_staging",
+      "authority_transfer": "none"
+    },
+    {
+      "from": "session_candidates",
+      "to": "canon",
+      "mode": "local_admission_only",
+      "authority_transfer": "conditional",
+      "requirements": [
+        "explicit_local_admission_authorization",
+        "canon_preflight_strict",
+        "canon_preflight_reverse_preflight",
+        "reverse_authoritative_rejected_zero",
+        "collision_free_canonical_candidate",
+        "relevant_tests_passed"
+      ]
+    },
+    {
+      "from": "canon",
       "to": "proposals",
-      "mode": "validation_context_only",
+      "mode": "legacy_validation_context_only",
       "authority_transfer": "none"
     },
     {
       "from": "proposals",
       "to": "canon",
-      "mode": "governed_merge_only",
+      "mode": "legacy_governed_merge_only",
       "authority_transfer": "conditional",
       "requirements": [
         "explicit_governed_merge_session_or_user_instruction",
@@ -376,8 +426,12 @@
       "rule": "canon is the only authoritative local corpus layer"
     },
     {
+      "assertion_id": "data-sessions-not-canon",
+      "rule": "data/sessions/ stores session artifacts and candidate lines but never equals canon by default"
+    },
+    {
       "assertion_id": "proposals-not-canon",
-      "rule": "proposals are canonized candidates and never equal canon by default"
+      "rule": "proposals are legacy manual-recovery candidates and never equal canon by default"
     },
     {
       "assertion_id": "reverse-html-not-canon",

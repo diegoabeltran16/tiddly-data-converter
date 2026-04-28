@@ -2,7 +2,7 @@
 
 Para tareas de commits y pull requests en el repositorio `tiddly-data-converter`, usa como contrato activo, fuente de verdad y regla obligatoria de salida el archivo:
 
-`docs/estructura_de_commits_tiddly-data-converter.JSON`
+`data/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`
 
 Además, debes respetar la instrucción contractual definida en:
 
@@ -17,7 +17,7 @@ Esto no aplica solo a una respuesta aislada. Aplica a toda propuesta que el agen
 ### Instrucción crítica
 
 Debes:
-- leer `docs/estructura_de_commits_tiddly-data-converter.JSON` antes de responder;
+- leer `data/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON` antes de responder;
 - obedecer sus reglas;
 - usar sus clasificaciones;
 - aplicar sus templates;
@@ -38,7 +38,7 @@ Cuando el usuario describa lo realizado en una sesión o un cambio técnico conc
 
 Cada propuesta generada por el agente debe quedar documentada en la descripción del pull request siguiendo la estructura del contrato definido en:
 
-`docs/estructura_de_commits_tiddly-data-converter.JSON`
+`data/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`
 
 No debes producir descripciones libres, resúmenes informales ni formatos improvisados. La descripción del pull request debe responder a la estructura oficial del repositorio.
 
@@ -50,7 +50,7 @@ Si la propuesta de pull request describe un cambio sustantivo, estructural, oper
 2. `prTitle`
 3. `prDescriptionMarkdown`
 
-También debe existir al menos **1 contrato de sesión serializado como archivo `.md.json`**, compatible con la lógica de importación a TiddlyWiki usada por el repositorio.
+También debe existir al menos **1 contrato de sesión serializado como archivo `.md.json`** bajo `data/sessions/00_contratos/`, compatible con la lógica de importación a TiddlyWiki usada por el repositorio.
 
 Ese contrato no reemplaza el PR y el PR no reemplaza el contrato.
 
@@ -58,6 +58,15 @@ La descripción del pull request resume e integra el cambio.
 El contrato de sesión conserva la trazabilidad técnica estructurada.
 
 Si falta ese artefacto `.md.json` cuando la sesión respalda cambios sustantivos, la propuesta debe considerarse documentalmente incompleta.
+
+Git no decide la admisión canónica. Antes de recomendar commit o push de una sesión que afecte canon o produzca líneas candidatas, debe existir evidencia de:
+
+- familia mínima producida bajo `data/sessions/`;
+- diagnóstico de sesión obligatorio;
+- líneas candidatas en formato canon, si existen;
+- validación local pasada o documentada como pendiente;
+- reverse autoritativo con `Rejected: 0` si se ejecutó admisión temporal o canónica;
+- tests requeridos pasados o documentados como no ejecutados.
 
 ### Reglas de ejecución
 
@@ -78,7 +87,7 @@ Si falta ese artefacto `.md.json` cuando la sesión respalda cambios sustantivos
 
 ### Proceso obligatorio
 
-1. Leer `docs/estructura_de_commits_tiddly-data-converter.JSON`.
+1. Leer `data/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`.
 2. Leer `.github/instructions/contratos.instructions.md`.
 3. Identificar el tipo de cambio descrito por el usuario.
 4. Clasificar el cambio según enums, reglas y criterios del contrato.
@@ -86,8 +95,18 @@ Si falta ese artefacto `.md.json` cuando la sesión respalda cambios sustantivos
 6. Construir `prTitle`.
 7. Construir `prDescriptionMarkdown` usando el template del contrato.
 8. Verificar si el cambio exige contrato de sesión.
-9. Si lo exige, asegurar que exista al menos 1 artefacto `.md.json` compatible con TiddlyWiki.
+9. Si lo exige, asegurar que exista al menos 1 artefacto `.md.json` compatible con TiddlyWiki bajo `data/sessions/00_contratos/`.
 10. Entregar la salida final en el orden exacto definido por `outputFormat.order`.
+
+### Evidencia obligatoria en commit/PR
+
+El commit o PR debe mencionar claramente:
+
+- la sesión;
+- los artefactos de `data/sessions/` actualizados;
+- si hubo o no líneas candidatas;
+- si hubo o no absorción local al canon;
+- estado de validación: `strict`, `reverse-preflight`, reverse autoritativo y tests pertinentes.
 
 ### Formato obligatorio de respuesta
 

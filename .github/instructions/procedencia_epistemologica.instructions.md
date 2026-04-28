@@ -27,6 +27,12 @@
 - No presentar como observación directa lo que en realidad es inferencia o síntesis.
 - No ocultar contribuciones mixtas humano-IA cuando afectan el contenido.
 
+## Regla transversal S66
+- Toda sesión debe producir procedencia de sesión en `data/sessions/01_procedencia/<session>.md.json`.
+- El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión ## = <session>`.
+- Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/sessions/`.
+- No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente.
+
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para situar la procedencia dentro del marco del tema.
 - Se articula con `## 🧰🧱 Elementos específicos` cuando existe un recurso concreto que también debe preservarse.

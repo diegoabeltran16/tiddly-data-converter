@@ -59,6 +59,11 @@ Este núcleo define qué significa memoria activa en el sistema, qué debe mante
 - No aplicar acciones irreversibles sin trazabilidad y revisión suficiente.
 - No usar esta política como sustituto del registro explícito en hipótesis, procedencia, glosario o desarrollo.
 
+## Regla transversal S66
+- La memoria operativa de cada sesión se registra en la familia mínima de `data/sessions/`.
+- El balance de sesión es memoria de aprendizaje y debe incluir aciertos, errores, decisiones_a_conservar, riesgos_detectados, ajustes_sugeridos e impacto_en_proxima_sesion.
+- La recuperabilidad futura no equivale a admisión canónica: una línea candidata sigue siendo candidata hasta pasar validación local y reverse sin rechazo.
+
 ## Interacción con otros nodos
 - `## 🧭🧱 Protocolo de Sesión` permite declarar preferencias de memoria y define la apertura informada de cada sesión.
 - `## 🧠🧱 Política de Memoria Activa` define qué significan esas preferencias y cómo se interpretan.
@@ -76,4 +81,3 @@ Los resultados de una sesión asistida deben alimentar la recuperabilidad futura
 - Un agente debe saber qué contexto reentra, por qué reentra y bajo qué revisión humana sigue siendo modificable.
 
 Fin de `## 🧠🧱 Política de Memoria Activa`.
-

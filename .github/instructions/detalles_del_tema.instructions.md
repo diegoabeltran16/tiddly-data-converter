@@ -28,6 +28,12 @@
 - No esconder hipótesis abiertas dentro de afirmaciones aparentemente consolidadas.
 - No usar este nodo para explicar el flujo de trabajo de sesión o la política de memoria.
 
+## Regla transversal S66
+- La producción situada de sesión se escribe bajo `data/sessions/` y no como archivo acumulativo global.
+- El detalle de sesión propio de cada cierre vive en `data/sessions/02_detalles_de_sesion/<session>.md.json`.
+- El `title` del detalle/sesión debe usar `#### 🌀 Sesión ## = <session>`.
+- Si un detalle debe poder entrar al canon, se representa como línea candidata y no como autoridad canónica final hasta completar validación local y reverse sin rechazo.
+
 ## Interacción con otros nodos
 - Recibe base desde `# 2_🧾 Procedencia inicial` y `# 3_🧪 Hipótesis inicial`.
 - Define el marco de `### 🎯 1. Objetivos 🧱`, `### 🎯 2. Requisitos 🧱`, `### 🎯 3. DOFA 🧱`, `### 🎯 4. Flujo de interaccion 🧱`, `### 🎯 5. Arquitectura 🌀`, `### 🎯 6. Componentes 🌀`, `### 🎯 7. Algoritmos y matematicas 🌀` y `### 🎯 8. Ingeniería asistida por IA 🌀`.

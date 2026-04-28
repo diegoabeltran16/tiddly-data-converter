@@ -11,6 +11,7 @@ un corpus TiddlyWiki sin perder trazabilidad ni reversibilidad.
 
 | Ruta | Rol |
 |---|---|
+| `data/sessions/` | artefactos de sesión, staging operativo y líneas candidatas |
 | `data/in/` | entradas locales, incluido el HTML vivo |
 | `data/out/local/` | zona de salida gobernada: canon, derivados, reverse y export |
 
@@ -140,6 +141,8 @@ python3 python_scripts/derive_layers.py \
   --ai-dir data/out/local/ai \
   --microsoft-copilot-dir data/out/local/microsoft_copilot \
   --reports-dir data/out/local/ai/reports \
+  --audit-dir data/out/local/audit \
+  --export-dir data/out/local/export \
   --chunk-target-tokens 1800 \
   --chunk-max-tokens 4000
 ```
@@ -150,7 +153,7 @@ python3 python_scripts/derive_layers.py \
 |---|---|---|
 | `enriched` | `data/out/local/enriched/` | Enriquecimiento estructural: metadatos, roles, estados |
 | `ai` | `data/out/local/ai/` | Preparación RAG: registros listos para embeddings |
-| `microsoft_copilot` | `data/out/local/microsoft_copilot/` | Proyección gobernada y legible para Microsoft Copilot y agentes remotos; emite JSON/CSV/TXT y puede arbitrar canon, enriched, ai, audit y export sin ganar autoridad |
+| `microsoft_copilot` | `data/out/local/microsoft_copilot/` | Proyección gobernada y legible para Microsoft Copilot y agentes remotos; emite JSON/CSV/TXT y puede arbitrar canon, enriched, ai, audit y export sin ganar autoridad; incluye sublayer `copilot_agent/` con paquete semántico reversible |
 | `chunks` | `data/out/local/ai/chunks_ai_*.jsonl` | Fragmentos trazables al nodo fuente |
 
 Artefactos producidos:
@@ -173,6 +176,11 @@ Artefactos producidos:
 - `data/out/local/microsoft_copilot/overview.txt`
 - `data/out/local/microsoft_copilot/reading_guide.txt`
 - `data/out/local/microsoft_copilot/bundles/*.txt`
+- `data/out/local/microsoft_copilot/spec/**/*.md`
+- `data/out/local/microsoft_copilot/spec/**/*.json`
+- `data/out/local/microsoft_copilot/copilot_agent/corpus.txt`
+- `data/out/local/microsoft_copilot/copilot_agent/entities.json`
+- `data/out/local/microsoft_copilot/copilot_agent/relations.csv`
 
 `data/out/local/microsoft_copilot/` forma parte del flujo de derivación local.
 Sigue siendo una proyección derivada y no autoritativa: no reemplaza al canon,
@@ -193,8 +201,8 @@ seleccionado con punteros explícitos a la fuente canónica.
 
 La gramática estructural activa del corpus vive en:
 
-- `contratos/policy/canon_policy_bundle.json`: define `corpus_state`, reglas de resolución y compuertas de promoción.
-- `contratos/projections/derived_layers_registry.json`: declara autoridad y linaje entre capas.
+- `data/sessions/00_contratos/policy/canon_policy_bundle.json`: define `corpus_state`, reglas de resolución y compuertas de promoción.
+- `data/sessions/00_contratos/projections/derived_layers_registry.json`: declara autoridad y linaje entre capas.
 
 Estados gobernados:
 
@@ -303,9 +311,29 @@ Usar `insert-only` únicamente cuando se quiera impedir la actualización de tí
 
 ## Cierre semántico de sesión
 
-La ruta diaria de cierre es directamente en canon, no en `proposals.jsonl`.
+La ruta diaria de cierre es `data/sessions/`, no escritura directa en el canon final.
 
-**Ruta diaria:** escribir en `data/out/local/tiddlers_*.jsonl` y validar:
+Cada sesión debe producir su familia mínima:
+
+- `data/sessions/00_contratos/<session>.md.json`
+- `data/sessions/01_procedencia/<session>.md.json`
+- `data/sessions/02_detalles_de_sesion/<session>.md.json`
+- `data/sessions/03_hipotesis/<session>.md.json`
+- `data/sessions/04_balance_de_sesion/<session>.md.json`
+- `data/sessions/05_propuesta_de_sesion/<session>.md.json`
+- `data/sessions/06_diagnoses/sesion/<session>.md.json`
+
+Los títulos de los tiddlers de cierre deben iniciar con `#### 🌀`. Para
+procedencia, sesión e hipótesis se usan respectivamente:
+`#### 🌀🧾 Procedencia de sesión ## = <session>`,
+`#### 🌀 Sesión ## = <session>` y
+`#### 🌀🧪 Hipótesis de sesión ## = <session>`.
+
+Si la sesión deja memoria que debe poder entrar al canon, debe producir líneas
+candidatas en formato canon bajo `data/sessions/`. La admisión real se prueba sobre
+una copia temporal del canon y solo después puede aplicarse localmente.
+
+**Validación de copia temporal o JSONL candidato:**
 
 ```bash
 cd /repositorios/tiddly-data-converter/go/canon
@@ -320,6 +348,20 @@ env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode reverse-preflight \
   --input ../../data/out/local
 ```
+
+**Reverse autoritativo sobre copia temporal:**
+
+```bash
+cd /repositorios/tiddly-data-converter/go/bridge
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
+  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --canon /tmp/<canon-temporal> \
+  --out-html /tmp/<session>.reverse.html \
+  --report /tmp/<session>.reverse-report.json \
+  --mode authoritative-upsert
+```
+
+Para admitir líneas, el reverse debe terminar con `Rejected: 0`.
 
 **Ruta extraordinaria:** `data/out/local/proposals.jsonl` solo para recuperación manual
 o lotes excepcionales que no deban absorberse aún al canon base.
@@ -376,7 +418,7 @@ python3 python_scripts/canon_proposal.py validate --proposal-file /tmp/manual-re
 
 - `.github/instructions/tiddlers_sesiones.instructions.md`
 - `esquemas/canon/canon_guarded_session_rules.md`
-- `contratos/policy/canon_policy_bundle.json`
-- `contratos/projections/derived_layers_registry.json`
+- `data/sessions/00_contratos/policy/canon_policy_bundle.json`
+- `data/sessions/00_contratos/projections/derived_layers_registry.json`
 - `python_scripts/validate_corpus_governance.py`
 - `python_scripts/path_governance.py`

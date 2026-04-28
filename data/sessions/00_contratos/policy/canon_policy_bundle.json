@@ -3,16 +3,18 @@
   "schema_version": "v0",
   "runtime_data_roots": [
     "data/in",
+    "data/sessions",
     "data/out"
   ],
   "local_output_root": "data/out/local",
   "remote_output_root": "data/out/remote",
   "session_proposal_artifact_pattern": "data/out/local/proposals.jsonl",
-  "session_semantic_close_target_pattern": "data/out/local/tiddlers_*.jsonl",
-  "session_semantic_close_default": "direct_canon",
+  "session_candidate_artifact_pattern": "data/sessions/**/*.canon-candidates.jsonl",
+  "session_semantic_close_target_pattern": "data/sessions/",
+  "session_semantic_close_default": "data_sessions_staging",
   "session_proposal_artifact_status": "legacy_manual_recovery_only",
   "reverse_html_root": "data/out/local/reverse_html",
-  "direct_canon_write_default": "governed_direct_close_for_session_semantics",
+  "direct_canon_write_default": "prohibited_by_default_requires_local_admission",
   "source_of_truth": "ordered shard set `tiddlers_1.jsonl` .. `tiddlers_7.jsonl`",
   "source_of_truth_description": "The ordered shard set is the unique, authoritative, auditable, reversible, deterministic source of truth for the tiddler corpus. A monolithic JSONL view may exist temporarily, but it is derived and non-authoritative.",
   "required_fields": [
@@ -242,7 +244,7 @@
     "rejects_duplicate_titles": true,
     "rejects_duplicate_keys": true
   },
-  "derived_layers_registry_ref": "contratos/projections/derived_layers_registry.json",
+  "derived_layers_registry_ref": "data/sessions/00_contratos/projections/derived_layers_registry.json",
   "corpus_governance_validator_ref": "python_scripts/validate_corpus_governance.py",
   "corpus_state_catalog": {
     "general": {
@@ -527,9 +529,13 @@
     "Every failure must produce an explicit reason.",
     "The normalizer must be deterministic.",
     "corpus_state is resolved from explicit rules before heuristics.",
-    "Proposal lines are canonized candidates and never equal canon by default.",
+    "Session closure artifacts live under data/sessions/ before any canon admission.",
+    "Session candidate lines are canonized candidates and never equal canon by default.",
+    "Proposal lines are legacy manual-recovery candidates and never equal canon by default.",
+    "Direct canon writes are prohibited by default and require local admission evidence.",
+    "A candidate cannot be admitted without strict, reverse-preflight, reverse authoritative rejected=0 and relevant tests.",
     "reverse_html is non-canonical and must never backfill canon authority.",
     "remote outputs are non-authoritative for local decisions.",
-    "Layer lineage remains rooted in canon or in an explicit governed proposal merge."
+    "Layer lineage remains rooted in canon or in an explicit governed local admission."
   ]
 }

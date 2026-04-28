@@ -28,6 +28,12 @@
 - No confundir capas, roles, tags, estados y funciones.
 - No usar este nodo como lugar para tomar decisiones técnicas que pertenecen a `## 🗂🧱 Principios de Gestión` o a un bloque temático específico.
 
+## Regla transversal S66
+- Usar `data/sessions/` para nombrar artefactos de cierre de sesión: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico.
+- Nombrar todo tiddler resultado de sesión con `title` iniciado por `#### 🌀`; las formas preferidas son `#### 🌀🧾 Procedencia de sesión ## = <session>`, `#### 🌀 Sesión ## = <session>` y `#### 🌀🧪 Hipótesis de sesión ## = <session>`.
+- Distinguir siempre `línea candidata`, `canon local` y `derivado`; `data/sessions/` no es canon paralelo.
+- No crear nombres alternos para carpetas de sesión si ya existe una ruta real en el repositorio.
+
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para situar el vocabulario dentro del contenido sustantivo.
 - Requiere `## 🗂🧱 Principios de Gestión` cuando una convención también tiene implicaciones operativas.

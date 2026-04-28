@@ -1,0 +1,11 @@
+[
+  {
+    "created": "20260427182133000",
+    "modified": "20260427182133000",
+    "title": "#### 🌀 Sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0",
+    "type": "text/markdown",
+    "tags": "session:m03-s66 milestone:m03 artifact:detalles_de_sesion status:candidate",
+    "tmap.id": "a974bc52-ffe8-5122-afe0-0e50b0634041",
+    "text": "#### 🌀 Sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0\n\n## Trabajo realizado\n\n- Se reviso el informe tecnico, la estructura real de `data/sessions/`, las 14 instrucciones de agente, reglas de canon/reverse, README, data README y scripts de validacion disponibles.\n- Se actualizo el informe tecnico con la seccion `Cierre canonico de sesiones y memoria operativa`.\n- Se reemplazo la regla de cierre directo en canon por staging en `data/sessions/` y admision local validada.\n- Se alinearon las 14 instrucciones bajo `.github/instructions/`.\n- Se actualizo `esquemas/canon/canon_guarded_session_rules.md`, `README.md` y `data/README.md` para evitar contradicciones operativas.\n- Se genero la familia minima S66 bajo `data/sessions/`.\n- Se prepararon lineas candidatas para validar el flujo sin modificar el canon final.\n\n## Decisiones operativas\n\n- `data/sessions/` queda como superficie de produccion y revision.\n- `data/out/local/tiddlers_*.jsonl` conserva autoridad final.\n- El agente no escribe al canon final por defecto.\n- La admision requiere copia temporal, `strict`, `reverse-preflight`, reverse autoritativo sin rechazo y tests pertinentes.\n\n## Exclusiones\n\n- No se redisenaron shards.\n- No se creo automatizacion compleja nueva.\n- No se generaron diagnosticos especializados adicionales."
+  }
+]

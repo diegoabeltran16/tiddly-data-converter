@@ -1,0 +1,11 @@
+[
+  {
+    "created": "20260427182133000",
+    "modified": "20260427182133000",
+    "title": "#### 🌀 Contrato de sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0",
+    "type": "text/markdown",
+    "tags": "session:m03-s66 milestone:m03 artifact:contrato_de_sesion status:candidate",
+    "tmap.id": "c5adfeb6-4cdb-5a2e-b39f-4c2b8f14e048",
+    "text": "#### 🌀 Contrato de sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0\n\n## Identidad\n\n- Sesion: `m03-s66-session-family-and-canonical-closure-flow-v0`\n- Milestone: `m03`\n- Modo: `local`\n- Repositorio: `tiddly-data-converter`\n- Fecha local: `2026-04-27`\n\n## Objetivo\n\nFormalizar el flujo de cierre de sesion basado en `data/sessions/`, familia minima de artefactos, lineas candidatas en formato canon, admision local verificable y reversibilidad obligatoria antes de admitir nuevas lineas al canon.\n\n## Alcance\n\n- Actualizar informe tecnico.\n- Alinear las 14 instrucciones de agente.\n- Alinear documentacion operativa relacionada con canon, reverse y cierre.\n- Generar el paquete minimo S66 bajo `data/sessions/`.\n- Producir lineas candidatas en formato canon para la familia S66.\n- Validar el propio flujo con comandos reales disponibles.\n\n## Limites\n\n- No redisenar el canon completo.\n- No mover el canon oficial.\n- No convertir `data/sessions/` en canon paralelo.\n- No crear archivo acumulativo global.\n- No modificar `data/out/local/tiddlers_*.jsonl` como admision final.\n- No declarar admision canonica si no pasan las compuertas requeridas.\n\n## Criterios de aceptacion\n\n- El informe tecnico explica el nuevo flujo.\n- Las instrucciones del agente quedan alineadas.\n- La familia minima S66 existe bajo `data/sessions/`.\n- El diagnostico de sesion existe.\n- Las lineas candidatas declaran sesion, familia, procedencia, source path y estado no admitido.\n- La validacion registra que paso, que no paso y que queda pendiente."
+  }
+]

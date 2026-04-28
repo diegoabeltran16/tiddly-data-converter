@@ -28,6 +28,11 @@
 - No presentar un recurso apenas incorporado como conclusión consolidada.
 - No usar este nodo como reemplazo de `## 🎯🧱 Detalles del tema` o de `## 🗂🧱 Principios de Gestión`.
 
+## Regla transversal S66
+- Los artefactos concretos producidos por una sesión deben quedar bajo la familia mínima de `data/sessions/`.
+- Las líneas candidatas asociadas a esos artefactos deben declarar `source_path`, `artifact_family`, procedencia y estado no admitido.
+- No promover recursos de sesión al canon final por escritura directa del agente salvo admisión local validada y autorizada.
+
 ## Interacción con otros nodos
 - Se articula con `# 2_🧾 Procedencia inicial` y `## 🧾🧱 Procedencia epistemológica` para distinguir recurso y origen.
 - Se articula con `## 🌀🧱 Desarrollo y Evolución` porque muchos materiales aparecen o se reactivan en sesiones concretas.
