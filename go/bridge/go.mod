@@ -1,6 +1,6 @@
 module github.com/tiddly-data-converter/bridge
 
-go 1.25.0
+go 1.25.9
 
 require (
 	github.com/tiddly-data-converter/canon v0.0.0-00010101000000-000000000000

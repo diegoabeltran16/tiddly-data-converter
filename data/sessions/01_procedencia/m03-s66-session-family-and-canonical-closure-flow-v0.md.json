@@ -1,0 +1,11 @@
+[
+  {
+    "created": "20260427182133000",
+    "modified": "20260427182133000",
+    "title": "#### 🌀🧾 Procedencia de sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0",
+    "type": "text/markdown",
+    "tags": "session:m03-s66 milestone:m03 artifact:procedencia_de_sesion status:candidate",
+    "tmap.id": "36652df1-53d8-55b1-9090-8850ff76f308",
+    "text": "#### 🌀🧾 Procedencia de sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0\n\n## Fuentes usadas\n\n- Instruccion de sesion entregada por el usuario el `2026-04-27`.\n- Estado local del repositorio inspeccionado con `rg --files --hidden`, `find`, `sed`, `rg` y `git status --short`.\n- Informe tecnico actual: `docs/Informe_Tecnico_de_Tiddler (Esp).md`.\n- Instrucciones activas en `.github/instructions/`.\n- Reglas de canon y reverse en `esquemas/canon/` y comandos Go bajo `go/canon` y `go/bridge`.\n- Estructura real de `data/sessions/` y diagnosticos S65 existentes.\n\n## Metodo\n\n- Lectura situada de archivos directamente relacionados con cierre de sesion, canon, reverse, commits y memoria operativa.\n- Cambios documentales quirurgicos donde el texto anterior exigia cierre directo en canon.\n- Autoaplicacion del flujo S66 mediante creacion de familia minima y candidatos canonicos.\n\n## Fronteras epistemicas\n\n- No se consulto red externa.\n- La admision final al canon local no fue ejecutada; solo se valido sobre copia temporal.\n- Las rutas `data/sessions/06_diagnoses/project` y `data/sessions/06_diagnoses/module` existen en el arbol local y no fueron renombradas."
+  }
+]

@@ -28,6 +28,11 @@
 - No introducir principios incompatibles con la arquitectura sin nota explícita.
 - No usarlo como sustituto de `## 🎯🧱 Detalles del tema`, `## 🧭🧱 Protocolo de Sesión` o `## 🌀🧱 Desarrollo y Evolución`.
 
+## Regla transversal S66
+- La regla estable de cierre es: `data/sessions/` registra memoria operativa; el canon conserva autoridad final.
+- Git versiona evidencia y artefactos, pero no decide admisión canónica.
+- La admisión al canon requiere validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y pruebas pertinentes.
+
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para aplicar principios sobre un marco temático real.
 - Usa `## 🌀🧱 Desarrollo y Evolución` para evaluar cambios y continuidad con criterios estables.

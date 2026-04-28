@@ -18,204 +18,246 @@
 │   └── workflows
 │       └── ci.yml
 ├── .gitignore
-├── contratos
-│   ├── context_relations
-│   │   └── context_relations_rules.md
-│   ├── estructura_de_commits_tiddly-data-converter.JSON
-│   ├── export_contract
-│   │   └── export_contract_rules.md
-│   ├── identity
-│   │   └── identity_rules.md
-│   ├── m01-s01-extractor-contract.md.json
-│   ├── m01-s02-extractor-bootstrap.md.json
-│   ├── m01-s03-extractor-env-wsl.md.json
-│   ├── m01-s04-doctor-contract.md.json
-│   ├── m01-s05-ingesta-contract.md.json
-│   ├── m01-s06-ingesta-go-env-wsl.mc.json
-│   ├── m01-s07-ingesta-bootstrap.md.json
-│   ├── m01-s08-ingesta-data-triage.md.json
-│   ├── m01-s09-ingesta-timestamp-policy.md.json
-│   ├── m01-s10-doctor-audit.md.json
-│   ├── m01-s11-ingesta-dedup-triage.md.json
-│   ├── m01-s12-pipeline-costura.md.json
-│   ├── m01-s13-canon-bootstrap.md.json
-│   ├── m01-s14-bridge-ingesta-canon.md.json
-│   ├── m01-s15-canon-collision-acceptance.md.json
-│   ├── m01-s16-canon-jsonl-writer.md.json
-│   ├── m01-s17-canon-admit-v0.md.json
-│   ├── m01-s17-post-merge-actions-verification.md.json
-│   ├── m01-s18-canon-schema-v0.md.json
-│   ├── m02-s19-canon-jsonl-gate-v0.md.json
-│   ├── m02-s20-canon-gate-e2e-smoke.md.json
-│   ├── m02-s21-canon-gate-acceptance-matrix.md.json
-│   ├── m02-s22-canon-gate-batch-audit-v0.md.json
-│   ├── m02-s23-canon-gate-batch-report-v0.md.json
-│   ├── m02-s24-canon-gate-batch-emit-v0.md.json
-│   ├── m02-s24-canon-gate-verdict-v0.md.json
-│   ├── m02-s25-canon-gate-batch-contract-v1.md.json
-│   ├── m02-s26-canon-gate-batch-report-persist-v0.md.json
-│   ├── m02-s27-canon-gate-batch-report-persist-v0.md.json
-│   ├── m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json
-│   ├── m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json
-│   ├── m02-s30-canon-uuidv5-and-memory-policy-v0.md.json
-│   ├── m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json
-│   ├── m02-s32-canon-freeze-baseline-oracle-and-first-jsonl-v0.md.json
-│   ├── m02-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json
-│   ├── m02-s34-canon-node-structural-identity-v0.md.json
-│   ├── m02-s35-canon-node-reading-mode-and-typing-v0.md.json
-│   ├── m02-s36-canon-semantic-function-and-asset-separation-v0.md.json
-│   ├── m02-s37-canon-document-context-and-relations-v0.md.json
-│   ├── m02-s38-canon-export-contract-hardening-v0.md.json
-│   ├── m02-s39-canon-executable-policy-and-reverse-readiness-v0.md.json
-│   ├── m02-s40-canon-guarded-local-session-test-v0.md.json
-│   ├── m02-s41-canon-minimal-derived-hardening-for-reverse-v0.md.json
-│   ├── m02-s42-canon-minimal-deterministic-reverse-v0.md.json
-│   ├── m03-s43-canon-robust-textual-reverse-v0.md.json
-│   ├── m03-s44-canon-sharded-homogeneous-records-and-robust-reverse-v0.md.json
-│   ├── m03-s45-canon-enriched-ai-projection-v0.md.json
-│   ├── m03-s46-ai-projection-v1-hardening-local.md.json
-│   ├── m03-s47-normative-self-audit-and-projection-refinement-v0.md.json
-│   ├── m03-s48-canonical-enrichment-target-scope-v0.md.json
-│   ├── m03-s49-mcp-onedrive-canon-proposals-v0.md.json
-│   ├── m03-s50-rutas-manifests-reverse-governance-v0.md.json
-│   ├── m03-s50a-session-identity-repair-v0.md.json
-│   ├── m03-s51-canon-semantic-hardening-v0.md.json
-│   ├── m03-s52-chunking-structure-traceability-v0.md.json
-│   ├── m03-s53-instructions-normative-harmonization-v0.md.json
-│   ├── m03-s54-semantic-microchunk-historical-provenance-v0.md.json
-│   ├── m03-s55-corpus-governance-state-lineage-v0.md.json
-│   ├── m03-s56-direct-canon-session-dependency-tiddlers-v0.md.json
-│   ├── m03-s57-canon-direct-close-governance-v0.md.json
-│   ├── m03-s58-route-fix-readme-structural-cleanup.md.json
-│   ├── m03-s59-microsoft-copilot-projection-governance-v0.md.json
-│   ├── m03-s60-microsoft-copilot-derived-projection-mvp-v0.md.json
-│   ├── m03-s61-microsoft-copilot-json-csv-txt-projection-mvp-v0.md.json
-│   ├── m03-s62-copilot-agent-three-master-files-pack-v0.md.json
-│   ├── m03-s63-copilot-agent-generator-integration-and-canonicalization-v0.md.json
-│   ├── m03-s64-copilot-agent-semantic-compression-and-reversible-canon-hardening-v0.md.json
-│   ├── policy
-│   │   └── canon_policy_bundle.json
-│   ├── projections
-│   │   └── derived_layers_registry.json
-│   ├── reverse
-│   │   └── reverse_contract_rules.md
-│   ├── semantic
-│   │   └── semantic_rules.md
-│   ├── typing
-│   │   └── node_reading_mode_rules.md
-│   └── validation
-│       ├── s37-local-checks.md
-│       ├── s38-local-checks.md
-│       ├── s39-local-checks.md
-│       ├── s40-local-checks.md
-│       ├── s41-local-checks.md
-│       ├── s42-local-checks.md
-│       ├── s43-local-checks.md
-│       └── s44-local-checks.md
 ├── data
 │   ├── in
-│   │   └── empty-store.html
-│   ├── out
-│   │   ├── local
-│   │   │   ├── ai
-│   │   │   │   ├── chunks_ai_1.jsonl
-│   │   │   │   ├── chunks_ai_2.jsonl
-│   │   │   │   ├── chunks_ai_3.jsonl
-│   │   │   │   ├── chunks_ai_4.jsonl
-│   │   │   │   ├── chunks_ai_5.jsonl
-│   │   │   │   ├── chunks_ai_6.jsonl
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── reports
-│   │   │   │   │   ├── chunk_qc_report.json
-│   │   │   │   │   ├── classification_report.json
-│   │   │   │   │   ├── derivation_report.json
-│   │   │   │   │   ├── relations_qc_report.json
-│   │   │   │   │   └── retrieval_qc_report.json
-│   │   │   │   ├── tiddlers_ai_1.jsonl
-│   │   │   │   ├── tiddlers_ai_2.jsonl
-│   │   │   │   ├── tiddlers_ai_3.jsonl
-│   │   │   │   ├── tiddlers_ai_4.jsonl
-│   │   │   │   ├── tiddlers_ai_5.jsonl
-│   │   │   │   ├── tiddlers_ai_6.jsonl
-│   │   │   │   └── tiddlers_ai_7.jsonl
-│   │   │   ├── enriched
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── tiddlers_enriched_1.jsonl
-│   │   │   │   ├── tiddlers_enriched_2.jsonl
-│   │   │   │   ├── tiddlers_enriched_3.jsonl
-│   │   │   │   ├── tiddlers_enriched_4.jsonl
-│   │   │   │   ├── tiddlers_enriched_5.jsonl
-│   │   │   │   ├── tiddlers_enriched_6.jsonl
-│   │   │   │   └── tiddlers_enriched_7.jsonl
-│   │   │   ├── microsoft_copilot
-│   │   │   │   ├── artifacts.csv
-│   │   │   │   ├── bundles
-│   │   │   │   │   ├── governance_core.txt
-│   │   │   │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │   └── recent_sessions.txt
-│   │   │   │   ├── copilot_agent
-│   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   ├── entities.json
-│   │   │   │   │   └── relations.csv
-│   │   │   │   ├── coverage.csv
-│   │   │   │   ├── edges.csv
-│   │   │   │   ├── entities.json
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── navigation_index.json
-│   │   │   │   ├── nodes.csv
-│   │   │   │   ├── overview.txt
-│   │   │   │   ├── reading_guide.txt
-│   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   ├── spec
-│   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   └── summaries
-│   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       ├── prcommits.json
-│   │   │   │   │       ├── prcommits.md
-│   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       ├── sesiones.json
-│   │   │   │   │       ├── sesiones.md
-│   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   └── topics.json
-│   │   │   ├── reverse_html
-│   │   │   ├── tiddlers_1.jsonl
-│   │   │   ├── tiddlers_2.jsonl
-│   │   │   ├── tiddlers_3.jsonl
-│   │   │   ├── tiddlers_4.jsonl
-│   │   │   ├── tiddlers_5.jsonl
-│   │   │   ├── tiddlers_6.jsonl
-│   │   │   └── tiddlers_7.jsonl
-│   │   └── remote
-│   └── README.md
+│   ├── sessions
+│   │   ├── 00_contratos
+│   │   │   ├── context_relations
+│   │   │   │   └── context_relations_rules.md
+│   │   │   ├── estructura_de_commits_tiddly-data-converter.JSON
+│   │   │   ├── export_contract
+│   │   │   │   └── export_contract_rules.md
+│   │   │   ├── identity
+│   │   │   │   └── identity_rules.md
+│   │   │   ├── m01-s01-extractor-contract.md.json
+│   │   │   ├── m01-s02-extractor-bootstrap.md.json
+│   │   │   ├── m01-s03-extractor-env-wsl.md.json
+│   │   │   ├── m01-s04-doctor-contract.md.json
+│   │   │   ├── m01-s05-ingesta-contract.md.json
+│   │   │   ├── m01-s06-ingesta-go-env-wsl.mc.json
+│   │   │   ├── m01-s07-ingesta-bootstrap.md.json
+│   │   │   ├── m01-s08-ingesta-data-triage.md.json
+│   │   │   ├── m01-s09-ingesta-timestamp-policy.md.json
+│   │   │   ├── m01-s10-doctor-audit.md.json
+│   │   │   ├── m01-s11-ingesta-dedup-triage.md.json
+│   │   │   ├── m01-s12-pipeline-costura.md.json
+│   │   │   ├── m01-s13-canon-bootstrap.md.json
+│   │   │   ├── m01-s14-bridge-ingesta-canon.md.json
+│   │   │   ├── m01-s15-canon-collision-acceptance.md.json
+│   │   │   ├── m01-s16-canon-jsonl-writer.md.json
+│   │   │   ├── m01-s17-canon-admit-v0.md.json
+│   │   │   ├── m01-s17-post-merge-actions-verification.md.json
+│   │   │   ├── m01-s18-canon-schema-v0.md.json
+│   │   │   ├── m02-s19-canon-jsonl-gate-v0.md.json
+│   │   │   ├── m02-s20-canon-gate-e2e-smoke.md.json
+│   │   │   ├── m02-s21-canon-gate-acceptance-matrix.md.json
+│   │   │   ├── m02-s22-canon-gate-batch-audit-v0.md.json
+│   │   │   ├── m02-s23-canon-gate-batch-report-v0.md.json
+│   │   │   ├── m02-s24-canon-gate-batch-emit-v0.md.json
+│   │   │   ├── m02-s24-canon-gate-verdict-v0.md.json
+│   │   │   ├── m02-s25-canon-gate-batch-contract-v1.md.json
+│   │   │   ├── m02-s26-canon-gate-batch-report-persist-v0.md.json
+│   │   │   ├── m02-s27-canon-gate-batch-report-persist-v0.md.json
+│   │   │   ├── m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json
+│   │   │   ├── m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json
+│   │   │   ├── m02-s30-canon-uuidv5-and-memory-policy-v0.md.json
+│   │   │   ├── m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json
+│   │   │   ├── m02-s32-canon-freeze-baseline-oracle-and-first-jsonl-v0.md.json
+│   │   │   ├── m02-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json
+│   │   │   ├── m02-s34-canon-node-structural-identity-v0.md.json
+│   │   │   ├── m02-s35-canon-node-reading-mode-and-typing-v0.md.json
+│   │   │   ├── m02-s36-canon-semantic-function-and-asset-separation-v0.md.json
+│   │   │   ├── m02-s37-canon-document-context-and-relations-v0.md.json
+│   │   │   ├── m02-s38-canon-export-contract-hardening-v0.md.json
+│   │   │   ├── m02-s39-canon-executable-policy-and-reverse-readiness-v0.md.json
+│   │   │   ├── m02-s40-canon-guarded-local-session-test-v0.md.json
+│   │   │   ├── m02-s41-canon-minimal-derived-hardening-for-reverse-v0.md.json
+│   │   │   ├── m02-s42-canon-minimal-deterministic-reverse-v0.md.json
+│   │   │   ├── m03-s43-canon-robust-textual-reverse-v0.md.json
+│   │   │   ├── m03-s44-canon-sharded-homogeneous-records-and-robust-reverse-v0.md.json
+│   │   │   ├── m03-s45-canon-enriched-ai-projection-v0.md.json
+│   │   │   ├── m03-s46-ai-projection-v1-hardening-local.md.json
+│   │   │   ├── m03-s47-normative-self-audit-and-projection-refinement-v0.md.json
+│   │   │   ├── m03-s48-canonical-enrichment-target-scope-v0.md.json
+│   │   │   ├── m03-s49-mcp-onedrive-canon-proposals-v0.md.json
+│   │   │   ├── m03-s50-rutas-manifests-reverse-governance-v0.md.json
+│   │   │   ├── m03-s50a-session-identity-repair-v0.md.json
+│   │   │   ├── m03-s51-canon-semantic-hardening-v0.md.json
+│   │   │   ├── m03-s52-chunking-structure-traceability-v0.md.json
+│   │   │   ├── m03-s53-instructions-normative-harmonization-v0.md.json
+│   │   │   ├── m03-s54-semantic-microchunk-historical-provenance-v0.md.json
+│   │   │   ├── m03-s55-corpus-governance-state-lineage-v0.md.json
+│   │   │   ├── m03-s56-direct-canon-session-dependency-tiddlers-v0.md.json
+│   │   │   ├── m03-s57-canon-direct-close-governance-v0.md.json
+│   │   │   ├── m03-s58-route-fix-readme-structural-cleanup.md.json
+│   │   │   ├── m03-s59-microsoft-copilot-projection-governance-v0.md.json
+│   │   │   ├── m03-s60-microsoft-copilot-derived-projection-mvp-v0.md.json
+│   │   │   ├── m03-s61-microsoft-copilot-json-csv-txt-projection-mvp-v0.md.json
+│   │   │   ├── m03-s62-copilot-agent-three-master-files-pack-v0.md.json
+│   │   │   ├── m03-s63-copilot-agent-generator-integration-and-canonicalization-v0.md.json
+│   │   │   ├── m03-s64-copilot-agent-semantic-compression-and-reversible-canon-hardening-v0.md.json
+│   │   │   ├── m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json
+│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── policy
+│   │   │   │   └── canon_policy_bundle.json
+│   │   │   ├── projections
+│   │   │   │   └── derived_layers_registry.json
+│   │   │   ├── reverse
+│   │   │   │   └── reverse_contract_rules.md
+│   │   │   ├── semantic
+│   │   │   │   └── semantic_rules.md
+│   │   │   ├── typing
+│   │   │   │   └── node_reading_mode_rules.md
+│   │   │   └── validation
+│   │   │       ├── s37-local-checks.md
+│   │   │       ├── s38-local-checks.md
+│   │   │       ├── s39-local-checks.md
+│   │   │       ├── s40-local-checks.md
+│   │   │       ├── s41-local-checks.md
+│   │   │       ├── s42-local-checks.md
+│   │   │       ├── s43-local-checks.md
+│   │   │       └── s44-local-checks.md
+│   │   ├── 01_procedencia
+│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   ├── 02_detalles_de_sesion
+│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   ├── 03_hipotesis
+│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   ├── 04_balance_de_sesion
+│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   ├── 05_propuesta_de_sesion
+│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   └── 06_diagnoses
+│   │       ├── canon
+│   │       │   └── s65_canon_diagnosis.md
+│   │       ├── derivados
+│   │       │   └── s65_derivatives_diagnosis.md
+│   │       ├── hipotesis
+│   │       │   └── s65_hypothesis_trace.md
+│   │       ├── module
+│   │       ├── project
+│   │       ├── repositorio
+│   │       │   └── s65_repo_diagnosis.md
+│   │       ├── reverse
+│   │       ├── s65_validation_report.md
+│   │       ├── sesion
+│   │       │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.canon-candidates.jsonl
+│   │       │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │       └── tema
+│   └── out
+│       ├── local
+│       │   ├── ai
+│       │   │   ├── chunks_ai_1.jsonl
+│       │   │   ├── chunks_ai_2.jsonl
+│       │   │   ├── chunks_ai_3.jsonl
+│       │   │   ├── chunks_ai_4.jsonl
+│       │   │   ├── chunks_ai_5.jsonl
+│       │   │   ├── chunks_ai_6.jsonl
+│       │   │   ├── manifest.json
+│       │   │   ├── reports
+│       │   │   │   ├── chunk_qc_report.json
+│       │   │   │   ├── classification_report.json
+│       │   │   │   ├── derivation_report.json
+│       │   │   │   ├── relations_qc_report.json
+│       │   │   │   └── retrieval_qc_report.json
+│       │   │   ├── tiddlers_ai_1.jsonl
+│       │   │   ├── tiddlers_ai_2.jsonl
+│       │   │   ├── tiddlers_ai_3.jsonl
+│       │   │   ├── tiddlers_ai_4.jsonl
+│       │   │   ├── tiddlers_ai_5.jsonl
+│       │   │   ├── tiddlers_ai_6.jsonl
+│       │   │   ├── tiddlers_ai_7.jsonl
+│       │   │   └── tiddlers_ai_8.jsonl
+│       │   ├── audit
+│       │   │   ├── applied_safe_fixes.json
+│       │   │   ├── audit_log.jsonl
+│       │   │   ├── compliance_report.json
+│       │   │   ├── compliance_summary.md
+│       │   │   ├── manifest.json
+│       │   │   ├── manual_review_queue.jsonl
+│       │   │   ├── pre_post_diff.json
+│       │   │   ├── proposed_fixes.json
+│       │   │   └── warnings.jsonl
+│       │   ├── enriched
+│       │   │   ├── manifest.json
+│       │   │   ├── tiddlers_enriched_1.jsonl
+│       │   │   ├── tiddlers_enriched_2.jsonl
+│       │   │   ├── tiddlers_enriched_3.jsonl
+│       │   │   ├── tiddlers_enriched_4.jsonl
+│       │   │   ├── tiddlers_enriched_5.jsonl
+│       │   │   ├── tiddlers_enriched_6.jsonl
+│       │   │   ├── tiddlers_enriched_7.jsonl
+│       │   │   └── tiddlers_enriched_8.jsonl
+│       │   ├── microsoft_copilot
+│       │   │   ├── artifacts.csv
+│       │   │   ├── bundles
+│       │   │   │   ├── governance_core.txt
+│       │   │   │   ├── pipeline_and_layers.txt
+│       │   │   │   └── recent_sessions.txt
+│       │   │   ├── copilot_agent
+│       │   │   │   ├── corpus.txt
+│       │   │   │   ├── entities.json
+│       │   │   │   └── relations.csv
+│       │   │   ├── coverage.csv
+│       │   │   ├── edges.csv
+│       │   │   ├── entities.json
+│       │   │   ├── manifest.json
+│       │   │   ├── navigation_index.json
+│       │   │   ├── nodes.csv
+│       │   │   ├── overview.txt
+│       │   │   ├── reading_guide.txt
+│       │   │   ├── source_arbitration_report.json
+│       │   │   ├── spec
+│       │   │   │   ├── checklist_global_s61.md
+│       │   │   │   ├── memoria_decisiones_s61.md
+│       │   │   │   ├── plan_de_implementacion_s61.md
+│       │   │   │   └── summaries
+│       │   │   │       ├── contratos-instructions.json
+│       │   │   │       ├── contratos-instructions.md
+│       │   │   │       ├── contratos-s58-s59-s60.json
+│       │   │   │       ├── contratos-s58-s59-s60.md
+│       │   │   │       ├── dependencia-y-superficie-externa.json
+│       │   │   │       ├── dependencia-y-superficie-externa.md
+│       │   │   │       ├── desarrollo-y-evolucion.json
+│       │   │   │       ├── desarrollo-y-evolucion.md
+│       │   │   │       ├── detalles-del-tema.json
+│       │   │   │       ├── detalles-del-tema.md
+│       │   │   │       ├── elementos-especificos.json
+│       │   │   │       ├── elementos-especificos.md
+│       │   │   │       ├── glosario-y-convenciones.json
+│       │   │   │       ├── glosario-y-convenciones.md
+│       │   │   │       ├── hipotesis.json
+│       │   │   │       ├── hipotesis.md
+│       │   │   │       ├── microsoft-support-formats.json
+│       │   │   │       ├── microsoft-support-formats.md
+│       │   │   │       ├── politica-de-memoria-activa.json
+│       │   │   │       ├── politica-de-memoria-activa.md
+│       │   │   │       ├── prcommits.json
+│       │   │   │       ├── prcommits.md
+│       │   │   │       ├── principios-de-gestion.json
+│       │   │   │       ├── principios-de-gestion.md
+│       │   │   │       ├── procedencia-epistemologica.json
+│       │   │   │       ├── procedencia-epistemologica.md
+│       │   │   │       ├── protocolo-de-sesion.json
+│       │   │   │       ├── protocolo-de-sesion.md
+│       │   │   │       ├── repo-y-derivados-actuales.json
+│       │   │   │       ├── repo-y-derivados-actuales.md
+│       │   │   │       ├── sesiones.json
+│       │   │   │       ├── sesiones.md
+│       │   │   │       ├── tiddlers-sesiones.json
+│       │   │   │       └── tiddlers-sesiones.md
+│       │   │   └── topics.json
+│       │   ├── reverse_html
+│       │   │   ├── reverse-report.json
+│       │   │   └── tiddly-data-converter.derived.html
+│       │   ├── tiddlers_1.jsonl
+│       │   ├── tiddlers_2.jsonl
+│       │   ├── tiddlers_3.jsonl
+│       │   ├── tiddlers_4.jsonl
+│       │   ├── tiddlers_5.jsonl
+│       │   ├── tiddlers_6.jsonl
+│       │   └── tiddlers_7.jsonl
+│       └── remote
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
@@ -482,9 +524,13 @@
 │   │   │   ├── run_corpus_governance_test.sh
 │   │   │   ├── session_closure_payloads.jsonl
 │   │   │   └── test_corpus_governance.py
-│   │   └── s64
+│   │   ├── s64
+│   │   │   ├── __pycache__
+│   │   │   └── test_copilot_agent_projection.py
+│   │   └── s65
+│   │       ├── __init__.py
 │   │       ├── __pycache__
-│   │       └── test_copilot_agent_projection.py
+│   │       └── test_s65_microsoft_copilot_flow.py
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1

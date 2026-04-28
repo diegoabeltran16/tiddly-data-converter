@@ -29,6 +29,12 @@
 - No inflar esta capa con ocurrencias sin función operativa.
 - No usar este nodo como sustituto del desarrollo temático o de la procedencia.
 
+## Regla transversal S66
+- Toda sesión debe producir hipótesis de sesión en `data/sessions/03_hipotesis/<session>.md.json`, aunque sea para declarar que no se abrieron hipótesis nuevas.
+- El `title` de hipótesis de sesión debe usar `#### 🌀🧪 Hipótesis de sesión ## = <session>`.
+- Una hipótesis de sesión candidata al canon debe conservar su estatuto tentativo y no reclamar autoridad final antes de validación local y reversibilidad.
+- El diagnóstico de sesión debe registrar si las hipótesis quedaron validadas, abiertas, descartadas o pendientes.
+
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para que la hipótesis quede situada dentro de un marco reconocible.
 - Usa `## 🧾🧱 Procedencia epistemológica` para explicar origen y soporte contextual cuando sea necesario.

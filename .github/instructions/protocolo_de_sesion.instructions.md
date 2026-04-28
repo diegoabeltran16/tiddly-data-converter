@@ -18,7 +18,8 @@
 - Declarar al menos `local_frame`, `purpose`, `mode` y `expected_output`.
 - Revisar, antes de actuar, las hipótesis abiertas relevantes, las definiciones estabilizadas pertinentes, los elementos específicos recientes, las tensiones no resueltas y las decisiones previas que afectan el objetivo local.
 - Registrar durante la sesión qué se produjo, qué se confirmó, qué se contradijo, qué se refinó y qué quedó pendiente.
-- Cerrar la sesión de forma que lo trabajado pueda pasar al convertidor sin perder contexto humano.
+- Cerrar la sesión con la familia mínima bajo `data/sessions/`: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
+- Cuando la sesión genere memoria que deba poder entrar al canon, dejar líneas candidatas en formato canon bajo `data/sessions/`, no escribir directamente en el canon final por defecto.
 - Mantener la autoridad semántica en el humano: la IA sugiere, estructura y facilita, pero no decide por sí sola las relaciones o estados finales.
 
 ### Modos de operación
@@ -68,13 +69,16 @@ memory_tags: ["project-x", "hypothesis"]
 ### Contrato operativo de sesión asistida por IA
 Toda sesión asistida debe declarar objetivo local, salida estructural esperada, lectura mínima de apertura y política de expansión contextual. La lectura mínima debe comenzar por `# 1_tiddly-data-converter`, `## 🧭🧱 Protocolo de Sesión` y `## 🧠🧱 Política de Memoria Activa`, y expandirse solo hacia los bloques que el objetivo local necesite realmente.
 
-La sesión asistida se considera cumplida cuando produce el artefacto estructural esperado para su nivel de trabajo: líneas JSONL si recae sobre canon, JSON o patch estructurado si recae sobre un nodo o modificación localizada, o forma estructural equivalente si recae sobre reglas, contratos o transformaciones del convertidor.
+La sesión asistida se considera cumplida cuando produce el artefacto estructural esperado para su nivel de trabajo y su familia mínima de cierre. Si recae sobre canon, la salida normal del agente son líneas JSONL candidatas bajo `data/sessions/`; la admisión al canon requiere validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y tests pertinentes.
 
 ## No hacer
 - No iniciar una sesión como si el tema partiera de cero.
 - No usar memoria libre o reconstrucción informal cuando hay contexto rastreable disponible.
 - No expandir la lectura de forma indiscriminada.
 - No cerrar una sesión sin dejar claro qué produjo y qué quedó pendiente.
+- No cerrar una sesión sin diagnóstico de sesión.
+- No crear archivo acumulativo global de sesiones.
+- No declarar admisión canónica si solo existen candidatos sin validación suficiente.
 - No confundir protocolo de sesión con política de memoria, contenido temático o motor de canonización.
 
 ## Interacción con otros nodos
@@ -88,6 +92,7 @@ La sesión asistida se considera cumplida cuando produce el artefacto estructura
 ## Criterio de salida
 - Debe quedar trazable qué se leyó, qué se trabajó, qué se produjo y qué quedó abierto.
 - Debe quedar explícito el artefacto estructural esperado y si efectivamente se obtuvo.
+- Debe quedar explícito si hubo líneas candidatas, si fueron validadas y si fueron o no absorbidas al canon local.
 - Un agente debe poder continuar la sesión o auditarla sin depender de conversación implícita ni de reconstrucción informal.
 
 El protocolo de sesión no sustituye la evolución del tema, pero hace posible que esa evolución pueda registrarse con orden y continuidad.

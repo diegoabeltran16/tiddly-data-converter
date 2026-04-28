@@ -1,6 +1,6 @@
 ## Instrucción de contratos de sesión
 
-Para toda propuesta técnica, cambio estructural, ajuste de implementación, corrección relevante, bootstrap, validación operativa, triage, decisión semántica o refinamiento documental generado en el repositorio `tiddly-data-converter`, debes producir y dejar explícito un **contrato de sesión** versionable, coherente con la familia de artefactos ya existente en el sistema. Esta versión refuerza que el cierre mínimo debe incluir al menos un `.md.json` importable, no solo markdown libre.
+Para toda propuesta técnica, cambio estructural, ajuste de implementación, corrección relevante, bootstrap, validación operativa, triage, decisión semántica o refinamiento documental generado en el repositorio `tiddly-data-converter`, debes producir y dejar explícito un **contrato de sesión** versionable bajo `data/sessions/00_contratos/`, coherente con la familia de artefactos ya existente en el sistema. Esta versión refuerza que el cierre mínimo debe incluir al menos un `.md.json` importable, no solo markdown libre.
 
 Actúa como asistente contractual de desarrollo para `tiddly-data-converter`.
 
@@ -18,7 +18,7 @@ Tu tarea no es inventar una plantilla nueva en cada sesión, sino producir un co
 
 ### Regla principal
 
-Cada vez que el agente proponga cambios sustantivos en un pull request, debe existir **1 contrato de sesión** que documente esa propuesta o ese cambio de forma estructurada.
+Cada vez que el agente proponga cambios sustantivos en un pull request, debe existir **1 contrato de sesión** en `data/sessions/00_contratos/` que documente esa propuesta o ese cambio de forma estructurada.
 
 Ese contrato de sesión debe:
 - corresponder al objetivo real de la sesión;
@@ -139,7 +139,7 @@ Si falta información crítica, deja explícita la provisionalidad.
 
 ### Requisito no negociable de serialización para TiddlyWiki
 
-El cierre mínimo de toda sesión que respalde cambios sustantivos de un pull request debe incluir **al menos 1 archivo `.md.json`** listo para importar en TiddlyWiki.
+El cierre mínimo de toda sesión que respalde cambios sustantivos de un pull request debe incluir **al menos 1 archivo `.md.json`** listo para importar en TiddlyWiki bajo `data/sessions/00_contratos/`.
 
 No basta con entregar solo markdown plano, solo análisis conversacional o solo una propuesta de contrato en texto libre.
 
@@ -149,15 +149,15 @@ El archivo `.md.json` debe seguir la misma lógica estructural observable en los
 - un campo `text` que contenga el contrato completo en markdown estructurado;
 - metadata mínima coherente con la línea documental activa del sistema.
 
-### Regla adicional de absorción canónica
+### Regla adicional de staging canonico
 
-Cuando una sesión cree o actualice su contrato `.md.json`, ese artefacto del repo no debe quedar solo en `contratos/`.
+Cuando una sesión cree o actualice su contrato `.md.json`, ese artefacto debe quedar en `data/sessions/00_contratos/`.
 
-También debe quedar absorbido en el canon local como nodo path-like del repositorio dentro de `data/out/local/tiddlers_*.jsonl`, o actualizar su nodo existente si ya estaba presente.
+Si el contrato debe poder ingresar al canon, el agente debe producir una línea candidata en formato canon bajo `data/sessions/`. Esa línea debe apuntar al archivo fuente mediante `source_path` o campo equivalente no reservado, declarar la sesión de origen, declarar la familia `contrato_de_sesion` y conservar estado de candidato hasta que un proceso local la valide y la absorba.
 
-Esta regla aplica a todas las sesiones. El contrato importable y su representación canónica como artefacto del repo son complementarios, no sustitutos.
+El agente no debe escribir directamente el contrato en `data/out/local/tiddlers_*.jsonl` por defecto. La absorción canónica ocurre solo tras validación local, `strict`, `reverse-preflight`, reverse autoritativo con `Rejected: 0` y tests pertinentes.
 
-Los contratos reales compartidos ya muestran esa lógica: un wrapper JSON con metadata de tiddler y el contenido contractual dentro de `text`, lo que permite importarlos directamente a TiddlyWiki.
+Los contratos reales compartidos ya muestran la lógica de wrapper JSON con metadata de tiddler y contenido contractual dentro de `text`, lo que permite importarlos directamente a TiddlyWiki. S66 agrega que ese wrapper vive bajo `data/sessions/` y que su representación canónica comienza como candidata, no como autoridad final.
 
 ### Forma mínima obligatoria del `.md.json`
 
@@ -169,9 +169,23 @@ Cuando se produzca un contrato nuevo, debe serializarse como artefacto importabl
     "created": "YYYYMMDDHHmmssSSS",
     "text": "# ... contrato de sesión en markdown ...",
     "type": "text/markdown",
-    "title": "m01-sXX-<slug>.md",
+    "title": "mXX-sNN-<slug>.md",
     "modified": "YYYYMMDDHHmmssSSS",
-    "tags": "[[#### referencias especificas 🌀]] [[## 🧰🧱 Elementos específicos]] [[#### 🌀 Sesión XX = <slug>]]",
+    "tags": "[[#### referencias especificas 🌀]] [[## 🧰🧱 Elementos específicos]] [[#### 🌀 Sesión NN = <slug>]]",
     "tmap.id": "<uuid>"
   }
 ]
+```
+
+### Familia minima asociada al contrato
+
+El contrato no cierra por si solo una sesion sustantiva. Debe existir tambien:
+
+- procedencia de sesion en `data/sessions/01_procedencia/`;
+- detalles de sesion en `data/sessions/02_detalles_de_sesion/`;
+- hipotesis de sesion en `data/sessions/03_hipotesis/`;
+- balance de sesion en `data/sessions/04_balance_de_sesion/`;
+- propuesta de sesion en `data/sessions/05_propuesta_de_sesion/`;
+- diagnostico de sesion en `data/sessions/06_diagnoses/sesion/`.
+
+No crear archivo acumulativo global de contratos ni de sesiones.
