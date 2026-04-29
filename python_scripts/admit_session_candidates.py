@@ -1660,6 +1660,7 @@ def _handle_rollback(args: argparse.Namespace) -> int:
             "rejected": 0,
         },
         "dry_run": bool(args.dry_run),
+        "restore_strategy": "id_removal",
         "status": "fail",
         "warnings": [],
     }
@@ -1705,9 +1706,19 @@ def _handle_rollback(args: argparse.Namespace) -> int:
 
     tmp_run_dir = tmp_dir / run_id
     tmp_canon_dir = tmp_run_dir / "canon"
+    raw_backup_dir = _safe_str(admission_report.get("backup_dir"))
+    backup_dir = resolve_repo_path(raw_backup_dir, DEFAULT_REPORT_DIR) if raw_backup_dir else None
+    backup_shards_available = bool(backup_dir and list(backup_dir.glob("tiddlers_*.jsonl")))
 
     try:
-        _copy_canon_shards(canon_dir, tmp_canon_dir)
+        if backup_shards_available and backup_dir is not None:
+            _copy_canon_shards(backup_dir, tmp_canon_dir)
+            report["restore_strategy"] = "backup_dir"
+            report["removed_count"] = len(admitted_ids)
+            report["removed_ids"] = admitted_ids
+            report["restored_replacement_count"] = len(replacement_records)
+        else:
+            _copy_canon_shards(canon_dir, tmp_canon_dir)
     except RuntimeError as exc:
         report["warnings"].append(str(exc))
         report["canon_after_hash"] = report["canon_before_hash"]
@@ -1726,10 +1737,11 @@ def _handle_rollback(args: argparse.Namespace) -> int:
         )
         return 2
 
-    removed_count, removed_ids = _remove_ids_from_canon(tmp_canon_dir, set(admitted_ids))
-    report["removed_count"] = removed_count
-    report["removed_ids"] = removed_ids
-    if replacement_records:
+    if not backup_shards_available:
+        removed_count, removed_ids = _remove_ids_from_canon(tmp_canon_dir, set(admitted_ids))
+        report["removed_count"] = removed_count
+        report["removed_ids"] = removed_ids
+    if replacement_records and not backup_shards_available:
         target_shards = sorted(tmp_canon_dir.glob("tiddlers_*.jsonl"))
         if not target_shards:
             report["warnings"].append("temporary canon has no shard files for replacement restore")

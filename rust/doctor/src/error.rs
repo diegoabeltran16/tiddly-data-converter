@@ -32,7 +32,11 @@ impl std::fmt::Display for DoctorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DoctorError::RawFileNotFound(path) => {
-                write!(f, "ERR_RAW_FILE_NOT_FOUND: no se encontró el archivo '{}'", path)
+                write!(
+                    f,
+                    "ERR_RAW_FILE_NOT_FOUND: no se encontró el archivo '{}'",
+                    path
+                )
             }
             DoctorError::RawFileNotReadable(reason) => {
                 write!(f, "ERR_RAW_FILE_NOT_READABLE: {}", reason)

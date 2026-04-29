@@ -25,17 +25,19 @@ acción que pueda escribir en el canon local.
 
 El menú centraliza el flujo operativo actual:
 
-- preparación del entorno;
-- revisión del estado del canon;
-- construcción del canon desde HTML;
-- extracción HTML a JSONL temporal;
-- shardización hacia el canon local;
-- validación strict y reverse-preflight;
-- sincronización de entregables de sesiones por ID;
-- generación de derivados;
-- reverse hacia HTML derivado;
-- revisión de reportes y métricas;
-- rollback de admisiones cuando aplique.
+- Preparación del entorno
+- Chequeo del perímetro Rust de entradas, canon, reverse y capas no autoritativas
+- Compuerta Rust del plan de reconstrucción antes de tocar canon o reverse
+- Revisión del estado del canon
+- Construcción del canon desde HTML
+- Extracción HTML a JSONL temporal
+- Shardización hacia el canon local
+- Validación strict y reverse-preflight
+- Sincronización de entregables de sesiones por ID
+- Generación de derivados
+- Reverse hacia HTML derivado
+- Revisión de reportes y métricas
+- Rollback de admisiones cuando aplique
 
 ## Rutas De Autoridad
 
@@ -50,8 +52,10 @@ El menú centraliza el flujo operativo actual:
 ## Reglas
 
 - `data/out/local/tiddlers_*.jsonl` es la fuente de verdad local.
+- `data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html` es la semilla reusable principal; `empty-store.html` es auxiliar.
 - `data/sessions/` no es canon paralelo.
 - Los derivados no son fuente de verdad.
 - Reverse no corrige ni redefine el canon.
+- La reconstrucción desde HTML exige fuente explícita, destino explícito, backup y reporte de hash cuando puede escribir `data/out/local`.
 - La admisión de sesiones es manual, validada y reversible.
 - La condición crítica para admisión y reverse es `Rejected: 0`.
