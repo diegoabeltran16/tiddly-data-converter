@@ -18,7 +18,6 @@ data/extraction_output/
 # Solo se versionan fixtures controlados bajo tests/fixtures/
 *.tiddlywiki.html
 user_input*.html
-data/in/*.html
 data/in/*:Zone.Identifier
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -40,7 +39,9 @@ go/canon/emit
 go/canon/canon_preflight
 /.codex
 
-/data/in
+/data/in/empty-store.html
+/data/in/tiddly-data-converter (Saved).html
+/data/in/tiddly-data-converter (Saved).html:Zone.Identifier
 /data/out
 /data/tmp
 /data/sessions

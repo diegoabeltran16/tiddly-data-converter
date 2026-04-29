@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import shutil
 import subprocess
@@ -38,6 +39,9 @@ DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp"
 DEFAULT_ADMISSION_TMP_DIR = DEFAULT_TMP_DIR / "session_admission"
 DEFAULT_ADMISSION_REPORT_DIR = DEFAULT_TMP_DIR / "admissions"
 HTML_EXPORT_DIR = DEFAULT_TMP_DIR / "html_export"
+RECONSTRUCTION_DIR = DEFAULT_TMP_DIR / "reconstruction"
+MAIN_SEED_HTML = REPO_ROOT / "data" / "in" / "objeto_de_estudio_trazabilidad_y_desarrollo.html"
+BOOTSTRAP_AUX_HTML = REPO_ROOT / "data" / "in" / "empty-store.html"
 
 
 @dataclass
@@ -53,6 +57,7 @@ class CommandResult:
 class MenuState:
     selected_html: Path | None = None
     last_export_jsonl: Path | None = None
+    last_reconstruction_report: Path | None = None
     last_sync_inventory: dict[str, Any] | None = None
     last_sync_candidate_file: Path | None = None
     last_validate_report: Path | None = None
@@ -150,12 +155,42 @@ def parse_stdout_json(stdout: str) -> dict[str, Any] | None:
     return None
 
 
+def parse_stdout_json_payload(stdout: str) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError:
+        return parse_stdout_json(stdout)
+    return payload if isinstance(payload, dict) else None
+
+
 def count_jsonl_lines(path: Path) -> int:
     try:
         with path.open("r", encoding="utf-8") as handle:
             return sum(1 for line in handle if line.strip())
     except OSError:
         return 0
+
+
+def canonical_file_hash(path: Path) -> str:
+    digest = hashlib.sha256()
+    digest.update(path.name.encode("utf-8"))
+    digest.update(b"\0")
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return f"sha256:{digest.hexdigest()}"
+
+
+def canon_tree_hash(canon_dir: Path = DEFAULT_CANON_DIR) -> str:
+    digest = hashlib.sha256()
+    for shard in canon_shards(canon_dir):
+        digest.update(shard.name.encode("utf-8"))
+        digest.update(b"\0")
+        with shard.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        digest.update(b"\0")
+    return f"sha256:{digest.hexdigest()}"
 
 
 def canon_shards(canon_dir: Path = DEFAULT_CANON_DIR) -> list[Path]:
@@ -198,11 +233,101 @@ def detect_html_files() -> list[Path]:
 
 
 def html_option_label(path: Path) -> str:
-    if path.resolve() == DEFAULT_INPUT_HTML.resolve():
-        return "HTML saved actual"
-    if "empty" in path.name.lower():
-        return "HTML empty / plantilla base"
-    return "HTML detectado"
+    role = source_role_for_html(path)
+    if role == "seed":
+        return "Semilla reusable principal"
+    if role == "bootstrap_aux":
+        return "Superficie auxiliar/base"
+    return "HTML de trabajo"
+
+
+def source_role_for_html(path: Path) -> str:
+    try:
+        resolved = path.resolve()
+    except OSError:
+        resolved = path
+    if resolved == MAIN_SEED_HTML.resolve():
+        return "seed"
+    if resolved == BOOTSTRAP_AUX_HTML.resolve():
+        return "bootstrap_aux"
+    return "working"
+
+
+def describe_source_role(role: str) -> str:
+    labels = {
+        "seed": "semilla reusable principal",
+        "working": "superficie de trabajo",
+        "bootstrap_aux": "superficie auxiliar/base",
+    }
+    return labels.get(role, role)
+
+
+def run_reconstruction_gate(
+    source_html: Path,
+    mode: str,
+    output_target: Path,
+    *,
+    requires_backup: bool,
+    requires_hash_report: bool,
+    show_result: bool = True,
+) -> tuple[bool, dict[str, Any] | None, CommandResult | None]:
+    if not shutil.which("cargo"):
+        print("Compuerta Rust bloqueada: cargo no esta disponible.")
+        return False, None, None
+
+    role = source_role_for_html(source_html)
+    result = run_command(
+        [
+            "cargo",
+            "run",
+            "--quiet",
+            "--bin",
+            "audit",
+            "--",
+            "reconstruction-plan",
+            str(REPO_ROOT),
+            "--source-html",
+            str(source_html),
+            "--source-role",
+            role,
+            "--mode",
+            mode,
+            "--output-target",
+            str(output_target),
+            "--requires-backup",
+            "true" if requires_backup else "false",
+            "--requires-hash-report",
+            "true" if requires_hash_report else "false",
+        ],
+        cwd=REPO_ROOT / "rust" / "doctor",
+    )
+    payload = parse_stdout_json_payload(result.stdout)
+    if show_result:
+        verdict = payload.get("verdict") if payload else "sin_json"
+        errors = payload.get("errors") if payload else "-"
+        print("\nCompuerta Rust de plan de reconstruccion:")
+        print(f"- fuente: {display(source_html)} ({describe_source_role(role)})")
+        print(f"- modo: {mode}")
+        print(f"- destino: {display(output_target)}")
+        print(f"- veredicto: {verdict}")
+        print(f"- errores: {errors}")
+        if result.returncode != 0:
+            print_command_result(result, max_chars=1600)
+    return result.returncode == 0, payload, result
+
+
+def write_reconstruction_report(run_dir: Path, payload: dict[str, Any]) -> Path:
+    report_path = run_dir / "reconstruction-report.json"
+    write_json(report_path, payload)
+    return report_path
+
+
+def backup_canon_shards(run_dir: Path) -> Path:
+    backup_dir = run_dir / "canon_before"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    for shard in canon_shards(DEFAULT_CANON_DIR):
+        shutil.copy2(shard, backup_dir / shard.name)
+    return backup_dir
 
 
 def choose_html(state: MenuState) -> Path | None:
@@ -211,11 +336,13 @@ def choose_html(state: MenuState) -> Path | None:
         print(f"HTML actual: {display(state.selected_html)}")
         answer = prompt("Usar este HTML? [Enter = si, c = cambiar] ").strip().lower()
         if answer != "c":
+            print(f"Rol declarado: {describe_source_role(source_role_for_html(state.selected_html))}")
             return state.selected_html
 
     selected = select_path(html_files, "HTML fuente", html_option_label)
     if selected:
         state.selected_html = selected
+        print(f"Rol declarado: {describe_source_role(source_role_for_html(selected))}")
     return selected
 
 
@@ -262,8 +389,17 @@ def summarize_report(path: Path) -> str:
             f"records={payload.get('total_session_records')}, "
             f"existing={len(payload.get('existing_by_id') or [])}, "
             f"missing={len(payload.get('missing_by_id') or [])}, "
-            f"conflicts={len(payload.get('same_id_different_content') or [])}, "
+            f"replaceable={len(payload.get('replaceable_same_id_different_content') or [])}, "
+            f"blocked={len(payload.get('blocked_same_id_different_content') or [])}, "
             f"invalid={len(payload.get('invalid') or [])}"
+        )
+
+    if "gate_verdict" in payload and "canon_before_hash" in payload:
+        return (
+            f"run_id={payload.get('run_id')}, "
+            f"gate={payload.get('gate_verdict')}, "
+            f"shard_exit={payload.get('shard_exit_code')}, "
+            f"canon_modified={payload.get('canon_modified')}"
         )
 
     parts = []
@@ -297,12 +433,26 @@ def option_preparation() -> None:
         ("data/tmp", DEFAULT_TMP_DIR.exists(), display(DEFAULT_TMP_DIR)),
         ("python3", shutil.which("python3") is not None, shutil.which("python3") or ""),
         ("go", shutil.which("go") is not None, shutil.which("go") or ""),
+        ("cargo", shutil.which("cargo") is not None, shutil.which("cargo") or ""),
     ]
     for name, ok, detail in checks:
         state = "OK" if ok else "FALTA"
         suffix = f" - {detail}" if detail else ""
         print(f"- {name}: {state}{suffix}")
     DEFAULT_TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+    if shutil.which("cargo") and (REPO_ROOT / "rust" / "doctor").exists():
+        result = run_command(
+            ["cargo", "run", "--quiet", "--bin", "audit", "--", "perimeter", str(REPO_ROOT)],
+            cwd=REPO_ROOT / "rust" / "doctor",
+        )
+        state = "OK" if result.returncode == 0 else "ERROR"
+        print(f"- rust kernel perimeter: {state}")
+        if result.returncode != 0:
+            print_command_result(result, max_chars=1200)
+    else:
+        print("- rust kernel perimeter: FALTA - cargo o rust/doctor no disponible")
+
     print("\nSiguiente paso recomendado: validar canon o revisar estado del canon.")
 
 
@@ -334,6 +484,13 @@ def option_build_from_html(state: MenuState) -> None:
     print("Flujo: HTML vivo -> JSONL temporal -> shards canonicos locales -> validacion")
     selected = choose_html(state)
     if selected:
+        run_reconstruction_gate(
+            selected,
+            "diagnostic",
+            DEFAULT_TMP_DIR / "reconstruction_plan",
+            requires_backup=False,
+            requires_hash_report=False,
+        )
         print(f"HTML seleccionado: {display(selected)}")
         print("Siguiente paso recomendado: opcion 4 para extraer a JSONL temporal.")
 
@@ -347,6 +504,16 @@ def option_extract_html(state: MenuState) -> None:
     out_jsonl = out_dir / "tiddlers.export.jsonl"
     out_log = out_dir / "tiddlers.export.log"
     manifest = out_dir / "tiddlers.export.manifest.json"
+    gate_ok, _, _ = run_reconstruction_gate(
+        html,
+        "staging",
+        out_dir,
+        requires_backup=False,
+        requires_hash_report=True,
+    )
+    if not gate_ok:
+        print("Extraccion bloqueada por la compuerta Rust. No se escribio salida temporal.")
+        return
     out_dir.mkdir(parents=True, exist_ok=True)
 
     result = run_command(
@@ -391,12 +558,39 @@ def option_shard_jsonl(state: MenuState) -> None:
     if not selected:
         return
 
+    html = choose_html(state)
+    if not html:
+        print("Shardizacion cancelada: se requiere fuente HTML explicita.")
+        return
+
+    run_id = f"reconstruction-{stamp_now()}"
+    run_dir = RECONSTRUCTION_DIR / run_id
+    gate_ok, gate_payload, gate_result = run_reconstruction_gate(
+        html,
+        "write_local_canon",
+        DEFAULT_CANON_DIR,
+        requires_backup=True,
+        requires_hash_report=True,
+    )
+    if not gate_ok:
+        print("Shardizacion bloqueada por la compuerta Rust. No se modifico el canon.")
+        return
+
     print("\nAdvertencia: esta opcion escribe shards en data/out/local.")
     print("JSONL temporal != canon; los shards en data/out/local son el canon local oficial.")
+    print(f"Fuente HTML declarada: {display(html)}")
+    print(f"JSONL temporal: {display(selected)}")
+    print(f"Destino de salida: {display(DEFAULT_CANON_DIR)}")
+    print(f"Backup/reporte: {display(run_dir)}")
     confirmation = prompt("Escribe WRITE CANON para continuar: ").strip()
     if confirmation != "WRITE CANON":
         print("Shardizacion cancelada. No se modifico el canon.")
         return
+
+    run_dir.mkdir(parents=True, exist_ok=True)
+    before_hash = canon_tree_hash(DEFAULT_CANON_DIR)
+    backup_dir = backup_canon_shards(run_dir)
+    input_hash = canonical_file_hash(selected)
 
     result = run_command(
         [
@@ -411,6 +605,32 @@ def option_shard_jsonl(state: MenuState) -> None:
         cwd=REPO_ROOT / "go" / "canon",
     )
     print_command_result(result)
+    after_hash = canon_tree_hash(DEFAULT_CANON_DIR)
+    report_path = write_reconstruction_report(
+        run_dir,
+        {
+            "run_id": run_id,
+            "timestamp": stamp_now(),
+            "source_html": as_display_path(html),
+            "source_role": source_role_for_html(html),
+            "input_jsonl": as_display_path(selected),
+            "input_jsonl_hash": input_hash,
+            "output_target": as_display_path(DEFAULT_CANON_DIR),
+            "backup_dir": as_display_path(backup_dir),
+            "canon_before_hash": before_hash,
+            "canon_after_hash": after_hash,
+            "gate_verdict": gate_payload.get("verdict") if gate_payload else None,
+            "gate_report": gate_payload,
+            "gate_exit_code": gate_result.returncode if gate_result else None,
+            "shard_exit_code": result.returncode,
+            "canon_modified": before_hash != after_hash,
+        },
+    )
+    state.last_reconstruction_report = report_path
+    print(f"\nReporte de reconstruccion: {display(report_path)}")
+    print(f"- backup: {display(backup_dir)}")
+    print(f"- hash before: {before_hash}")
+    print(f"- hash after:  {after_hash}")
     if result.returncode == 0:
         option_canon_status()
         print("Siguiente paso recomendado: opcion 6 para validar el canon.")
@@ -451,14 +671,19 @@ def print_inventory_summary(inventory: dict[str, Any]) -> None:
     print("Sessions:")
     print(f"- archivos detectados: {inventory['total_files_scanned']}")
     print(f"- entregables validos: {inventory['total_session_records']}")
-    print(f"- ya existen en canon por ID: {len(inventory['existing_by_id'])}")
+    print(f"- ya existen iguales en canon por ID: {len(inventory['existing_by_id'])}")
     print(f"- faltantes por ID: {len(inventory['missing_by_id'])}")
-    print(f"- conflictos: {len(inventory['same_id_different_content'])}")
+    print(f"- diferencias reemplazables por ID: {len(inventory.get('replaceable_same_id_different_content') or [])}")
+    print(f"- conflictos bloqueantes: {len(inventory.get('blocked_same_id_different_content') or [])}")
     print(f"- invalidos: {len(inventory['invalid'])}")
     print(f"- unsupported: {len(inventory['unsupported'])}")
     print(f"- inventario: {inventory['inventory_path']}")
+    if inventory.get("generated_missing_candidate_file"):
+        print(f"- candidatos faltantes: {inventory['generated_missing_candidate_file']}")
+    if inventory.get("generated_replacement_candidate_file"):
+        print(f"- candidatos de reemplazo: {inventory['generated_replacement_candidate_file']}")
     if inventory.get("generated_candidate_file"):
-        print(f"- candidatos faltantes: {inventory['generated_candidate_file']}")
+        print(f"- candidatos sincronizables: {inventory['generated_candidate_file']}")
 
 
 def print_items(title: str, items: list[dict[str, Any]], limit: int = 40) -> None:
@@ -493,6 +718,12 @@ def run_admission_command(mode: str, candidate_file: Path, extra: list[str] | No
     result = run_command(args, cwd=REPO_ROOT)
     print_command_result(result)
     return result, parse_stdout_json(result.stdout)
+
+
+def sync_admission_extra_args(inventory: dict[str, Any]) -> list[str]:
+    if inventory.get("replaceable_same_id_different_content"):
+        return ["--allow-replacements"]
+    return []
 
 
 def dry_run_report_is_usable(report_path: Path, candidate_file: Path) -> tuple[bool, str]:
@@ -535,12 +766,13 @@ def option_session_sync(state: MenuState) -> None:
         print(
             "\nSincronizacion de sesiones\n"
             "1) Ver faltantes\n"
-            "2) Ver conflictos\n"
-            "3) Ver candidatos generados\n"
-            "4) Validar candidatos\n"
-            "5) Dry-run de admision\n"
-            "6) Apply confirmado\n"
-            "7) Rollback ultimo apply\n"
+            "2) Ver diferencias reemplazables\n"
+            "3) Ver conflictos bloqueantes\n"
+            "4) Ver candidatos generados\n"
+            "5) Validar candidatos\n"
+            "6) Dry-run de admision\n"
+            "7) Apply confirmado\n"
+            "8) Rollback ultimo apply\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
@@ -549,44 +781,62 @@ def option_session_sync(state: MenuState) -> None:
         if choice == "1":
             print_items("Faltantes por ID", inventory["missing_by_id"])
         elif choice == "2":
-            print_items("Conflictos same_id_different_content", inventory["same_id_different_content"])
-            print_items("Invalidos", inventory["invalid"], limit=20)
+            print_items(
+                "Diferencias reemplazables por mismo ID y source_path",
+                inventory.get("replaceable_same_id_different_content") or [],
+            )
         elif choice == "3":
-            if state.last_sync_candidate_file:
-                print(f"Candidato temporal: {display(state.last_sync_candidate_file)}")
-                print(f"Lineas: {count_jsonl_lines(state.last_sync_candidate_file)}")
-            else:
-                print("No hay faltantes; no se genero archivo de candidatos.")
+            print_items(
+                "Conflictos bloqueantes",
+                inventory.get("blocked_same_id_different_content") or [],
+            )
+            print_items("Invalidos", inventory["invalid"], limit=20)
         elif choice == "4":
+            if state.last_sync_candidate_file:
+                print(f"Candidato sincronizable: {display(state.last_sync_candidate_file)}")
+                print(f"Lineas: {count_jsonl_lines(state.last_sync_candidate_file)}")
+                if inventory.get("replaceable_same_id_different_content"):
+                    print("Modo: incluye reemplazos controlados; se usara --allow-replacements.")
+            else:
+                print("No hay faltantes ni reemplazos; no se genero archivo de candidatos.")
+        elif choice == "5":
             if not state.last_sync_candidate_file:
-                print("No hay candidatos faltantes para validar.")
+                print("No hay candidatos sincronizables para validar.")
                 continue
-            if inventory["same_id_different_content"]:
-                print("Hay conflictos por ID. Resolver antes de validar admision.")
+            if inventory.get("blocked_same_id_different_content"):
+                print("Hay conflictos bloqueantes por ID. Resolver antes de validar admision.")
                 continue
-            result, payload = run_admission_command("validate", state.last_sync_candidate_file)
+            result, payload = run_admission_command(
+                "validate",
+                state.last_sync_candidate_file,
+                sync_admission_extra_args(inventory),
+            )
             if payload and payload.get("report"):
                 state.last_validate_report = (REPO_ROOT / payload["report"]).resolve()
             if result.returncode == 0:
                 print("Validacion OK. Siguiente paso recomendado: dry-run.")
-        elif choice == "5":
+        elif choice == "6":
             if not state.last_sync_candidate_file:
-                print("No hay candidatos faltantes para dry-run.")
+                print("No hay candidatos sincronizables para dry-run.")
                 continue
-            if inventory["same_id_different_content"]:
-                print("Hay conflictos por ID. Resolver antes de dry-run.")
+            if inventory.get("blocked_same_id_different_content"):
+                print("Hay conflictos bloqueantes por ID. Resolver antes de dry-run.")
                 continue
-            result, payload = run_admission_command("dry-run", state.last_sync_candidate_file)
+            result, payload = run_admission_command(
+                "dry-run",
+                state.last_sync_candidate_file,
+                sync_admission_extra_args(inventory),
+            )
             if payload and payload.get("report"):
                 state.last_dry_run_report = (REPO_ROOT / payload["report"]).resolve()
             if result.returncode == 0:
                 print("Dry-run OK. Revisar el reporte antes de apply.")
-        elif choice == "6":
+        elif choice == "7":
             if not state.last_sync_candidate_file:
-                print("No hay candidatos faltantes para apply.")
+                print("No hay candidatos sincronizables para apply.")
                 continue
-            if inventory["same_id_different_content"]:
-                print("Hay conflictos por ID. Apply bloqueado.")
+            if inventory.get("blocked_same_id_different_content"):
+                print("Hay conflictos bloqueantes por ID. Apply bloqueado.")
                 continue
             if not state.last_dry_run_report:
                 print("Apply bloqueado: no hay dry-run previo en esta ejecucion del menu.")
@@ -597,14 +847,20 @@ def option_session_sync(state: MenuState) -> None:
                 continue
             print("\nApply confirmado modificara data/out/local.")
             print(f"- candidatos: {display(state.last_sync_candidate_file)}")
-            print(f"- lineas a insertar: {count_jsonl_lines(state.last_sync_candidate_file)}")
+            print(f"- lineas a sincronizar: {count_jsonl_lines(state.last_sync_candidate_file)}")
+            print(f"- faltantes nuevos: {len(inventory['missing_by_id'])}")
+            print(f"- reemplazos controlados: {len(inventory.get('replaceable_same_id_different_content') or [])}")
             print(f"- dry-run revisable: {display(state.last_dry_run_report)}")
             confirmation = prompt("Escribe APPLY para modificar el canon local: ").strip()
             if confirmation != "APPLY":
                 print("Apply cancelado.")
                 continue
-            run_admission_command("apply", state.last_sync_candidate_file, ["--confirm-apply"])
-        elif choice == "7":
+            run_admission_command(
+                "apply",
+                state.last_sync_candidate_file,
+                [*sync_admission_extra_args(inventory), "--confirm-apply"],
+            )
+        elif choice == "8":
             option_rollback()
         else:
             print("Opcion invalida.")
@@ -686,6 +942,16 @@ def option_reverse(state: MenuState) -> None:
     html = choose_html(state)
     if not html:
         return
+    gate_ok, _, _ = run_reconstruction_gate(
+        html,
+        "reverse_projection",
+        DEFAULT_REVERSE_HTML,
+        requires_backup=False,
+        requires_hash_report=True,
+    )
+    if not gate_ok:
+        print("Reverse bloqueado por la compuerta Rust.")
+        return
     print("\nEjecutando reverse-preflight antes de reverse...")
     preflight = run_preflight("reverse-preflight")
     print_command_result(preflight)
@@ -733,6 +999,7 @@ def option_reports() -> None:
         DEFAULT_TMP_DIR,
         DEFAULT_ADMISSION_REPORT_DIR,
         DEFAULT_SESSION_SYNC_DIR,
+        RECONSTRUCTION_DIR,
         DEFAULT_CANON_DIR / "reverse_html",
     ]
     reports = recent_files(roots, "*.json", limit=16)
@@ -778,7 +1045,7 @@ def option_rollback() -> None:
 
 
 def main_menu() -> None:
-    state = MenuState(selected_html=DEFAULT_INPUT_HTML if DEFAULT_INPUT_HTML.exists() else None)
+    state = MenuState()
     while True:
         print(
             "\nTiddly Data Converter - Operador local\n\n"

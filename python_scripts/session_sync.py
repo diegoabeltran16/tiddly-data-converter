@@ -3,7 +3,8 @@
 
 This helper does not modify the canon. It reads session artifacts, derives
 canonical identity through the existing canon_preflight normalize command, and
-writes an inventory plus a temporary candidate file for records missing by id.
+writes an inventory plus temporary candidate files for records missing by id
+and same-source replacements.
 """
 
 from __future__ import annotations
@@ -361,20 +362,23 @@ def scan_session_sync(
     canon_index = _load_canon_index(canon_dir)
     existing_by_id: list[dict[str, Any]] = []
     missing_by_id: list[dict[str, Any]] = []
-    same_id_different_content: list[dict[str, Any]] = []
+    replaceable_same_id_different_content: list[dict[str, Any]] = []
+    blocked_same_id_different_content: list[dict[str, Any]] = []
 
     seen_ids: dict[str, str] = {}
     missing_records: list[dict[str, Any]] = []
+    replacement_records: list[dict[str, Any]] = []
+    sync_records: list[dict[str, Any]] = []
 
     for candidate in normalized:
         rec_id = _safe_str(candidate.record.get("id"))
         summary = _summary_record(candidate)
         previous_source = seen_ids.get(rec_id)
         if previous_source and previous_source != summary["source_path"]:
-            same_id_different_content.append(
+            blocked_same_id_different_content.append(
                 {
                     **summary,
-                    "classification": "same_id_different_content",
+                    "classification": "blocked_duplicate_session_id",
                     "message": f"id also derived from {previous_source}",
                 }
             )
@@ -385,6 +389,7 @@ def scan_session_sync(
         if existing is None:
             missing_by_id.append({**summary, "classification": "missing_by_id"})
             missing_records.append(candidate.record)
+            sync_records.append(candidate.record)
             continue
 
         projected = _project_candidate_record_as_admitted(candidate.record)
@@ -398,20 +403,58 @@ def scan_session_sync(
                 }
             )
         else:
-            same_id_different_content.append(
-                {
-                    **summary,
-                    "classification": "same_id_different_content",
-                    "shard": existing.shard,
-                    "line_no": existing.line_no,
-                    "message": "id exists in canon but normalized session artifact differs",
-                }
-            )
+            existing_source_fields = existing.record.get("source_fields") or {}
+            existing_source_path = _safe_str(existing_source_fields.get("source_path"))
+            item = {
+                **summary,
+                "shard": existing.shard,
+                "line_no": existing.line_no,
+            }
+            if existing_source_path == summary["source_path"]:
+                replaceable_same_id_different_content.append(
+                    {
+                        **item,
+                        "classification": "replaceable_same_id_different_content",
+                        "message": (
+                            "id exists in canon with different content and the same source_path; "
+                            "eligible for controlled replacement"
+                        ),
+                    }
+                )
+                replacement_records.append(candidate.record)
+                sync_records.append(candidate.record)
+            else:
+                blocked_same_id_different_content.append(
+                    {
+                        **item,
+                        "classification": "blocked_same_id_different_content",
+                        "existing_source_path": existing_source_path,
+                        "message": (
+                            "id exists in canon with different content but source_path differs; "
+                            "blocked until reviewed"
+                        ),
+                    }
+                )
+
+    generated_missing_candidate_file = None
+    if missing_records:
+        generated_missing_candidate_file = run_dir / "missing-candidates.canon-candidates.jsonl"
+        _write_jsonl(generated_missing_candidate_file, missing_records)
+
+    generated_replacement_candidate_file = None
+    if replacement_records:
+        generated_replacement_candidate_file = run_dir / "replacement-candidates.canon-candidates.jsonl"
+        _write_jsonl(generated_replacement_candidate_file, replacement_records)
 
     generated_candidate_file = None
-    if missing_records:
-        generated_candidate_file = run_dir / "missing-candidates.canon-candidates.jsonl"
-        _write_jsonl(generated_candidate_file, missing_records)
+    if sync_records:
+        generated_candidate_file = run_dir / "sync-candidates.canon-candidates.jsonl"
+        _write_jsonl(generated_candidate_file, sync_records)
+
+    same_id_different_content = [
+        *replaceable_same_id_different_content,
+        *blocked_same_id_different_content,
+    ]
 
     inventory_path = run_dir / "inventory.json"
     inventory = {
@@ -425,8 +468,16 @@ def scan_session_sync(
         "existing_by_id": existing_by_id,
         "missing_by_id": missing_by_id,
         "same_id_different_content": same_id_different_content,
+        "replaceable_same_id_different_content": replaceable_same_id_different_content,
+        "blocked_same_id_different_content": blocked_same_id_different_content,
         "invalid": invalid,
         "unsupported": unsupported,
+        "generated_missing_candidate_file": (
+            as_display_path(generated_missing_candidate_file) if generated_missing_candidate_file else None
+        ),
+        "generated_replacement_candidate_file": (
+            as_display_path(generated_replacement_candidate_file) if generated_replacement_candidate_file else None
+        ),
         "generated_candidate_file": as_display_path(generated_candidate_file) if generated_candidate_file else None,
         "inventory_path": as_display_path(inventory_path),
     }
@@ -436,7 +487,10 @@ def scan_session_sync(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Scan data/sessions by canonical id and generate missing session candidates."
+        description=(
+            "Scan data/sessions by canonical id and generate missing plus "
+            "controlled replacement session candidates."
+        )
     )
     parser.add_argument("command", choices=["scan"], help="Operation to run")
     parser.add_argument("--sessions-dir", default=as_display_path(DEFAULT_SESSIONS_DIR))
@@ -467,10 +521,14 @@ def main() -> int:
                 "run_id": inventory["run_id"],
                 "inventory": inventory["inventory_path"],
                 "generated_candidate_file": inventory["generated_candidate_file"],
+                "generated_missing_candidate_file": inventory["generated_missing_candidate_file"],
+                "generated_replacement_candidate_file": inventory["generated_replacement_candidate_file"],
                 "total_session_records": inventory["total_session_records"],
                 "existing_by_id": len(inventory["existing_by_id"]),
                 "missing_by_id": len(inventory["missing_by_id"]),
                 "same_id_different_content": len(inventory["same_id_different_content"]),
+                "replaceable_same_id_different_content": len(inventory["replaceable_same_id_different_content"]),
+                "blocked_same_id_different_content": len(inventory["blocked_same_id_different_content"]),
                 "invalid": len(inventory["invalid"]),
                 "unsupported": len(inventory["unsupported"]),
             },

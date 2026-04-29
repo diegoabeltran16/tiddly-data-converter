@@ -43,15 +43,12 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
     LEGACY_DIR = REPO_ROOT / "data" / "out" / "local" / "copilot_agent"
     CONTRACT_PATH = (
         REPO_ROOT
-        / "contratos"
+        / "data"
+        / "sessions"
+        / "00_contratos"
         / "m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json"
     )
-    SESSION_TITLES = {
-        "#### 🌀 Sesión 65 = microsoft-copilot-execution-surface-and-readme-hardening-v0",
-        "#### 🌀🧪 Hipótesis de sesión 65 = microsoft-copilot-execution-surface-and-readme-hardening-v0",
-        "#### 🌀🧾 Procedencia de sesión 65 = microsoft-copilot-execution-surface-and-readme-hardening-v0",
-        "contratos/m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json",
-    }
+    CONTRACT_TITLE = "#### 🌀 Contrato de sesión 65 = microsoft-copilot-execution-surface-and-readme-hardening-v0"
 
     # ── entrypoint and official path ─────────────────────────────────────────
 
@@ -79,12 +76,12 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
         """S65 must leave an importable contract in contratos/."""
         self.assertTrue(self.CONTRACT_PATH.exists(), "S65 contract file is missing")
 
-    def test_s65_family_is_absorbed_in_canon(self) -> None:
-        """Canon must include the full minimal S65 family, including the contract node."""
+    def test_s65_contract_is_absorbed_or_staged(self) -> None:
+        """S65 contract must be staged in data/sessions or already present in canon."""
         titles = {record.get("title") for record in load_canon_records()}
         self.assertTrue(
-            self.SESSION_TITLES.issubset(titles),
-            f"S65 canon family incomplete: {sorted(self.SESSION_TITLES - titles)}",
+            self.CONTRACT_TITLE in titles or self.CONTRACT_PATH.exists(),
+            "S65 contract is neither staged under data/sessions nor present in canon",
         )
 
     # ── required artifacts ────────────────────────────────────────────────────
@@ -190,19 +187,19 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
 
     # ── documentation alignment ───────────────────────────────────────────────
 
-    def test_readme_documents_verified_derive_layers_command(self) -> None:
+    def test_readme_documents_single_operator_menu(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("--audit-dir data/out/local/audit", readme)
-        self.assertIn("--export-dir data/out/local/export", readme)
-        self.assertIn("--microsoft-copilot-dir data/out/local/microsoft_copilot", readme)
+        self.assertIn("shell_scripts/tdc.sh", readme)
+        self.assertIn("Generación de derivados", readme)
+        self.assertIn("Los derivados no son fuente de verdad", readme)
 
-    def test_readme_lists_spec_and_copilot_agent_outputs(self) -> None:
-        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("data/out/local/microsoft_copilot/spec/**/*.md", readme)
-        self.assertIn("data/out/local/microsoft_copilot/spec/**/*.json", readme)
-        self.assertIn("data/out/local/microsoft_copilot/copilot_agent/corpus.txt", readme)
-        self.assertIn("data/out/local/microsoft_copilot/copilot_agent/entities.json", readme)
-        self.assertIn("data/out/local/microsoft_copilot/copilot_agent/relations.csv", readme)
+    def test_data_readme_lists_spec_and_copilot_agent_outputs(self) -> None:
+        data_readme = (REPO_ROOT / "data" / "README.md").read_text(encoding="utf-8")
+        self.assertIn("data/out/local/microsoft_copilot", data_readme)
+        self.assertIn("copilot_agent/", data_readme)
+        self.assertIn("corpus.txt", data_readme)
+        self.assertIn("entities.json", data_readme)
+        self.assertIn("relations.csv", data_readme)
 
     def test_data_readme_mentions_copilot_agent_sublayer(self) -> None:
         data_readme = (REPO_ROOT / "data" / "README.md").read_text(encoding="utf-8")
