@@ -6,6 +6,8 @@
 - `data/in/`: entradas locales
 - `data/out/local/tiddlers_*.jsonl`: canon operativo y única fuente de verdad
 - `data/out/local/proposals.jsonl`: artefacto legado para recuperación manual o candidate storage extraordinario; no es la ruta diaria de cierre semántico de sesión
+- `data/tmp/session_admission/`: copias temporales de canon para validar admisión sin tocar canon final
+- `data/tmp/admissions/`: reportes JSON de `validate`, `dry-run`, `apply` y `rollback`
 
 ## Derivados locales
 
@@ -23,6 +25,8 @@ Reglas:
 - `reverse_html/` no es canon
 - `data/out/remote/` no es autoridad local
 - las líneas candidatas producidas en `data/sessions/` solo pueden absorberse al canon local tras validación local, `strict`, `reverse-preflight`, reverse autoritativo con `Rejected: 0` y tests pertinentes
+- `python_scripts/admit_session_candidates.py` orquesta ese flujo de admisión y rollback con compuertas reales
+- la verificación reproducible S69 se ejecuta con `bash tests/fixtures/s69/run_session_admission_test.sh` y usa fixtures temporales bajo `data/tmp/`
 
 ## Notas de gobernanza
 

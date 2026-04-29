@@ -31,7 +31,7 @@
 
 ## Regla transversal S66
 - Toda sesión debe producir hipótesis de sesión en `data/sessions/03_hipotesis/<session>.md.json`, aunque sea para declarar que no se abrieron hipótesis nuevas.
-- El `title` de hipótesis de sesión debe usar `#### 🌀🧪 Hipótesis de sesión ## = <session>`.
+- El `title` de hipótesis de sesión debe usar `#### 🌀🧪 Hipótesis de sesión <NN> = <slug>`, por ejemplo `#### 🌀🧪 Hipótesis de sesión 69 = canon-admission-hardening-and-docs-v0`.
 - Una hipótesis de sesión candidata al canon debe conservar su estatuto tentativo y no reclamar autoridad final antes de validación local y reversibilidad.
 - El diagnóstico de sesión debe registrar si las hipótesis quedaron validadas, abiertas, descartadas o pendientes.
 

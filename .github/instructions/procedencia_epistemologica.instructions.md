@@ -29,7 +29,7 @@
 
 ## Regla transversal S66
 - Toda sesión debe producir procedencia de sesión en `data/sessions/01_procedencia/<session>.md.json`.
-- El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión ## = <session>`.
+- El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión <NN> = <slug>`, por ejemplo `#### 🌀🧾 Procedencia de sesión 69 = canon-admission-hardening-and-docs-v0`.
 - Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/sessions/`.
 - No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente.
 

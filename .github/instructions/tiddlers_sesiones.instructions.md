@@ -31,12 +31,17 @@ Todo tiddler que sea resultado de sesion debe tener un `title` iniciado por
 
 Titulos obligatorios para las familias principales:
 
-- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión ## = <session>`;
-- detalles/sesion: `#### 🌀 Sesión ## = <session>`;
-- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión ## = <session>`.
+- contrato de sesion: `#### 🌀 Contrato de sesión <NN> = <slug>`;
+- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NN> = <slug>`;
+- detalles/sesion: `#### 🌀 Sesión <NN> = <slug>`;
+- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión <NN> = <slug>`;
+- balance de sesion: `#### 🌀 Balance de sesión <NN> = <slug>`;
+- propuesta de sesion: `#### 🌀 Propuesta de sesión <NN> = <slug>`;
+- diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NN> = <slug>`.
 
-Las demas familias de cierre deben mantener el prefijo `#### 🌀` y declarar
-claramente su familia, por ejemplo `#### 🌀 Balance de sesión ## = <session>`.
+`<NN>` corresponde al numero de sesion extraido de `mXX-sNN-...`; `<slug>` es
+el resto del identificador sin el prefijo `mXX-sNN-` y sin `session-` cuando
+aparezca como prefijo operativo.
 
 ## Regla central
 

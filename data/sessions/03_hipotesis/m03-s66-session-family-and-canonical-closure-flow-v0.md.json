@@ -2,10 +2,10 @@
   {
     "created": "20260427182133000",
     "modified": "20260427182133000",
-    "title": "#### 🌀🧪 Hipótesis de sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0",
+    "title": "#### 🌀🧪 Hipótesis de sesión 66 = family-and-canonical-closure-flow-v0",
     "type": "text/markdown",
     "tags": "session:m03-s66 milestone:m03 artifact:hipotesis_de_sesion status:candidate",
     "tmap.id": "2023143a-7080-5943-b5d5-401a92829ec0",
-    "text": "#### 🌀🧪 Hipótesis de sesión ## = m03-s66-session-family-and-canonical-closure-flow-v0\n\n## Hipotesis activas\n\n- H1: Separar `data/sessions/` del canon final reduce ambiguedad de autoridad y evita que una conversacion de agente se convierta en canon sin validacion.\n- H2: La familia minima de siete artefactos es suficiente para que la siguiente sesion reconstruya pedido, procedencia, ejecucion, supuestos, aprendizaje, propuesta y diagnostico.\n- H3: Las herramientas existentes (`canon_preflight` y `reverse_tiddlers`) son suficientes para validar una admision temporal de candidatos sin implementar una capa nueva.\n\n## Estado al cierre\n\n- H1 queda respaldada documentalmente por informe tecnico e instrucciones.\n- H2 queda autoaplicada mediante el paquete S66.\n- H3 queda sujeta a la evidencia registrada en el diagnostico de sesion.\n\n## Riesgo epistemico\n\nLa validacion temporal prueba reversibilidad operativa de las lineas S66, pero no equivale a autorizacion humana para modificar el canon final."
+    "text": "#### 🌀🧪 Hipótesis de sesión 66 = family-and-canonical-closure-flow-v0\n\n## Hipotesis activas\n\n- H1: Separar `data/sessions/` del canon final reduce ambiguedad de autoridad y evita que una conversacion de agente se convierta en canon sin validacion.\n- H2: La familia minima de siete artefactos es suficiente para que la siguiente sesion reconstruya pedido, procedencia, ejecucion, supuestos, aprendizaje, propuesta y diagnostico.\n- H3: Las herramientas existentes (`canon_preflight` y `reverse_tiddlers`) son suficientes para validar una admision temporal de candidatos sin implementar una capa nueva.\n\n## Estado al cierre\n\n- H1 queda respaldada documentalmente por informe tecnico e instrucciones.\n- H2 queda autoaplicada mediante el paquete S66.\n- H3 queda sujeta a la evidencia registrada en el diagnostico de sesion.\n\n## Riesgo epistemico\n\nLa validacion temporal prueba reversibilidad operativa de las lineas S66, pero no equivale a autorizacion humana para modificar el canon final."
   }
 ]

@@ -42,5 +42,7 @@ go/canon/canon_preflight
 
 /data/in
 /data/out
+/data/tmp
+/data/sessions
 
 
