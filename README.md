@@ -3,38 +3,22 @@
 Repositorio local-first para extraer, canonizar, derivar, auditar y revertir
 un corpus TiddlyWiki sin perder trazabilidad ni reversibilidad.
 
----
+## 1. Preparación
 
-## Layout de datos
+Trabajar siempre desde la raíz del repositorio:
 
-`data/` usa solo dos raíces activas:
+```bash
+cd /repositorios/tiddly-data-converter
+```
 
-| Ruta | Rol |
-|---|---|
-| `data/sessions/` | artefactos de sesión, staging operativo y líneas candidatas |
-| `data/in/` | entradas locales, incluido el HTML vivo |
-| `data/out/local/` | zona de salida gobernada: canon, derivados, reverse y export |
+Requisitos mínimos:
 
-Dentro de `data/out/local/`:
+- Bash
+- Python 3
+- Go
+- Rust, solo para validar los módulos Rust
 
-| Subcarpeta | Rol |
-|---|---|
-| `tiddlers_*.jsonl` | canon local — fuente de verdad única |
-| `enriched/` | capa derivada A: enriquecimiento estructural |
-| `ai/` | capa derivada B: preparación para RAG y chunking |
-| `audit/` | capa de auditoría normativa |
-| `export/` | artefactos de exportación puntual |
-| `microsoft_copilot/` | proyección legible para Microsoft Copilot y otros agentes remotos; derivada y no autoritativa |
-| `reverse_html/` | HTML reconstruido desde el canon — no es fuente de verdad |
-| `proposals.jsonl` | buffer legado y extraordinario — no es ruta diaria de cierre |
-
-`data/out/remote/` queda reservado para proyección o intercambio remoto.
-
----
-
-## Preparación
-
-Los comandos de Go y Rust requieren cache local escribible:
+Caches locales recomendadas:
 
 ```bash
 export GOCACHE=/tmp/tdc-go-build
@@ -42,71 +26,44 @@ export CARGO_TARGET_DIR=/tmp/tdc-cargo-target
 mkdir -p "$GOCACHE" "$CARGO_TARGET_DIR"
 ```
 
-El HTML vivo esperado por defecto:
+Rutas principales:
 
-```
+| Ruta | Rol |
+|---|---|
+| `data/in/` | entradas locales, incluido el HTML vivo |
+| `data/out/local/tiddlers_*.jsonl` | canon oficial local |
+| `data/out/local/` | canon local, derivados, export y reverse |
+| `data/sessions/` | entregables de sesiones y candidatos canónicos |
+| `data/tmp/` | zona temporal de trabajo y reportes |
+
+Reglas de autoridad:
+
+- `data/out/local/tiddlers_*.jsonl` es la fuente de verdad local.
+- `data/sessions/` es staging operativo, no canon paralelo.
+- `data/tmp/` es temporal y no define autoridad canónica.
+- Los derivados no son fuente de verdad.
+- Reverse no redefine el canon.
+
+HTML vivo esperado:
+
+```text
 data/in/tiddly-data-converter (Saved).html
 ```
 
----
+## 2. Exportar del canon
 
-## I. Exportar del canon
+Exportar del canon significa producir artefactos derivados o puntuales a partir
+del canon local ya existente. No es lo mismo que construir el canon desde el
+HTML vivo.
 
-El canon local es el conjunto shardeado `data/out/local/tiddlers_*.jsonl`.
-Todo el trabajo del repositorio parte de este canon o termina en él.
-
-Esta sección explica cómo se construye el canon desde el HTML vivo,
-cómo se valida, y qué artefactos de exportación se pueden producir a partir de él.
-
-### I.1 Construir el canon desde HTML
-
-El flujo convierte el HTML vivo en shards canónicos locales.
-
-**Paso 1. Extraer desde HTML a un JSONL temporal**
-
-```bash
-cd /repositorios/tiddly-data-converter/go/bridge
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/export_tiddlers \
-  --html ../../data/in/'tiddly-data-converter (Saved).html' \
-  --out /tmp/tiddlers.export.jsonl \
-  --log /tmp/tiddlers.export.log \
-  --manifest /tmp/tiddlers.export.manifest.json
-```
-
-Produce: un JSONL temporal en `/tmp/`, una línea por tiddler.
-
-**Paso 2. Shardizar el JSONL en el canon local**
-
-```bash
-cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/shard_canon \
-  --input /tmp/tiddlers.export.jsonl \
-  --out-dir ../../data/out/local
-```
-
-Produce: `data/out/local/tiddlers_1.jsonl` … `tiddlers_7.jsonl`.
-
-**Paso 3. Validar el canon**
-
-```bash
-cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
-  --mode strict \
-  --input ../../data/out/local
-```
-
-Si `data/out/local/` no contiene los siete shards, `canon_preflight` falla con `missing-shards`.
-
-### I.2 Export S33
-
-Atajo para regenerar y verificar el export puntual S33:
+Atajo histórico para regenerar y verificar el export puntual S33:
 
 ```bash
 bash shell_scripts/export_s33_regen.sh
 bash shell_scripts/export_s33_verify.sh
 ```
 
-Primero `export_s33_regen.sh`, después `export_s33_verify.sh`.
+Primero ejecutar `export_s33_regen.sh`; después `export_s33_verify.sh`.
 
 Artefactos producidos en `data/out/local/export/`:
 
@@ -114,27 +71,326 @@ Artefactos producidos en `data/out/local/export/`:
 - `s33-export-log.jsonl`
 - `s33-manifest.json`
 
-### I.3 Bootstrap mínimo de pipeline
-
-Para un flujo de inspección o costura mínima (Extractor → Doctor → Ingesta → Canon JSONL):
+Bootstrap mínimo de inspección o costura:
 
 ```bash
 bash shell_scripts/run_pipeline.sh
 ```
 
-Escribe en `data/out/local/pipeline/`. No reemplaza la shardización del canon local.
-Si se pasa `--audit` o `--audit-apply`, el auditor normativo opera sobre `data/out/local`.
+Este flujo escribe en `data/out/local/pipeline/`. No reemplaza el canon local
+shardizado.
 
----
+## 3. Construir el canon desde HTML
 
-## II. Derivados del canon
+Construir el canon desde HTML parte del HTML vivo y vuelve a producir el canon
+local shardizado.
 
-Los derivados son capas producidas a partir del canon establecido.
-Nunca son fuente de verdad: son subordinados al canon.
+Flujo operativo:
 
-El entrypoint principal es `python_scripts/derive_layers.py`:
+```text
+HTML vivo
+  -> JSONL temporal
+  -> shards canónicos locales
+  -> validación
+```
+
+Este flujo sí puede escribir `data/out/local/tiddlers_*.jsonl` durante la
+shardización. Usarlo solo cuando se quiere reconstruir el canon local desde el
+HTML fuente.
+
+## 4. Extraer desde HTML a un JSONL temporal
+
+Este paso extrae tiddlers desde el HTML vivo hacia un JSONL temporal. El JSONL
+temporal no es todavía el canon definitivo.
 
 ```bash
+cd /repositorios/tiddly-data-converter/go/bridge
+HTML="../../data/in/tiddly-data-converter (Saved).html"
+
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/export_tiddlers \
+  --html "$HTML" \
+  --out /tmp/tiddlers.export.jsonl \
+  --log /tmp/tiddlers.export.log \
+  --manifest /tmp/tiddlers.export.manifest.json
+```
+
+Salidas esperadas:
+
+- `/tmp/tiddlers.export.jsonl`
+- `/tmp/tiddlers.export.log`
+- `/tmp/tiddlers.export.manifest.json`
+
+## 5. Shardizar el JSONL en el canon local
+
+Este paso convierte el JSONL temporal en shards del canon local. Escribe en
+`data/out/local/`.
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/shard_canon \
+  --input /tmp/tiddlers.export.jsonl \
+  --out-dir ../../data/out/local
+```
+
+Salida esperada:
+
+```text
+data/out/local/tiddlers_1.jsonl
+data/out/local/tiddlers_2.jsonl
+...
+data/out/local/tiddlers_7.jsonl
+```
+
+## 6. Validar el canon
+
+Validación estricta del canon:
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
+  --mode strict \
+  --input ../../data/out/local
+```
+
+Preflight requerido antes de reverse o admisión:
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+
+env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
+  --mode reverse-preflight \
+  --input ../../data/out/local
+```
+
+Tests Go principales:
+
+```bash
+cd /repositorios/tiddly-data-converter/go/canon
+env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
+
+cd /repositorios/tiddly-data-converter/go/bridge
+env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
+
+cd /repositorios/tiddly-data-converter/go/ingesta
+env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
+```
+
+Tests Rust principales:
+
+```bash
+cd /repositorios/tiddly-data-converter/rust/extractor
+env CARGO_TARGET_DIR=/tmp/tdc-cargo-target cargo test
+
+cd /repositorios/tiddly-data-converter/rust/doctor
+env CARGO_TARGET_DIR=/tmp/tdc-cargo-target cargo test
+```
+
+Checks Python y shell útiles:
+
+```bash
+cd /repositorios/tiddly-data-converter
+
+python3 python_scripts/validate_corpus_governance.py \
+  --canon-dir data/out/local \
+  --ai-dir data/out/local/ai
+
+bash tests/fixtures/s49/run_canon_proposal_test.sh
+bash tests/fixtures/s47/run_audit_test.sh
+env GOCACHE=/tmp/tdc-go-build-smoke CARGO_TARGET_DIR=/tmp/tdc-cargo-target-smoke bash tests/smoke/test_pipeline_smoke.sh
+```
+
+Condición crítica para reverse y admisión canónica: `Rejected: 0`.
+
+## 7. Pasar los entregables de sesiones al canon
+
+`data/sessions/` contiene entregables de sesión. Cada entregable que deba poder
+entrar al canon debe tener una línea equivalente dentro del archivo
+`*.canon-candidates.jsonl` de su sesión.
+
+Los archivos `.md.json` son artefactos de sesión importables o auditables, pero
+no se pasan uno por uno a `admit_session_candidates.py`. La unidad operativa
+simple es la sesión completa.
+
+El script de admisión no reemplaza al canonizador. Orquesta una admisión manual,
+validada y reversible:
+
+```text
+validate -> dry-run -> revisión humana -> apply --confirm-apply
+```
+
+Listar sesiones con candidatos:
+
+```bash
+cd /repositorios/tiddly-data-converter
+
+find data/sessions -type f -name "*.canon-candidates.jsonl" | sort
+```
+
+Construir la lista de sesiones desde los candidatos existentes. El valor usado
+por `--session-id` es el nombre del archivo sin `.canon-candidates.jsonl`:
+
+```bash
+mapfile -t SESSION_IDS < <(
+  find data/sessions -type f -name "*.canon-candidates.jsonl" \
+    -printf "%f\n" \
+    | sed 's/\.canon-candidates\.jsonl$//' \
+    | sort
+)
+
+printf '%s\n' "${SESSION_IDS[@]}"
+```
+
+Validar las sesiones sin tocar el canon:
+
+```bash
+for SESSION_ID in "${SESSION_IDS[@]}"; do
+  python3 python_scripts/admit_session_candidates.py validate \
+    --session-id "$SESSION_ID" \
+    --sessions-dir data/sessions \
+    --canon-dir data/out/local \
+    --allow-replacements \
+    --report-dir data/tmp/admissions
+done
+```
+
+Ejecutar dry-run sobre copia temporal del canon:
+
+```bash
+for SESSION_ID in "${SESSION_IDS[@]}"; do
+  python3 python_scripts/admit_session_candidates.py dry-run \
+    --session-id "$SESSION_ID" \
+    --sessions-dir data/sessions \
+    --canon-dir data/out/local \
+    --tmp-dir data/tmp/session_admission \
+    --report-dir data/tmp/admissions \
+    --allow-replacements
+done
+```
+
+Revisar los reportes generados:
+
+```bash
+test -n "$(ls data/tmp/admissions/admit-*.json 2>/dev/null)" || {
+  echo "No hay reportes admit-*.json en data/tmp/admissions" >&2
+  exit 1
+}
+
+ls -t data/tmp/admissions/admit-*.json | head
+```
+
+Abrir cada reporte que se quiera revisar:
+
+```bash
+ADMISSION_REPORT="$(ls -t data/tmp/admissions/admit-*.json | head -1)"
+python3 -m json.tool "$ADMISSION_REPORT" | less
+```
+
+Comprobar en cada reporte de `dry-run`:
+
+- `status` debe ser `ok`.
+- `rejected_candidates` debe estar vacío.
+- `reverse_result.rejected` debe ser `0`.
+- `canon_modified` debe ser `false` en `dry-run`.
+- Las pruebas relacionadas deben estar en `passed` o justificadamente en `skipped`.
+
+Aplicar al canon local solo como acción deliberada:
+
+```bash
+for SESSION_ID in "${SESSION_IDS[@]}"; do
+  python3 python_scripts/admit_session_candidates.py apply \
+    --session-id "$SESSION_ID" \
+    --sessions-dir data/sessions \
+    --canon-dir data/out/local \
+    --tmp-dir data/tmp/session_admission \
+    --report-dir data/tmp/admissions \
+    --allow-replacements \
+    --confirm-apply
+done
+```
+
+Para admitir o reparar todos los contratos históricos bajo
+`data/sessions/00_contratos/`, usar el lote automático de contratos. Este modo
+genera candidatos temporales, verifica qué contratos faltan o requieren
+reemplazo por `source_path`, y evita append ciego:
+
+```bash
+python3 python_scripts/admit_session_candidates.py dry-run \
+  --all-contracts \
+  --sessions-dir data/sessions \
+  --canon-dir data/out/local \
+  --tmp-dir data/tmp/session_admission \
+  --report-dir data/tmp/admissions
+```
+
+Si el reporte queda en `status: ok`, `rejected_count: 0` y
+`reverse_rejected: 0`, aplicar deliberadamente:
+
+```bash
+python3 python_scripts/admit_session_candidates.py apply \
+  --all-contracts \
+  --sessions-dir data/sessions \
+  --canon-dir data/out/local \
+  --tmp-dir data/tmp/session_admission \
+  --report-dir data/tmp/admissions \
+  --confirm-apply
+```
+
+Rollback desde un reporte de `apply`. Se revierte una sesión por reporte. Por
+defecto se revisa el reporte de admisión más reciente:
+
+```bash
+APPLY_REPORT="$(ls -t data/tmp/admissions/admit-*.json 2>/dev/null | head -1)"
+
+test -f "$APPLY_REPORT" || {
+  echo "No hay reportes admit-*.json en data/tmp/admissions" >&2
+  exit 1
+}
+
+python3 -m json.tool "$APPLY_REPORT" | less
+```
+
+Antes de continuar, confirmar en ese reporte:
+
+- `mode` debe ser `apply`;
+- `rollback_ready` debe ser `true`;
+- `admitted_ids` debe contener los ids admitidos por esa corrida.
+
+Ejecutar rollback solo después de esa revisión:
+
+```bash
+python3 python_scripts/admit_session_candidates.py rollback \
+  --admission-report "$APPLY_REPORT" \
+  --canon-dir data/out/local \
+  --tmp-dir data/tmp/session_admission_rollback \
+  --report-dir data/tmp/admissions
+```
+
+Advertencias:
+
+- `--session-id` admite el paquete de candidatos de la sesión completa.
+- `--all-contracts` procesa los contratos existentes en `data/sessions/00_contratos/`.
+- `--allow-replacements` permite reemplazar una línea ya admitida solo cuando el `source_path` coincide; se usa para reparar nomenclatura sin duplicar.
+- `--candidate-file` queda como opción avanzada cuando se necesita apuntar a un JSONL concreto.
+- No usar `--candidate-file data/sessions`.
+- `--candidate-file` debe apuntar a un archivo `.canon-candidates.jsonl`, no a una carpeta.
+- No copiar placeholders con signos de menor/mayor en Bash: Bash los interpreta como redirección.
+- No ejecutar comandos con `SESSION_IDS`, `SESSION_ID` o `APPLY_REPORT` vacíos.
+- No ejecutar rollback si no hubo un `apply` real previo.
+- Para la primera operación real, revisar los reportes de `dry-run` antes de lanzar el loop de `apply`.
+- No ejecutar `apply --confirm-apply` sin revisar antes el reporte de `dry-run`.
+
+## 8. Derivados
+
+Los derivados se generan desde el canon local. No son fuente de verdad y no hacen
+writeback al canon.
+
+Entry point principal:
+
+```bash
+cd /repositorios/tiddly-data-converter
+
 python3 python_scripts/derive_layers.py \
   --input-dir data/out/local \
   --enriched-dir data/out/local/enriched \
@@ -147,75 +403,18 @@ python3 python_scripts/derive_layers.py \
   --chunk-max-tokens 4000
 ```
 
-### II.1 Capas derivadas
+Capas actuales:
 
 | Capa | Ubicación | Rol |
 |---|---|---|
-| `enriched` | `data/out/local/enriched/` | Enriquecimiento estructural: metadatos, roles, estados |
-| `ai` | `data/out/local/ai/` | Preparación RAG: registros listos para embeddings |
-| `microsoft_copilot` | `data/out/local/microsoft_copilot/` | Proyección gobernada y legible para Microsoft Copilot y agentes remotos; emite JSON/CSV/TXT y puede arbitrar canon, enriched, ai, audit y export sin ganar autoridad; incluye sublayer `copilot_agent/` con paquete semántico reversible |
-| `chunks` | `data/out/local/ai/chunks_ai_*.jsonl` | Fragmentos trazables al nodo fuente |
+| `enriched` | `data/out/local/enriched/` | enriquecimiento estructural |
+| `ai` | `data/out/local/ai/` | preparación RAG y chunking |
+| `microsoft_copilot` | `data/out/local/microsoft_copilot/` | proyección JSON/CSV/TXT para lectura por agentes |
+| `chunks` | `data/out/local/ai/chunks_ai_*.jsonl` | fragmentos trazables al nodo fuente |
+| `audit` | `data/out/local/audit/` | reportes de auditoría normativa |
+| `export` | `data/out/local/export/` | exportaciones puntuales |
 
-Artefactos producidos:
-
-- `data/out/local/enriched/tiddlers_enriched_*.jsonl`
-- `data/out/local/enriched/manifest.json`
-- `data/out/local/ai/tiddlers_ai_*.jsonl`
-- `data/out/local/ai/chunks_ai_*.jsonl`
-- `data/out/local/ai/manifest.json`
-- `data/out/local/ai/reports/*.json`
-- `data/out/local/microsoft_copilot/manifest.json`
-- `data/out/local/microsoft_copilot/navigation_index.json`
-- `data/out/local/microsoft_copilot/entities.json`
-- `data/out/local/microsoft_copilot/topics.json`
-- `data/out/local/microsoft_copilot/source_arbitration_report.json`
-- `data/out/local/microsoft_copilot/nodes.csv`
-- `data/out/local/microsoft_copilot/edges.csv`
-- `data/out/local/microsoft_copilot/artifacts.csv`
-- `data/out/local/microsoft_copilot/coverage.csv`
-- `data/out/local/microsoft_copilot/overview.txt`
-- `data/out/local/microsoft_copilot/reading_guide.txt`
-- `data/out/local/microsoft_copilot/bundles/*.txt`
-- `data/out/local/microsoft_copilot/spec/**/*.md`
-- `data/out/local/microsoft_copilot/spec/**/*.json`
-- `data/out/local/microsoft_copilot/copilot_agent/corpus.txt`
-- `data/out/local/microsoft_copilot/copilot_agent/entities.json`
-- `data/out/local/microsoft_copilot/copilot_agent/relations.csv`
-
-`data/out/local/microsoft_copilot/` forma parte del flujo de derivación local.
-Sigue siendo una proyección derivada y no autoritativa: no reemplaza al canon,
-no reemplaza a `enriched/` ni a `ai/`, y no hace writeback al canon. En S61
-la salida final de lectura de esta capa deja de ser JSONL: JSON expone
-estructura, CSV expone relaciones/tablas y TXT preserva contexto narrativo
-seleccionado con punteros explícitos a la fuente canónica.
-
-### II.2 Política de chunking
-
-- El chunking parte del canon local, no de `enriched/` ni de `ai/`.
-- El estimador de tokens es local y proxy-aware; no depende de tokenizadores remotos.
-- El chunker refina por fronteras útiles: secciones, párrafos, oraciones y, en código, bloques estructurales.
-- Cada chunk queda trazable al nodo fuente mediante `source_id`, `tiddler_id`, `source_anchor`, `section_path` y `taxonomy_path`.
-- Nodos `status:archival-only` y artefactos históricos `out/*.json` / `out/*.html` quedan fuera del chunking para no distorsionar RAG.
-
-### II.3 Gobernanza de derivados
-
-La gramática estructural activa del corpus vive en:
-
-- `data/sessions/00_contratos/policy/canon_policy_bundle.json`: define `corpus_state`, reglas de resolución y compuertas de promoción.
-- `data/sessions/00_contratos/projections/derived_layers_registry.json`: declara autoridad y linaje entre capas.
-
-Estados gobernados:
-
-| Estado | Descripción |
-|---|---|
-| `general` | Fallback para nodos sin evidencia estructural fuerte |
-| `repo_path` | Nodo path-like sin tag explícito de vigencia |
-| `live_path` | Nodo marcado vivo con `state:live-path` |
-| `historical_snapshot` | Snapshot histórico o supersedido |
-| `historical_artifact` | Artefacto legacy `out/*.json` o `out/*.html` |
-| `archival_only` | Preservado en canon pero fuera de derivados generales |
-
-Validación de gobernanza:
+Gobernanza de derivados:
 
 ```bash
 python3 python_scripts/validate_corpus_governance.py \
@@ -223,11 +422,7 @@ python3 python_scripts/validate_corpus_governance.py \
   --ai-dir data/out/local/ai
 ```
 
-### II.4 Auditoría normativa
-
-La auditoría verifica coherencia entre el canon y sus capas derivadas.
-
-Solo inspección:
+Auditoría normativa:
 
 ```bash
 python3 python_scripts/audit_normative_projection.py \
@@ -236,7 +431,7 @@ python3 python_scripts/audit_normative_projection.py \
   --docs-root docs
 ```
 
-Inspección + safe fixes + regeneración:
+Auditoría con safe fixes y regeneración:
 
 ```bash
 python3 python_scripts/audit_normative_projection.py \
@@ -245,180 +440,55 @@ python3 python_scripts/audit_normative_projection.py \
   --docs-root docs
 ```
 
-Salidas en `data/out/local/audit/`:
+Salidas de auditoría en `data/out/local/audit/`:
 
-- `manifest.json`, `compliance_report.json`, `compliance_summary.md`
-- `proposed_fixes.json`, `applied_safe_fixes.json`, `pre_post_diff.json`
+- `manifest.json`
+- `compliance_report.json`
+- `compliance_summary.md`
+- `proposed_fixes.json`
+- `applied_safe_fixes.json`
+- `pre_post_diff.json`
 
----
+## 9. Reverse
 
-## III. Reverse y tipos de reverse
+Reverse reconstruye una salida HTML interpretable desde el canon local. El HTML
+resultante es derivado: no cambia la autoridad del canon y no debe usarse para
+corregir el canon manualmente.
 
-Reverse es el proceso inverso: reconstruye un HTML funcional a partir del canon local.
-El HTML resultante es una proyección reversible, no una fuente autoritativa.
-`reverse_tiddlers` nunca escribe ni modifica `data/out/local/tiddlers_*.jsonl`.
-
-### III.1 Preflight antes de reverse
-
-El reverse exige que el canon pase una validación específica antes de ejecutarse:
+Preflight antes de reverse:
 
 ```bash
 cd /repositorios/tiddly-data-converter/go/canon
+
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode reverse-preflight \
   --input ../../data/out/local
 ```
 
-Si `canon_preflight --mode reverse-preflight` reporta `duplicate-title`, `duplicate-key`
-o líneas mal formadas, el reverse aborta sin escribir HTML.
-
-### III.2 Ejecutar reverse
+Reverse autoritativo recomendado:
 
 ```bash
 cd /repositorios/tiddly-data-converter/go/bridge
+HTML="../../data/in/tiddly-data-converter (Saved).html"
+
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
-  --html ../../data/in/'tiddly-data-converter (Saved).html' \
-  --canon ../../data/out/local \
-  --out-html ../../data/out/local/reverse_html/tiddly-data-converter.derived.html \
-  --report ../../data/out/local/reverse_html/reverse-report.json \
-  --mode authoritative-upsert
-```
-```bash
-cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ../bridge/cmd/reverse_tiddlers \
-  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --html "$HTML" \
   --canon ../../data/out/local \
   --out-html ../../data/out/local/reverse_html/tiddly-data-converter.derived.html \
   --report ../../data/out/local/reverse_html/reverse-report.json \
   --mode authoritative-upsert
 ```
 
-Salidas en `data/out/local/reverse_html/`:
+Salidas:
 
-- `tiddly-data-converter.derived.html`
-- `reverse-report.json`
+- `data/out/local/reverse_html/tiddly-data-converter.derived.html`
+- `data/out/local/reverse_html/reverse-report.json`
 
-### III.3 Tipos de reverse
+Condición crítica:
 
-| Modo | Comportamiento |
-|---|---|
-| `authoritative-upsert` | Inserta tiddlers nuevos y actualiza los ya presentes en el HTML base. Modo recomendado. |
-| `insert-only` | Solo inserta títulos nuevos. Nunca actualiza los ya presentes en el HTML base. |
-
-Usar `insert-only` únicamente cuando se quiera impedir la actualización de títulos que ya existen en el HTML base.
-
----
-
-## Cierre semántico de sesión
-
-La ruta diaria de cierre es `data/sessions/`, no escritura directa en el canon final.
-
-Cada sesión debe producir su familia mínima:
-
-- `data/sessions/00_contratos/<session>.md.json`
-- `data/sessions/01_procedencia/<session>.md.json`
-- `data/sessions/02_detalles_de_sesion/<session>.md.json`
-- `data/sessions/03_hipotesis/<session>.md.json`
-- `data/sessions/04_balance_de_sesion/<session>.md.json`
-- `data/sessions/05_propuesta_de_sesion/<session>.md.json`
-- `data/sessions/06_diagnoses/sesion/<session>.md.json`
-
-Los títulos de los tiddlers de cierre deben iniciar con `#### 🌀`. Para
-procedencia, sesión e hipótesis se usan respectivamente:
-`#### 🌀🧾 Procedencia de sesión ## = <session>`,
-`#### 🌀 Sesión ## = <session>` y
-`#### 🌀🧪 Hipótesis de sesión ## = <session>`.
-
-Si la sesión deja memoria que debe poder entrar al canon, debe producir líneas
-candidatas en formato canon bajo `data/sessions/`. La admisión real se prueba sobre
-una copia temporal del canon y solo después puede aplicarse localmente.
-
-**Validación de copia temporal o JSONL candidato:**
-
-```bash
-cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
-  --mode strict \
-  --input ../../data/out/local
+```text
+Rejected: 0
 ```
 
-```bash
-cd /repositorios/tiddly-data-converter/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
-  --mode reverse-preflight \
-  --input ../../data/out/local
-```
-
-**Reverse autoritativo sobre copia temporal:**
-
-```bash
-cd /repositorios/tiddly-data-converter/go/bridge
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
-  --html ../../data/in/'tiddly-data-converter (Saved).html' \
-  --canon /tmp/<canon-temporal> \
-  --out-html /tmp/<session>.reverse.html \
-  --report /tmp/<session>.reverse-report.json \
-  --mode authoritative-upsert
-```
-
-Para admitir líneas, el reverse debe terminar con `Rejected: 0`.
-
-**Ruta extraordinaria:** `data/out/local/proposals.jsonl` solo para recuperación manual
-o lotes excepcionales que no deban absorberse aún al canon base.
-
-Uso extraordinario de propuestas:
-
-```bash
-python3 python_scripts/canon_proposal.py create \
-  --session m03-s49-mcp-onedrive-canon-proposals-v0 \
-  --payload-file tests/fixtures/s49/candidate_line.json \
-  --canon-dir data/out/local \
-  --output /tmp/manual-recovery.proposals.jsonl
-
-python3 python_scripts/canon_proposal.py validate \
-  --proposal-file /tmp/manual-recovery.proposals.jsonl \
-  --canon-dir data/out/local
-```
-
----
-
-## Validación local
-
-Suites principales:
-
-```bash
-cd go/canon && env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
-cd /repositorios/tiddly-data-converter/go/bridge && env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
-cd /repositorios/tiddly-data-converter/go/ingesta && env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
-cd /repositorios/tiddly-data-converter/rust/extractor && env CARGO_TARGET_DIR=/tmp/tdc-cargo-target cargo test
-cd /repositorios/tiddly-data-converter/rust/doctor && env CARGO_TARGET_DIR=/tmp/tdc-cargo-target cargo test
-```
-
-Checks útiles:
-
-```bash
-bash tests/fixtures/s49/run_canon_proposal_test.sh
-bash tests/fixtures/s47/run_audit_test.sh
-env GOCACHE=/tmp/tdc-go-build-smoke CARGO_TARGET_DIR=/tmp/tdc-cargo-target-smoke bash tests/smoke/test_pipeline_smoke.sh
-```
-
-Entry points operativos:
-
-```bash
-bash shell_scripts/run_pipeline.sh
-python3 python_scripts/derive_layers.py
-python3 python_scripts/validate_corpus_governance.py --canon-dir data/out/local --ai-dir data/out/local/ai
-python3 python_scripts/audit_normative_projection.py --mode audit --input-root data/out/local --docs-root docs
-python3 python_scripts/canon_proposal.py validate --proposal-file /tmp/manual-recovery.proposals.jsonl --canon-dir data/out/local
-```
-
----
-
-## Referencias activas
-
-- `.github/instructions/tiddlers_sesiones.instructions.md`
-- `esquemas/canon/canon_guarded_session_rules.md`
-- `data/sessions/00_contratos/policy/canon_policy_bundle.json`
-- `data/sessions/00_contratos/projections/derived_layers_registry.json`
-- `python_scripts/validate_corpus_governance.py`
-- `python_scripts/path_governance.py`
+Si reverse rechaza líneas, corregir antes el canon o los candidatos. No corregir
+a mano el HTML resultante como sustituto de una reparación canónica.

@@ -20,6 +20,25 @@
 ├── .gitignore
 ├── data
 │   ├── in
+│   ├── out
+│   │   ├── local
+│   │   │   ├── ai
+│   │   │   │   └── reports
+│   │   │   ├── audit
+│   │   │   ├── enriched
+│   │   │   ├── export
+│   │   │   ├── microsoft_copilot
+│   │   │   │   └── copilot_agent
+│   │   │   ├── reverse_html
+│   │   │   ├── tiddlers_1.jsonl
+│   │   │   ├── tiddlers_2.jsonl
+│   │   │   ├── tiddlers_3.jsonl
+│   │   │   ├── tiddlers_4.jsonl
+│   │   │   ├── tiddlers_5.jsonl
+│   │   │   ├── tiddlers_6.jsonl
+│   │   │   └── tiddlers_7.jsonl
+│   │   └── remote
+│   ├── README.md
 │   ├── sessions
 │   │   ├── 00_contratos
 │   │   │   ├── context_relations
@@ -98,6 +117,9 @@
 │   │   │   ├── m03-s64-copilot-agent-semantic-compression-and-reversible-canon-hardening-v0.md.json
 │   │   │   ├── m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json
 │   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── policy
 │   │   │   │   └── canon_policy_bundle.json
 │   │   │   ├── projections
@@ -118,15 +140,30 @@
 │   │   │       ├── s43-local-checks.md
 │   │   │       └── s44-local-checks.md
 │   │   ├── 01_procedencia
-│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │   │   └── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   ├── 02_detalles_de_sesion
-│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │   │   └── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   ├── 03_hipotesis
-│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │   │   └── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   ├── 04_balance_de_sesion
-│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │   │   └── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   ├── 05_propuesta_de_sesion
-│   │   │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │   │   └── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   └── 06_diagnoses
 │   │       ├── canon
 │   │       │   └── s65_canon_diagnosis.md
@@ -142,122 +179,487 @@
 │   │       ├── s65_validation_report.md
 │   │       ├── sesion
 │   │       │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.canon-candidates.jsonl
-│   │       │   └── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │       │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
+│   │       │   ├── m03-s67-session-canon-admission-orchestrator-v0.canon-candidates.jsonl
+│   │       │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
+│   │       │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.canon-candidates.jsonl
+│   │       │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
+│   │       │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.canon-candidates.jsonl
+│   │       │   └── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │       └── tema
-│   └── out
-│       ├── local
-│       │   ├── ai
-│       │   │   ├── chunks_ai_1.jsonl
-│       │   │   ├── chunks_ai_2.jsonl
-│       │   │   ├── chunks_ai_3.jsonl
-│       │   │   ├── chunks_ai_4.jsonl
-│       │   │   ├── chunks_ai_5.jsonl
-│       │   │   ├── chunks_ai_6.jsonl
-│       │   │   ├── manifest.json
-│       │   │   ├── reports
-│       │   │   │   ├── chunk_qc_report.json
-│       │   │   │   ├── classification_report.json
-│       │   │   │   ├── derivation_report.json
-│       │   │   │   ├── relations_qc_report.json
-│       │   │   │   └── retrieval_qc_report.json
-│       │   │   ├── tiddlers_ai_1.jsonl
-│       │   │   ├── tiddlers_ai_2.jsonl
-│       │   │   ├── tiddlers_ai_3.jsonl
-│       │   │   ├── tiddlers_ai_4.jsonl
-│       │   │   ├── tiddlers_ai_5.jsonl
-│       │   │   ├── tiddlers_ai_6.jsonl
-│       │   │   ├── tiddlers_ai_7.jsonl
-│       │   │   └── tiddlers_ai_8.jsonl
-│       │   ├── audit
-│       │   │   ├── applied_safe_fixes.json
-│       │   │   ├── audit_log.jsonl
-│       │   │   ├── compliance_report.json
-│       │   │   ├── compliance_summary.md
-│       │   │   ├── manifest.json
-│       │   │   ├── manual_review_queue.jsonl
-│       │   │   ├── pre_post_diff.json
-│       │   │   ├── proposed_fixes.json
-│       │   │   └── warnings.jsonl
-│       │   ├── enriched
-│       │   │   ├── manifest.json
-│       │   │   ├── tiddlers_enriched_1.jsonl
-│       │   │   ├── tiddlers_enriched_2.jsonl
-│       │   │   ├── tiddlers_enriched_3.jsonl
-│       │   │   ├── tiddlers_enriched_4.jsonl
-│       │   │   ├── tiddlers_enriched_5.jsonl
-│       │   │   ├── tiddlers_enriched_6.jsonl
-│       │   │   ├── tiddlers_enriched_7.jsonl
-│       │   │   └── tiddlers_enriched_8.jsonl
-│       │   ├── microsoft_copilot
-│       │   │   ├── artifacts.csv
-│       │   │   ├── bundles
-│       │   │   │   ├── governance_core.txt
-│       │   │   │   ├── pipeline_and_layers.txt
-│       │   │   │   └── recent_sessions.txt
-│       │   │   ├── copilot_agent
-│       │   │   │   ├── corpus.txt
-│       │   │   │   ├── entities.json
-│       │   │   │   └── relations.csv
-│       │   │   ├── coverage.csv
-│       │   │   ├── edges.csv
-│       │   │   ├── entities.json
-│       │   │   ├── manifest.json
-│       │   │   ├── navigation_index.json
-│       │   │   ├── nodes.csv
-│       │   │   ├── overview.txt
-│       │   │   ├── reading_guide.txt
-│       │   │   ├── source_arbitration_report.json
-│       │   │   ├── spec
-│       │   │   │   ├── checklist_global_s61.md
-│       │   │   │   ├── memoria_decisiones_s61.md
-│       │   │   │   ├── plan_de_implementacion_s61.md
-│       │   │   │   └── summaries
-│       │   │   │       ├── contratos-instructions.json
-│       │   │   │       ├── contratos-instructions.md
-│       │   │   │       ├── contratos-s58-s59-s60.json
-│       │   │   │       ├── contratos-s58-s59-s60.md
-│       │   │   │       ├── dependencia-y-superficie-externa.json
-│       │   │   │       ├── dependencia-y-superficie-externa.md
-│       │   │   │       ├── desarrollo-y-evolucion.json
-│       │   │   │       ├── desarrollo-y-evolucion.md
-│       │   │   │       ├── detalles-del-tema.json
-│       │   │   │       ├── detalles-del-tema.md
-│       │   │   │       ├── elementos-especificos.json
-│       │   │   │       ├── elementos-especificos.md
-│       │   │   │       ├── glosario-y-convenciones.json
-│       │   │   │       ├── glosario-y-convenciones.md
-│       │   │   │       ├── hipotesis.json
-│       │   │   │       ├── hipotesis.md
-│       │   │   │       ├── microsoft-support-formats.json
-│       │   │   │       ├── microsoft-support-formats.md
-│       │   │   │       ├── politica-de-memoria-activa.json
-│       │   │   │       ├── politica-de-memoria-activa.md
-│       │   │   │       ├── prcommits.json
-│       │   │   │       ├── prcommits.md
-│       │   │   │       ├── principios-de-gestion.json
-│       │   │   │       ├── principios-de-gestion.md
-│       │   │   │       ├── procedencia-epistemologica.json
-│       │   │   │       ├── procedencia-epistemologica.md
-│       │   │   │       ├── protocolo-de-sesion.json
-│       │   │   │       ├── protocolo-de-sesion.md
-│       │   │   │       ├── repo-y-derivados-actuales.json
-│       │   │   │       ├── repo-y-derivados-actuales.md
-│       │   │   │       ├── sesiones.json
-│       │   │   │       ├── sesiones.md
-│       │   │   │       ├── tiddlers-sesiones.json
-│       │   │   │       └── tiddlers-sesiones.md
-│       │   │   └── topics.json
-│       │   ├── reverse_html
-│       │   │   ├── reverse-report.json
-│       │   │   └── tiddly-data-converter.derived.html
-│       │   ├── tiddlers_1.jsonl
-│       │   ├── tiddlers_2.jsonl
-│       │   ├── tiddlers_3.jsonl
-│       │   ├── tiddlers_4.jsonl
-│       │   ├── tiddlers_5.jsonl
-│       │   ├── tiddlers_6.jsonl
-│       │   └── tiddlers_7.jsonl
-│       └── remote
+│   └── tmp
+│       ├── admissions
+│       │   ├── admit-20260428012638-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   ├── s68
+│       │   │   ├── admit-20260428015027-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── admit-20260428015051-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── backups
+│       │   │   │   ├── admit-20260428015051-m03-s67-session-canon-admission-orchestrator-v0
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   └── tiddlers_7.jsonl
+│       │   │   │   └── rollback-20260428015107-m03-s67-session-canon-admission-orchestrator-v0-pre
+│       │   │   │       ├── tiddlers_1.jsonl
+│       │   │   │       ├── tiddlers_2.jsonl
+│       │   │   │       ├── tiddlers_3.jsonl
+│       │   │   │       ├── tiddlers_4.jsonl
+│       │   │   │       ├── tiddlers_5.jsonl
+│       │   │   │       ├── tiddlers_6.jsonl
+│       │   │   │       └── tiddlers_7.jsonl
+│       │   │   ├── case2
+│       │   │   │   └── admit-20260428015234-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── case2_preseed
+│       │   │   │   ├── admit-20260428015209-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   │   └── backups
+│       │   │   │       └── admit-20260428015209-m03-s67-session-canon-admission-orchestrator-v0
+│       │   │   │           ├── tiddlers_1.jsonl
+│       │   │   │           ├── tiddlers_2.jsonl
+│       │   │   │           ├── tiddlers_3.jsonl
+│       │   │   │           ├── tiddlers_4.jsonl
+│       │   │   │           ├── tiddlers_5.jsonl
+│       │   │   │           ├── tiddlers_6.jsonl
+│       │   │   │           └── tiddlers_7.jsonl
+│       │   │   ├── case3
+│       │   │   │   └── admit-20260428015250-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── case3_preseed
+│       │   │   │   ├── admit-20260428015213-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   │   └── backups
+│       │   │   │       └── admit-20260428015213-m03-s67-session-canon-admission-orchestrator-v0
+│       │   │   │           ├── tiddlers_1.jsonl
+│       │   │   │           ├── tiddlers_2.jsonl
+│       │   │   │           ├── tiddlers_3.jsonl
+│       │   │   │           ├── tiddlers_4.jsonl
+│       │   │   │           ├── tiddlers_5.jsonl
+│       │   │   │           ├── tiddlers_6.jsonl
+│       │   │   │           └── tiddlers_7.jsonl
+│       │   │   ├── case4
+│       │   │   │   └── admit-20260428015251-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── case4_preseed
+│       │   │   │   ├── admit-20260428015218-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   │   └── backups
+│       │   │   │       └── admit-20260428015218-m03-s67-session-canon-admission-orchestrator-v0
+│       │   │   │           ├── tiddlers_1.jsonl
+│       │   │   │           ├── tiddlers_2.jsonl
+│       │   │   │           ├── tiddlers_3.jsonl
+│       │   │   │           ├── tiddlers_4.jsonl
+│       │   │   │           ├── tiddlers_5.jsonl
+│       │   │   │           ├── tiddlers_6.jsonl
+│       │   │   │           └── tiddlers_7.jsonl
+│       │   │   ├── case5
+│       │   │   │   └── admit-20260428015252-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── case5_preseed
+│       │   │   │   ├── admit-20260428015224-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   │   └── backups
+│       │   │   │       └── admit-20260428015224-m03-s67-session-canon-admission-orchestrator-v0
+│       │   │   │           ├── tiddlers_1.jsonl
+│       │   │   │           ├── tiddlers_2.jsonl
+│       │   │   │           ├── tiddlers_3.jsonl
+│       │   │   │           ├── tiddlers_4.jsonl
+│       │   │   │           ├── tiddlers_5.jsonl
+│       │   │   │           ├── tiddlers_6.jsonl
+│       │   │   │           └── tiddlers_7.jsonl
+│       │   │   ├── case6
+│       │   │   │   └── validate-20260428015254-case6_missing_source_path.json
+│       │   │   ├── rollback-20260428015107-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   └── validate-20260428015018-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   ├── s69
+│       │   │   ├── admit-20260428133732-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133814-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428134318-m03-s69-session-canon-admission-hardening-and-docs-v0.json
+│       │   │   ├── validate-20260428133732-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   └── validate-20260428134300-m03-s69-session-canon-admission-hardening-and-docs-v0.json
+│       │   ├── s69_probe
+│       │   │   ├── admit-20260428133229-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   ├── validate-20260428133026-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   │   └── validate-20260428133148-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   ├── s69_unittest
+│       │   │   ├── admit-20260428133520-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133523-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133526-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133529-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133533-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133549-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133603-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133831-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133833-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133836-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133839-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133845-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133859-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── admit-20260428133910-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── backups
+│       │   │   │   ├── admit-20260428133603-m03-s66-session-family-and-canonical-closure-flow-v0
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   └── tiddlers_7.jsonl
+│       │   │   │   ├── admit-20260428133910-m03-s66-session-family-and-canonical-closure-flow-v0
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   └── tiddlers_7.jsonl
+│       │   │   │   ├── rollback-20260428133617-m03-s66-session-family-and-canonical-closure-flow-v0-pre
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   └── tiddlers_7.jsonl
+│       │   │   │   └── rollback-20260428133921-m03-s66-session-family-and-canonical-closure-flow-v0-pre
+│       │   │   │       ├── tiddlers_1.jsonl
+│       │   │   │       ├── tiddlers_2.jsonl
+│       │   │   │       ├── tiddlers_3.jsonl
+│       │   │   │       ├── tiddlers_4.jsonl
+│       │   │   │       ├── tiddlers_5.jsonl
+│       │   │   │       ├── tiddlers_6.jsonl
+│       │   │   │       └── tiddlers_7.jsonl
+│       │   │   ├── rollback-20260428133617-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── rollback-20260428133921-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── validate-20260428133531-missing-source-path.json
+│       │   │   ├── validate-20260428133547-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   │   ├── validate-20260428133842-missing-source-path.json
+│       │   │   └── validate-20260428133857-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   ├── validate-20260428012630-m03-s66-session-family-and-canonical-closure-flow-v0.json
+│       │   ├── validate-20260428012918-m03-s67-session-canon-admission-orchestrator-v0.json
+│       │   └── validate-20260428015728-m03-s68-session-canon-admission-integration-fixtures-v0.json
+│       ├── s69_candidate_generation
+│       │   ├── normalized.jsonl
+│       │   └── raw.jsonl
+│       ├── s69_reverse
+│       │   ├── reverse-report.json
+│       │   └── tiddly-data-converter.derived.html
+│       ├── session_admission_fixtures
+│       │   ├── canon_base
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── canon_case1
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── canon_case2
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── canon_case3
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── canon_case4
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── canon_case5
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── canon_case6
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   ├── cases
+│       │   │   ├── case1_valid_new.jsonl
+│       │   │   ├── case2_duplicate_identical.jsonl
+│       │   │   ├── case3_same_id_different_content.jsonl
+│       │   │   ├── case4_same_source_path_different_id.jsonl
+│       │   │   ├── case5_same_session_family_already_admitted.jsonl
+│       │   │   └── case6_missing_source_path.jsonl
+│       │   ├── s68_fixture_manifest.json
+│       │   └── work
+│       │       ├── admit-20260428015027-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015027-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015027-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       ├── admit-20260428015051-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015051-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015051-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       ├── admit-20260428015209-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015209-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015209-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       ├── admit-20260428015213-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015213-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015213-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       ├── admit-20260428015218-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015218-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015218-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       ├── admit-20260428015224-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015224-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015224-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       ├── admit-20260428015234-m03-s67-session-canon-admission-orchestrator-v0
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   └── tiddlers_7.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260428015234-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │       │       └── admit-20260428015234-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       │       └── rollback-20260428015107-m03-s67-session-canon-admission-orchestrator-v0
+│       │           ├── canon
+│       │           │   ├── tiddlers_1.jsonl
+│       │           │   ├── tiddlers_2.jsonl
+│       │           │   ├── tiddlers_3.jsonl
+│       │           │   ├── tiddlers_4.jsonl
+│       │           │   ├── tiddlers_5.jsonl
+│       │           │   ├── tiddlers_6.jsonl
+│       │           │   └── tiddlers_7.jsonl
+│       │           └── reverse_html
+│       │               ├── rollback-20260428015107-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │               └── rollback-20260428015107-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       ├── session_admission_s69
+│       │   ├── admit-20260428133732-m03-s66-session-family-and-canonical-closure-flow-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260428133732-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│       │   │       └── admit-20260428133732-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│       │   └── admit-20260428134318-m03-s69-session-canon-admission-hardening-and-docs-v0
+│       │       ├── admission_lines.normalized.jsonl
+│       │       ├── admission_lines.raw.jsonl
+│       │       ├── canon
+│       │       │   ├── tiddlers_1.jsonl
+│       │       │   ├── tiddlers_2.jsonl
+│       │       │   ├── tiddlers_3.jsonl
+│       │       │   ├── tiddlers_4.jsonl
+│       │       │   ├── tiddlers_5.jsonl
+│       │       │   ├── tiddlers_6.jsonl
+│       │       │   └── tiddlers_7.jsonl
+│       │       └── reverse_html
+│       │           ├── admit-20260428134318-m03-s69-session-canon-admission-hardening-and-docs-v0.derived.html
+│       │           └── admit-20260428134318-m03-s69-session-canon-admission-hardening-and-docs-v0.reverse-report.json
+│       ├── session_admission_s69_probe
+│       │   └── admit-20260428133229-m03-s67-session-canon-admission-orchestrator-v0
+│       │       ├── canon
+│       │       │   ├── tiddlers_1.jsonl
+│       │       │   ├── tiddlers_2.jsonl
+│       │       │   ├── tiddlers_3.jsonl
+│       │       │   ├── tiddlers_4.jsonl
+│       │       │   ├── tiddlers_5.jsonl
+│       │       │   ├── tiddlers_6.jsonl
+│       │       │   └── tiddlers_7.jsonl
+│       │       └── reverse_html
+│       │           ├── admit-20260428133229-m03-s67-session-canon-admission-orchestrator-v0.derived.html
+│       │           └── admit-20260428133229-m03-s67-session-canon-admission-orchestrator-v0.reverse-report.json
+│       └── session_admission_s69_unittest
+│           ├── admit-20260428133533-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── admit-20260428133533-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── admit-20260428133533-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           ├── admit-20260428133549-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── admission_lines.normalized.jsonl
+│           │   ├── admission_lines.raw.jsonl
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── admit-20260428133549-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── admit-20260428133549-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           ├── admit-20260428133603-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── admission_lines.normalized.jsonl
+│           │   ├── admission_lines.raw.jsonl
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── admit-20260428133603-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── admit-20260428133603-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           ├── admit-20260428133845-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── admit-20260428133845-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── admit-20260428133845-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           ├── admit-20260428133859-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── admission_lines.normalized.jsonl
+│           │   ├── admission_lines.raw.jsonl
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── admit-20260428133859-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── admit-20260428133859-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           ├── admit-20260428133910-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── admission_lines.normalized.jsonl
+│           │   ├── admission_lines.raw.jsonl
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── admit-20260428133910-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── admit-20260428133910-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           ├── rollback-20260428133617-m03-s66-session-family-and-canonical-closure-flow-v0
+│           │   ├── canon
+│           │   │   ├── tiddlers_1.jsonl
+│           │   │   ├── tiddlers_2.jsonl
+│           │   │   ├── tiddlers_3.jsonl
+│           │   │   ├── tiddlers_4.jsonl
+│           │   │   ├── tiddlers_5.jsonl
+│           │   │   ├── tiddlers_6.jsonl
+│           │   │   └── tiddlers_7.jsonl
+│           │   └── reverse_html
+│           │       ├── rollback-20260428133617-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│           │       └── rollback-20260428133617-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│           └── rollback-20260428133921-m03-s66-session-family-and-canonical-closure-flow-v0
+│               ├── canon
+│               │   ├── tiddlers_1.jsonl
+│               │   ├── tiddlers_2.jsonl
+│               │   ├── tiddlers_3.jsonl
+│               │   ├── tiddlers_4.jsonl
+│               │   ├── tiddlers_5.jsonl
+│               │   ├── tiddlers_6.jsonl
+│               │   └── tiddlers_7.jsonl
+│               └── reverse_html
+│                   ├── rollback-20260428133921-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
+│                   └── rollback-20260428133921-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
@@ -400,6 +802,7 @@
 │   └── packaging.txt
 ├── python_scripts
 │   ├── __pycache__
+│   ├── admit_session_candidates.py
 │   ├── audit_normative_projection.py
 │   ├── canon_proposal.py
 │   ├── corpus_governance.py
@@ -527,10 +930,15 @@
 │   │   ├── s64
 │   │   │   ├── __pycache__
 │   │   │   └── test_copilot_agent_projection.py
-│   │   └── s65
+│   │   ├── s65
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__
+│   │   │   └── test_s65_microsoft_copilot_flow.py
+│   │   └── s69
 │   │       ├── __init__.py
 │   │       ├── __pycache__
-│   │       └── test_s65_microsoft_copilot_flow.py
+│   │       ├── run_session_admission_test.sh
+│   │       └── test_session_admission.py
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1
