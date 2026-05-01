@@ -103,9 +103,11 @@ type ExportManifest struct {
 	ExcludedCount        int `json:"excluded_count"`
 	ExportedCount        int `json:"exported_count"`
 	// S38: per-rule exclusion tracking.
-	ExcludedByRule map[string]int `json:"excluded_by_rule"`
-	SHA256         string         `json:"sha256"`
-	OutputPath     string         `json:"output_path"`
+	ExcludedByRule   map[string]int `json:"excluded_by_rule"`
+	SHA256           string         `json:"sha256"`
+	OutputPath       string         `json:"output_path"`
+	SourceHTMLPath   string         `json:"source_html_path,omitempty"`
+	SourceHTMLSHA256 string         `json:"source_html_sha256,omitempty"`
 	// S35 conteos
 	ContentTypeCounts  map[string]int `json:"content_type_counts,omitempty"`
 	ModalityCounts     map[string]int `json:"modality_counts,omitempty"`

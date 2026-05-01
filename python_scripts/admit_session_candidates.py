@@ -23,6 +23,7 @@ from path_governance import (
     REPO_ROOT,
     as_display_path,
     resolve_repo_path,
+    sorted_canon_shards,
 )
 
 
@@ -236,7 +237,7 @@ def _read_jsonl(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
 
 def _canon_hash(canon_dir: Path) -> str:
     digest = hashlib.sha256()
-    shard_paths = sorted(canon_dir.glob("tiddlers_*.jsonl"))
+    shard_paths = sorted_canon_shards(canon_dir)
     for shard in shard_paths:
         digest.update(shard.name.encode("utf-8"))
         digest.update(b"\0")
@@ -556,7 +557,7 @@ def _load_canon_index(canon_dir: Path) -> CanonIndex:
     by_hash: dict[str, list[CanonRecord]] = {}
     by_title: dict[str, list[CanonRecord]] = {}
 
-    for shard_path in sorted(canon_dir.glob("tiddlers_*.jsonl")):
+    for shard_path in sorted_canon_shards(canon_dir):
         with shard_path.open("r", encoding="utf-8") as handle:
             for line_no, raw in enumerate(handle, start=1):
                 line = raw.strip()
@@ -1008,7 +1009,7 @@ def _prepare_admitted_lines(entries: list[CandidateEntry], work_dir: Path) -> tu
 
 
 def _copy_canon_shards(canon_dir: Path, target_dir: Path) -> list[Path]:
-    shard_paths = sorted(canon_dir.glob("tiddlers_*.jsonl"))
+    shard_paths = sorted_canon_shards(canon_dir)
     if not shard_paths:
         raise RuntimeError(f"no canon shard files found under {as_display_path(canon_dir)}")
 
@@ -1179,7 +1180,7 @@ def _run_canon_proposal_validate(candidate_file: Path, canon_dir: Path) -> Comma
 
 
 def _replace_canon_from_tmp(canon_dir: Path, tmp_canon_dir: Path) -> None:
-    target_shards = sorted(tmp_canon_dir.glob("tiddlers_*.jsonl"))
+    target_shards = sorted_canon_shards(tmp_canon_dir)
     if not target_shards:
         raise RuntimeError("temporary canon has no shard files")
 
@@ -1508,7 +1509,7 @@ def _run_dry_pipeline(args: argparse.Namespace, mode: str) -> tuple[int, dict[st
     if mode == "apply":
         backup_dir = report_dir / "backups" / run_id
         backup_dir.mkdir(parents=True, exist_ok=True)
-        for shard in sorted(canon_dir.glob("tiddlers_*.jsonl")):
+        for shard in sorted_canon_shards(canon_dir):
             shutil.copy2(shard, backup_dir / shard.name)
 
         if normalized_lines:
@@ -1575,7 +1576,7 @@ def _handle_apply(args: argparse.Namespace) -> int:
 
 def _remove_ids_from_canon(canon_dir: Path, ids_to_remove: set[str]) -> tuple[int, list[str]]:
     removed_ids: list[str] = []
-    for shard_path in sorted(canon_dir.glob("tiddlers_*.jsonl")):
+    for shard_path in sorted_canon_shards(canon_dir):
         kept_lines: list[str] = []
         with shard_path.open("r", encoding="utf-8") as handle:
             for raw in handle:
@@ -1742,7 +1743,7 @@ def _handle_rollback(args: argparse.Namespace) -> int:
         report["removed_count"] = removed_count
         report["removed_ids"] = removed_ids
     if replacement_records and not backup_shards_available:
-        target_shards = sorted(tmp_canon_dir.glob("tiddlers_*.jsonl"))
+        target_shards = sorted_canon_shards(tmp_canon_dir)
         if not target_shards:
             report["warnings"].append("temporary canon has no shard files for replacement restore")
             report["canon_after_hash"] = report["canon_before_hash"]
@@ -1833,7 +1834,7 @@ def _handle_rollback(args: argparse.Namespace) -> int:
     if not args.dry_run:
         backup_dir = report_dir / "backups" / f"{run_id}-pre"
         backup_dir.mkdir(parents=True, exist_ok=True)
-        for shard in sorted(canon_dir.glob("tiddlers_*.jsonl")):
+        for shard in sorted_canon_shards(canon_dir):
             shutil.copy2(shard, backup_dir / shard.name)
         _replace_canon_from_tmp(canon_dir, tmp_canon_dir)
         report["backup_dir"] = as_display_path(backup_dir)

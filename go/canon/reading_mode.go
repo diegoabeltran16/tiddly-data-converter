@@ -1,23 +1,24 @@
 // Package canon — reading_mode.go
 //
-// S35 — canon-node-reading-mode-and-typing-v0
+// # S35 — canon-node-reading-mode-and-typing-v0
 //
 // Defines the reading mode and minimal typing layer for each node in the
 // canonical JSONL export. Every exported line must expose five reading mode
 // fields:
 //
-//   content_type      — what type of content the node carries
-//   modality          — how the node should be read (primary channel)
-//   encoding          — how the payload is represented
-//   is_binary         — whether the content requires binary treatment
-//   is_reference_only — whether the node is a reference/pointer, not content
+//	content_type      — what type of content the node carries
+//	modality          — how the node should be read (primary channel)
+//	encoding          — how the payload is represented
+//	is_binary         — whether the content requires binary treatment
+//	is_reference_only — whether the node is a reference/pointer, not content
 //
 // These five fields are complementary, not redundant.
 //
 // Dependencies on prior sessions (not reopened here):
-//   S33 — JSONL functional export (1 tiddler = 1 line)
-//   S34 — structural identity (id, key, title, canonical_slug, version_id)
-//   S30 — UUIDv5 and canonical JSON
+//
+//	S33 — JSONL functional export (1 tiddler = 1 line)
+//	S34 — structural identity (id, key, title, canonical_slug, version_id)
+//	S30 — UUIDv5 and canonical JSON
 //
 // Design principles:
 //   - Prefer fidelity over sophistication
@@ -39,18 +40,18 @@ import (
 
 // Content type catalogue (S35 §16.1).
 const (
-	ContentTypePlain         = "text/plain"
-	ContentTypeMarkdown      = "text/markdown"
-	ContentTypeHTML          = "text/html"
-	ContentTypeTiddlyWiki    = "text/vnd.tiddlywiki"
-	ContentTypeJSON          = "application/json"
-	ContentTypeCSV           = "text/csv"
-	ContentTypePNG           = "image/png"
-	ContentTypeJPEG          = "image/jpeg"
-	ContentTypeSVG           = "image/svg+xml"
-	ContentTypeOctetStream   = "application/octet-stream"
-	ContentTypeTiddler       = "application/x-tiddler"
-	ContentTypeUnknown       = "unknown"
+	ContentTypePlain       = "text/plain"
+	ContentTypeMarkdown    = "text/markdown"
+	ContentTypeHTML        = "text/html"
+	ContentTypeTiddlyWiki  = "text/vnd.tiddlywiki"
+	ContentTypeJSON        = "application/json"
+	ContentTypeCSV         = "text/csv"
+	ContentTypePNG         = "image/png"
+	ContentTypeJPEG        = "image/jpeg"
+	ContentTypeSVG         = "image/svg+xml"
+	ContentTypeOctetStream = "application/octet-stream"
+	ContentTypeTiddler     = "application/x-tiddler"
+	ContentTypeUnknown     = "unknown"
 )
 
 // Modality catalogue (S35 §16.2).
@@ -141,6 +142,14 @@ func DetectModality(contentType string, e CanonEntry) string {
 
 	switch contentType {
 	case ContentTypePlain, ContentTypeMarkdown, ContentTypeHTML, ContentTypeTiddlyWiki:
+		if e.Text != nil {
+			if blocks := ExtractCodeBlocks(*e.Text); isDominatedByCodeBlock(*e.Text, blocks) {
+				return ModalityCode
+			}
+			if hasMixedTextModalSignals(*e.Text) {
+				return ModalityMixed
+			}
+		}
 		return ModalityText
 	case ContentTypeJSON:
 		return ModalityMetadata
@@ -362,6 +371,55 @@ func isExplicitEquation(e CanonEntry) bool {
 	}
 
 	return false
+}
+
+func hasMixedTextModalSignals(text string) bool {
+	signals := 0
+	if len(ExtractCodeBlocks(text)) > 0 {
+		signals++
+	}
+	if len(ExtractEquations(text)) > 0 {
+		signals++
+	}
+	if len(ExtractReferences(text)) > 0 {
+		signals++
+	}
+	return signals > 0 && hasPlainTextOutsideModalBlocks(text)
+}
+
+func hasPlainTextOutsideModalBlocks(text string) bool {
+	withoutCode := removeFencedCodeBlocks(text)
+	withoutEquations := displayEquationRe.ReplaceAllString(withoutCode, " ")
+	withoutEquations = parenEquationRe.ReplaceAllString(withoutEquations, " ")
+	withoutLinks := markdownLinkRe.ReplaceAllString(withoutEquations, " ")
+	withoutLinks = tiddlyLinkRe.ReplaceAllString(withoutLinks, " ")
+	withoutLinks = bareURLRe.ReplaceAllString(withoutLinks, " ")
+	withoutLinks = doiRe.ReplaceAllString(withoutLinks, " ")
+	return strings.TrimSpace(withoutLinks) != ""
+}
+
+func isDominatedByCodeBlock(text string, blocks []CodeBlockProjection) bool {
+	if len(blocks) != 1 {
+		return false
+	}
+	trimmed := strings.TrimSpace(text)
+	return strings.HasPrefix(trimmed, "```") && strings.HasSuffix(trimmed, "```")
+}
+
+func removeFencedCodeBlocks(text string) string {
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	var kept []string
+	inFence := false
+	for _, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			inFence = !inFence
+			continue
+		}
+		if !inFence {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
 }
 
 // looksLikeBase64 checks if text content appears to be base64-encoded.

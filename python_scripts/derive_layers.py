@@ -72,6 +72,7 @@ from path_governance import (
     DEFAULT_MICROSOFT_COPILOT_DIR,
     as_display_path,
     resolve_repo_path,
+    sorted_canon_shards,
 )
 
 # ── Derivation session identifier ────────────────────────────────────────────
@@ -1367,7 +1368,7 @@ def validate_relations(relations: list, known_ids: set) -> tuple:
 
 def discover_shards(input_dir: Path) -> list:
     """Discover all canon shards matching tiddlers_*.jsonl pattern."""
-    shards = sorted(input_dir.glob("tiddlers_*.jsonl"))
+    shards = sorted_canon_shards(input_dir)
     if not shards:
         print(f"ERROR: No tiddlers_*.jsonl shards found in {input_dir}", file=sys.stderr)
         sys.exit(1)

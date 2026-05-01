@@ -18,6 +18,7 @@ from path_governance import (
     ensure_runtime_directories,
     proposals_path,
     resolve_repo_path,
+    sorted_canon_shards,
 )
 
 
@@ -149,7 +150,7 @@ def _load_canon_index(canon_dir: Path) -> tuple[set[str], set[str], set[str]]:
     ids: set[str] = set()
     keys: set[str] = set()
     titles: set[str] = set()
-    for shard_path in sorted(canon_dir.glob("tiddlers_*.jsonl")):
+    for shard_path in sorted_canon_shards(canon_dir):
         for raw_line in shard_path.read_text(encoding="utf-8").splitlines():
             line = raw_line.strip()
             if not line:

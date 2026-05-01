@@ -2,77 +2,70 @@ package canon
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestShardCanonJSONL_ClassifiesSessionFamilies(t *testing.T) {
-	input := strings.Join([]string{
-		`{"title":"_README.md"}`,
-		`{"title":"#### 🌀📦 Política de dependencias"}`,
-		`{"title":"#### 🌀 Sesión 44 = canon-sharded-homogeneous-records-and-robust-reverse-v0"}`,
-		`{"title":"#### 🌀🧪 Hipótesis de sesión 44 = canon-sharded-homogeneous-records-and-robust-reverse-v0"}`,
-		`{"title":"#### 🌀🧾 Procedencia de sesión 44"}`,
-		`{"title":"#### referencias especificas 🌀"}`,
-		`{"title":"01. Reference title"}`,
-		`{"title":"go/canon/example.go"}`,
-	}, "\n") + "\n"
+func TestShardCanonJSONL_SequentialDefaultMaxLines(t *testing.T) {
+	input := shardTestInput(205)
 
 	shards, report, err := ShardCanonJSONL(strings.NewReader(input))
 	if err != nil {
 		t.Fatalf("ShardCanonJSONL() error = %v", err)
 	}
 
-	if report.SessionCount != 1 || len(shards["tiddlers_2.jsonl"]) != 1 {
-		t.Fatalf("session shard mismatch: report=%d shard=%d", report.SessionCount, len(shards["tiddlers_2.jsonl"]))
+	if report.PolicyID != "sequential-max-lines-v0" {
+		t.Fatalf("policy_id = %q, want sequential-max-lines-v0", report.PolicyID)
 	}
-	if report.HypothesisCount != 2 || len(shards["tiddlers_3.jsonl"]) != 2 {
-		t.Fatalf("hypothesis shard mismatch: report=%d shard=%d", report.HypothesisCount, len(shards["tiddlers_3.jsonl"]))
+	if report.ShardMaxLines != DefaultCanonShardMaxLines {
+		t.Fatalf("shard max lines = %d, want %d", report.ShardMaxLines, DefaultCanonShardMaxLines)
 	}
-	if report.ProvenanceCount != 3 || len(shards["tiddlers_4.jsonl"]) != 3 {
-		t.Fatalf("provenance shard mismatch: report=%d shard=%d", report.ProvenanceCount, len(shards["tiddlers_4.jsonl"]))
+	wantOrder := []string{"tiddlers_1.jsonl", "tiddlers_2.jsonl", "tiddlers_3.jsonl"}
+	if !stringSliceEqual(report.ShardOrder, wantOrder) {
+		t.Fatalf("shard order = %v, want %v", report.ShardOrder, wantOrder)
 	}
-	if got := len(shards["tiddlers_1.jsonl"]); got != 2 {
-		t.Fatalf("tiddlers_1.jsonl count = %d, want 2", got)
+	if report.ShardLineCounts["tiddlers_1.jsonl"] != 100 {
+		t.Fatalf("tiddlers_1.jsonl count = %d, want 100", report.ShardLineCounts["tiddlers_1.jsonl"])
 	}
-	if !strings.Contains(shards["tiddlers_3.jsonl"][0], `"title":"#### 🌀📦 Política de dependencias"`) {
-		t.Fatalf("shard 3 pinned block order mismatch: %q", shards["tiddlers_3.jsonl"][0])
+	if report.ShardLineCounts["tiddlers_2.jsonl"] != 100 {
+		t.Fatalf("tiddlers_2.jsonl count = %d, want 100", report.ShardLineCounts["tiddlers_2.jsonl"])
 	}
-	if !strings.Contains(shards["tiddlers_4.jsonl"][0], `"title":"#### 🌀🧾 Procedencia de sesión 44"`) {
-		t.Fatalf("shard 4 provenance-first order mismatch: %q", shards["tiddlers_4.jsonl"][0])
+	if report.ShardLineCounts["tiddlers_3.jsonl"] != 5 {
+		t.Fatalf("tiddlers_3.jsonl count = %d, want 5", report.ShardLineCounts["tiddlers_3.jsonl"])
+	}
+	if _, exists := shards["tiddlers_4.jsonl"]; exists {
+		t.Fatal("unexpected empty tiddlers_4.jsonl shard")
+	}
+	if !strings.Contains(shards["tiddlers_1.jsonl"][0], `"title":"node-000"`) {
+		t.Fatalf("first line not preserved: %q", shards["tiddlers_1.jsonl"][0])
+	}
+	if !strings.Contains(shards["tiddlers_3.jsonl"][4], `"title":"node-204"`) {
+		t.Fatalf("last line not preserved: %q", shards["tiddlers_3.jsonl"][4])
 	}
 }
 
-func TestShardCanonJSONL_PreservesRemainingOrderAcrossAuxShards(t *testing.T) {
-	var lines []string
-	for i := 0; i < 290; i++ {
-		lines = append(lines, fmt.Sprintf(`{"title":"node-%03d"}`, i))
-	}
-	input := strings.Join(lines, "\n") + "\n"
+func TestShardCanonJSONLWithMaxLines_PreservesOrder(t *testing.T) {
+	input := shardTestInput(5)
 
-	shards, report, err := ShardCanonJSONL(strings.NewReader(input))
+	shards, report, err := ShardCanonJSONLWithMaxLines(strings.NewReader(input), 3)
 	if err != nil {
-		t.Fatalf("ShardCanonJSONL() error = %v", err)
+		t.Fatalf("ShardCanonJSONLWithMaxLines() error = %v", err)
 	}
 
-	if report.ShardLineCounts["tiddlers_1.jsonl"] != 2 {
-		t.Fatalf("tiddlers_1.jsonl count = %d, want 2", report.ShardLineCounts["tiddlers_1.jsonl"])
+	wantOrder := []string{"tiddlers_1.jsonl", "tiddlers_2.jsonl"}
+	if !stringSliceEqual(report.ShardOrder, wantOrder) {
+		t.Fatalf("shard order = %v, want %v", report.ShardOrder, wantOrder)
 	}
-	if report.ShardLineCounts["tiddlers_5.jsonl"] != 144 {
-		t.Fatalf("tiddlers_5.jsonl count = %d, want 144", report.ShardLineCounts["tiddlers_5.jsonl"])
+	if report.ShardLineCounts["tiddlers_1.jsonl"] != 3 {
+		t.Fatalf("tiddlers_1.jsonl count = %d, want 3", report.ShardLineCounts["tiddlers_1.jsonl"])
 	}
-	if report.ShardLineCounts["tiddlers_6.jsonl"] != 144 {
-		t.Fatalf("tiddlers_6.jsonl count = %d, want 144", report.ShardLineCounts["tiddlers_6.jsonl"])
+	if report.ShardLineCounts["tiddlers_2.jsonl"] != 2 {
+		t.Fatalf("tiddlers_2.jsonl count = %d, want 2", report.ShardLineCounts["tiddlers_2.jsonl"])
 	}
-	if report.ShardLineCounts["tiddlers_7.jsonl"] != 0 {
-		t.Fatalf("tiddlers_7.jsonl count = %d, want 0", report.ShardLineCounts["tiddlers_7.jsonl"])
-	}
-
-	if !strings.Contains(shards["tiddlers_1.jsonl"][0], `"title":"node-000"`) {
-		t.Fatalf("first auxiliary line not preserved: %q", shards["tiddlers_1.jsonl"][0])
-	}
-	if !strings.Contains(shards["tiddlers_6.jsonl"][143], `"title":"node-289"`) {
-		t.Fatalf("last filled auxiliary line not preserved: %q", shards["tiddlers_6.jsonl"][143])
+	if !strings.Contains(shards["tiddlers_2.jsonl"][0], `"title":"node-003"`) {
+		t.Fatalf("first second-shard line not preserved: %q", shards["tiddlers_2.jsonl"][0])
 	}
 }
 
@@ -83,14 +76,65 @@ func TestShardCanonJSONL_FailsOnInvalidJSON(t *testing.T) {
 	}
 }
 
-func TestShardCanonJSONL_FailsWhenAuxCapacityExceeded(t *testing.T) {
-	var builder strings.Builder
-	for i := 0; i < (auxShardMaxLines*len(auxShardOrder))+1; i++ {
-		builder.WriteString(`{"title":"node-overflow"}` + "\n")
+func TestShardCanonJSONLWithMaxLines_FailsOnInvalidLimit(t *testing.T) {
+	_, _, err := ShardCanonJSONLWithMaxLines(strings.NewReader(shardTestInput(1)), 0)
+	if err == nil {
+		t.Fatal("expected invalid limit error")
+	}
+}
+
+func TestWriteShardSetWithMaxLines_ReplacesOnlyCanonShards(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join(tmpDir, "tiddlers.export.jsonl")
+	outDir := filepath.Join(tmpDir, "canon")
+	if err := os.WriteFile(inputPath, []byte(shardTestInput(3)), 0o644); err != nil {
+		t.Fatalf("write input: %v", err)
+	}
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		t.Fatalf("mkdir out: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "tiddlers_99.jsonl"), []byte(`{"title":"stale"}`+"\n"), 0o644); err != nil {
+		t.Fatalf("write stale shard: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "notes.txt"), []byte("keep me\n"), 0o644); err != nil {
+		t.Fatalf("write non-shard file: %v", err)
 	}
 
-	_, _, err := ShardCanonJSONL(strings.NewReader(builder.String()))
-	if err == nil {
-		t.Fatal("expected overflow error")
+	report, err := WriteShardSetWithMaxLines(inputPath, outDir, 2)
+	if err != nil {
+		t.Fatalf("WriteShardSetWithMaxLines() error = %v", err)
 	}
+
+	if _, err := os.Stat(filepath.Join(outDir, "tiddlers_99.jsonl")); !os.IsNotExist(err) {
+		t.Fatalf("stale shard should be removed, stat err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(outDir, "notes.txt")); err != nil {
+		t.Fatalf("non-shard file should remain: %v", err)
+	}
+	if report.ShardLineCounts["tiddlers_1.jsonl"] != 2 || report.ShardLineCounts["tiddlers_2.jsonl"] != 1 {
+		t.Fatalf("unexpected shard line counts: %v", report.ShardLineCounts)
+	}
+	if got := countShardTestLines(t, filepath.Join(outDir, "tiddlers_1.jsonl")); got != 2 {
+		t.Fatalf("tiddlers_1.jsonl lines = %d, want 2", got)
+	}
+	if got := countShardTestLines(t, filepath.Join(outDir, "tiddlers_2.jsonl")); got != 1 {
+		t.Fatalf("tiddlers_2.jsonl lines = %d, want 1", got)
+	}
+}
+
+func shardTestInput(count int) string {
+	var lines []string
+	for i := 0; i < count; i++ {
+		lines = append(lines, fmt.Sprintf(`{"title":"node-%03d"}`, i))
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
+
+func countShardTestLines(t *testing.T, path string) int {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return len(strings.Split(strings.TrimSpace(string(data)), "\n"))
 }
