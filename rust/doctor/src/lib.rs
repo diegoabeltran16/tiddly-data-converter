@@ -25,16 +25,24 @@
 //!
 //! Ref: contratos/m01-s04-doctor-contract.md
 
+pub mod canon_quality;
 pub mod error;
 pub mod report;
 
 use std::path::{Path, PathBuf};
 
+pub use canon_quality::{audit_canonical_lines, inspect_deep_nodes};
 pub use error::DoctorError;
 pub use report::{
-    DoctorReport, DoctorVerdict, PerimeterCheck, PerimeterReport, PerimeterVerdict,
-    ReconstructionMode, ReconstructionPlanInput, ReconstructionPlanReport,
-    ReconstructionPlanVerdict, ReconstructionSourceRole,
+    CanonQualityDebtSummary, CanonicalLineCounts, CanonicalLineGateReport, CanonicalLineIssue,
+    CanonicalLineItemReport, CanonicalLineVerdict, DeepNodeFinding, DeepNodeFindingCounts,
+    DeepNodeInspectionReport, DeepNodeInspectorVerdict, DoctorReport, DoctorVerdict,
+    FamilyProfileIssueSummary, FamilyProfileReport, IncompleteLineTriageReport,
+    ModalProjectionAuditReport, ModalProjectionIssueReport, PerimeterCheck, PerimeterReport,
+    PerimeterVerdict, ReconstructionMode, ReconstructionPlanInput, ReconstructionPlanReport,
+    ReconstructionPlanVerdict, ReconstructionRollbackInput, ReconstructionRollbackReport,
+    ReconstructionRollbackVerdict, ReconstructionSourceRole, TemplateFamilyReport,
+    TemplateVariantReport,
 };
 
 /// Audita la integridad estructural mínima del artefacto raw producido por el Extractor HTML.
@@ -315,12 +323,46 @@ pub fn audit_reconstruction_plan(
     requires_backup: bool,
     requires_hash_report: bool,
 ) -> ReconstructionPlanReport {
+    audit_reconstruction_plan_with_artifacts(
+        repo_root,
+        source_html_path,
+        source_role,
+        reconstruction_mode,
+        output_target,
+        None,
+        None,
+        requires_backup,
+        requires_hash_report,
+    )
+}
+
+/// Audita un plan de reconstrucción con artefactos operativos concretos.
+///
+/// Esta variante se usa cuando el menú ya seleccionó un JSONL temporal o un
+/// run directory de reconstrucción. Rust no ejecuta shardización ni reverse:
+/// valida que la procedencia HTML -> JSONL esté demostrada por manifiesto y
+/// que el espacio de evidencia viva bajo `data/tmp/reconstruction/`.
+pub fn audit_reconstruction_plan_with_artifacts(
+    repo_root: &Path,
+    source_html_path: &Path,
+    source_role: ReconstructionSourceRole,
+    reconstruction_mode: ReconstructionMode,
+    output_target: &Path,
+    input_jsonl_path: Option<&Path>,
+    reconstruction_run_dir: Option<&Path>,
+    requires_backup: bool,
+    requires_hash_report: bool,
+) -> ReconstructionPlanReport {
     let root = repo_root;
     let mut checks: Vec<PerimeterCheck> = Vec::new();
     let source = resolve_plan_path(root, source_html_path);
     let target = resolve_plan_path(root, output_target);
+    let input_jsonl = input_jsonl_path.map(|path| resolve_plan_path(root, path));
+    let run_dir = reconstruction_run_dir.map(|path| resolve_plan_path(root, path));
     let data_in = root.join("data/in");
     let data_tmp = root.join("data/tmp");
+    let html_export_dir = root.join("data/tmp/html_export");
+    let reconstruction_dir = root.join("data/tmp/reconstruction");
     let canon_dir = root.join("data/out/local");
     let reverse_html_dir = root.join("data/out/local/reverse_html");
 
@@ -330,6 +372,21 @@ pub fn audit_reconstruction_plan(
         &data_tmp,
         &canon_dir,
         &reverse_html_dir,
+        &reconstruction_mode,
+        &mut checks,
+    );
+    check_reconstruction_run_dir(
+        root,
+        run_dir.as_deref(),
+        &reconstruction_dir,
+        &reconstruction_mode,
+        &mut checks,
+    );
+    check_input_jsonl_origin(
+        root,
+        &source,
+        input_jsonl.as_deref(),
+        &html_export_dir,
         &reconstruction_mode,
         &mut checks,
     );
@@ -348,7 +405,15 @@ pub fn audit_reconstruction_plan(
         );
     }
 
-    if path_has_parent_component(source_html_path) || path_has_parent_component(output_target) {
+    if path_has_parent_component(source_html_path)
+        || path_has_parent_component(output_target)
+        || input_jsonl_path
+            .map(path_has_parent_component)
+            .unwrap_or(false)
+        || reconstruction_run_dir
+            .map(path_has_parent_component)
+            .unwrap_or(false)
+    {
         push_error(
             &mut checks,
             "plan-no-parent-path-components",
@@ -507,6 +572,10 @@ pub fn audit_reconstruction_plan(
             source_role,
             reconstruction_mode,
             output_target: display_plan_path(root, &target),
+            input_jsonl_path: input_jsonl
+                .as_deref()
+                .map(|path| display_plan_path(root, path)),
+            reconstruction_run_dir: run_dir.as_deref().map(|path| display_plan_path(root, path)),
             requires_backup,
             requires_hash_report,
         },
@@ -532,6 +601,456 @@ pub fn parse_reconstruction_mode(value: &str) -> Option<ReconstructionMode> {
         "write_local_canon" => Some(ReconstructionMode::WriteLocalCanon),
         "reverse_projection" => Some(ReconstructionMode::ReverseProjection),
         _ => None,
+    }
+}
+
+/// Audita un reporte de reconstrucción antes de que Python restaure su backup.
+///
+/// Rust no modifica `data/out/local`. Solo comprueba que el reporte pertenece
+/// a `data/tmp/reconstruction/`, que declara rollback habilitado, que el backup
+/// contiene shards reales y que el hash de ese backup coincide con el
+/// `canon_before_hash` registrado.
+pub fn audit_reconstruction_rollback(
+    repo_root: &Path,
+    report_path: &Path,
+) -> ReconstructionRollbackReport {
+    let root = repo_root;
+    let mut checks: Vec<PerimeterCheck> = Vec::new();
+    let report = resolve_plan_path(root, report_path);
+    let reconstruction_dir = root.join("data/tmp/reconstruction");
+    let canon_dir = root.join("data/out/local");
+
+    if path_has_parent_component(report_path) {
+        push_error(
+            &mut checks,
+            "rollback-report-no-parent-path-components",
+            "el reporte de rollback no acepta componentes '..'",
+        );
+    } else {
+        push_ok(
+            &mut checks,
+            "rollback-report-no-parent-path-components",
+            "el reporte de rollback no usa componentes '..'",
+        );
+    }
+
+    if path_under(&report, &reconstruction_dir) {
+        push_ok(
+            &mut checks,
+            "rollback-report-under-reconstruction",
+            "reporte de reconstruccion esta bajo data/tmp/reconstruction",
+        );
+    } else {
+        push_error(
+            &mut checks,
+            "rollback-report-under-reconstruction",
+            "reporte de reconstruccion debe estar bajo data/tmp/reconstruction",
+        );
+    }
+
+    let value = match read_json_object(&report) {
+        Ok(value) => {
+            push_ok(
+                &mut checks,
+                "rollback-report-readable",
+                "reporte de reconstruccion es JSON valido",
+            );
+            value
+        }
+        Err(message) => {
+            push_error(&mut checks, "rollback-report-readable", &message);
+            return finish_rollback_report(root, &report, None, None, None, None, checks);
+        }
+    };
+
+    if value.get("rollback_ready").and_then(|item| item.as_bool()) == Some(true) {
+        push_ok(
+            &mut checks,
+            "rollback-ready-flag",
+            "reporte declara rollback_ready=true",
+        );
+    } else {
+        push_error(
+            &mut checks,
+            "rollback-ready-flag",
+            "reporte debe declarar rollback_ready=true",
+        );
+    }
+
+    let backup_dir = value
+        .get("backup_dir")
+        .and_then(|item| item.as_str())
+        .map(|path| resolve_plan_path(root, Path::new(path)));
+    let output_target = value
+        .get("output_target")
+        .and_then(|item| item.as_str())
+        .map(|path| resolve_plan_path(root, Path::new(path)));
+    let expected_hash = value
+        .get("canon_before_hash")
+        .and_then(|item| item.as_str())
+        .map(|item| item.to_string());
+
+    match &output_target {
+        Some(target) if target == &canon_dir => {
+            push_ok(
+                &mut checks,
+                "rollback-output-target-local-canon",
+                "rollback apunta exactamente a data/out/local",
+            );
+        }
+        Some(target) => {
+            push_error(
+                &mut checks,
+                "rollback-output-target-local-canon",
+                &format!(
+                    "rollback debe apuntar a data/out/local, no a {}",
+                    display_plan_path(root, target)
+                ),
+            );
+        }
+        None => {
+            push_error(
+                &mut checks,
+                "rollback-output-target-local-canon",
+                "reporte no declara output_target",
+            );
+        }
+    }
+
+    let computed_hash = match &backup_dir {
+        Some(path) if path_under(path, &reconstruction_dir) && path.ends_with("canon_before") => {
+            push_ok(
+                &mut checks,
+                "rollback-backup-under-reconstruction",
+                "backup canon_before esta bajo data/tmp/reconstruction",
+            );
+            match canonical_canon_tree_hash(path) {
+                Ok(hash) => {
+                    push_ok(
+                        &mut checks,
+                        "rollback-backup-hash-computable",
+                        "hash del backup canon_before calculable sobre shards reales",
+                    );
+                    Some(hash)
+                }
+                Err(message) => {
+                    push_error(&mut checks, "rollback-backup-hash-computable", &message);
+                    None
+                }
+            }
+        }
+        Some(_) => {
+            push_error(
+                &mut checks,
+                "rollback-backup-under-reconstruction",
+                "backup debe ser canon_before bajo data/tmp/reconstruction",
+            );
+            None
+        }
+        None => {
+            push_error(
+                &mut checks,
+                "rollback-backup-under-reconstruction",
+                "reporte no declara backup_dir",
+            );
+            None
+        }
+    };
+
+    match (&expected_hash, &computed_hash) {
+        (Some(expected), Some(computed)) if is_sha256_label(expected) && expected == computed => {
+            push_ok(
+                &mut checks,
+                "rollback-backup-hash-matches-report",
+                "canon_before_hash coincide con el contenido real del backup",
+            );
+        }
+        (Some(expected), Some(computed)) if !is_sha256_label(expected) => {
+            push_error(
+                &mut checks,
+                "rollback-backup-hash-matches-report",
+                &format!("canon_before_hash invalido: {}", expected),
+            );
+        }
+        (Some(expected), Some(computed)) => {
+            push_error(
+                &mut checks,
+                "rollback-backup-hash-matches-report",
+                &format!(
+                    "canon_before_hash esperado {}, calculado {}",
+                    expected, computed
+                ),
+            );
+        }
+        (None, _) => {
+            push_error(
+                &mut checks,
+                "rollback-backup-hash-matches-report",
+                "reporte no declara canon_before_hash",
+            );
+        }
+        (_, None) => {
+            push_error(
+                &mut checks,
+                "rollback-backup-hash-matches-report",
+                "no se pudo calcular hash del backup",
+            );
+        }
+    }
+
+    finish_rollback_report(
+        root,
+        &report,
+        backup_dir.as_deref(),
+        output_target.as_deref(),
+        expected_hash.as_deref(),
+        computed_hash.as_deref(),
+        checks,
+    )
+}
+
+fn finish_rollback_report(
+    root: &Path,
+    report: &Path,
+    backup_dir: Option<&Path>,
+    output_target: Option<&Path>,
+    expected_hash: Option<&str>,
+    computed_hash: Option<&str>,
+    checks: Vec<PerimeterCheck>,
+) -> ReconstructionRollbackReport {
+    let errors = checks
+        .iter()
+        .filter(|check| check.status == "error")
+        .count();
+    let verdict = if errors == 0 {
+        ReconstructionRollbackVerdict::Ready
+    } else {
+        ReconstructionRollbackVerdict::Rejected
+    };
+
+    ReconstructionRollbackReport {
+        verdict,
+        repo_root: root.to_string_lossy().to_string(),
+        rollback: ReconstructionRollbackInput {
+            report_path: display_plan_path(root, report),
+            backup_dir: backup_dir.map(|path| display_plan_path(root, path)),
+            output_target: output_target.map(|path| display_plan_path(root, path)),
+            expected_canon_before_hash: expected_hash.map(str::to_string),
+            computed_backup_hash: computed_hash.map(str::to_string),
+        },
+        checks_run: checks.len(),
+        errors,
+        checks,
+    }
+}
+
+/// Calcula el hash de árbol usado por los reportes de reconstrucción:
+/// nombre de shard, byte NUL, contenido real, byte NUL, en orden de shard.
+pub fn canonical_canon_tree_hash(canon_dir: &Path) -> Result<String, String> {
+    let mut shards: Vec<PathBuf> = std::fs::read_dir(canon_dir)
+        .map_err(|e| format!("no se pudo leer '{}': {}", canon_dir.display(), e))?
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .and_then(shard_number)
+                .is_some()
+        })
+        .collect();
+    shards.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+    if shards.is_empty() {
+        return Err(format!(
+            "no se encontraron shards tiddlers_*.jsonl en '{}'",
+            canon_dir.display()
+        ));
+    }
+
+    let mut sha = Sha256::new();
+    for shard in shards {
+        let name = shard
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| format!("nombre de shard invalido: {}", shard.display()))?;
+        let data = std::fs::read(&shard)
+            .map_err(|e| format!("no se pudo leer '{}': {}", shard.display(), e))?;
+        sha.update(name.as_bytes());
+        sha.update(&[0]);
+        sha.update(&data);
+        sha.update(&[0]);
+    }
+    Ok(format!("sha256:{}", hex_lower(&sha.finalize())))
+}
+
+fn sha256_file_label(path: &Path) -> Result<String, String> {
+    let data = std::fs::read(path)
+        .map_err(|e| format!("no se pudo leer '{}' para hash: {}", path.display(), e))?;
+    let mut sha = Sha256::new();
+    sha.update(&data);
+    Ok(format!("sha256:{}", hex_lower(&sha.finalize())))
+}
+
+fn is_sha256_label(value: &str) -> bool {
+    let Some(hex) = value.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64 && hex.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+fn hex_lower(bytes: &[u8; 32]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(64);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
+}
+
+struct Sha256 {
+    state: [u32; 8],
+    buffer: [u8; 64],
+    buffer_len: usize,
+    length_bytes: u64,
+}
+
+impl Sha256 {
+    fn new() -> Self {
+        Self {
+            state: [
+                0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+                0x5be0cd19,
+            ],
+            buffer: [0; 64],
+            buffer_len: 0,
+            length_bytes: 0,
+        }
+    }
+
+    fn update(&mut self, mut data: &[u8]) {
+        self.length_bytes = self.length_bytes.wrapping_add(data.len() as u64);
+        if self.buffer_len > 0 {
+            let needed = 64 - self.buffer_len;
+            let take = needed.min(data.len());
+            self.buffer[self.buffer_len..self.buffer_len + take].copy_from_slice(&data[..take]);
+            self.buffer_len += take;
+            data = &data[take..];
+            if self.buffer_len == 64 {
+                let block = self.buffer;
+                self.process_block(&block);
+                self.buffer_len = 0;
+            }
+        }
+
+        while data.len() >= 64 {
+            let block: [u8; 64] = data[..64].try_into().expect("64 byte block");
+            self.process_block(&block);
+            data = &data[64..];
+        }
+
+        if !data.is_empty() {
+            self.buffer[..data.len()].copy_from_slice(data);
+            self.buffer_len = data.len();
+        }
+    }
+
+    fn finalize(mut self) -> [u8; 32] {
+        let bit_len = self.length_bytes.wrapping_mul(8);
+        self.update_padding_byte(0x80);
+        while self.buffer_len != 56 {
+            self.update_padding_byte(0);
+        }
+        for byte in bit_len.to_be_bytes() {
+            self.update_padding_byte(byte);
+        }
+
+        let mut out = [0u8; 32];
+        for (index, word) in self.state.iter().enumerate() {
+            out[index * 4..index * 4 + 4].copy_from_slice(&word.to_be_bytes());
+        }
+        out
+    }
+
+    fn update_padding_byte(&mut self, byte: u8) {
+        self.buffer[self.buffer_len] = byte;
+        self.buffer_len += 1;
+        if self.buffer_len == 64 {
+            let block = self.buffer;
+            self.process_block(&block);
+            self.buffer_len = 0;
+        }
+    }
+
+    fn process_block(&mut self, block: &[u8; 64]) {
+        const K: [u32; 64] = [
+            0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+            0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+            0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+            0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+            0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+            0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+            0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+            0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+            0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+            0xc67178f2,
+        ];
+
+        let mut w = [0u32; 64];
+        for (index, chunk) in block.chunks_exact(4).take(16).enumerate() {
+            w[index] = u32::from_be_bytes(chunk.try_into().expect("4 byte word"));
+        }
+        for index in 16..64 {
+            let s0 = w[index - 15].rotate_right(7)
+                ^ w[index - 15].rotate_right(18)
+                ^ (w[index - 15] >> 3);
+            let s1 = w[index - 2].rotate_right(17)
+                ^ w[index - 2].rotate_right(19)
+                ^ (w[index - 2] >> 10);
+            w[index] = w[index - 16]
+                .wrapping_add(s0)
+                .wrapping_add(w[index - 7])
+                .wrapping_add(s1);
+        }
+
+        let mut a = self.state[0];
+        let mut b = self.state[1];
+        let mut c = self.state[2];
+        let mut d = self.state[3];
+        let mut e = self.state[4];
+        let mut f = self.state[5];
+        let mut g = self.state[6];
+        let mut h = self.state[7];
+
+        for index in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ ((!e) & g);
+            let temp1 = h
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(K[index])
+                .wrapping_add(w[index]);
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let temp2 = s0.wrapping_add(maj);
+
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+
+        self.state[0] = self.state[0].wrapping_add(a);
+        self.state[1] = self.state[1].wrapping_add(b);
+        self.state[2] = self.state[2].wrapping_add(c);
+        self.state[3] = self.state[3].wrapping_add(d);
+        self.state[4] = self.state[4].wrapping_add(e);
+        self.state[5] = self.state[5].wrapping_add(f);
+        self.state[6] = self.state[6].wrapping_add(g);
+        self.state[7] = self.state[7].wrapping_add(h);
     }
 }
 
@@ -760,6 +1279,292 @@ fn check_reconstruction_target(
                 );
             }
         }
+    }
+}
+
+fn check_reconstruction_run_dir(
+    root: &Path,
+    run_dir: Option<&Path>,
+    reconstruction_dir: &Path,
+    reconstruction_mode: &ReconstructionMode,
+    checks: &mut Vec<PerimeterCheck>,
+) {
+    match reconstruction_mode {
+        ReconstructionMode::WriteLocalCanon => match run_dir {
+            Some(path) if path_under(path, reconstruction_dir) && path != reconstruction_dir => {
+                push_ok(
+                    checks,
+                    "plan-reconstruction-run-dir",
+                    "write_local_canon declara run_id bajo data/tmp/reconstruction",
+                );
+            }
+            Some(path) => {
+                push_error(
+                    checks,
+                    "plan-reconstruction-run-dir",
+                    &format!(
+                        "write_local_canon debe declarar run_id bajo data/tmp/reconstruction, no {}",
+                        display_plan_path(root, path)
+                    ),
+                );
+            }
+            None => {
+                push_error(
+                    checks,
+                    "plan-reconstruction-run-dir",
+                    "write_local_canon requiere run_id de evidencia bajo data/tmp/reconstruction",
+                );
+            }
+        },
+        ReconstructionMode::Diagnostic
+        | ReconstructionMode::Staging
+        | ReconstructionMode::ReverseProjection => {
+            if let Some(path) = run_dir {
+                if path_under(path, reconstruction_dir) {
+                    push_ok(
+                        checks,
+                        "plan-reconstruction-run-dir",
+                        "run_id de evidencia permanece bajo data/tmp/reconstruction",
+                    );
+                } else {
+                    push_error(
+                        checks,
+                        "plan-reconstruction-run-dir",
+                        "run_id de evidencia debe permanecer bajo data/tmp/reconstruction",
+                    );
+                }
+            } else {
+                push_ok(
+                    checks,
+                    "plan-reconstruction-run-dir",
+                    "modo no destructivo no requiere run_id de reconstruccion",
+                );
+            }
+        }
+    }
+}
+
+fn check_input_jsonl_origin(
+    root: &Path,
+    source_html: &Path,
+    input_jsonl: Option<&Path>,
+    html_export_dir: &Path,
+    reconstruction_mode: &ReconstructionMode,
+    checks: &mut Vec<PerimeterCheck>,
+) {
+    if reconstruction_mode != &ReconstructionMode::WriteLocalCanon {
+        if let Some(path) = input_jsonl {
+            if path_under(path, html_export_dir) {
+                push_ok(
+                    checks,
+                    "plan-input-jsonl-scope",
+                    "JSONL temporal permanece bajo data/tmp/html_export",
+                );
+            } else {
+                push_error(
+                    checks,
+                    "plan-input-jsonl-scope",
+                    "JSONL temporal debe provenir de data/tmp/html_export",
+                );
+            }
+        } else {
+            push_ok(
+                checks,
+                "plan-input-jsonl-scope",
+                "modo sin shardizacion no requiere JSONL temporal",
+            );
+        }
+        return;
+    }
+
+    let input_jsonl = match input_jsonl {
+        Some(path) => path,
+        None => {
+            push_error(
+                checks,
+                "plan-input-jsonl-required",
+                "write_local_canon requiere JSONL temporal seleccionado",
+            );
+            return;
+        }
+    };
+    push_ok(
+        checks,
+        "plan-input-jsonl-required",
+        "write_local_canon declara JSONL temporal seleccionado",
+    );
+
+    if path_under(input_jsonl, html_export_dir) {
+        push_ok(
+            checks,
+            "plan-input-jsonl-scope",
+            "JSONL temporal esta bajo data/tmp/html_export",
+        );
+    } else {
+        push_error(
+            checks,
+            "plan-input-jsonl-scope",
+            "JSONL temporal debe estar bajo data/tmp/html_export; rutas legacy sin manifiesto quedan bloqueadas",
+        );
+    }
+
+    if input_jsonl.is_file() {
+        push_ok(
+            checks,
+            "plan-input-jsonl-exists",
+            "JSONL temporal existe y es archivo",
+        );
+    } else {
+        push_error(
+            checks,
+            "plan-input-jsonl-exists",
+            "JSONL temporal no existe o no es archivo",
+        );
+    }
+
+    if input_jsonl
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("jsonl"))
+        .unwrap_or(false)
+    {
+        push_ok(
+            checks,
+            "plan-input-jsonl-extension",
+            "JSONL temporal termina en .jsonl",
+        );
+    } else {
+        push_error(
+            checks,
+            "plan-input-jsonl-extension",
+            "JSONL temporal debe terminar en .jsonl",
+        );
+    }
+
+    let manifest_path = input_jsonl.with_file_name("tiddlers.export.manifest.json");
+    let manifest = match read_json_object(&manifest_path) {
+        Ok(value) => {
+            push_ok(
+                checks,
+                "plan-input-manifest-readable",
+                "manifiesto de export temporal es JSON valido",
+            );
+            value
+        }
+        Err(message) => {
+            push_error(checks, "plan-input-manifest-readable", &message);
+            return;
+        }
+    };
+
+    expect_json_string(
+        checks,
+        &manifest,
+        "plan-input-manifest-role",
+        "artifact_role",
+        "canon_export",
+    );
+
+    check_manifest_path_matches(
+        root,
+        checks,
+        &manifest,
+        "plan-input-manifest-output-match",
+        "output_path",
+        input_jsonl,
+    );
+    check_manifest_path_matches(
+        root,
+        checks,
+        &manifest,
+        "plan-input-manifest-source-match",
+        "source_html_path",
+        source_html,
+    );
+    check_manifest_hash_matches(
+        checks,
+        &manifest,
+        "plan-input-manifest-jsonl-hash",
+        "sha256",
+        input_jsonl,
+    );
+    check_manifest_hash_matches(
+        checks,
+        &manifest,
+        "plan-input-manifest-source-hash",
+        "source_html_sha256",
+        source_html,
+    );
+}
+
+fn check_manifest_path_matches(
+    root: &Path,
+    checks: &mut Vec<PerimeterCheck>,
+    manifest: &serde_json::Value,
+    check_id: &str,
+    key: &str,
+    expected: &Path,
+) {
+    let Some(actual) = manifest.get(key).and_then(|item| item.as_str()) else {
+        push_error(checks, check_id, &format!("manifiesto no declara {}", key));
+        return;
+    };
+    let actual_path = resolve_plan_path(root, Path::new(actual));
+    if actual_path == expected {
+        push_ok(
+            checks,
+            check_id,
+            &format!("{} del manifiesto coincide con el artefacto declarado", key),
+        );
+    } else {
+        push_error(
+            checks,
+            check_id,
+            &format!(
+                "{} del manifiesto apunta a {}, no a {}",
+                key,
+                display_plan_path(root, &actual_path),
+                display_plan_path(root, expected)
+            ),
+        );
+    }
+}
+
+fn check_manifest_hash_matches(
+    checks: &mut Vec<PerimeterCheck>,
+    manifest: &serde_json::Value,
+    check_id: &str,
+    key: &str,
+    expected_path: &Path,
+) {
+    let Some(actual) = manifest.get(key).and_then(|item| item.as_str()) else {
+        push_error(checks, check_id, &format!("manifiesto no declara {}", key));
+        return;
+    };
+    if !is_sha256_label(actual) {
+        push_error(
+            checks,
+            check_id,
+            &format!("{} no tiene formato sha256:<64 hex>", key),
+        );
+        return;
+    }
+    match sha256_file_label(expected_path) {
+        Ok(expected) if expected == actual => {
+            push_ok(
+                checks,
+                check_id,
+                &format!("{} coincide con el contenido real declarado", key),
+            );
+        }
+        Ok(expected) => {
+            push_error(
+                checks,
+                check_id,
+                &format!("{} esperado {}, encontrado {}", key, expected, actual),
+            );
+        }
+        Err(message) => push_error(checks, check_id, &message),
     }
 }
 

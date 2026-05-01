@@ -11,7 +11,8 @@ import (
 
 func main() {
 	input := flag.String("input", "", "Path to a temporary monolithic canonical JSONL file (required)")
-	outDir := flag.String("out-dir", "", "Directory where tiddlers_1..7.jsonl will be written (required)")
+	outDir := flag.String("out-dir", "", "Directory where tiddlers_<n>.jsonl shards will be written (required)")
+	maxLines := flag.Int("max-lines", canon.DefaultCanonShardMaxLines, "Maximum non-empty JSONL lines per shard")
 	flag.Parse()
 
 	if *input == "" || *outDir == "" {
@@ -20,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	report, err := canon.WriteShardSet(*input, *outDir)
+	report, err := canon.WriteShardSetWithMaxLines(*input, *outDir, *maxLines)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[shard_canon] ERROR: %v\n", err)
 		os.Exit(2)

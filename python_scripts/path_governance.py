@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 
@@ -30,6 +31,7 @@ DEFAULT_EXPORT_DIR = DEFAULT_LOCAL_OUT_DIR / "export"
 DEFAULT_MICROSOFT_COPILOT_DIR = DEFAULT_LOCAL_OUT_DIR / "microsoft_copilot"
 DEFAULT_COPILOT_AGENT_DIR = DEFAULT_MICROSOFT_COPILOT_DIR / "copilot_agent"
 DEFAULT_PROPOSALS_FILE = DEFAULT_LOCAL_OUT_DIR / "proposals.jsonl"
+CANON_SHARD_FILENAME_RE = re.compile(r"^tiddlers_(\d+)\.jsonl$")
 
 
 def resolve_repo_path(path_value: str | None, default_path: Path) -> Path:
@@ -46,6 +48,17 @@ def as_display_path(path: Path) -> str:
         return str(path.relative_to(REPO_ROOT))
     except ValueError:
         return str(path)
+
+
+def canon_shard_sort_key(path: Path) -> tuple[int, int, str]:
+    match = CANON_SHARD_FILENAME_RE.match(path.name)
+    if match:
+        return (0, int(match.group(1)), path.name)
+    return (1, 0, path.name)
+
+
+def sorted_canon_shards(canon_dir: Path) -> list[Path]:
+    return sorted(canon_dir.glob("tiddlers_*.jsonl"), key=canon_shard_sort_key)
 
 
 def proposals_path() -> Path:

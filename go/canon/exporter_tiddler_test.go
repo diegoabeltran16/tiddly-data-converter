@@ -224,7 +224,13 @@ func TestExportTiddlersJSONL_DerivedProjections(t *testing.T) {
 	if !stringSliceEqual(first.NormalizedTags, wantTags) {
 		t.Fatalf("first normalized_tags = %v, want %v", first.NormalizedTags, wantTags)
 	}
-	if second.Content != nil {
-		t.Fatalf("second content should be nil for binary node, got %+v", second.Content)
+	if second.Content == nil || second.Content.Asset == nil {
+		t.Fatalf("second content.asset should be present for binary node, got %+v", second.Content)
+	}
+	if second.Content.Plain != nil {
+		t.Fatalf("second content.plain should stay nil for binary node, got %+v", second.Content.Plain)
+	}
+	if second.Content.Asset.MimeType != ContentTypePNG || !second.Content.Asset.PayloadPresent {
+		t.Fatalf("second asset projection = %+v", second.Content.Asset)
 	}
 }

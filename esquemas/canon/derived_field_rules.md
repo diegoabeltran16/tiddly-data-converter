@@ -12,6 +12,9 @@ projections only.
 - `source_tags` remains the authoritative reversible tag source for TiddlyWiki output.
 - `tags` remains the existing semantic tag projection introduced by S36.
 - `content.plain` is derived and non-authoritative.
+- `content.asset`, `content.code_blocks`, `content.equations`,
+  `content.references` and `content.structured_payload` are derived and
+  non-authoritative modal projections.
 - `normalized_tags` is derived and non-authoritative.
 - No derived field may silently correct, overwrite, or replace its source.
 
@@ -36,6 +39,34 @@ available in the node, currently `text`.
 ### Reverse rule
 
 Future reverse must continue reading `text`, never `content.plain`.
+
+## Modal Content Projections
+
+### Source
+
+Modal projections are derived only from fields already preserved in the canon:
+`text`, `content_type`, `modality`, `encoding`, `is_binary`,
+`is_reference_only`, `raw_payload_ref`, `asset_id` and `mime_type`.
+
+### Policy
+
+- Binary/image assets may emit `content.asset` with payload reference, MIME,
+  encoding, payload presence and deterministic payload hash/size when the
+  embedded payload is available.
+- Textual nodes may emit `content.code_blocks`, `content.equations` and
+  `content.references` when conservative syntax is detected.
+- Valid full JSON payloads may emit `content.structured_payload`; partial,
+  recoverable or pedagogical JSON remains audit evidence, not canonical
+  promotion.
+- Mixed nodes declare `content.projection_kind: "mixed"` and a deterministic
+  `content.modalities` list.
+- Projections organize existing evidence; they do not summarize or replace the
+  original source text.
+
+### Reverse rule
+
+Reverse must continue reading `text`, `source_tags` and `source_fields`.
+Modal projections are inspection and validation helpers only.
 
 ## `normalized_tags`
 
@@ -72,6 +103,8 @@ Future reverse must continue reading `text`, never `content.plain`.
 Derived projections are asymmetric by contract:
 
 - `content.plain` cannot override `text`.
+- Modal projections cannot override `text`, payload identity, source tags or
+  source fields.
 - `normalized_tags` cannot override `tags` or `source_tags`.
 - Validation may reject inconsistent derived values, but only recomputation from
   source fields can repair them.

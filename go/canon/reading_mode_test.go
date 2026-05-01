@@ -219,6 +219,24 @@ func TestDetectModality_TiddlyWiki_NotEquation(t *testing.T) {
 	}
 }
 
+func TestDetectModality_CodeFencePrimary(t *testing.T) {
+	text := "```go\nfmt.Println(\"ok\")\n```"
+	e := CanonEntry{Key: "code", Title: "Code", Text: &text}
+	got := DetectModality(ContentTypeMarkdown, e)
+	if got != ModalityCode {
+		t.Errorf("DetectModality = %q, want %q", got, ModalityCode)
+	}
+}
+
+func TestDetectModality_MixedTextWithReferenceAndCode(t *testing.T) {
+	text := "Ver [[Nodo técnico]]\n\n```sh\ntdc doctor\n```"
+	e := CanonEntry{Key: "mixed", Title: "Mixed", Text: &text}
+	got := DetectModality(ContentTypeMarkdown, e)
+	if got != ModalityMixed {
+		t.Errorf("DetectModality = %q, want %q", got, ModalityMixed)
+	}
+}
+
 // Binary → modality binary.
 func TestDetectModality_Binary(t *testing.T) {
 	text := "raw bytes"

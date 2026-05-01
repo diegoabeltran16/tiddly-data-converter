@@ -1,21 +1,23 @@
 // cmd/export_tiddlers/main.go — S33 CLI: export functional tiddlers from real HTML
 //
 // Usage:
-//   export_tiddlers --html <path> --out <jsonl_path> [--log <log_path>] [--manifest <manifest_path>] [--run-id <id>]
+//
+//	export_tiddlers --html <path> --out <jsonl_path> [--log <log_path>] [--manifest <manifest_path>] [--run-id <id>]
 //
 // This CLI implements the S33 Bridge→Canon costura:
-//   1. Extract raw tiddlers from TiddlyWiki HTML (Go adapter)
-//   2. Apply filtering rules (exclude system tiddlers)
-//   3. Ingest raw tiddlers to pre-canonical shape
-//   4. Convert via Bridge to CanonEntry
-//   5. Export as JSONL (1 tiddler = 1 line) with S19 gate
-//   6. Write export log and manifest
+//  1. Extract raw tiddlers from TiddlyWiki HTML (Go adapter)
+//  2. Apply filtering rules (exclude system tiddlers)
+//  3. Ingest raw tiddlers to pre-canonical shape
+//  4. Convert via Bridge to CanonEntry
+//  5. Export as JSONL (1 tiddler = 1 line) with S19 gate
+//  6. Write export log and manifest
 //
 // Exit codes:
-//   0 — export completed successfully
-//   1 — usage error
-//   2 — extraction error (HTML parse failure)
-//   4 — export error
+//
+//	0 — export completed successfully
+//	1 — usage error
+//	2 — extraction error (HTML parse failure)
+//	4 — export error
 //
 // Contract reference: contratos/m01-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json
 // Ref: S14 — bridge is the integration layer
@@ -23,9 +25,12 @@
 package main
 
 import (
+	"crypto/sha256"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/tiddly-data-converter/bridge"
@@ -49,6 +54,15 @@ func main() {
 
 	if *runID == "" {
 		*runID = fmt.Sprintf("s33-run-%s", time.Now().UTC().Format("20060102T150405Z"))
+	}
+	sourceHTMLPath, err := filepath.Abs(*htmlPath)
+	if err != nil {
+		sourceHTMLPath = *htmlPath
+	}
+	sourceHTMLSHA256, err := fileSHA256Label(*htmlPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[export_tiddlers] ERROR: cannot hash %s: %v\n", *htmlPath, err)
+		os.Exit(2)
 	}
 
 	// ─── Step 1: Extract from HTML ─────────────────────────────────────────
@@ -104,6 +118,8 @@ func main() {
 	}
 
 	exportResult.Manifest.OutputPath = *outPath
+	exportResult.Manifest.SourceHTMLPath = sourceHTMLPath
+	exportResult.Manifest.SourceHTMLSHA256 = sourceHTMLSHA256
 
 	fmt.Fprintf(os.Stderr, "[export_tiddlers] Exported: %d lines, excluded: %d\n",
 		exportResult.Manifest.ExportedCount, exportResult.Manifest.ExcludedCount)
@@ -186,4 +202,18 @@ func ingestFromRaws(raws []ingesta.RawTiddler) ([]ingesta.Tiddler, *ingesta.Inge
 	}
 
 	return tiddlers, report
+}
+
+func fileSHA256Label(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("sha256:%x", hash.Sum(nil)), nil
 }

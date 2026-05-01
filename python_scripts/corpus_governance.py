@@ -20,6 +20,7 @@ from path_governance import (
     DEFAULT_REMOTE_OUT_DIR,
     DEFAULT_REVERSE_HTML_DIR,
     as_display_path,
+    sorted_canon_shards,
 )
 
 
@@ -142,7 +143,7 @@ def _iter_jsonl(path: Path) -> list[dict]:
 
 def _load_canon_records(canon_dir: Path) -> list[dict]:
     records: list[dict] = []
-    for shard_path in sorted(canon_dir.glob("tiddlers_*.jsonl")):
+    for shard_path in sorted_canon_shards(canon_dir):
         records.extend(_iter_jsonl(shard_path))
     return records
 

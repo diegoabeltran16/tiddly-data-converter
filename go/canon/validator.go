@@ -257,6 +257,123 @@ func validateLine(lineNum int, data []byte, policy CanonPolicy) []ValidationIssu
 			Severity: "error",
 		})
 	}
+	if entry.Content != nil && entry.Content.Asset != nil {
+		expected := DeriveAssetProjection(entry)
+		if !reflect.DeepEqual(entry.Content.Asset, expected) {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-asset",
+				Message:  "content.asset does not match deterministic asset projection",
+				Severity: "error",
+			})
+		}
+	}
+	if entry.Content != nil && len(entry.Content.CodeBlocks) > 0 {
+		if entry.Text == nil {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-code-blocks",
+				Message:  "content.code_blocks requires source text",
+				Severity: "error",
+			})
+		} else {
+			expected := ExtractCodeBlocks(*entry.Text)
+			if !reflect.DeepEqual(entry.Content.CodeBlocks, expected) {
+				issues = append(issues, ValidationIssue{
+					Line:     lineNum,
+					Field:    "content",
+					RuleID:   "inconsistent-derived-content-code-blocks",
+					Message:  "content.code_blocks does not match deterministic code block projection",
+					Severity: "error",
+				})
+			}
+		}
+	}
+	if entry.Content != nil && len(entry.Content.Equations) > 0 {
+		if entry.Text == nil {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-equations",
+				Message:  "content.equations requires source text",
+				Severity: "error",
+			})
+		} else {
+			expected := ExtractEquations(*entry.Text)
+			if !reflect.DeepEqual(entry.Content.Equations, expected) {
+				issues = append(issues, ValidationIssue{
+					Line:     lineNum,
+					Field:    "content",
+					RuleID:   "inconsistent-derived-content-equations",
+					Message:  "content.equations does not match deterministic equation projection",
+					Severity: "error",
+				})
+			}
+		}
+	}
+	if entry.Content != nil && len(entry.Content.References) > 0 {
+		if entry.Text == nil {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-references",
+				Message:  "content.references requires source text",
+				Severity: "error",
+			})
+		} else {
+			expected := ExtractReferences(*entry.Text)
+			if !reflect.DeepEqual(entry.Content.References, expected) {
+				issues = append(issues, ValidationIssue{
+					Line:     lineNum,
+					Field:    "content",
+					RuleID:   "inconsistent-derived-content-references",
+					Message:  "content.references does not match deterministic reference projection",
+					Severity: "error",
+				})
+			}
+		}
+	}
+	if entry.Content != nil && entry.Content.StructuredPayload != nil {
+		expected := DeriveStructuredPayload(entry)
+		if !reflect.DeepEqual(entry.Content.StructuredPayload, expected) {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-structured-payload",
+				Message:  "content.structured_payload does not match deterministic structured payload projection",
+				Severity: "error",
+			})
+		}
+	}
+	if entry.Content != nil && (entry.Content.ProjectionKind != "" || len(entry.Content.Modalities) > 0) {
+		expected := DeriveContentProjection(entry)
+		expectedProjectionKind := ""
+		var expectedModalities []string
+		if expected != nil {
+			expectedProjectionKind = expected.ProjectionKind
+			expectedModalities = expected.Modalities
+		}
+		if entry.Content.ProjectionKind != "" && entry.Content.ProjectionKind != expectedProjectionKind {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-projection-kind",
+				Message:  fmt.Sprintf("content.projection_kind %q does not match deterministic recomputation %q", entry.Content.ProjectionKind, expectedProjectionKind),
+				Severity: "error",
+			})
+		}
+		if len(entry.Content.Modalities) > 0 && !reflect.DeepEqual(entry.Content.Modalities, expectedModalities) {
+			issues = append(issues, ValidationIssue{
+				Line:     lineNum,
+				Field:    "content",
+				RuleID:   "inconsistent-derived-content-modalities",
+				Message:  fmt.Sprintf("content.modalities do not match deterministic recomputation (got %v, expected %v)", entry.Content.Modalities, expectedModalities),
+				Severity: "error",
+			})
+		}
+	}
 
 	expectedNormalizedTags := DeriveNormalizedTags(entry)
 	if len(entry.NormalizedTags) > 0 && !reflect.DeepEqual(entry.NormalizedTags, expectedNormalizedTags) {

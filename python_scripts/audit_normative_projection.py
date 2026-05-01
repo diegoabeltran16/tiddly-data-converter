@@ -53,6 +53,7 @@ from path_governance import (
     DEFAULT_CANON_DIR,
     DEFAULT_ENRICHED_DIR,
     resolve_repo_path,
+    sorted_canon_shards,
 )
 
 # ── Session metadata ──────────────────────────────────────────────────────────
@@ -97,7 +98,7 @@ RECOGNIZED_CONTENT_TYPES = {
 
 def load_canon_shards(input_root: Path) -> list[dict]:
     """Load all canon shard records preserving shard order."""
-    shards = sorted(input_root.glob("tiddlers_*.jsonl"))
+    shards = sorted_canon_shards(input_root)
     records = []
     for shard in shards:
         for lineno, line in enumerate(shard.read_text(encoding="utf-8").splitlines(), 1):
@@ -974,9 +975,11 @@ def main():
     ai_role_map = {r.get("id"): r.get("role_primary") for r in ai_records if r.get("id")}
     chunk_source_ids = {c.get("source_id") or c.get("tiddler_id") for c in chunks if c.get("source_id") or c.get("tiddler_id")}
 
-    inputs_read = [
-        str(input_root / f"tiddlers_{i}.jsonl") for i in range(1, 8) if (input_root / f"tiddlers_{i}.jsonl").exists()
-    ] + [str(enriched_dir), str(ai_dir), str(reports_dir)]
+    inputs_read = [str(path) for path in sorted_canon_shards(input_root)] + [
+        str(enriched_dir),
+        str(ai_dir),
+        str(reports_dir),
+    ]
 
     # ── Step 3: Evaluate rules ────────────────────────────────────────────────
     print("[audit] Evaluating normative rules…")

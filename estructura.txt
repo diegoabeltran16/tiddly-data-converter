@@ -27,11 +27,6 @@
 │   │   │   │   ├── chunks_ai_1.jsonl
 │   │   │   │   ├── chunks_ai_2.jsonl
 │   │   │   │   ├── chunks_ai_3.jsonl
-│   │   │   │   ├── chunks_ai_4.jsonl
-│   │   │   │   ├── chunks_ai_5.jsonl
-│   │   │   │   ├── chunks_ai_6.jsonl
-│   │   │   │   ├── chunks_ai_7.jsonl
-│   │   │   │   ├── chunks_ai_8.jsonl
 │   │   │   │   ├── manifest.json
 │   │   │   │   ├── reports
 │   │   │   │   │   ├── chunk_qc_report.json
@@ -67,7 +62,6 @@
 │   │   │   │   ├── tiddlers_enriched_6.jsonl
 │   │   │   │   ├── tiddlers_enriched_7.jsonl
 │   │   │   │   └── tiddlers_enriched_8.jsonl
-│   │   │   ├── export
 │   │   │   ├── microsoft_copilot
 │   │   │   │   ├── artifacts.csv
 │   │   │   │   ├── bundles
@@ -128,174 +122,107 @@
 │   │   │   │   │       └── tiddlers-sesiones.md
 │   │   │   │   └── topics.json
 │   │   │   ├── reverse_html
+│   │   │   │   ├── reverse-report.json
+│   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── tiddlers_1.jsonl
 │   │   │   ├── tiddlers_2.jsonl
 │   │   │   ├── tiddlers_3.jsonl
 │   │   │   ├── tiddlers_4.jsonl
 │   │   │   ├── tiddlers_5.jsonl
 │   │   │   ├── tiddlers_6.jsonl
-│   │   │   └── tiddlers_7.jsonl
+│   │   │   ├── tiddlers_7.jsonl
+│   │   │   └── tiddlers_8.jsonl
 │   │   └── remote
 │   ├── README.md
 │   ├── sessions
 │   │   ├── 00_contratos
-│   │   │   ├── context_relations
-│   │   │   │   └── context_relations_rules.md
-│   │   │   ├── estructura_de_commits_tiddly-data-converter.JSON
-│   │   │   ├── export_contract
-│   │   │   │   └── export_contract_rules.md
-│   │   │   ├── identity
-│   │   │   │   └── identity_rules.md
-│   │   │   ├── m01-s01-extractor-contract.md.json
-│   │   │   ├── m01-s02-extractor-bootstrap.md.json
-│   │   │   ├── m01-s03-extractor-env-wsl.md.json
-│   │   │   ├── m01-s04-doctor-contract.md.json
-│   │   │   ├── m01-s05-ingesta-contract.md.json
-│   │   │   ├── m01-s06-ingesta-go-env-wsl.mc.json
-│   │   │   ├── m01-s07-ingesta-bootstrap.md.json
-│   │   │   ├── m01-s08-ingesta-data-triage.md.json
-│   │   │   ├── m01-s09-ingesta-timestamp-policy.md.json
-│   │   │   ├── m01-s10-doctor-audit.md.json
-│   │   │   ├── m01-s11-ingesta-dedup-triage.md.json
-│   │   │   ├── m01-s12-pipeline-costura.md.json
-│   │   │   ├── m01-s13-canon-bootstrap.md.json
-│   │   │   ├── m01-s14-bridge-ingesta-canon.md.json
-│   │   │   ├── m01-s15-canon-collision-acceptance.md.json
-│   │   │   ├── m01-s16-canon-jsonl-writer.md.json
-│   │   │   ├── m01-s17-canon-admit-v0.md.json
-│   │   │   ├── m01-s17-post-merge-actions-verification.md.json
-│   │   │   ├── m01-s18-canon-schema-v0.md.json
-│   │   │   ├── m02-s19-canon-jsonl-gate-v0.md.json
-│   │   │   ├── m02-s20-canon-gate-e2e-smoke.md.json
-│   │   │   ├── m02-s21-canon-gate-acceptance-matrix.md.json
-│   │   │   ├── m02-s22-canon-gate-batch-audit-v0.md.json
-│   │   │   ├── m02-s23-canon-gate-batch-report-v0.md.json
-│   │   │   ├── m02-s24-canon-gate-batch-emit-v0.md.json
-│   │   │   ├── m02-s24-canon-gate-verdict-v0.md.json
-│   │   │   ├── m02-s25-canon-gate-batch-contract-v1.md.json
-│   │   │   ├── m02-s26-canon-gate-batch-report-persist-v0.md.json
-│   │   │   ├── m02-s27-canon-gate-batch-report-persist-v0.md.json
-│   │   │   ├── m02-s28-canon-gate-batch-accumulation-semantics-v0.md.json
-│   │   │   ├── m02-s29-canon-accumulator-truth-pin-and-impl-v0.md.json
-│   │   │   ├── m02-s30-canon-uuidv5-and-memory-policy-v0.md.json
-│   │   │   ├── m02-s31-canon-accumulate-replay-verify-and-ci-v0.md.json
-│   │   │   ├── m02-s32-canon-freeze-baseline-oracle-and-first-jsonl-v0.md.json
-│   │   │   ├── m02-s33-single-jsonl-functional-tiddlers-from-real-html-v0.md.json
-│   │   │   ├── m02-s34-canon-node-structural-identity-v0.md.json
-│   │   │   ├── m02-s35-canon-node-reading-mode-and-typing-v0.md.json
-│   │   │   ├── m02-s36-canon-semantic-function-and-asset-separation-v0.md.json
-│   │   │   ├── m02-s37-canon-document-context-and-relations-v0.md.json
-│   │   │   ├── m02-s38-canon-export-contract-hardening-v0.md.json
-│   │   │   ├── m02-s39-canon-executable-policy-and-reverse-readiness-v0.md.json
-│   │   │   ├── m02-s40-canon-guarded-local-session-test-v0.md.json
-│   │   │   ├── m02-s41-canon-minimal-derived-hardening-for-reverse-v0.md.json
-│   │   │   ├── m02-s42-canon-minimal-deterministic-reverse-v0.md.json
-│   │   │   ├── m03-s43-canon-robust-textual-reverse-v0.md.json
-│   │   │   ├── m03-s44-canon-sharded-homogeneous-records-and-robust-reverse-v0.md.json
-│   │   │   ├── m03-s45-canon-enriched-ai-projection-v0.md.json
-│   │   │   ├── m03-s46-ai-projection-v1-hardening-local.md.json
-│   │   │   ├── m03-s47-normative-self-audit-and-projection-refinement-v0.md.json
-│   │   │   ├── m03-s48-canonical-enrichment-target-scope-v0.md.json
-│   │   │   ├── m03-s49-mcp-onedrive-canon-proposals-v0.md.json
-│   │   │   ├── m03-s50-rutas-manifests-reverse-governance-v0.md.json
-│   │   │   ├── m03-s50a-session-identity-repair-v0.md.json
-│   │   │   ├── m03-s51-canon-semantic-hardening-v0.md.json
-│   │   │   ├── m03-s52-chunking-structure-traceability-v0.md.json
-│   │   │   ├── m03-s53-instructions-normative-harmonization-v0.md.json
-│   │   │   ├── m03-s54-semantic-microchunk-historical-provenance-v0.md.json
-│   │   │   ├── m03-s55-corpus-governance-state-lineage-v0.md.json
-│   │   │   ├── m03-s56-direct-canon-session-dependency-tiddlers-v0.md.json
-│   │   │   ├── m03-s57-canon-direct-close-governance-v0.md.json
-│   │   │   ├── m03-s58-route-fix-readme-structural-cleanup.md.json
-│   │   │   ├── m03-s59-microsoft-copilot-projection-governance-v0.md.json
-│   │   │   ├── m03-s60-microsoft-copilot-derived-projection-mvp-v0.md.json
-│   │   │   ├── m03-s61-microsoft-copilot-json-csv-txt-projection-mvp-v0.md.json
-│   │   │   ├── m03-s62-copilot-agent-three-master-files-pack-v0.md.json
-│   │   │   ├── m03-s63-copilot-agent-generator-integration-and-canonicalization-v0.md.json
-│   │   │   ├── m03-s64-copilot-agent-semantic-compression-and-reversible-canon-hardening-v0.md.json
 │   │   │   ├── m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json
-│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
 │   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── m03-s70-operator-menu-and-session-sync-v0.md.json
 │   │   │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
 │   │   │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │   │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │   │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │   │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │   │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │   │   ├── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │   │   ├── policy
 │   │   │   │   └── canon_policy_bundle.json
-│   │   │   ├── projections
-│   │   │   │   └── derived_layers_registry.json
-│   │   │   ├── reverse
-│   │   │   │   └── reverse_contract_rules.md
-│   │   │   ├── semantic
-│   │   │   │   └── semantic_rules.md
-│   │   │   ├── typing
-│   │   │   │   └── node_reading_mode_rules.md
-│   │   │   └── validation
-│   │   │       ├── s37-local-checks.md
-│   │   │       ├── s38-local-checks.md
-│   │   │       ├── s39-local-checks.md
-│   │   │       ├── s40-local-checks.md
-│   │   │       ├── s41-local-checks.md
-│   │   │       ├── s42-local-checks.md
-│   │   │       ├── s43-local-checks.md
-│   │   │       └── s44-local-checks.md
+│   │   │   └── projections
+│   │   │       └── derived_layers_registry.json
 │   │   ├── 01_procedencia
-│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
 │   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── m03-s70-operator-menu-and-session-sync-v0.md.json
 │   │   │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
-│   │   │   └── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │   │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │   │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │   │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │   │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │   │   └── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │   ├── 02_detalles_de_sesion
-│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
 │   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── m03-s70-operator-menu-and-session-sync-v0.md.json
 │   │   │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
-│   │   │   └── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │   │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │   │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │   │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │   │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │   │   └── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │   ├── 03_hipotesis
-│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
 │   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── m03-s70-operator-menu-and-session-sync-v0.md.json
 │   │   │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
-│   │   │   └── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │   │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │   │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │   │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │   │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │   │   └── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │   ├── 04_balance_de_sesion
-│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
 │   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── m03-s70-operator-menu-and-session-sync-v0.md.json
 │   │   │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
-│   │   │   └── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │   │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │   │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │   │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │   │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │   │   └── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │   ├── 05_propuesta_de_sesion
-│   │   │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │   │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │   │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.md.json
 │   │   │   ├── m03-s69-session-canon-admission-hardening-and-docs-v0.md.json
 │   │   │   ├── m03-s70-operator-menu-and-session-sync-v0.md.json
 │   │   │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
-│   │   │   └── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │   │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │   │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │   │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │   │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │   │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │   │   └── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │   └── 06_diagnoses
-│   │       ├── canon
-│   │       │   └── s65_canon_diagnosis.md
-│   │       ├── derivados
-│   │       │   └── s65_derivatives_diagnosis.md
-│   │       ├── hipotesis
-│   │       │   └── s65_hypothesis_trace.md
 │   │       ├── module
 │   │       ├── project
-│   │       ├── repositorio
-│   │       │   └── s65_repo_diagnosis.md
 │   │       ├── reverse
-│   │       ├── s65_validation_report.md
 │   │       ├── sesion
-│   │       │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.canon-candidates.jsonl
-│   │       │   ├── m03-s66-session-family-and-canonical-closure-flow-v0.md.json
 │   │       │   ├── m03-s67-session-canon-admission-orchestrator-v0.canon-candidates.jsonl
 │   │       │   ├── m03-s67-session-canon-admission-orchestrator-v0.md.json
 │   │       │   ├── m03-s68-session-canon-admission-integration-fixtures-v0.canon-candidates.jsonl
@@ -307,7 +234,19 @@
 │   │       │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.canon-candidates.jsonl
 │   │       │   ├── m04-s71-rust-kernel-perimeter-and-invariants-v0.md.json
 │   │       │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.canon-candidates.jsonl
-│   │       │   └── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │       │   ├── m04-s72-rust-kernel-reconstruction-plan-gate-v0.md.json
+│   │       │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.canon-candidates.jsonl
+│   │       │   ├── m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.md.json
+│   │       │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.canon-candidates.jsonl
+│   │       │   ├── m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.md.json
+│   │       │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.canon-candidates.jsonl
+│   │       │   ├── m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.md.json
+│   │       │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.canon-candidates.jsonl
+│   │       │   ├── m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.md.json
+│   │       │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.canon-candidates.jsonl
+│   │       │   ├── m04-s77-canonical-staging-and-controlled-modal-admission-v0.md.json
+│   │       │   ├── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.canon-candidates.jsonl
+│   │       │   └── m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.md.json
 │   │       └── tema
 │   └── tmp
 │       ├── admissions
@@ -340,6 +279,21 @@
 │       │   ├── admit-20260429191735-m04-s71-rust-kernel-perimeter-and-invariants-v0.json
 │       │   ├── admit-20260429200205-m04-s72-rust-kernel-reconstruction-plan-gate-v0.json
 │       │   ├── admit-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0.json
+│       │   ├── admit-20260429204036-multi-session.json
+│       │   ├── admit-20260429204315-multi-session.json
+│       │   ├── admit-20260429204600-multi-session.json
+│       │   ├── admit-20260429204620-multi-session.json
+│       │   ├── admit-20260429234828-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── admit-20260429234846-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── admit-20260430000325-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── admit-20260430000633-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── admit-20260430125654-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.json
+│       │   ├── admit-20260430125755-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.json
+│       │   ├── admit-20260501024223-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.json
+│       │   ├── admit-20260501024356-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.json
+│       │   ├── admit-20260501024649-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.json
+│       │   ├── admit-20260501143758-multi-session.json
+│       │   ├── admit-20260501143828-multi-session.json
 │       │   ├── backups
 │       │   │   ├── admit-20260428153824-m03-s69-session-canon-admission-hardening-and-docs-v0
 │       │   │   │   ├── tiddlers_1.jsonl
@@ -421,14 +375,39 @@
 │       │   │   │   ├── tiddlers_5.jsonl
 │       │   │   │   ├── tiddlers_6.jsonl
 │       │   │   │   └── tiddlers_7.jsonl
-│       │   │   └── admit-20260429183452-multi-session
+│       │   │   ├── admit-20260429183452-multi-session
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   ├── admit-20260429204620-multi-session
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   ├── admit-20260429234846-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── admit-20260501143828-multi-session
 │       │   │       ├── tiddlers_1.jsonl
 │       │   │       ├── tiddlers_2.jsonl
 │       │   │       ├── tiddlers_3.jsonl
 │       │   │       ├── tiddlers_4.jsonl
 │       │   │       ├── tiddlers_5.jsonl
 │       │   │       ├── tiddlers_6.jsonl
-│       │   │       └── tiddlers_7.jsonl
+│       │   │       ├── tiddlers_7.jsonl
+│       │   │       └── tiddlers_8.jsonl
 │       │   ├── generated
 │       │   │   ├── all-contracts-20260428223203
 │       │   │   │   ├── admission_lines.normalized.jsonl
@@ -925,6 +904,45 @@
 │       │   │   ├── admit-20260429190825-m04-s71-rust-kernel-perimeter-and-invariants-v0.json
 │       │   │   ├── admit-20260429191411-m04-s71-rust-kernel-perimeter-and-invariants-v0.json
 │       │   │   └── validate-20260429190947-m04-s71-rust-kernel-perimeter-and-invariants-v0.json
+│       │   ├── s73
+│       │   │   ├── admit-20260429234337-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   │   ├── admit-20260429234424-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   │   ├── validate-20260429234337-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   │   └── validate-20260429234416-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── s75
+│       │   │   ├── admit-20260430132403-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.json
+│       │   │   ├── admit-20260430132520-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.json
+│       │   │   ├── validate-20260430132403-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.json
+│       │   │   └── validate-20260430132513-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.json
+│       │   ├── s77
+│       │   │   ├── admit-20260501135003-m04-s77-canonical-staging-and-controlled-modal-admission-v0.json
+│       │   │   ├── admit-20260501135050-m04-s77-canonical-staging-and-controlled-modal-admission-v0.json
+│       │   │   ├── validate-20260501134949-m04-s77-canonical-staging-and-controlled-modal-admission-v0.json
+│       │   │   └── validate-20260501135045-m04-s77-canonical-staging-and-controlled-modal-admission-v0.json
+│       │   ├── s78-final-candidates
+│       │   │   ├── admit-20260501142959-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   ├── admit-20260501143051-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   ├── admit-20260501143149-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   ├── admit-20260501143459-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   ├── validate-20260501142950-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   ├── validate-20260501143041-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   ├── validate-20260501143142-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   │   └── validate-20260501143454-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.json
+│       │   ├── s78-regeneration-s73
+│       │   │   ├── admit-20260501142454-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   │   ├── admit-20260501142506-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   │   ├── backups
+│       │   │   │   └── admit-20260501142506-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   │       ├── tiddlers_1.jsonl
+│       │   │   │       ├── tiddlers_2.jsonl
+│       │   │   │       ├── tiddlers_3.jsonl
+│       │   │   │       ├── tiddlers_4.jsonl
+│       │   │   │       ├── tiddlers_5.jsonl
+│       │   │   │       ├── tiddlers_6.jsonl
+│       │   │   │       ├── tiddlers_7.jsonl
+│       │   │   │       └── tiddlers_8.jsonl
+│       │   │   ├── validate-20260501142400-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   │   └── validate-20260501142445-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
 │       │   ├── session_id_probe
 │       │   │   ├── admit-20260428153527-m03-s69-session-canon-admission-hardening-and-docs-v0.json
 │       │   │   └── validate-20260428153527-m03-s69-session-canon-admission-hardening-and-docs-v0.json
@@ -938,16 +956,127 @@
 │       │   ├── validate-20260429183352-multi-session.json
 │       │   ├── validate-20260429191735-m04-s71-rust-kernel-perimeter-and-invariants-v0.json
 │       │   ├── validate-20260429200205-m04-s72-rust-kernel-reconstruction-plan-gate-v0.json
-│       │   └── validate-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0.json
+│       │   ├── validate-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0.json
+│       │   ├── validate-20260429204557-multi-session.json
+│       │   ├── validate-20260430000325-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── validate-20260430000633-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.json
+│       │   ├── validate-20260430125639-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.json
+│       │   ├── validate-20260430125749-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.json
+│       │   ├── validate-20260501024206-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.json
+│       │   ├── validate-20260501024345-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.json
+│       │   └── validate-20260501024638-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.json
+│       ├── canonical_quality
+│       │   ├── quality-20260430125315
+│       │   │   ├── canonical-line-gate.json
+│       │   │   └── deep-node-inspect.json
+│       │   ├── quality-20260430132045
+│       │   │   ├── canonical-line-gate.json
+│       │   │   └── deep-node-inspect.json
+│       │   └── quality-20260501145458
+│       │       ├── canonical-line-gate.json
+│       │       └── deep-node-inspect.json
 │       ├── html_export
 │       │   ├── export-20260429165825
 │       │   │   ├── tiddlers.export.jsonl
 │       │   │   ├── tiddlers.export.log
 │       │   │   └── tiddlers.export.manifest.json
-│       │   └── export-20260429195756
-│       │       ├── tiddlers.export.jsonl
+│       │   ├── export-20260429195756
+│       │   │   ├── tiddlers.export.jsonl
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260429203949
+│       │   │   ├── tiddlers.export.jsonl
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260429204142
+│       │   │   ├── tiddlers.export.jsonl
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260429225724
+│       │   │   ├── tiddlers.export.jsonl
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260429234713
+│       │   │   ├── tiddlers.export.jsonl
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   └── export-s78-20260501142151
 │       │       ├── tiddlers.export.log
 │       │       └── tiddlers.export.manifest.json
+│       ├── reconstruction
+│       │   ├── diagnostic-20260429225708
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260429234706
+│       │   │   └── gate-report.json
+│       │   ├── export-20260429225724
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260429234713
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260429204236
+│       │   │   ├── canon_before
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260429234809
+│       │   │   └── gate-report.json
+│       │   ├── reconstruction-s78-20260501142151
+│       │   │   ├── applied-base-reverse-preflight-report.json
+│       │   │   ├── applied-base-shard-report.json
+│       │   │   ├── applied-base-strict-report.json
+│       │   │   ├── canon_after
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   └── tiddlers_8.jsonl
+│       │   │   ├── canon_after_with_s73
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   └── tiddlers_8.jsonl
+│       │   │   ├── canon_before
+│       │   │   ├── downstream-derive-output.txt
+│       │   │   ├── downstream-governance-report.json
+│       │   │   ├── final-canonical-line-gate.json
+│       │   │   ├── final-reverse-preflight-report.json
+│       │   │   ├── final-reverse-report.json
+│       │   │   ├── final-strict-report.json
+│       │   │   ├── reconstruction-report.json
+│       │   │   ├── reverse_staged
+│       │   │   │   ├── staged.derived.html
+│       │   │   │   └── staged.reverse-report.json
+│       │   │   ├── staged-reverse-preflight-report.json
+│       │   │   ├── staged-shard-report.json
+│       │   │   ├── staged-strict-report.json
+│       │   │   ├── staged_canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   └── tiddlers_8.jsonl
+│       │   │   ├── staging-gate.json
+│       │   │   └── write-local-canon-gate.json
+│       │   ├── reverse-20260429225812
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260429235100
+│       │   │   └── gate-report.json
+│       │   ├── reverse-20260429235111
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   └── reverse-20260501144136
+│       │       ├── gate-report.json
+│       │       └── reconstruction-report.json
 │       ├── s69_candidate_generation
 │       │   ├── normalized.jsonl
 │       │   └── raw.jsonl
@@ -991,6 +1120,64 @@
 │       │           └── reverse_html
 │       │               ├── admit-20260429174904-multi-session.derived.html
 │       │               └── admit-20260429174904-multi-session.reverse-report.json
+│       ├── s74-canonical-line-gate.json
+│       ├── s74-deep-node-inspect.json
+│       ├── s74-session-candidates-line-gate-final.json
+│       ├── s75-candidates-canonical-line-gate.json
+│       ├── s75-deep-node-triage.json
+│       ├── s75-family-template-hardening.json
+│       ├── s76-canonical-modal-line-gate.json
+│       ├── s76-deep-node-inspect.json
+│       ├── s76-modal-export
+│       │   ├── canonical-line-gate.json
+│       │   ├── export.log.jsonl
+│       │   ├── local-normalized-modal.jsonl
+│       │   ├── manifest.json
+│       │   └── tiddlers.export.jsonl
+│       ├── s76-normalized-modal-line-gate.json
+│       ├── s76-session-candidates-line-gate.json
+│       ├── s77-modal-admission
+│       │   └── s77-modal-assets-minimal
+│       │       ├── canonical-line-gate.after.json
+│       │       ├── canonical-line-gate.before.json
+│       │       ├── comparison-report.json
+│       │       ├── modal-assets.patch.jsonl
+│       │       └── staged-canon
+│       │           ├── tiddlers_1.jsonl
+│       │           ├── tiddlers_2.jsonl
+│       │           ├── tiddlers_3.jsonl
+│       │           ├── tiddlers_4.jsonl
+│       │           ├── tiddlers_5.jsonl
+│       │           ├── tiddlers_6.jsonl
+│       │           └── tiddlers_7.jsonl
+│       ├── s77-probe
+│       │   ├── modal-assets-staged-canon
+│       │   │   ├── tiddlers_1.jsonl
+│       │   │   ├── tiddlers_2.jsonl
+│       │   │   ├── tiddlers_3.jsonl
+│       │   │   ├── tiddlers_4.jsonl
+│       │   │   ├── tiddlers_5.jsonl
+│       │   │   ├── tiddlers_6.jsonl
+│       │   │   └── tiddlers_7.jsonl
+│       │   └── probe-report.json
+│       ├── s77-session-candidates
+│       │   └── normalize
+│       │       ├── admission_lines.normalized.jsonl
+│       │       └── admission_lines.raw.jsonl
+│       ├── s77-session-candidates-final
+│       │   └── normalize
+│       │       ├── admission_lines.normalized.jsonl
+│       │       └── admission_lines.raw.jsonl
+│       ├── s78-regeneration
+│       │   ├── source-probe
+│       │   │   ├── saved
+│       │   │   │   ├── tiddlers.export.log
+│       │   │   │   └── tiddlers.export.manifest.json
+│       │   │   └── seed
+│       │   │       ├── tiddlers.export.jsonl
+│       │   │       ├── tiddlers.export.log
+│       │   │       └── tiddlers.export.manifest.json
+│       │   └── staging
 │       ├── session_admission
 │       │   ├── admit-20260428153824-m03-s69-session-canon-admission-hardening-and-docs-v0
 │       │   │   ├── admission_lines.normalized.jsonl
@@ -1476,6 +1663,7 @@
 │       │   │   │   ├── tiddlers_6.jsonl
 │       │   │   │   └── tiddlers_7.jsonl
 │       │   │   └── reverse_html
+│       │   │       ├── admit-20260429183413-multi-session.derived.html
 │       │   │       └── admit-20260429183413-multi-session.reverse-report.json
 │       │   ├── admit-20260429183452-multi-session
 │       │   │   ├── admission_lines.normalized.jsonl
@@ -1503,6 +1691,7 @@
 │       │   │   │   ├── tiddlers_6.jsonl
 │       │   │   │   └── tiddlers_7.jsonl
 │       │   │   └── reverse_html
+│       │   │       ├── admit-20260429190825-m04-s71-rust-kernel-perimeter-and-invariants-v0.derived.html
 │       │   │       └── admit-20260429190825-m04-s71-rust-kernel-perimeter-and-invariants-v0.reverse-report.json
 │       │   ├── admit-20260429191411-m04-s71-rust-kernel-perimeter-and-invariants-v0
 │       │   │   ├── admission_lines.normalized.jsonl
@@ -1516,6 +1705,7 @@
 │       │   │   │   ├── tiddlers_6.jsonl
 │       │   │   │   └── tiddlers_7.jsonl
 │       │   │   └── reverse_html
+│       │   │       ├── admit-20260429191411-m04-s71-rust-kernel-perimeter-and-invariants-v0.derived.html
 │       │   │       └── admit-20260429191411-m04-s71-rust-kernel-perimeter-and-invariants-v0.reverse-report.json
 │       │   ├── admit-20260429191735-m04-s71-rust-kernel-perimeter-and-invariants-v0
 │       │   │   ├── admission_lines.normalized.jsonl
@@ -1529,6 +1719,7 @@
 │       │   │   │   ├── tiddlers_6.jsonl
 │       │   │   │   └── tiddlers_7.jsonl
 │       │   │   └── reverse_html
+│       │   │       ├── admit-20260429191735-m04-s71-rust-kernel-perimeter-and-invariants-v0.derived.html
 │       │   │       └── admit-20260429191735-m04-s71-rust-kernel-perimeter-and-invariants-v0.reverse-report.json
 │       │   ├── admit-20260429200205-m04-s72-rust-kernel-reconstruction-plan-gate-v0
 │       │   │   ├── admission_lines.normalized.jsonl
@@ -1542,20 +1733,368 @@
 │       │   │   │   ├── tiddlers_6.jsonl
 │       │   │   │   └── tiddlers_7.jsonl
 │       │   │   └── reverse_html
+│       │   │       ├── admit-20260429200205-m04-s72-rust-kernel-reconstruction-plan-gate-v0.derived.html
 │       │   │       └── admit-20260429200205-m04-s72-rust-kernel-reconstruction-plan-gate-v0.reverse-report.json
-│       │   └── admit-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0
-│       │       ├── admission_lines.normalized.jsonl
-│       │       ├── admission_lines.raw.jsonl
-│       │       ├── canon
-│       │       │   ├── tiddlers_1.jsonl
-│       │       │   ├── tiddlers_2.jsonl
-│       │       │   ├── tiddlers_3.jsonl
-│       │       │   ├── tiddlers_4.jsonl
-│       │       │   ├── tiddlers_5.jsonl
-│       │       │   ├── tiddlers_6.jsonl
-│       │       │   └── tiddlers_7.jsonl
-│       │       └── reverse_html
-│       │           └── admit-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0.reverse-report.json
+│       │   ├── admit-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0.derived.html
+│       │   │       └── admit-20260429200448-m04-s72-rust-kernel-reconstruction-plan-gate-v0.reverse-report.json
+│       │   ├── admit-20260429204036-multi-session
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   └── admission_lines.raw.jsonl
+│       │   ├── admit-20260429204315-multi-session
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429204315-multi-session.derived.html
+│       │   │       └── admit-20260429204315-multi-session.reverse-report.json
+│       │   ├── admit-20260429204600-multi-session
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429204600-multi-session.derived.html
+│       │   │       └── admit-20260429204600-multi-session.reverse-report.json
+│       │   ├── admit-20260429204620-multi-session
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429204620-multi-session.derived.html
+│       │   │       └── admit-20260429204620-multi-session.reverse-report.json
+│       │   ├── admit-20260429234828-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429234828-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │   │       └── admit-20260429234828-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
+│       │   ├── admit-20260429234846-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429234846-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │   │       └── admit-20260429234846-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
+│       │   ├── admit-20260430000325-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260430000325-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │   │       └── admit-20260430000325-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
+│       │   ├── admit-20260430000633-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260430000633-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │   │       └── admit-20260430000633-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
+│       │   ├── admit-20260430125654-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260430125654-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.derived.html
+│       │   │       └── admit-20260430125654-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.reverse-report.json
+│       │   ├── admit-20260430125755-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260430125755-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.derived.html
+│       │   │       └── admit-20260430125755-m04-s74-rust-kernel-canonical-line-gate-and-deep-node-inspector-v0.reverse-report.json
+│       │   ├── admit-20260430132403-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260430132403-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.derived.html
+│       │   │       └── admit-20260430132403-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.reverse-report.json
+│       │   ├── admit-20260430132520-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260430132520-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.derived.html
+│       │   │       └── admit-20260430132520-m04-s75-rust-kernel-family-template-hardening-and-canonical-normalization-v0.reverse-report.json
+│       │   ├── admit-20260501024223-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260501024223-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.derived.html
+│       │   │       └── admit-20260501024223-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.reverse-report.json
+│       │   ├── admit-20260501024356-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260501024356-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.derived.html
+│       │   │       └── admit-20260501024356-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.reverse-report.json
+│       │   ├── admit-20260501024649-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260501024649-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.derived.html
+│       │   │       └── admit-20260501024649-m04-s76-rust-kernel-modal-projection-and-asset-canonical-hardening-v0.reverse-report.json
+│       │   ├── admit-20260501135003-m04-s77-canonical-staging-and-controlled-modal-admission-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260501135003-m04-s77-canonical-staging-and-controlled-modal-admission-v0.derived.html
+│       │   │       └── admit-20260501135003-m04-s77-canonical-staging-and-controlled-modal-admission-v0.reverse-report.json
+│       │   ├── admit-20260501135050-m04-s77-canonical-staging-and-controlled-modal-admission-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260501135050-m04-s77-canonical-staging-and-controlled-modal-admission-v0.derived.html
+│       │   │       └── admit-20260501135050-m04-s77-canonical-staging-and-controlled-modal-admission-v0.reverse-report.json
+│       │   ├── admit-20260501143758-multi-session
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   └── tiddlers_8.jsonl
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260501143758-multi-session.reverse-report.json
+│       │   ├── admit-20260501143828-multi-session
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   └── tiddlers_8.jsonl
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260501143828-multi-session.reverse-report.json
+│       │   ├── s78-final-candidates
+│       │   │   ├── admit-20260501142959-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0
+│       │   │   │   ├── admission_lines.normalized.jsonl
+│       │   │   │   ├── admission_lines.raw.jsonl
+│       │   │   │   ├── canon
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   │   └── tiddlers_8.jsonl
+│       │   │   │   └── reverse_html
+│       │   │   │       ├── admit-20260501142959-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.derived.html
+│       │   │   │       └── admit-20260501142959-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.reverse-report.json
+│       │   │   ├── admit-20260501143051-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0
+│       │   │   │   ├── admission_lines.normalized.jsonl
+│       │   │   │   ├── admission_lines.raw.jsonl
+│       │   │   │   ├── canon
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   │   └── tiddlers_8.jsonl
+│       │   │   │   └── reverse_html
+│       │   │   │       └── admit-20260501143051-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.reverse-report.json
+│       │   │   ├── admit-20260501143149-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0
+│       │   │   │   ├── admission_lines.normalized.jsonl
+│       │   │   │   ├── admission_lines.raw.jsonl
+│       │   │   │   ├── canon
+│       │   │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   │   └── tiddlers_8.jsonl
+│       │   │   │   └── reverse_html
+│       │   │   │       ├── admit-20260501143149-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.derived.html
+│       │   │   │       └── admit-20260501143149-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.reverse-report.json
+│       │   │   └── admit-20260501143459-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0
+│       │   │       ├── admission_lines.normalized.jsonl
+│       │   │       ├── admission_lines.raw.jsonl
+│       │   │       ├── canon
+│       │   │       │   ├── tiddlers_1.jsonl
+│       │   │       │   ├── tiddlers_2.jsonl
+│       │   │       │   ├── tiddlers_3.jsonl
+│       │   │       │   ├── tiddlers_4.jsonl
+│       │   │       │   ├── tiddlers_5.jsonl
+│       │   │       │   ├── tiddlers_6.jsonl
+│       │   │       │   ├── tiddlers_7.jsonl
+│       │   │       │   └── tiddlers_8.jsonl
+│       │   │       └── reverse_html
+│       │   │           ├── admit-20260501143459-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.derived.html
+│       │   │           └── admit-20260501143459-m04-s78-full-canon-regeneration-shard-rebalance-and-flow-verification-v0.reverse-report.json
+│       │   └── s78-regeneration-s73
+│       │       ├── admit-20260501142454-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │       │   ├── admission_lines.normalized.jsonl
+│       │       │   ├── admission_lines.raw.jsonl
+│       │       │   ├── canon
+│       │       │   │   ├── tiddlers_1.jsonl
+│       │       │   │   ├── tiddlers_2.jsonl
+│       │       │   │   ├── tiddlers_3.jsonl
+│       │       │   │   ├── tiddlers_4.jsonl
+│       │       │   │   ├── tiddlers_5.jsonl
+│       │       │   │   ├── tiddlers_6.jsonl
+│       │       │   │   ├── tiddlers_7.jsonl
+│       │       │   │   └── tiddlers_8.jsonl
+│       │       │   └── reverse_html
+│       │       │       ├── admit-20260501142454-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │       │       └── admit-20260501142454-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
+│       │       └── admit-20260501142506-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │           ├── admission_lines.normalized.jsonl
+│       │           ├── admission_lines.raw.jsonl
+│       │           ├── canon
+│       │           │   ├── tiddlers_1.jsonl
+│       │           │   ├── tiddlers_2.jsonl
+│       │           │   ├── tiddlers_3.jsonl
+│       │           │   ├── tiddlers_4.jsonl
+│       │           │   ├── tiddlers_5.jsonl
+│       │           │   ├── tiddlers_6.jsonl
+│       │           │   ├── tiddlers_7.jsonl
+│       │           │   └── tiddlers_8.jsonl
+│       │           └── reverse_html
+│       │               ├── admit-20260501142506-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │               └── admit-20260501142506-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
 │       ├── session_admission_fixtures
 │       │   ├── canon_base
 │       │   │   ├── tiddlers_1.jsonl
@@ -2462,6 +3001,35 @@
 │       │       └── reverse_html
 │       │           ├── rollback-20260429200312-m03-s66-session-family-and-canonical-closure-flow-v0.derived.html
 │       │           └── rollback-20260429200312-m03-s66-session-family-and-canonical-closure-flow-v0.reverse-report.json
+│       ├── session_admission_s73
+│       │   ├── admit-20260429234337-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │   │   ├── admission_lines.normalized.jsonl
+│       │   │   ├── admission_lines.raw.jsonl
+│       │   │   ├── canon
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   └── tiddlers_7.jsonl
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260429234337-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │   │       └── admit-20260429234337-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
+│       │   └── admit-20260429234424-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0
+│       │       ├── admission_lines.normalized.jsonl
+│       │       ├── admission_lines.raw.jsonl
+│       │       ├── canon
+│       │       │   ├── tiddlers_1.jsonl
+│       │       │   ├── tiddlers_2.jsonl
+│       │       │   ├── tiddlers_3.jsonl
+│       │       │   ├── tiddlers_4.jsonl
+│       │       │   ├── tiddlers_5.jsonl
+│       │       │   ├── tiddlers_6.jsonl
+│       │       │   └── tiddlers_7.jsonl
+│       │       └── reverse_html
+│       │           ├── admit-20260429234424-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.derived.html
+│       │           └── admit-20260429234424-m04-s73-rust-kernel-reconstruction-reversibility-gate-v0.reverse-report.json
 │       ├── session_admission_session_id_probe
 │       │   └── admit-20260428153527-m03-s69-session-canon-admission-hardening-and-docs-v0
 │       │       ├── admission_lines.normalized.jsonl
@@ -2493,6 +3061,97 @@
 │           │   └── normalize
 │           │       ├── admission_lines.normalized.jsonl
 │           │       └── admission_lines.raw.jsonl
+│           ├── s73-candidates
+│           │   └── normalize
+│           │       ├── admission_lines.normalized.jsonl
+│           │       └── admission_lines.raw.jsonl
+│           ├── s73-candidates-regenerated
+│           │   └── normalize
+│           │       ├── admission_lines.normalized.jsonl
+│           │       └── admission_lines.raw.jsonl
+│           ├── s73-candidates-regenerated-after-derived-fix
+│           │   └── normalize
+│           │       ├── admission_lines.normalized.jsonl
+│           │       └── admission_lines.raw.jsonl
+│           ├── s73-candidates-regenerated-after-s65-fix
+│           │   └── normalize
+│           │       ├── admission_lines.normalized.jsonl
+│           │       └── admission_lines.raw.jsonl
+│           ├── s74-canonical-line-gate-and-deep-node-inspector
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── s74-canonical-line-gate-and-deep-node-inspector-final
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── s75-family-template-hardening
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── s75-family-template-hardening-final
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── s76-modal-projection
+│           │   └── normalize
+│           │       ├── admission_lines.normalized.jsonl
+│           │       └── admission_lines.raw.jsonl
+│           ├── s76-modal-projection-final
+│           │   └── normalize
+│           │       ├── admission_lines.normalized.jsonl
+│           │       └── admission_lines.raw.jsonl
+│           ├── s78-final
+│           │   ├── s78-final-session-sync
+│           │   │   ├── inventory.json
+│           │   │   ├── missing-candidates.canon-candidates.jsonl
+│           │   │   ├── normalize
+│           │   │   │   ├── admission_lines.normalized.jsonl
+│           │   │   │   └── admission_lines.raw.jsonl
+│           │   │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   │   └── sync-candidates.canon-candidates.jsonl
+│           │   ├── s78-final-session-sync-2
+│           │   │   ├── inventory.json
+│           │   │   ├── missing-candidates.canon-candidates.jsonl
+│           │   │   ├── normalize
+│           │   │   │   ├── admission_lines.normalized.jsonl
+│           │   │   │   └── admission_lines.raw.jsonl
+│           │   │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   │   └── sync-candidates.canon-candidates.jsonl
+│           │   └── s78-final-session-sync-3
+│           │       ├── inventory.json
+│           │       ├── missing-candidates.canon-candidates.jsonl
+│           │       ├── normalize
+│           │       │   ├── admission_lines.normalized.jsonl
+│           │       │   └── admission_lines.raw.jsonl
+│           │       ├── replacement-candidates.canon-candidates.jsonl
+│           │       └── sync-candidates.canon-candidates.jsonl
+│           ├── s78-regeneration-s73
+│           │   └── s78-regeneration-s73-scan
+│           │       ├── inventory.json
+│           │       ├── missing-candidates.canon-candidates.jsonl
+│           │       ├── normalize
+│           │       │   ├── admission_lines.normalized.jsonl
+│           │       │   └── admission_lines.raw.jsonl
+│           │       ├── replacement-candidates.canon-candidates.jsonl
+│           │       ├── s73-only.canon-candidates.jsonl
+│           │       └── sync-candidates.canon-candidates.jsonl
 │           ├── sync-20260429025748
 │           │   ├── inventory.json
 │           │   └── normalize
@@ -2602,7 +3261,45 @@
 │           │   │   └── admission_lines.raw.jsonl
 │           │   ├── replacement-candidates.canon-candidates.jsonl
 │           │   └── sync-candidates.canon-candidates.jsonl
-│           └── sync-20260429183328
+│           ├── sync-20260429183328
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── sync-20260429204017
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── sync-20260429204309
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── sync-20260429204525
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   ├── replacement-candidates.canon-candidates.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           ├── sync-20260429234814
+│           │   ├── inventory.json
+│           │   ├── missing-candidates.canon-candidates.jsonl
+│           │   ├── normalize
+│           │   │   ├── admission_lines.normalized.jsonl
+│           │   │   └── admission_lines.raw.jsonl
+│           │   └── sync-candidates.canon-candidates.jsonl
+│           └── sync-20260501143719
 │               ├── inventory.json
 │               ├── missing-candidates.canon-candidates.jsonl
 │               ├── normalize
@@ -2653,7 +3350,8 @@
 │   │   │   ├── admit
 │   │   │   │   └── main.go
 │   │   │   ├── export_tiddlers
-│   │   │   │   └── main.go
+│   │   │   │   ├── main.go
+│   │   │   │   └── main_test.go
 │   │   │   └── reverse_tiddlers
 │   │   │       └── main.go
 │   │   ├── go.mod
@@ -2761,6 +3459,7 @@
 │   ├── path_governance.py
 │   ├── s45_derive_layers.py
 │   ├── session_sync.py
+│   ├── stage_modal_delta.py
 │   ├── tiddlers_to_jsonl.py
 │   └── validate_corpus_governance.py
 ├── README.md
@@ -2770,9 +3469,12 @@
 │   ├── doctor
 │   │   ├── Cargo.lock
 │   │   ├── Cargo.toml
+│   │   ├── data
+│   │   │   └── tmp
 │   │   ├── src
 │   │   │   ├── bin
 │   │   │   │   └── audit.rs
+│   │   │   ├── canon_quality.rs
 │   │   │   ├── error.rs
 │   │   │   ├── lib.rs
 │   │   │   └── report.rs
@@ -2887,11 +3589,14 @@
 │   │   │   ├── __init__.py
 │   │   │   ├── __pycache__
 │   │   │   └── test_s65_microsoft_copilot_flow.py
-│   │   └── s69
-│   │       ├── __init__.py
+│   │   ├── s69
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__
+│   │   │   ├── run_session_admission_test.sh
+│   │   │   └── test_session_admission.py
+│   │   └── s77
 │   │       ├── __pycache__
-│   │       ├── run_session_admission_test.sh
-│   │       └── test_session_admission.py
+│   │       └── test_stage_modal_delta.py
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1

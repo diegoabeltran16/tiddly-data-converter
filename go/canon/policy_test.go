@@ -244,6 +244,129 @@ func TestValidateStrict_InconsistentContentPlain(t *testing.T) {
 	}
 }
 
+func TestValidateStrict_InconsistentContentAsset(t *testing.T) {
+	txt := "aGVsbG8="
+	entry := CanonEntry{
+		SchemaVersion:  SchemaV0,
+		Key:            "Asset",
+		Title:          "Asset",
+		Text:           &txt,
+		ContentType:    ContentTypePNG,
+		Modality:       ModalityImage,
+		Encoding:       EncodingBase64,
+		IsBinary:       true,
+		RolePrimary:    RoleAsset,
+		RawPayloadRef:  "node:asset",
+		AssetID:        "asset:asset",
+		MimeType:       ContentTypePNG,
+		SourceType:     strPtr(ContentTypePNG),
+		SourcePosition: strPtr("html:block0:tiddler1"),
+		Content: &ContentProjection{
+			Asset: &AssetContentProjection{
+				AssetID:        "asset:asset",
+				MimeType:       ContentTypePNG,
+				Encoding:       EncodingBase64,
+				PayloadRef:     "node:asset",
+				PayloadPresent: true,
+				PayloadSHA256:  "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+			},
+		},
+	}
+	if err := BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity: %v", err)
+	}
+	data, _ := json.Marshal(entry)
+	report := ValidateCanonJSONL(strings.NewReader(string(data)+"\n"), DefaultCanonPolicy())
+
+	if report.OK() {
+		t.Fatal("expected failure for inconsistent content.asset")
+	}
+	found := false
+	for _, issue := range report.Issues {
+		if issue.RuleID == "inconsistent-derived-content-asset" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected inconsistent-derived-content-asset issue")
+	}
+}
+
+func TestValidateStrict_ContentCodeBlocksRequireText(t *testing.T) {
+	entry := CanonEntry{
+		SchemaVersion: SchemaV0,
+		Key:           "Code",
+		Title:         "Code",
+		ContentType:   ContentTypeMarkdown,
+		Content: &ContentProjection{
+			CodeBlocks: []CodeBlockProjection{{
+				Language:  "go",
+				Text:      "fmt.Println(\"ok\")",
+				LineCount: 1,
+				ByteCount: 17,
+				Source:    "fenced_code_block:1",
+			}},
+		},
+	}
+	if err := BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity: %v", err)
+	}
+	data, _ := json.Marshal(entry)
+	report := ValidateCanonJSONL(strings.NewReader(string(data)+"\n"), DefaultCanonPolicy())
+
+	if report.OK() {
+		t.Fatal("expected failure for code projection without source text")
+	}
+	found := false
+	for _, issue := range report.Issues {
+		if issue.RuleID == "inconsistent-derived-content-code-blocks" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected inconsistent-derived-content-code-blocks issue")
+	}
+}
+
+func TestValidateStrict_InconsistentContentProjectionKind(t *testing.T) {
+	txt := "Hello world"
+	plain := "Hello world"
+	entry := CanonEntry{
+		SchemaVersion: SchemaV0,
+		Key:           "Text",
+		Title:         "Text",
+		Text:          &txt,
+		ContentType:   ContentTypePlain,
+		Content: &ContentProjection{
+			ProjectionKind: RoleAsset,
+			Modalities:     []string{RoleAsset},
+			Plain:          &plain,
+		},
+	}
+	if err := BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity: %v", err)
+	}
+	data, _ := json.Marshal(entry)
+	report := ValidateCanonJSONL(strings.NewReader(string(data)+"\n"), DefaultCanonPolicy())
+
+	if report.OK() {
+		t.Fatal("expected failure for inconsistent projection kind")
+	}
+	foundKind := false
+	foundModalities := false
+	for _, issue := range report.Issues {
+		if issue.RuleID == "inconsistent-derived-content-projection-kind" {
+			foundKind = true
+		}
+		if issue.RuleID == "inconsistent-derived-content-modalities" {
+			foundModalities = true
+		}
+	}
+	if !foundKind || !foundModalities {
+		t.Fatalf("expected projection kind and modalities issues, got %+v", report.Issues)
+	}
+}
+
 func TestValidateStrict_InconsistentNormalizedTags(t *testing.T) {
 	txt := "Hello"
 	entry := CanonEntry{
