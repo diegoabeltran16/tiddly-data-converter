@@ -89,6 +89,60 @@ func TestBuildSectionPath_DeriveFromStructure(t *testing.T) {
 	}
 }
 
+// TestDeriveSectionPath_CMU1_CategoricalFallback verifies that a non-heading
+// node with a unique #### tag and ambiguous ## tags gets a categorical
+// depth-1 section_path (CMU-1, S81).
+func TestDeriveSectionPath_CMU1_CategoricalFallback(t *testing.T) {
+	e := CanonEntry{
+		Title: "Some Evidence Node",
+		SourceTags: []string{
+			"## 🧰🧱 Elementos específicos",
+			"## 🧾🧱 Procedencia epistemológica",
+			"## 🧪🧱 Hipótesis",
+			"#### referencias especificas 🌀",
+		},
+	}
+	path := BuildSectionPath(e)
+	want := []string{"#### referencias especificas 🌀"}
+	if len(path) != len(want) {
+		t.Fatalf("CMU-1: len(path) = %d, want %d (%v)", len(path), len(want), path)
+	}
+	if path[0] != want[0] {
+		t.Fatalf("CMU-1: path[0] = %q, want %q", path[0], want[0])
+	}
+}
+
+// TestDeriveSectionPath_CMU1_NoFallback_MultipleH4 verifies that ambiguous ####
+// tags do NOT trigger the CMU-1 fallback — only a single #### is accepted.
+func TestDeriveSectionPath_CMU1_NoFallback_MultipleH4(t *testing.T) {
+	e := CanonEntry{
+		Title: "Ambiguous Node",
+		SourceTags: []string{
+			"## 🧰🧱 Elementos específicos",
+			"## 🧾🧱 Procedencia",
+			"#### tag-A 🌀",
+			"#### tag-B 🌀",
+		},
+	}
+	path := BuildSectionPath(e)
+	if len(path) != 0 {
+		t.Fatalf("CMU-1 must not fire for multiple #### tags: got %v", path)
+	}
+}
+
+// TestDeriveSectionPath_CMU1_NoFallback_NoHeadingTags verifies that nodes
+// without any heading-level tags get no section_path (code nodes).
+func TestDeriveSectionPath_CMU1_NoFallback_NoHeadingTags(t *testing.T) {
+	e := CanonEntry{
+		Title:      "data/some/file.txt",
+		SourceTags: []string{"⚙️ Text", "⚙️ Markdown"},
+	}
+	path := BuildSectionPath(e)
+	if len(path) != 0 {
+		t.Fatalf("no-heading-tags node must have no section_path: got %v", path)
+	}
+}
+
 func TestComputeOrderInDocument_Stable(t *testing.T) {
 	if got := ComputeOrderInDocument(0); got != 0 {
 		t.Fatalf("ComputeOrderInDocument(0) = %d, want 0", got)

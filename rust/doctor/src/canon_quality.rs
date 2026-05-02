@@ -3,7 +3,8 @@ use crate::report::{
     CanonicalLineItemReport, CanonicalLineVerdict, DeepNodeFinding, DeepNodeFindingCounts,
     DeepNodeInspectionReport, DeepNodeInspectorVerdict, FamilyProfileIssueSummary,
     FamilyProfileReport, IncompleteLineTriageReport, ModalProjectionAuditReport,
-    ModalProjectionIssueReport, TemplateFamilyReport, TemplateVariantReport,
+    ModalProjectionIssueReport, RoleContractAuditReport, RoleContractCounts, TemplateFamilyReport,
+    TemplateVariantReport,
 };
 use serde_json::Value;
 use std::{
@@ -84,6 +85,7 @@ const RICHNESS_EXPECTED_FIELDS: &[&str] = &[
 ];
 
 const FAMILY_PROFILE_RULE_PREFIX: &str = "family-profile-";
+const ROLE_CONTRACT_REL_PATH: &str = "data/sessions/00_contratos/policy/canon_policy_bundle.json";
 
 const SESSION_PROFILE_TOP_LEVEL_FIELDS: &[&str] = &[
     "schema_version",
@@ -162,37 +164,6 @@ const ASSET_PROFILE_TOP_LEVEL_FIELDS: &[&str] = &[
     "modified",
 ];
 
-const CONTROLLED_ROLES: &[&str] = &[
-    "concept",
-    "procedure",
-    "evidence",
-    "definition",
-    "glossary",
-    "policy",
-    "log",
-    "asset",
-    "config",
-    "code",
-    "narrative",
-    "note",
-    "warning",
-    "unclassified",
-    "concepto",
-    "dato",
-    "hipótesis",
-    "hipotesis",
-    "modelo",
-    "reporte",
-    "evento",
-    "proceso",
-    "procedimiento",
-    "ecuacion",
-    "ecuación",
-    "definición",
-    "definicion",
-    "evidencia",
-];
-
 const CONTROLLED_MODALITIES: &[&str] = &[
     "text",
     "metadata",
@@ -208,12 +179,31 @@ const CONTROLLED_MODALITIES: &[&str] = &[
     "unknown",
 ];
 
+#[derive(Debug, Clone)]
+struct RoleContractIndex {
+    contract_ref: String,
+    canonical_roles: BTreeSet<String>,
+    aliases_allowed: BTreeMap<String, String>,
+    legacy_accepted: BTreeMap<String, Option<String>>,
+    ambiguous_roles: BTreeMap<String, Vec<String>>,
+    load_error: Option<String>,
+}
+
+#[derive(Debug)]
+struct RoleContractEvaluation {
+    verdict: String,
+    canonical_role: Option<String>,
+    candidate_roles: Vec<String>,
+}
+
 /// Clasifica lineas canonicas o candidatas sin modificar el canon.
 pub fn audit_canonical_lines(repo_root: &Path, input_path: &Path) -> CanonicalLineGateReport {
     let root = repo_root;
     let input = resolve_quality_path(root, input_path);
     let mut source_files = collect_canonical_input_files(&input);
     source_files.sort();
+    let role_contract = load_role_contract_index(root);
+    let ai_role_map = load_ai_role_map(root);
 
     let mut report = CanonicalLineGateReport {
         verdict: CanonicalLineVerdict::CanonLineOk,
@@ -229,6 +219,7 @@ pub fn audit_canonical_lines(repo_root: &Path, input_path: &Path) -> CanonicalLi
         template_families_with_drift: Vec::new(),
         family_profiles: Vec::new(),
         incomplete_line_triage: Vec::new(),
+        role_contract_audit: empty_role_contract_audit(&role_contract),
         modal_projection_audit: empty_modal_projection_audit(),
         debt_summary: CanonQualityDebtSummary::default(),
         lines: Vec::new(),
@@ -282,7 +273,14 @@ pub fn audit_canonical_lines(repo_root: &Path, input_path: &Path) -> CanonicalLi
             };
             report.parsed_lines += 1;
 
-            let item = classify_canonical_value(root, source_file, line_number, &value);
+            let item = classify_canonical_value(
+                root,
+                source_file,
+                line_number,
+                &value,
+                &role_contract,
+                &ai_role_map,
+            );
             if let Value::Object(map) = &value {
                 template_observations
                     .entry(item.family.clone())
@@ -308,6 +306,7 @@ pub fn audit_canonical_lines(repo_root: &Path, input_path: &Path) -> CanonicalLi
         report.verdict = worst_verdict(report.verdict, profile.verdict);
     }
     report.incomplete_line_triage = build_incomplete_line_triage(&report.lines);
+    report.role_contract_audit = build_role_contract_audit(&role_contract, &report.lines);
     report.modal_projection_audit = build_modal_projection_audit(&report.lines);
     report.debt_summary = build_debt_summary(&report);
     report
@@ -375,6 +374,8 @@ fn classify_canonical_value(
     source_file: &Path,
     line_number: usize,
     value: &Value,
+    role_contract: &RoleContractIndex,
+    ai_role_map: &BTreeMap<String, String>,
 ) -> CanonicalLineItemReport {
     let Some(map) = value.as_object() else {
         return rejected_line_item(
@@ -529,12 +530,57 @@ fn classify_canonical_value(
         }
     }
     if let Some(role) = map.get("role_primary").and_then(Value::as_str) {
-        if !CONTROLLED_ROLES.contains(&role) {
-            issues.push(issue(
-                "role-primary-outside-known-vocabulary",
+        let role_eval = evaluate_role_contract(role_contract, role);
+        match role_eval.verdict.as_str() {
+            "role_ok" => {}
+            "role_alias_mapped" => issues.push(issue(
+                "role-alias-mapped",
                 CanonicalLineVerdict::CanonLineWarning,
-                &format!("role_primary fuera del vocabulario observado: {}", role),
-            ));
+                &format!(
+                    "role_primary usa alias permitido {}; canonical_role={}",
+                    role,
+                    role_eval.canonical_role.as_deref().unwrap_or("")
+                ),
+            )),
+            "role_legacy_detected" => issues.push(issue(
+                "role-legacy-detected",
+                CanonicalLineVerdict::CanonLineWarning,
+                &format!(
+                    "role_primary legado transicional {}; canonical_role={}",
+                    role,
+                    role_eval.canonical_role.as_deref().unwrap_or("")
+                ),
+            )),
+            "role_ambiguous" => issues.push(issue(
+                "role-ambiguous",
+                CanonicalLineVerdict::CanonLineInconsistent,
+                &format!(
+                    "role_primary ambiguo {}; candidatos={:?}",
+                    role, role_eval.candidate_roles
+                ),
+            )),
+            _ => issues.push(issue(
+                "role-invalid",
+                CanonicalLineVerdict::CanonLineInconsistent,
+                &format!("role_primary no pertenece al contrato S79: {}", role),
+            )),
+        }
+        if let (Some(id), Some(ai_role)) = (
+            map.get("id").and_then(Value::as_str),
+            map.get("id")
+                .and_then(Value::as_str)
+                .and_then(|id| ai_role_map.get(id)),
+        ) {
+            if ai_role != role {
+                issues.push(issue(
+                    "role-cross-layer-mismatch",
+                    CanonicalLineVerdict::CanonLineWarning,
+                    &format!(
+                        "role_primary difiere entre canon y AI: canon={} ai={} id={}",
+                        role, ai_role, id
+                    ),
+                ));
+            }
         }
     }
     if let Some(modality) = map.get("modality").and_then(Value::as_str) {
@@ -664,6 +710,329 @@ fn rejected_line_item(
             message,
         )],
     }
+}
+
+fn load_role_contract_index(root: &Path) -> RoleContractIndex {
+    let path = root.join(ROLE_CONTRACT_REL_PATH);
+    let contract_ref = display_quality_path(root, &path);
+    let content = match std::fs::read_to_string(&path) {
+        Ok(content) => content,
+        Err(err) => {
+            return RoleContractIndex {
+                contract_ref,
+                canonical_roles: BTreeSet::new(),
+                aliases_allowed: BTreeMap::new(),
+                legacy_accepted: BTreeMap::new(),
+                ambiguous_roles: BTreeMap::new(),
+                load_error: Some(format!("no se pudo leer role contract: {}", err)),
+            };
+        }
+    };
+    let value: Value = match serde_json::from_str(&content) {
+        Ok(value) => value,
+        Err(err) => {
+            return RoleContractIndex {
+                contract_ref,
+                canonical_roles: BTreeSet::new(),
+                aliases_allowed: BTreeMap::new(),
+                legacy_accepted: BTreeMap::new(),
+                ambiguous_roles: BTreeMap::new(),
+                load_error: Some(format!("role contract no es JSON valido: {}", err)),
+            };
+        }
+    };
+    let Some(contract) = value
+        .get("role_primary_contract")
+        .and_then(Value::as_object)
+    else {
+        return RoleContractIndex {
+            contract_ref,
+            canonical_roles: BTreeSet::new(),
+            aliases_allowed: BTreeMap::new(),
+            legacy_accepted: BTreeMap::new(),
+            ambiguous_roles: BTreeMap::new(),
+            load_error: Some(
+                "role_primary_contract ausente en canon_policy_bundle.json".to_string(),
+            ),
+        };
+    };
+
+    let canonical_roles = string_array_field(contract, "canonical_roles")
+        .into_iter()
+        .map(|role| normalize_role(&role))
+        .filter(|role| !role.is_empty())
+        .collect::<BTreeSet<_>>();
+    let aliases_allowed = string_map_field(contract, "aliases_allowed");
+    let ambiguous_roles = string_array_map_field(contract, "ambiguous_roles");
+    let legacy_accepted = legacy_map_field(contract, "legacy_accepted_transitional");
+
+    let load_error = if canonical_roles.is_empty() {
+        Some("role_primary_contract.canonical_roles esta vacio".to_string())
+    } else if !canonical_roles.contains("unclassified") {
+        Some("role_primary_contract.canonical_roles no incluye unclassified".to_string())
+    } else {
+        None
+    };
+
+    RoleContractIndex {
+        contract_ref,
+        canonical_roles,
+        aliases_allowed,
+        legacy_accepted,
+        ambiguous_roles,
+        load_error,
+    }
+}
+
+fn string_array_field(map: &serde_json::Map<String, Value>, field: &str) -> Vec<String> {
+    map.get(field)
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn string_map_field(map: &serde_json::Map<String, Value>, field: &str) -> BTreeMap<String, String> {
+    map.get(field)
+        .and_then(Value::as_object)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|(key, value)| {
+                    value
+                        .as_str()
+                        .map(|target| (normalize_role(key), normalize_role(target)))
+                })
+                .filter(|(key, value)| !key.is_empty() && !value.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn string_array_map_field(
+    map: &serde_json::Map<String, Value>,
+    field: &str,
+) -> BTreeMap<String, Vec<String>> {
+    map.get(field)
+        .and_then(Value::as_object)
+        .map(|items| {
+            items
+                .iter()
+                .map(|(key, value)| {
+                    let values = value
+                        .as_array()
+                        .map(|array| {
+                            array
+                                .iter()
+                                .filter_map(Value::as_str)
+                                .map(str::to_string)
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    (normalize_role(key), values)
+                })
+                .filter(|(key, _)| !key.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn legacy_map_field(
+    map: &serde_json::Map<String, Value>,
+    field: &str,
+) -> BTreeMap<String, Option<String>> {
+    map.get(field)
+        .and_then(Value::as_object)
+        .map(|items| {
+            items
+                .iter()
+                .map(|(key, value)| {
+                    let canonical = value
+                        .as_object()
+                        .and_then(|object| object.get("canonical_role"))
+                        .and_then(Value::as_str)
+                        .map(normalize_role);
+                    (normalize_role(key), canonical)
+                })
+                .filter(|(key, _)| !key.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn evaluate_role_contract(contract: &RoleContractIndex, role: &str) -> RoleContractEvaluation {
+    if let Some(error) = &contract.load_error {
+        return RoleContractEvaluation {
+            verdict: "role_invalid".to_string(),
+            canonical_role: None,
+            candidate_roles: vec![error.clone()],
+        };
+    }
+
+    let normalized = normalize_role(role);
+    if contract.canonical_roles.contains(&normalized) {
+        return RoleContractEvaluation {
+            verdict: "role_ok".to_string(),
+            canonical_role: Some(normalized),
+            candidate_roles: Vec::new(),
+        };
+    }
+    if let Some(canonical) = contract.aliases_allowed.get(&normalized) {
+        return RoleContractEvaluation {
+            verdict: "role_alias_mapped".to_string(),
+            canonical_role: Some(canonical.clone()),
+            candidate_roles: Vec::new(),
+        };
+    }
+    if let Some(canonical) = contract.legacy_accepted.get(&normalized) {
+        if let Some(canonical) = canonical {
+            return RoleContractEvaluation {
+                verdict: "role_legacy_detected".to_string(),
+                canonical_role: Some(canonical.clone()),
+                candidate_roles: Vec::new(),
+            };
+        }
+        return RoleContractEvaluation {
+            verdict: "role_ambiguous".to_string(),
+            canonical_role: None,
+            candidate_roles: contract
+                .ambiguous_roles
+                .get(&normalized)
+                .cloned()
+                .unwrap_or_default(),
+        };
+    }
+    if let Some(candidates) = contract.ambiguous_roles.get(&normalized) {
+        return RoleContractEvaluation {
+            verdict: "role_ambiguous".to_string(),
+            canonical_role: None,
+            candidate_roles: candidates.clone(),
+        };
+    }
+    RoleContractEvaluation {
+        verdict: "role_invalid".to_string(),
+        canonical_role: None,
+        candidate_roles: Vec::new(),
+    }
+}
+
+fn load_ai_role_map(root: &Path) -> BTreeMap<String, String> {
+    let ai_dir = root.join("data/out/local/ai");
+    let mut paths = match std::fs::read_dir(&ai_dir) {
+        Ok(entries) => entries
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name| name.starts_with("tiddlers_ai_") && name.ends_with(".jsonl"))
+                    .unwrap_or(false)
+            })
+            .collect::<Vec<_>>(),
+        Err(_) => return BTreeMap::new(),
+    };
+    paths.sort();
+    let mut roles = BTreeMap::new();
+    for path in paths {
+        let Ok(content) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let Ok(Value::Object(map)) = serde_json::from_str::<Value>(line) else {
+                continue;
+            };
+            if let (Some(id), Some(role)) = (
+                map.get("id").and_then(Value::as_str),
+                map.get("role_primary").and_then(Value::as_str),
+            ) {
+                roles.insert(id.to_string(), role.to_string());
+            }
+        }
+    }
+    roles
+}
+
+fn empty_role_contract_audit(contract: &RoleContractIndex) -> RoleContractAuditReport {
+    RoleContractAuditReport {
+        contract_ref: contract.contract_ref.clone(),
+        canonical_roles: contract.canonical_roles.iter().cloned().collect(),
+        lines_with_role: 0,
+        counts: RoleContractCounts::default(),
+        examples: BTreeMap::new(),
+    }
+}
+
+fn build_role_contract_audit(
+    contract: &RoleContractIndex,
+    lines: &[CanonicalLineItemReport],
+) -> RoleContractAuditReport {
+    let mut report = empty_role_contract_audit(contract);
+    if let Some(error) = &contract.load_error {
+        report
+            .examples
+            .entry("role_invalid".to_string())
+            .or_default()
+            .push(error.clone());
+    }
+    for line in lines {
+        let Some(role) = line.role_primary.as_deref() else {
+            continue;
+        };
+        report.lines_with_role += 1;
+        let eval = evaluate_role_contract(contract, role);
+        increment_role_contract_count(&mut report.counts, &eval.verdict);
+        push_role_example(&mut report.examples, &eval.verdict, line);
+        if line
+            .issues
+            .iter()
+            .any(|issue| issue.rule_id == "role-cross-layer-mismatch")
+        {
+            report.counts.role_cross_layer_mismatch += 1;
+            push_role_example(&mut report.examples, "role_cross_layer_mismatch", line);
+        }
+    }
+    report
+}
+
+fn increment_role_contract_count(counts: &mut RoleContractCounts, verdict: &str) {
+    match verdict {
+        "role_ok" => counts.role_ok += 1,
+        "role_alias_mapped" => counts.role_alias_mapped += 1,
+        "role_legacy_detected" => counts.role_legacy_detected += 1,
+        "role_ambiguous" => counts.role_ambiguous += 1,
+        "role_invalid" => counts.role_invalid += 1,
+        "role_cross_layer_mismatch" => counts.role_cross_layer_mismatch += 1,
+        _ => {}
+    }
+}
+
+fn push_role_example(
+    examples: &mut BTreeMap<String, Vec<String>>,
+    verdict: &str,
+    line: &CanonicalLineItemReport,
+) {
+    let bucket = examples.entry(verdict.to_string()).or_default();
+    if bucket.len() >= 5 {
+        return;
+    }
+    let title = line
+        .title
+        .clone()
+        .unwrap_or_else(|| format!("{}:{}", line.source_path, line.line));
+    bucket.push(title);
+}
+
+fn normalize_role(value: &str) -> String {
+    value.trim().to_lowercase()
 }
 
 fn issue(rule_id: &str, impact: CanonicalLineVerdict, message: &str) -> CanonicalLineIssue {

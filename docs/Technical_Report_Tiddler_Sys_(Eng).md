@@ -1303,6 +1303,64 @@ The structured tiddler system described in this report does not constitute a sim
 
 With the integration of "Política de Memoria Activa (Active Memory Policy)" and the extension of the converter's responsibilities to include contextual continuity, the Canon's role evolves from preserving and organizing knowledge to also reactivating and orienting it. The system would not only maintain structured, auditable, and reusable knowledge; it would also begin to support informed session continuity, allowing prior work to be contextually recovered rather than manually reconstructed. In this sense, the converter moves closer to an infrastructure for operational memory —not merely canonical storage— and the architecture takes a disciplined step from static preservation toward active epistemic support, without collapsing normative rules into hidden technical behavior or turning the notebook into an autonomous agent.
 
+## Live System Status (post-S81 · 2026-05-02)
+
+This section records the operational state of the running system after sessions S79, S80, and S81. It distinguishes between what is fully implemented, what is partially implemented, and what remains an open item.
+
+### Canon state
+
+As of S81, the live canon holds **773 nodes** distributed across 8 shards. The full pipeline (HTML extraction → shardization → strict → reverse-preflight → reverse) is operational and ends every cycle with `Rejected: 0`.
+
+### Semantic role contract (S79)
+
+**Status: complete.** S79 closed the formal role vocabulary and hardened the contract across Go, Rust, and Python surfaces. The controlled vocabulary is:
+`config`, `log`, `procedure`, `policy`, `hypothesis`, `evidence`, `asset`, `glossary`, `code`, `unclassified`.
+
+The `unclassified` role is now treated as a residual class, not a default. It may only appear for nodes where semantic classification genuinely cannot be determined.
+
+### Unclassified residual (S80)
+
+**Status: complete.** S80 resolved the structural accumulation of `unclassified` nodes. As of S80, unclassified dropped from a dominant fraction to a near-zero residual (1 node remaining as of S81). RULE-21 (fraction < 25%) passes at 0.13%.
+
+The modal debt stands at 0. Reverse and all downstream layers remain operationally verified.
+
+### Documentary context hardening (S81)
+
+**Status: partially implemented.** The documentary context fields (`section_path`, `document_id`, `order_in_document`) are present in the canon but their structural utility varies.
+
+**Re-baseline post-S80 (773 nodes):**
+
+| Field | Formal coverage | Structurally useful |
+|---|---|---|
+| `section_path` | 59.2% (458/773) | 21.2% hierarchical (depth > 1) |
+| `document_id` | 100% (773/773) | 22.3% discriminatory (session nodes only) |
+| `order_in_document` | 99.9% (772/773) | ~57% (flat sequence, not hierarchical) |
+
+**CMU-1 (implemented in S81):** The function `deriveSectionPathFromStructure` in `go/canon/context_relations.go` was extended to assign a categorical depth-1 `section_path` to non-heading nodes that have exactly one unambiguous `####` tag, even when higher-level tags are ambiguous. This covered 8 `evidence` nodes (references) that share `#### referencias especificas 🌀` as their unique category. Before CMU-1: 0 section_path for these nodes. After CMU-1: `["#### referencias especificas 🌀"]` for all 8.
+
+**CMU-2 (implemented in S81):** RULE-22 was added to `python_scripts/audit_normative_projection.py`. This rule measures the fraction of nodes with `section_path` that are auto-referential (depth = 1) versus hierarchical (depth > 1). Threshold: warn if ≥ 70%. Current state: 64.19% (PASS), making the field's structural quality visible in audit output.
+
+**CMU-3 (documented, not coded):** `document_id` concentration (77.7% of nodes sharing one ID from the main HTML source) is a structural limit of the TiddlyWiki export model, not a converter bug. No code change can resolve this without sub-document markers in the source. This is documented explicitly in the system.
+
+**Remaining limits of source origin (not resolvable by converter):**
+- 315 `code` nodes have no heading-level tags in the TiddlyWiki source and legitimately receive no `section_path`. This is correct behavior.
+- 79.2% of the corpus shares one `document_id` because all nodes come from a single HTML file. Resolving this requires sub-document structure at the TiddlyWiki authoring level.
+- `order_in_document` is a flat export index, not a semantic hierarchy. Its limitation is a property of the TiddlyWiki export format.
+
+### Histories extraction (DT02)
+
+**Status: not yet a converter debt.** Histories represent edit history data that is exportable from TiddlyWiki but whose extraction and integration into the canon was not prioritized through S81. This is a data availability issue, not an extraction-readiness issue. No implementation debt exists until the source data is confirmed available and the semantic contract for histories is defined.
+
+### Audit and quality gates
+
+- RULE-21 (unclassified fraction): PASS (0.13% < 25%)
+- RULE-22 (section_path auto-referential fraction): PASS (64.19% < 70%)
+- Strict preflight: PASS (773/773)
+- Reverse-preflight: PASS (773/773)
+- Reverse authoritative: PASS (Rejected: 0)
+- Go tests: PASS (full suite)
+- Rust doctor tests: PASS (22/22)
+
 ## References
 - [1] Drăgan, L., Handschuh, S., & Decker, S. (2011). The semantic desktop at work: Interlinking notes. En Proceedings of the 7th International Conference on Semantic Systems (pp. 17–24). ACM. https://doi.org/10.1145/2063518.2063521
 

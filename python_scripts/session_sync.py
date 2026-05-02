@@ -65,7 +65,7 @@ FAMILY_BY_RELATIVE_ROOT: dict[tuple[str, ...], dict[str, Any]] = {
     ("03_hipotesis",): {
         "family": "hipotesis_de_sesion",
         "role_primary": "procedure",
-        "source_role": "hipotesis",
+        "source_role": "procedure",
         "order": 4,
     },
     ("04_balance_de_sesion",): {

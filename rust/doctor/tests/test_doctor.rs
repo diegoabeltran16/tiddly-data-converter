@@ -38,6 +38,31 @@ fn write_file(path: &Path, content: &str) {
     std::fs::write(path, content).expect("write fixture file");
 }
 
+fn minimal_policy_bundle() -> &'static str {
+    r#"{
+      "local_output_root": "data/out/local",
+      "session_semantic_close_default": "data_sessions_staging",
+      "reverse_html_root": "data/out/local/reverse_html",
+      "direct_canon_write_default": "prohibited_by_default_requires_local_admission",
+      "role_primary_contract": {
+        "schema_version": "s79-role-primary-contract-v0",
+        "field": "role_primary",
+        "canonical_roles": ["concept", "procedure", "evidence", "definition", "glossary", "policy", "log", "asset", "config", "code", "narrative", "note", "warning", "unclassified"],
+        "aliases_allowed": {"concepto": "concept"},
+        "legacy_accepted_transitional": {"session": {"canonical_role": "log"}, "hypothesis": {"canonical_role": null}},
+        "ambiguous_roles": {"hypothesis": ["evidence", "procedure"]},
+        "invalid_policy": {"default_verdict": "role_invalid"}
+      }
+    }"#
+}
+
+fn write_minimal_role_contract(root: &Path) {
+    write_file(
+        &root.join("data/sessions/00_contratos/policy/canon_policy_bundle.json"),
+        minimal_policy_bundle(),
+    );
+}
+
 fn write_minimal_perimeter_fixture(root: &Path) {
     write_file(
         &root.join("data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html"),
@@ -57,15 +82,7 @@ fn write_minimal_perimeter_fixture(root: &Path) {
         &root.join("README.md"),
         "# tdc\n\n```bash\nshell_scripts/tdc.sh\n```\n",
     );
-    write_file(
-        &root.join("data/sessions/00_contratos/policy/canon_policy_bundle.json"),
-        r#"{
-          "local_output_root": "data/out/local",
-          "session_semantic_close_default": "data_sessions_staging",
-          "reverse_html_root": "data/out/local/reverse_html",
-          "direct_canon_write_default": "prohibited_by_default_requires_local_admission"
-        }"#,
-    );
+    write_minimal_role_contract(root);
     write_file(
         &root.join("data/sessions/00_contratos/projections/derived_layers_registry.json"),
         r#"{
@@ -278,6 +295,7 @@ fn test_reporte_siempre_tiene_campos_minimos() {
 #[test]
 fn test_canonical_line_gate_clasifica_ok_incomplete_inconsistent_y_rejected() {
     let root = temp_repo_root("canonical_line_gate_taxonomy");
+    write_minimal_role_contract(&root);
     let input = root.join("data/tmp/candidates.jsonl");
     let complete = complete_canon_line(
         "#### 🌀 Sesión 99 = canonical-line-ok",
@@ -300,6 +318,8 @@ fn test_canonical_line_gate_clasifica_ok_incomplete_inconsistent_y_rejected() {
     assert_eq!(report.counts.canon_line_incomplete, 1);
     assert_eq!(report.counts.canon_line_inconsistent, 1);
     assert_eq!(report.counts.canon_line_rejected, 1);
+    assert_eq!(report.role_contract_audit.counts.role_ok, 1);
+    assert_eq!(report.role_contract_audit.counts.role_invalid, 0);
     assert_eq!(report.verdict, CanonicalLineVerdict::CanonLineRejected);
 
     std::fs::remove_dir_all(root).expect("cleanup canonical line taxonomy fixture");
@@ -308,6 +328,7 @@ fn test_canonical_line_gate_clasifica_ok_incomplete_inconsistent_y_rejected() {
 #[test]
 fn test_canonical_line_gate_detecta_deriva_de_plantilla_por_familia() {
     let root = temp_repo_root("canonical_line_template_drift");
+    write_minimal_role_contract(&root);
     let input = root.join("data/tmp/candidates.jsonl");
     let baseline = complete_canon_line("#### 🌀 Sesión 99 = template-a", "detalles_de_sesion", 1);
     let variant = serde_json::json!({
@@ -356,6 +377,7 @@ fn test_canonical_line_gate_detecta_deriva_de_plantilla_por_familia() {
 #[test]
 fn test_canonical_line_gate_reporta_perfiles_y_triage_de_incompletas() {
     let root = temp_repo_root("canonical_line_family_profile");
+    write_minimal_role_contract(&root);
     let input = root.join("data/tmp/candidates.jsonl");
     let session_line = complete_canon_line(
         "#### 🌀 Sesión 99 = family-profile-ok",
@@ -425,6 +447,7 @@ fn test_canonical_line_gate_reporta_perfiles_y_triage_de_incompletas() {
 #[test]
 fn test_canonical_line_gate_audita_proyeccion_modal() {
     let root = temp_repo_root("canonical_modal_projection");
+    write_minimal_role_contract(&root);
     let input = root.join("data/tmp/candidates.jsonl");
     let asset_projected = serde_json::json!({
         "schema_version": "v0",

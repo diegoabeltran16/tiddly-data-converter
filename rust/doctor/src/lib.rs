@@ -1696,6 +1696,57 @@ fn check_policy_bundle(root: &Path, checks: &mut Vec<PerimeterCheck>) {
         "reverse_html_root",
         "data/out/local/reverse_html",
     );
+    if let Some(contract) = value
+        .get("role_primary_contract")
+        .and_then(serde_json::Value::as_object)
+    {
+        push_ok(
+            checks,
+            "policy-role-primary-contract-present",
+            "role_primary_contract existe en canon_policy_bundle.json",
+        );
+        if contract.get("field").and_then(serde_json::Value::as_str) == Some("role_primary") {
+            push_ok(
+                checks,
+                "policy-role-primary-contract-field",
+                "role_primary_contract gobierna el campo role_primary",
+            );
+        } else {
+            push_error(
+                checks,
+                "policy-role-primary-contract-field",
+                "role_primary_contract.field debe ser role_primary",
+            );
+        }
+        if contract
+            .get("canonical_roles")
+            .and_then(serde_json::Value::as_array)
+            .map(|roles| {
+                roles
+                    .iter()
+                    .any(|role| role.as_str() == Some("unclassified"))
+            })
+            .unwrap_or(false)
+        {
+            push_ok(
+                checks,
+                "policy-role-primary-contract-fallback",
+                "role_primary_contract declara unclassified como fallback canonico",
+            );
+        } else {
+            push_error(
+                checks,
+                "policy-role-primary-contract-fallback",
+                "role_primary_contract.canonical_roles debe incluir unclassified",
+            );
+        }
+    } else {
+        push_error(
+            checks,
+            "policy-role-primary-contract-present",
+            "canon_policy_bundle.json no declara role_primary_contract",
+        );
+    }
 
     let direct_write = value
         .get("direct_canon_write_default")

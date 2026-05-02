@@ -197,6 +197,27 @@ pub struct CanonicalLineItemReport {
     pub issues: Vec<CanonicalLineIssue>,
 }
 
+/// Conteos de veredictos del contrato S79 de role_primary.
+#[derive(Debug, Default, Serialize)]
+pub struct RoleContractCounts {
+    pub role_ok: usize,
+    pub role_alias_mapped: usize,
+    pub role_legacy_detected: usize,
+    pub role_ambiguous: usize,
+    pub role_invalid: usize,
+    pub role_cross_layer_mismatch: usize,
+}
+
+/// Auditoria agregada del contrato machine-readable de role_primary.
+#[derive(Debug, Default, Serialize)]
+pub struct RoleContractAuditReport {
+    pub contract_ref: String,
+    pub canonical_roles: Vec<String>,
+    pub lines_with_role: usize,
+    pub counts: RoleContractCounts,
+    pub examples: BTreeMap<String, Vec<String>>,
+}
+
 /// Conteos por veredicto de la compuerta canonica.
 #[derive(Debug, Default, Serialize)]
 pub struct CanonicalLineCounts {
@@ -319,6 +340,7 @@ pub struct CanonicalLineGateReport {
     pub template_families_with_drift: Vec<TemplateFamilyReport>,
     pub family_profiles: Vec<FamilyProfileReport>,
     pub incomplete_line_triage: Vec<IncompleteLineTriageReport>,
+    pub role_contract_audit: RoleContractAuditReport,
     pub modal_projection_audit: ModalProjectionAuditReport,
     pub debt_summary: CanonQualityDebtSummary,
     pub lines: Vec<CanonicalLineItemReport>,
