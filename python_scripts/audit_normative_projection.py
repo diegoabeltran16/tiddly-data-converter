@@ -55,20 +55,20 @@ from path_governance import (
     resolve_repo_path,
     sorted_canon_shards,
 )
+from corpus_governance import (
+    classify_role_primary_value,
+    load_canon_policy_bundle,
+    role_primary_canonical_roles,
+)
 
 # ── Session metadata ──────────────────────────────────────────────────────────
 SESSION = "S47"
 AUDIT_SCHEMA_VERSION = "v0"
 RUN_ID_PREFIX = "s47-audit"
 
-# ── Controlled vocabulary for role_primary (from S46 derive_layers.py) ───────
-VALID_ROLES = {
-    "session", "hypothesis", "provenance", "protocol", "contract",
-    "policy", "schema", "report", "reference", "glossary", "dictionary",
-    "architecture", "component", "requirements", "objective", "dofa",
-    "algorithm", "code_source", "test_fixture", "dataset", "manifest",
-    "html_artifact", "readme", "config", "asset", "unclassified",
-}
+# ── Controlled vocabulary for role_primary (S79 contract) ────────────────────
+CANON_POLICY_BUNDLE = load_canon_policy_bundle()
+VALID_ROLES = role_primary_canonical_roles(CANON_POLICY_BUNDLE)
 
 # ── Known relation types ──────────────────────────────────────────────────────
 KNOWN_RELATION_TYPES = {
@@ -176,7 +176,7 @@ def load_normative_rules() -> list[dict]:
         {"id": "RULE-08", "block": "identity", "description": "canonical_slug is present and non-empty", "level": "recomendada", "severity": "minor"},
         {"id": "RULE-09", "block": "identity", "description": "version_id is sha256: prefixed", "level": "recomendada", "severity": "minor"},
         {"id": "RULE-10", "block": "semantic", "description": "role_primary belongs to controlled vocabulary", "level": "obligatoria", "severity": "major"},
-        {"id": "RULE-11", "block": "semantic", "description": "non-binary text records with role_primary=unclassified flagged as warn", "level": "flexible", "severity": "info"},
+        {"id": "RULE-11", "block": "semantic", "description": "non-binary text/mixed records with role_primary=unclassified flagged as warn", "level": "flexible", "severity": "info"},
         {"id": "RULE-12", "block": "semantic", "description": "semantic_text null for binary and JSON records is correct", "level": "obligatoria", "severity": "major"},
         {"id": "RULE-13", "block": "relations", "description": "all relation target_ids exist in corpus", "level": "obligatoria", "severity": "major"},
         {"id": "RULE-14", "block": "relations", "description": "relation types are from known vocabulary", "level": "recomendada", "severity": "minor"},
@@ -187,6 +187,7 @@ def load_normative_rules() -> list[dict]:
         {"id": "RULE-19", "block": "normative_report", "description": "hypothesis/session/provenance nodes have section_path (recommended)", "level": "recomendada", "severity": "info"},
         {"id": "RULE-20", "block": "normative_report", "description": "non-binary text nodes have content.plain non-null", "level": "recomendada", "severity": "minor"},
         {"id": "RULE-21", "block": "normative_report", "description": "unclassified fraction < 0.25 (soft threshold)", "level": "flexible", "severity": "info"},
+        {"id": "RULE-22", "block": "normative_report", "description": "section_path auto-referential fraction < 0.70 (depth-1 quality gate, S81)", "level": "flexible", "severity": "info"},
     ]
 
 
@@ -315,21 +316,43 @@ def evaluate_record(
     else:
         findings.append(finding("RULE-09", "pass", "minor", "none", "version_id", "ok", []))
 
-    # RULE-10: role_primary in controlled vocab
+    # RULE-10: role_primary in controlled contract
     rp = rec.get("role_primary", "")
-    if rp not in VALID_ROLES:
+    role_check = classify_role_primary_value(rp, CANON_POLICY_BUNDLE)
+    role_verdict = role_check["verdict"]
+    if role_verdict == "role_ok":
+        findings.append(finding("RULE-10", "pass", "major", "none", "role_primary", "ok", []))
+    elif role_verdict in {"role_alias_mapped", "role_legacy_detected", "role_ambiguous"}:
+        findings.append(finding(
+            "RULE-10",
+            "warn",
+            "major",
+            "review_needed",
+            "role_primary",
+            (
+                f"role_primary '{rp}' classified as {role_verdict} by S79 role contract"
+                + (
+                    f"; canonical target '{role_check.get('canonical_role')}'"
+                    if role_check.get("canonical_role")
+                    else "; no deterministic canonical target"
+                )
+            ),
+            ["canon_shard", "canon_policy_bundle.role_primary_contract"],
+            proposed_value=role_check.get("canonical_role"),
+        ))
+    else:
         findings.append(finding("RULE-10", "fail", "major", "safe_autofix",
                                 "role_primary", f"role_primary '{rp}' not in controlled vocabulary",
-                                ["canon_shard", "derive_layers_s46"],
+                                ["canon_shard", "canon_policy_bundle.role_primary_contract"],
                                 proposed_value="unclassified"))
-    else:
-        findings.append(finding("RULE-10", "pass", "major", "none", "role_primary", "ok", []))
 
-    # RULE-11: non-binary text records with unclassified
-    if not is_binary and rec.get("modality") == "text" and rp == "unclassified":
+    # RULE-11: non-binary text/mixed records with unclassified
+    # S80: extended coverage from modality=text only to include modality=mixed,
+    # which accounts for the majority of the unclassified corpus (Fam A/B/C).
+    if not is_binary and rec.get("modality") in ("text", "mixed") and rp == "unclassified":
         findings.append(finding("RULE-11", "warn", "info", "review_needed",
                                 "role_primary",
-                                "text record is unclassified; manual review or content-based classification needed",
+                                "text/mixed record is unclassified; manual review or content-based classification needed",
                                 ["canon_shard", "classification_report"]))
 
     # RULE-12: semantic_text null for binary/JSON
@@ -477,6 +500,70 @@ def evaluate_corpus_level(
             "evidence_sources": [],
             "proposed_value": None,
         })
+
+    # RULE-22 (S81): section_path quality gate — auto-referential (depth=1) fraction
+    # among nodes that HAVE section_path. Threshold: < 70%.
+    # A high fraction of depth-1 paths signals low structural value of the field.
+    sp_nodes = [r for r in canon_records if r.get("section_path")]
+    sp_total = len(sp_nodes)
+    if sp_total > 0:
+        sp_depth1 = sum(
+            1 for r in sp_nodes
+            if isinstance(r.get("section_path"), list) and len(r["section_path"]) == 1
+        )
+        auto_ref_frac = sp_depth1 / sp_total
+        threshold = 0.70
+        if auto_ref_frac >= threshold:
+            findings.append({
+                "rule_id": "RULE-22",
+                "node_id": "CORPUS",
+                "title": "corpus",
+                "shard_file": "all",
+                "compliance_status": "warn",
+                "severity": "info",
+                "fix_type": "review_needed",
+                "field": "section_path",
+                "detail": (
+                    f"section_path auto-referential (depth=1) fraction "
+                    f"{auto_ref_frac:.2%} >= {threshold:.0%} threshold "
+                    f"({sp_depth1}/{sp_total} nodes with section_path). "
+                    "Most section_paths are self-referential — low structural value."
+                ),
+                "evidence_sources": ["canon_shards"],
+                "proposed_value": None,
+            })
+        else:
+            findings.append({
+                "rule_id": "RULE-22",
+                "node_id": "CORPUS",
+                "title": "corpus",
+                "shard_file": "all",
+                "compliance_status": "pass",
+                "severity": "info",
+                "fix_type": "none",
+                "field": "section_path",
+                "detail": (
+                    f"section_path auto-referential fraction {auto_ref_frac:.2%} "
+                    f"< {threshold:.0%} ({sp_depth1}/{sp_total} depth-1 of {sp_total} with path)"
+                ),
+                "evidence_sources": [],
+                "proposed_value": None,
+            })
+    else:
+        findings.append({
+            "rule_id": "RULE-22",
+            "node_id": "CORPUS",
+            "title": "corpus",
+            "shard_file": "all",
+            "compliance_status": "warn",
+            "severity": "info",
+            "fix_type": "review_needed",
+            "field": "section_path",
+            "detail": "No nodes have section_path — field not populated.",
+            "evidence_sources": [],
+            "proposed_value": None,
+        })
+
     return findings
 
 

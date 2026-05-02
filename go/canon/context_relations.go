@@ -255,6 +255,13 @@ func deriveSectionPathFromStructure(title string, tags []string) []string {
 				break
 			}
 		}
+		// CMU-1 (S81): if the path is empty but exactly one #### tag exists, use it
+		// as a categorical fallback. Covers nodes with unambiguous #### membership
+		// blocked by multi-tagging ambiguity at higher levels (e.g. evidence nodes).
+		// This yields a depth-1 categorical path, not a structural hierarchy.
+		if len(path) == 0 && len(levels[4]) == 1 {
+			path = append(path, levels[4][0])
+		}
 	}
 
 	return dedupePath(path)

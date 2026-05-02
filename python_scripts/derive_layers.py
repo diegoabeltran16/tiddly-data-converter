@@ -33,7 +33,7 @@ Reads canon shards from the governed local canon root and produces:
 
 Hardening principles (S55):
   - 100% shard-aware: no monolithic input, no hardcoded shard count
-  - Controlled vocabulary for role_primary (26 types)
+  - Controlled vocabulary for role_primary loaded from the S79 policy contract
   - Token-aware structural chunker with hard max guardrail
   - Corpus eligibility policy loaded from machine-readable governance rules
   - Retrieval hints: normalized dedup, split into terms + aliases
@@ -58,8 +58,10 @@ from pathlib import Path
 from corpus_governance import (
     CANON_POLICY_BUNDLE_REL,
     DERIVED_LAYERS_REGISTRY_REL,
+    classify_role_primary_value,
     load_canon_policy_bundle,
     load_layer_registry,
+    role_primary_canonical_roles,
     resolve_corpus_policy,
 )
 from path_governance import (
@@ -152,13 +154,7 @@ DEFAULT_TIDDLER_SHARD_SIZE = 100
 DEFAULT_CHUNK_SHARD_SIZE_ARG = 200
 
 # ── Controlled vocabulary for role_primary ────────────────────────────────────
-VALID_ROLES = {
-    "session", "hypothesis", "provenance", "protocol", "contract",
-    "policy", "schema", "report", "reference", "glossary", "dictionary",
-    "architecture", "component", "requirements", "objective", "dofa",
-    "algorithm", "code_source", "test_fixture", "dataset", "manifest",
-    "html_artifact", "readme", "config", "asset", "unclassified",
-}
+VALID_ROLES = role_primary_canonical_roles(CANON_POLICY_BUNDLE)
 
 # Stop words for retrieval hint extraction
 STOP_WORDS = {
@@ -275,9 +271,16 @@ def looks_like_inventory_manifest(title: str) -> bool:
 
 def classify_role(rec: dict) -> str:
     """
-    Classify role_primary using controlled vocabulary.
+    Classify role_primary using the controlled S79 contract.
     Uses title, tags, section_path, content_type, and source fields.
     """
+    existing = rec.get("role_primary")
+    role_check = classify_role_primary_value(existing, CANON_POLICY_BUNDLE)
+    if role_check["verdict"] in {"role_ok", "role_alias_mapped", "role_legacy_detected"}:
+        canonical_role = role_check.get("canonical_role")
+        if canonical_role in VALID_ROLES:
+            return canonical_role
+
     title = safe_str(rec.get("title"))
     title_lower = title.lower()
     title_stripped = strip_emoji(title).lower()
@@ -391,7 +394,6 @@ def classify_role(rec: dict) -> str:
     # ── Canon role inheritance ──
     # Preserve explicit canon typing for concrete nodes once structural
     # session/protocol roles have had a chance to resolve.
-    existing = rec.get("role_primary")
     if existing in VALID_ROLES and existing != "unclassified":
         return existing
 
@@ -3724,6 +3726,7 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
     token_est = estimate_tokens(text)
     qflags = compute_quality_flags(rec)
     corpus_policy = derive_corpus_policy(rec, role)
+    role_check = classify_role_primary_value(rec.get("role_primary"), CANON_POLICY_BUNDLE)
 
     ct = safe_str(rec.get("content_type"))
     is_prose = ct in ("text/markdown", "text/vnd.tiddlywiki", "text/plain")
@@ -3732,7 +3735,10 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
         # Copied deterministic fields
         "id": rec.get("id"),
         "title": rec.get("title"),
+        "canon_role_primary": rec.get("role_primary"),
         "role_primary": role,
+        "role_primary_contract_verdict": role_check["verdict"],
+        "role_primary_contract_canonical": role_check.get("canonical_role"),
         "text": text,
         "content_type": ct,
         "source_type": rec.get("source_type"),
@@ -3783,7 +3789,8 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
             "session": SESSION,
             "source_shard": shard_file,
             "source_line": line_num,
-            "role_source": "canon_inherited" if rec.get("role_primary") in VALID_ROLES and rec.get("role_primary") != "unclassified" else "s52_classifier",
+            "role_source": "canon_contract_inherited" if role_check.get("canonical_role") == role else "s52_classifier",
+            "role_contract_ref": CANON_POLICY_BUNDLE_REL + "#role_primary_contract",
             "taxonomy_source": "s52_derived" if not rec.get("taxonomy_path") else "canon_inherited",
             "corpus_state_rule_id": corpus_policy["corpus_state_rule_id"],
             "governance_policy_ref": CANON_POLICY_BUNDLE_REL,
@@ -3807,10 +3814,11 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
     qflags = compute_quality_flags(rec)
     node_id = rec.get("id")
     canon_role = rec.get("role_primary")
+    role_check = classify_role_primary_value(canon_role, CANON_POLICY_BUNDLE)
 
     hints = build_retrieval_hints(rec, role)
     payload_info = classify_payload(rec, role, target_tokens)
-    role_source = "canon_inherited" if canon_role in VALID_ROLES and canon_role != "unclassified" else "s52_classifier"
+    role_source = "canon_contract_inherited" if role_check.get("canonical_role") == role else "s52_classifier"
 
     # Validate relations
     raw_rels = rec.get("relations") or []
@@ -3831,6 +3839,8 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         "canon_role_primary": canon_role,
         "role_primary": role,
         "role_primary_source": role_source,
+        "role_primary_contract_verdict": role_check["verdict"],
+        "role_primary_contract_canonical": role_check.get("canonical_role"),
         "secondary_roles": build_secondary_roles(rec, role),
         # Three distinct text fields
         "preview_text": compute_preview_text(rec),

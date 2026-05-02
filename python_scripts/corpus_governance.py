@@ -50,6 +50,85 @@ def load_layer_registry(path: Path | None = None) -> dict:
     return _load_json(path or DERIVED_LAYERS_REGISTRY_PATH)
 
 
+def role_primary_contract(bundle: dict | None = None) -> dict:
+    bundle = bundle or load_canon_policy_bundle()
+    contract = bundle.get("role_primary_contract")
+    if not isinstance(contract, dict):
+        raise ValueError("canon_policy_bundle.json missing role_primary_contract")
+    return contract
+
+
+def role_primary_canonical_roles(bundle: dict | None = None) -> set[str]:
+    contract = role_primary_contract(bundle)
+    roles = contract.get("canonical_roles")
+    if not isinstance(roles, list) or not roles:
+        raise ValueError("role_primary_contract.canonical_roles must be a non-empty array")
+    return {safe_str(role).strip() for role in roles if safe_str(role).strip()}
+
+
+def _normalized_role_value(value) -> str:
+    return safe_str(value).strip().lower()
+
+
+def classify_role_primary_value(value, bundle: dict | None = None) -> dict:
+    """Classify a role_primary value against the S79 contract without mutating it."""
+    contract = role_primary_contract(bundle)
+    role = _normalized_role_value(value)
+    canonical_roles = role_primary_canonical_roles(bundle)
+    aliases = contract.get("aliases_allowed") or {}
+    legacy = contract.get("legacy_accepted_transitional") or {}
+    ambiguous = contract.get("ambiguous_roles") or {}
+
+    if role in canonical_roles:
+        return {
+            "input_role": role,
+            "canonical_role": role,
+            "verdict": "role_ok",
+            "migration_class": "canonical",
+        }
+
+    if role in aliases:
+        return {
+            "input_role": role,
+            "canonical_role": aliases.get(role),
+            "verdict": "role_alias_mapped",
+            "migration_class": "alias_allowed",
+        }
+
+    if role in legacy:
+        canonical_role = (legacy.get(role) or {}).get("canonical_role")
+        if canonical_role:
+            return {
+                "input_role": role,
+                "canonical_role": canonical_role,
+                "verdict": "role_legacy_detected",
+                "migration_class": "legacy_accepted_transitional",
+            }
+        return {
+            "input_role": role,
+            "canonical_role": None,
+            "candidate_roles": ambiguous.get(role) or [],
+            "verdict": "role_ambiguous",
+            "migration_class": "legacy_ambiguous",
+        }
+
+    if role in ambiguous:
+        return {
+            "input_role": role,
+            "canonical_role": None,
+            "candidate_roles": ambiguous.get(role) or [],
+            "verdict": "role_ambiguous",
+            "migration_class": "ambiguous",
+        }
+
+    return {
+        "input_role": role,
+        "canonical_role": None,
+        "verdict": contract.get("invalid_policy", {}).get("default_verdict", "role_invalid"),
+        "migration_class": "invalid",
+    }
+
+
 def looks_like_repo_path(title: str) -> bool:
     title = safe_str(title)
     if not title:
@@ -160,6 +239,46 @@ def validate_policy_bundle(bundle: dict) -> list[str]:
 
     if bundle.get("schema_version") != "v0":
         errors.append("canon policy bundle schema_version must be v0")
+
+    contract = bundle.get("role_primary_contract")
+    if not isinstance(contract, dict):
+        errors.append("role_primary_contract must be a non-empty object")
+    else:
+        roles = contract.get("canonical_roles")
+        if not isinstance(roles, list) or not roles:
+            errors.append("role_primary_contract.canonical_roles must be a non-empty array")
+            canonical_roles: set[str] = set()
+        else:
+            canonical_roles = {safe_str(role).strip() for role in roles if safe_str(role).strip()}
+            if len(canonical_roles) != len(roles):
+                errors.append("role_primary_contract.canonical_roles contains duplicates or empty values")
+            if "unclassified" not in canonical_roles:
+                errors.append("role_primary_contract.canonical_roles must include unclassified")
+
+        for section_name in ("source_role_mappings", "tag_role_mappings", "aliases_allowed"):
+            mappings = contract.get(section_name)
+            if not isinstance(mappings, dict):
+                errors.append(f"role_primary_contract.{section_name} must be an object")
+                continue
+            for alias, canonical_role in mappings.items():
+                if safe_str(canonical_role) not in canonical_roles:
+                    errors.append(
+                        f"role_primary_contract.{section_name}.{alias} maps to undefined role {canonical_role}"
+                    )
+
+        legacy = contract.get("legacy_accepted_transitional")
+        if not isinstance(legacy, dict):
+            errors.append("role_primary_contract.legacy_accepted_transitional must be an object")
+        else:
+            for legacy_role, payload in legacy.items():
+                if not isinstance(payload, dict):
+                    errors.append(f"legacy role {legacy_role} must be an object")
+                    continue
+                canonical_role = payload.get("canonical_role")
+                if canonical_role is not None and safe_str(canonical_role) not in canonical_roles:
+                    errors.append(
+                        f"legacy role {legacy_role} maps to undefined canonical_role {canonical_role}"
+                    )
 
     states = bundle.get("corpus_state_catalog")
     if not isinstance(states, dict) or not states:

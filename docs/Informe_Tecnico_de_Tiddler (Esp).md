@@ -1338,6 +1338,64 @@ El sistema de tiddlers estructurados descrito en este informe no constituye un s
 
 Con la integración de una Política de Memoria Activa y la extensión de las responsabilidades del convertidor para incluir la continuidad contextual, el rol del Canon evoluciona desde preservar y organizar el conocimiento hacia también reactivarlo y orientarlo. El sistema no solo mantendría conocimiento estructurado, auditable y reutilizable; también comenzaría a sustentar la continuidad informada de sesiones, permitiendo que el trabajo previo sea recuperado contextualmente en lugar de reconstruido manualmente. En este sentido, el convertidor se aproxima a una infraestructura de memoria operativa —no meramente de almacenamiento canónico— y la arquitectura da un paso disciplinado desde la preservación estática hacia el soporte epistémico activo, sin colapsar las reglas normativas en comportamiento técnico oculto ni convertir el cuaderno en un agente autónomo.
 
+## Estado del sistema vivo (post-S81 · 2026-05-02)
+
+Esta sección registra el estado operativo del sistema tras las sesiones S79, S80 y S81. Distingue entre lo completamente implementado, lo parcialmente implementado y lo que permanece como ítem abierto.
+
+### Estado del canon
+
+A la fecha de S81, el canon vivo contiene **773 nodos** distribuidos en 8 shards. El flujo completo (extracción HTML → shardización → strict → reverse-preflight → reverse) es operativo y termina cada ciclo con `Rechazados: 0`.
+
+### Contrato semántico de roles (S79)
+
+**Estado: completo.** S79 cerró el vocabulario formal de roles y endureció el contrato en Go, Rust y Python. El vocabulario controlado es:
+`config`, `log`, `procedure`, `policy`, `hypothesis`, `evidence`, `asset`, `glossary`, `code`, `unclassified`.
+
+El rol `unclassified` es tratado como clase residual, no como valor por defecto. Solo puede aparecer en nodos donde la clasificación semántica genuinamente no puede determinarse.
+
+### Residual no clasificado (S80)
+
+**Estado: completo.** S80 resolvió la acumulación estructural de nodos `unclassified`. A partir de S80, `unclassified` pasó de fracción dominante a residual casi nulo (1 nodo restante a la fecha de S81). RULE-21 (fracción < 25%) pasa al 0,13%.
+
+La deuda modal es 0. El reverse y todas las capas downstream permanecen verificados operativamente.
+
+### Endurecimiento del contexto documental (S81)
+
+**Estado: parcialmente implementado.** Los campos de contexto documental (`section_path`, `document_id`, `order_in_document`) están presentes en el canon pero su utilidad estructural varía.
+
+**Re-baseline post-S80 (773 nodos):**
+
+| Campo | Cobertura formal | Cobertura útil estructural |
+|---|---|---|
+| `section_path` | 59,2% (458/773) | 21,2% jerárquico (profundidad > 1) |
+| `document_id` | 100% (773/773) | 22,3% discriminatorio (solo nodos de sesión) |
+| `order_in_document` | 99,9% (772/773) | ~57% (secuencia plana, no jerárquica) |
+
+**CMU-1 (implementado en S81):** La función `deriveSectionPathFromStructure` en `go/canon/context_relations.go` fue extendida para asignar un `section_path` categórico de profundidad 1 a nodos sin título de heading que tienen exactamente un tag `####` no ambiguo, incluso cuando los tags de nivel superior son ambiguos. Esto cubrió 8 nodos `evidence` (referencias) que comparten `#### referencias especificas 🌀` como su categoría única. Antes de CMU-1: `section_path` nulo para estos nodos. Después de CMU-1: `["#### referencias especificas 🌀"]` para los 8.
+
+**CMU-2 (implementado en S81):** Se agregó RULE-22 a `python_scripts/audit_normative_projection.py`. Esta regla mide la fracción de nodos con `section_path` que son auto-referenciales (profundidad = 1) frente a los jerárquicos (profundidad > 1). Umbral: warning si ≥ 70%. Estado actual: 64,19% (PASS). Esto hace visible la calidad estructural del campo en la salida de auditoría.
+
+**CMU-3 (documentado, sin código):** La concentración de `document_id` (77,7% de los nodos comparten un único ID del HTML fuente principal) es un límite estructural del modelo de exportación de TiddlyWiki, no un error del convertidor. Ningún cambio de código puede resolver esto sin marcadores de sub-documento en el origen. Se documenta explícitamente en el sistema.
+
+**Límites de origen no resolubles por el convertidor:**
+- 315 nodos `code` no tienen tags de nivel heading en el fuente TiddlyWiki y legítimamente no reciben `section_path`. Este es el comportamiento correcto.
+- El 79,2% del corpus comparte un único `document_id` porque todos los nodos provienen de un único archivo HTML. Resolver esto requiere estructura de sub-documento a nivel de autoría TiddlyWiki.
+- `order_in_document` es un índice plano de exportación, no una jerarquía semántica. Su limitación es una propiedad del formato de exportación TiddlyWiki.
+
+### Extracción de historiales (DT02)
+
+**Estado: sin deuda de implementación todavía.** Los historiales representan datos de historial de edición exportables desde TiddlyWiki cuya extracción e integración en el canon no fue priorizada hasta S81. Esto es un problema de disponibilidad de datos, no de falta de preparación del extractor. No existe deuda de implementación hasta que se confirme que los datos fuente están disponibles y se defina el contrato semántico para historiales.
+
+### Auditoría y compuertas de calidad
+
+- RULE-21 (fracción unclassified): PASS (0,13% < 25%)
+- RULE-22 (fracción auto-referencial de section_path): PASS (64,19% < 70%)
+- Strict preflight: PASS (773/773)
+- Reverse-preflight: PASS (773/773)
+- Reverse autoritativo: PASS (Rechazados: 0)
+- Tests Go: PASS (suite completa)
+- Tests Rust doctor: PASS (22/22)
+
 ## Referencias
 - [1] Drăgan, L., Handschuh, S., & Decker, S. (2011). The semantic desktop at work: Interlinking notes. En Proceedings of the 7th International Conference on Semantic Systems (pp. 17–24). ACM. https://doi.org/10.1145/2063518.2063521
 

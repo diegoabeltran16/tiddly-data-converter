@@ -1,19 +1,19 @@
 // Package canon — semantic.go
 //
-// S36 — canon-semantic-function-and-asset-separation-v0
+// # S36 — canon-semantic-function-and-asset-separation-v0
 //
 // Defines the semantic function layer and asset separation for each node
 // in the canonical JSONL export. Every exported line may expose up to
 // eight semantic fields:
 //
-//   role_primary     — canonical semantic function of the node
-//   roles_secondary  — preserved additional roles and labels
-//   tags             — merged, deduplicated union of internal + native tags
-//   taxonomy_path    — conservative taxonomy path from declared tags
-//   semantic_text    — text useful for AI reading / retrieval
-//   raw_payload_ref  — traceable reference to the raw payload
-//   asset_id         — emitted only when a real asset exists
-//   mime_type        — MIME type from content_type or conservative mapping
+//	role_primary     — canonical semantic function of the node
+//	roles_secondary  — preserved additional roles and labels
+//	tags             — merged, deduplicated union of internal + native tags
+//	taxonomy_path    — conservative taxonomy path from declared tags
+//	semantic_text    — text useful for AI reading / retrieval
+//	raw_payload_ref  — traceable reference to the raw payload
+//	asset_id         — emitted only when a real asset exists
+//	mime_type        — MIME type from content_type or conservative mapping
 //
 // Design principles (S36 §9 — anti-invention policy):
 //   - Extraction and preservation over inference
@@ -24,16 +24,17 @@
 //   - Equations in text stay in semantic_text, not treated as assets
 //
 // Precedence hierarchy for semantic derivation (S36 §9):
-//   1. Explicit roles/signals declared within the tiddler
-//   2. Internal declared tags within the content or metadata
-//   3. Native TiddlyWiki tags
-//   4. Known structural patterns (documented)
-//   5. Conservative fallback
+//  1. Explicit roles/signals declared within the tiddler
+//  2. Internal declared tags within the content or metadata
+//  3. Native TiddlyWiki tags
+//  4. Known structural patterns (documented)
+//  5. Conservative fallback
 //
 // Dependencies on prior sessions (not reopened here):
-//   S34 — structural identity (id, key, title, canonical_slug, version_id)
-//   S35 — reading mode (content_type, modality, encoding, is_binary, is_reference_only)
-//   S30 — UUIDv5, Canonical JSON, zero-field checksum
+//
+//	S34 — structural identity (id, key, title, canonical_slug, version_id)
+//	S35 — reading mode (content_type, modality, encoding, is_binary, is_reference_only)
+//	S30 — UUIDv5, Canonical JSON, zero-field checksum
 //
 // Ref: S36 — canon-semantic-function-and-asset-separation-v0.
 package canon
@@ -64,23 +65,8 @@ const (
 	RoleUnclassified = "unclassified"
 )
 
-// validRolePrimary is the set of allowed role_primary values.
-var validRolePrimary = map[string]bool{
-	RoleConcept:      true,
-	RoleProcedure:    true,
-	RoleEvidence:     true,
-	RoleDefinition:   true,
-	RoleGlossary:     true,
-	RolePolicy:       true,
-	RoleLog:          true,
-	RoleAsset:        true,
-	RoleConfig:       true,
-	RoleCode:         true,
-	RoleNarrative:    true,
-	RoleNote:         true,
-	RoleWarning:      true,
-	RoleUnclassified: true,
-}
+// validRolePrimary is loaded from the S79 role_primary contract.
+var validRolePrimary = MustDefaultRolePrimaryContract().CanonicalRoleSet()
 
 // ---------------------------------------------------------------------------
 // Role mapping from explicit source roles to controlled vocabulary
@@ -94,35 +80,7 @@ var validRolePrimary = map[string]bool{
 // roles_secondary without mapping to role_primary.
 //
 // Ref: S36 §10 — normalization without loss.
-var explicitRoleMapping = map[string]string{
-	// Direct matches
-	"concept":     RoleConcept,
-	"procedure":   RoleProcedure,
-	"evidence":    RoleEvidence,
-	"definition":  RoleDefinition,
-	"glossary":    RoleGlossary,
-	"policy":      RolePolicy,
-	"log":         RoleLog,
-	"asset":       RoleAsset,
-	"config":      RoleConfig,
-	"code":        RoleCode,
-	"narrative":   RoleNarrative,
-	"note":        RoleNote,
-	"warning":     RoleWarning,
-
-	// Domain-specific mappings (S36 §10 — normalization)
-	"sesión":        RoleLog,
-	"sesion":        RoleLog,
-	"hipótesis":     RoleEvidence,
-	"hipotesis":     RoleEvidence,
-	"procedencia":   RoleEvidence,
-	"arquitectura":  RoleConcept,
-	"documentación": RoleNarrative,
-	"documentacion": RoleNarrative,
-	"reporte":       RoleLog,
-	"dato":          RoleEvidence,
-	"evento":        RoleLog,
-}
+var explicitRoleMapping = MustDefaultRolePrimaryContract().SourceRoleMappingSet()
 
 // ---------------------------------------------------------------------------
 // Tag-based role inference (level 2–3 in precedence)
@@ -133,38 +91,7 @@ var explicitRoleMapping = map[string]string{
 // specificity.
 //
 // Ref: S36 §9 — precedence level 2 (internal tags) and level 3 (native tags).
-var tagRoleMapping = map[string]string{
-	"hipótesis":    RoleEvidence,
-	"hipotesis":    RoleEvidence,
-	"procedencia":  RoleEvidence,
-	"sesión":       RoleLog,
-	"sesion":       RoleLog,
-	"glosario":     RoleGlossary,
-	"glossary":     RoleGlossary,
-	"definición":   RoleDefinition,
-	"definicion":   RoleDefinition,
-	"definition":   RoleDefinition,
-	"política":     RolePolicy,
-	"politica":     RolePolicy,
-	"policy":       RolePolicy,
-	"arquitectura": RoleConcept,
-	"concepto":     RoleConcept,
-	"concept":      RoleConcept,
-	"código":       RoleCode,
-	"codigo":       RoleCode,
-	"code":         RoleCode,
-	"config":       RoleConfig,
-	"warning":      RoleWarning,
-	"narrative":    RoleNarrative,
-	"nota":         RoleNote,
-	"note":         RoleNote,
-	"asset":        RoleAsset,
-	"procedure":    RoleProcedure,
-	"procedimiento": RoleProcedure,
-	"evidence":     RoleEvidence,
-	"evidencia":    RoleEvidence,
-	"log":          RoleLog,
-}
+var tagRoleMapping = MustDefaultRolePrimaryContract().TagRoleMappingSet()
 
 // ---------------------------------------------------------------------------
 // Semantics — the output struct
@@ -199,11 +126,11 @@ type Semantics struct {
 
 // ResolvePrimaryRole determines the canonical role_primary for a node
 // following the strict precedence hierarchy:
-//   1. Explicit role declared in source (SourceRole field)
-//   2. Internal declared tags
-//   3. Native TiddlyWiki tags (SourceTags)
-//   4. Structural patterns (content_type, modality)
-//   5. Fallback: "unclassified"
+//  1. Explicit role declared in source (SourceRole field)
+//  2. Internal declared tags
+//  3. Native TiddlyWiki tags (SourceTags)
+//  4. Structural patterns (content_type, modality)
+//  5. Fallback: "unclassified"
 //
 // Returns the role and its source for traceability.
 //
@@ -499,9 +426,9 @@ func BuildRawPayloadRef(e CanonEntry) string {
 
 // ResolveMimeType determines the MIME type of the node following the
 // priority:
-//   1. content_type from S35 (already derived from explicit source)
-//   2. Conservative mapping from structural signals
-//   3. Empty string when evidence is insufficient
+//  1. content_type from S35 (already derived from explicit source)
+//  2. Conservative mapping from structural signals
+//  3. Empty string when evidence is insufficient
 //
 // Explicitly supports text/vnd.tiddlywiki as a valid MIME type.
 //
