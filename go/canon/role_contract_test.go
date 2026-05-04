@@ -1,6 +1,18 @@
 package canon
 
-import "testing"
+import (
+	"path/filepath"
+	"sync"
+	"testing"
+)
+
+// resetDefaultRoleContract resets the package-level once-loaded contract so
+// tests that change CANON_POLICY_BUNDLE_PATH or cwd can re-trigger loading.
+func resetDefaultRoleContract() {
+	defaultRoleContractOnce = sync.Once{}
+	defaultRoleContract = RolePrimaryContract{}
+	defaultRoleContractErr = nil
+}
 
 func TestRolePrimaryContractLoadsFromPolicyBundle(t *testing.T) {
 	contract, err := LoadDefaultRolePrimaryContract()
@@ -95,5 +107,89 @@ func TestRolePrimaryContractClassifiesMigrationStates(t *testing.T) {
 	invalid := contract.ClassifyRole("not-a-role")
 	if invalid.Verdict != "role_invalid" {
 		t.Fatalf("ClassifyRole(not-a-role) = %+v", invalid)
+	}
+}
+
+// TestFindContractPath_EnvVarOverride verifies that CANON_POLICY_BUNDLE_PATH
+// takes precedence over cwd-based discovery (S82 — explicit env override).
+func TestFindContractPath_EnvVarOverride(t *testing.T) {
+	realPath, err := FindDefaultRolePrimaryContractPath()
+	if err != nil {
+		t.Skipf("cannot locate policy bundle to run env-var test: %v", err)
+	}
+
+	t.Setenv(EnvCanonPolicyBundlePath, realPath)
+
+	// Move to an unrelated temp directory so cwd-walk cannot find the file.
+	t.Chdir(t.TempDir())
+
+	got, err := FindDefaultRolePrimaryContractPath()
+	if err != nil {
+		t.Fatalf("FindDefaultRolePrimaryContractPath with env var set: %v", err)
+	}
+	if got != realPath {
+		t.Fatalf("expected path %q, got %q", realPath, got)
+	}
+}
+
+// TestFindContractPath_EnvVarInvalid verifies that setting CANON_POLICY_BUNDLE_PATH
+// to a non-existent path returns an explicit error, not a silent fallback.
+func TestFindContractPath_EnvVarInvalid(t *testing.T) {
+	t.Setenv(EnvCanonPolicyBundlePath, filepath.Join(t.TempDir(), "does_not_exist.json"))
+
+	_, err := FindDefaultRolePrimaryContractPath()
+	if err == nil {
+		t.Fatal("expected error for invalid CANON_POLICY_BUNDLE_PATH, got nil")
+	}
+}
+
+// TestFindContractPath_CwdIndependent verifies that policy discovery succeeds
+// even when the process working directory is an unrelated temp directory,
+// as long as the source-file walk-up fallback is functional (S82).
+func TestFindContractPath_CwdIndependent(t *testing.T) {
+	// Ensure no env override is active.
+	t.Setenv(EnvCanonPolicyBundlePath, "")
+
+	// Change to a temp dir that has no relation to the repo.
+	t.Chdir(t.TempDir())
+
+	path, err := FindDefaultRolePrimaryContractPath()
+	if err != nil {
+		t.Fatalf("FindDefaultRolePrimaryContractPath from unrelated cwd: %v\n"+
+			"Hint: source-file walk-up should have found the bundle; "+
+			"check that the source tree is accessible at compile-time path", err)
+	}
+
+	// Verify the resolved path actually contains a loadable contract.
+	contract, err := LoadRolePrimaryContract(path)
+	if err != nil {
+		t.Fatalf("LoadRolePrimaryContract(%q): %v", path, err)
+	}
+	if contract.Field != "role_primary" {
+		t.Fatalf("loaded contract field = %q, want role_primary", contract.Field)
+	}
+}
+
+// TestLoadDefaultRolePrimaryContract_UsesEnvVar verifies end-to-end that the
+// default loader honours CANON_POLICY_BUNDLE_PATH from an unrelated cwd.
+func TestLoadDefaultRolePrimaryContract_UsesEnvVar(t *testing.T) {
+	realPath, err := FindDefaultRolePrimaryContractPath()
+	if err != nil {
+		t.Skipf("cannot locate policy bundle: %v", err)
+	}
+
+	t.Setenv(EnvCanonPolicyBundlePath, realPath)
+	t.Chdir(t.TempDir())
+
+	// Reset the once so the env override takes effect.
+	resetDefaultRoleContract()
+	t.Cleanup(resetDefaultRoleContract)
+
+	contract, err := LoadDefaultRolePrimaryContract()
+	if err != nil {
+		t.Fatalf("LoadDefaultRolePrimaryContract with env var: %v", err)
+	}
+	if contract.Field != "role_primary" {
+		t.Fatalf("contract.Field = %q, want role_primary", contract.Field)
 	}
 }

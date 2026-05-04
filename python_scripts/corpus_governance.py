@@ -25,8 +25,8 @@ from path_governance import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CANON_POLICY_BUNDLE_REL = "data/sessions/00_contratos/policy/canon_policy_bundle.json"
-DERIVED_LAYERS_REGISTRY_REL = "data/sessions/00_contratos/projections/derived_layers_registry.json"
+CANON_POLICY_BUNDLE_REL = "data/out/sessions/00_contratos/policy/canon_policy_bundle.json"
+DERIVED_LAYERS_REGISTRY_REL = "data/out/sessions/00_contratos/projections/derived_layers_registry.json"
 CANON_POLICY_BUNDLE_PATH = REPO_ROOT / CANON_POLICY_BUNDLE_REL
 DERIVED_LAYERS_REGISTRY_PATH = REPO_ROOT / DERIVED_LAYERS_REGISTRY_REL
 

@@ -10,7 +10,13 @@ import (
 	"sync"
 )
 
-const rolePrimaryContractPolicyRelPath = "data/sessions/00_contratos/policy/canon_policy_bundle.json"
+const (
+	rolePrimaryContractPolicyRelPath = "data/out/sessions/00_contratos/policy/canon_policy_bundle.json"
+	// EnvCanonPolicyBundlePath is the env var that overrides the default policy bundle path.
+	// When set, it takes precedence over all auto-discovery strategies.
+	// Useful for CI/CD environments or when the repo layout differs from the default.
+	EnvCanonPolicyBundlePath = "CANON_POLICY_BUNDLE_PATH"
+)
 
 type rolePolicyBundle struct {
 	RolePrimaryContract RolePrimaryContract `json:"role_primary_contract"`
@@ -73,18 +79,47 @@ func MustDefaultRolePrimaryContract() RolePrimaryContract {
 	return contract
 }
 
+// FindDefaultRolePrimaryContractPath resolves the canon_policy_bundle.json path
+// using the following priority order (S82 — cwd-independent policy resolution):
+//
+//  1. CANON_POLICY_BUNDLE_PATH env var — explicit override for CI/CD.
+//  2. Walk up from the current working directory.
+//  3. Walk up from the source file directory (runtime.Caller fallback).
+//
+// The function returns an explicit error describing which strategies were tried,
+// so failures are diagnosable without reading source code.
 func FindDefaultRolePrimaryContractPath() (string, error) {
+	// Priority 1: explicit env var override.
+	if env := strings.TrimSpace(os.Getenv(EnvCanonPolicyBundlePath)); env != "" {
+		if stat, err := os.Stat(env); err == nil && !stat.IsDir() {
+			return env, nil
+		}
+		return "", fmt.Errorf(
+			"%s=%q: file not found or is a directory; "+
+				"check that the path points to a readable canon_policy_bundle.json",
+			EnvCanonPolicyBundlePath, env,
+		)
+	}
+
+	// Priority 2: walk up from cwd.
 	if cwd, err := os.Getwd(); err == nil {
 		if path, ok := findPolicyBundleFrom(cwd); ok {
 			return path, nil
 		}
 	}
+
+	// Priority 3: walk up from source file (works when source tree is accessible).
 	if _, file, _, ok := runtime.Caller(0); ok {
 		if path, ok := findPolicyBundleFrom(filepath.Dir(file)); ok {
 			return path, nil
 		}
 	}
-	return "", fmt.Errorf("cannot locate %s from current working directory or source path", rolePrimaryContractPolicyRelPath)
+
+	return "", fmt.Errorf(
+		"cannot locate %s: tried cwd walk-up and source-file walk-up; "+
+			"set %s env var to an explicit path to resolve this in CI or alternate layouts",
+		rolePrimaryContractPolicyRelPath, EnvCanonPolicyBundlePath,
+	)
 }
 
 func findPolicyBundleFrom(start string) (string, bool) {

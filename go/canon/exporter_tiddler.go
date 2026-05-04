@@ -83,6 +83,14 @@ type ExportContextRef struct {
 type RelationCounts struct {
 	ChildOf    int `json:"child_of"`
 	References int `json:"references"`
+	// S84 capa-2 semantic embedded types
+	Usa        int `json:"usa"`
+	Define     int `json:"define"`
+	Requiere   int `json:"requiere"`
+	ParteDe    int `json:"parte_de"`
+	PerteneceA int `json:"pertenece_a"`
+	Contiene   int `json:"contiene"`
+	PruebaDe   int `json:"prueba_de"`
 }
 
 // ExportManifest contains metadata about the export run.
@@ -327,6 +335,20 @@ func ExportTiddlersJSONL(w io.Writer, entries []CanonEntry, runID string) (*Expo
 				result.Manifest.RelationCounts.ChildOf++
 			case RelationTypeReferences:
 				result.Manifest.RelationCounts.References++
+			case RelationTypeUsa:
+				result.Manifest.RelationCounts.Usa++
+			case RelationTypeDefine:
+				result.Manifest.RelationCounts.Define++
+			case RelationTypeRequiere:
+				result.Manifest.RelationCounts.Requiere++
+			case RelationTypeParteDe:
+				result.Manifest.RelationCounts.ParteDe++
+			case RelationTypePerteneceA:
+				result.Manifest.RelationCounts.PerteneceA++
+			case RelationTypeContiene:
+				result.Manifest.RelationCounts.Contiene++
+			case RelationTypePruebaDe:
+				result.Manifest.RelationCounts.PruebaDe++
 			}
 		}
 

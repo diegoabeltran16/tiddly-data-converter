@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inventory data/sessions artifacts and prepare safe canon candidates.
+"""Inventory data/out/sessions artifacts and prepare safe canon candidates.
 
 This helper does not modify the canon. It reads session artifacts, derives
 canonical identity through the existing canon_preflight normalize command, and
@@ -233,7 +233,7 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
         "source_fields": {
             "artifact_family": artifact_family,
             "canonical_status": CANON_STATUS_CANDIDATE,
-            "document_key": f"data/sessions/{session_id}",
+            "document_key": f"data/out/sessions/{session_id}",
             "provenance_ref": _provenance_ref(session_id, path, sessions_dir),
             "session_origin": session_id,
             "source_path": source_path,
@@ -488,7 +488,7 @@ def scan_session_sync(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Scan data/sessions by canonical id and generate missing plus "
+            "Scan data/out/sessions by canonical id and generate missing plus "
             "controlled replacement session candidates."
         )
     )
