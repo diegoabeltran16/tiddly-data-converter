@@ -13,10 +13,34 @@ const (
 	RelationTypeChildOf    = "child_of"
 	RelationTypeReferences = "references"
 
-	RelationEvidenceExplicitField = "explicit_field"
-	RelationEvidenceStructuralTag = "structural_tag"
-	RelationEvidenceWikilink      = "wikilink"
+	// Capa-2 semantic relation types (S84) — human-authored inside content payloads.
+	RelationTypeUsa        = "usa"
+	RelationTypeDefine     = "define"
+	RelationTypeRequiere   = "requiere"
+	RelationTypeParteDe    = "parte_de"
+	RelationTypePerteneceA = "pertenece_a"
+	RelationTypeContiene   = "contiene"
+	RelationTypePruebaDe   = "prueba_de"
+
+	RelationEvidenceExplicitField   = "explicit_field"
+	RelationEvidenceStructuralTag   = "structural_tag"
+	RelationEvidenceWikilink        = "wikilink"
+	RelationEvidenceEmbeddedContent = "content_embedded" // S84: capa-2 semantic relations
 )
+
+// embeddedRelationTypes is the set of semantic relation types recognised
+// exclusively from content-embedded (capa-2) JSON payloads. Canonical
+// structural types (child_of, references) are intentionally excluded because
+// they are handled by extractExplicitRelationTargets.
+var embeddedRelationTypes = map[string]bool{
+	RelationTypeUsa:        true,
+	RelationTypeDefine:     true,
+	RelationTypeRequiere:   true,
+	RelationTypeParteDe:    true,
+	RelationTypePerteneceA: true,
+	RelationTypeContiene:   true,
+	RelationTypePruebaDe:   true,
+}
 
 var (
 	absWindowsPathRe = regexp.MustCompile(`^[A-Za-z]:[\\/].*`)
@@ -318,20 +342,26 @@ func ComputeOrderInDocument(exportIndex int) int {
 }
 
 // BuildRelations emits explicit and resolvable S37 relations.
+// CMU-DT05-1: self-references (targetID == e.ID) are silently discarded.
 func BuildRelations(e CanonEntry, sectionPath []string, resolver contextResolver) ([]NodeRelation, string, int) {
 	var relations []NodeRelation
 	candidates := 0
 	resolved := 0
 	ambiguous := 0
 	unresolved := 0
+	selfRefs := 0
 
 	if parent := ResolveStructuralParent(e, sectionPath); parent != "" {
 		candidates++
 		if targetID, status := ResolveRelationTargets(parent, resolver); status == "resolved" {
-			relations = append(relations, NodeRelation{
-				Type: RelationTypeChildOf, TargetID: targetID, Evidence: RelationEvidenceStructuralTag,
-			})
-			resolved++
+			if targetID != e.ID {
+				relations = append(relations, NodeRelation{
+					Type: RelationTypeChildOf, TargetID: targetID, Evidence: RelationEvidenceStructuralTag,
+				})
+				resolved++
+			} else {
+				selfRefs++
+			}
 		} else if status == "ambiguous" {
 			ambiguous++
 		} else {
@@ -343,10 +373,14 @@ func BuildRelations(e CanonEntry, sectionPath []string, resolver contextResolver
 		candidates++
 		targetID, status := ResolveRelationTargets(explicit.Target, resolver)
 		if status == "resolved" {
-			relations = append(relations, NodeRelation{
-				Type: explicit.Type, TargetID: targetID, Evidence: explicit.Evidence,
-			})
-			resolved++
+			if targetID != e.ID {
+				relations = append(relations, NodeRelation{
+					Type: explicit.Type, TargetID: targetID, Evidence: explicit.Evidence,
+				})
+				resolved++
+			} else {
+				selfRefs++
+			}
 		} else if status == "ambiguous" {
 			ambiguous++
 		} else {
@@ -358,10 +392,34 @@ func BuildRelations(e CanonEntry, sectionPath []string, resolver contextResolver
 		candidates++
 		targetID, status := ResolveRelationTargets(link, resolver)
 		if status == "resolved" {
-			relations = append(relations, NodeRelation{
-				Type: RelationTypeReferences, TargetID: targetID, Evidence: RelationEvidenceWikilink,
-			})
-			resolved++
+			if targetID != e.ID {
+				relations = append(relations, NodeRelation{
+					Type: RelationTypeReferences, TargetID: targetID, Evidence: RelationEvidenceWikilink,
+				})
+				resolved++
+			} else {
+				selfRefs++
+			}
+		} else if status == "ambiguous" {
+			ambiguous++
+		} else {
+			unresolved++
+		}
+	}
+
+	// S84: extract capa-2 semantic relations embedded in content payloads.
+	for _, embedded := range extractEmbeddedContentRelations(e.Text) {
+		candidates++
+		targetID, status := ResolveRelationTargets(embedded.Target, resolver)
+		if status == "resolved" {
+			if targetID != e.ID {
+				relations = append(relations, NodeRelation{
+					Type: embedded.Type, TargetID: targetID, Evidence: RelationEvidenceEmbeddedContent,
+				})
+				resolved++
+			} else {
+				selfRefs++
+			}
 		} else if status == "ambiguous" {
 			ambiguous++
 		} else {
@@ -371,8 +429,11 @@ func BuildRelations(e CanonEntry, sectionPath []string, resolver contextResolver
 
 	relations = dedupeSortRelations(relations)
 
+	// effectiveCandidates excludes self-references: they are structurally resolved
+	// but carry no discriminating signal for external graph analysis.
+	effectiveCandidates := candidates - selfRefs
 	switch {
-	case candidates == 0:
+	case effectiveCandidates == 0:
 		return relations, "none", candidates
 	case ambiguous > 0 && resolved == 0:
 		return relations, "ambiguous", candidates
@@ -438,6 +499,49 @@ func ResolveRelationTargets(target string, resolver contextResolver) (string, st
 		return id, status
 	}
 	return "", "unresolved"
+}
+
+// extractEmbeddedContentRelations reads the JSON-encoded text and extracts
+// semantic relations stored in the embedded "relations" array whose types
+// belong to embeddedRelationTypes (S84 capa-2). Canonical structural types
+// (child_of, references) are intentionally excluded — they are handled by
+// extractExplicitRelationTargets. Evidence is tagged as content_embedded
+// to allow downstream consumers to distinguish these from authoritative
+// top-level relations.
+func extractEmbeddedContentRelations(text *string) []relationTarget {
+	if text == nil || strings.TrimSpace(*text) == "" {
+		return nil
+	}
+	var obj map[string]interface{}
+	if err := json.Unmarshal([]byte(*text), &obj); err != nil {
+		return nil
+	}
+	rawRelations, ok := obj["relations"].([]interface{})
+	if !ok {
+		return nil
+	}
+	out := make([]relationTarget, 0, len(rawRelations))
+	for _, item := range rawRelations {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		rawType := strings.TrimSpace(strings.ToLower(fmt.Sprintf("%v", m["type"])))
+		if !embeddedRelationTypes[rawType] {
+			continue
+		}
+		rawTarget, _ := m["target"].(string)
+		if rawTarget == "" {
+			rawTarget, _ = m["target_id"].(string)
+		}
+		if strings.TrimSpace(rawTarget) == "" {
+			continue
+		}
+		out = append(out, relationTarget{
+			Type: rawType, Target: strings.TrimSpace(rawTarget), Evidence: RelationEvidenceEmbeddedContent,
+		})
+	}
+	return out
 }
 
 func extractExplicitRelationTargets(text *string) []relationTarget {

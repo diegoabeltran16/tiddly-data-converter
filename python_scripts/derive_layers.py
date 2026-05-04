@@ -1366,6 +1366,63 @@ def validate_relations(relations: list, known_ids: set) -> tuple:
     return valid, invalid
 
 
+# S84: capa-2 semantic embedded relation types
+_EMBEDDED_RELATION_TYPES = frozenset({
+    "usa", "define", "requiere", "parte_de",
+    "pertenece_a", "contiene", "prueba_de",
+})
+
+
+def extract_embedded_content_rels(rec: dict, by_title: dict) -> tuple[list[dict], int, int]:
+    """
+    Extract capa-2 semantic relations from the content.plain JSON payload.
+
+    Returns (resolved_rels, stale_count, urn_count) where resolved_rels is a
+    list of dicts with keys type, target_id, target_title, evidence='content_embedded'.
+    Only types in _EMBEDDED_RELATION_TYPES are extracted; canonical types
+    (child_of, references) are intentionally excluded.
+    Stale targets (not in by_title, not URN) increment stale_count.
+    URN targets (urn:uuid:...) that don't resolve increment urn_count.
+    """
+    try:
+        content = rec.get("content") or {}
+        plain = content.get("plain") if isinstance(content, dict) else None
+        if not plain:
+            return [], 0, 0
+        inner = json.loads(plain)
+        raw_rels = inner.get("relations") or []
+    except Exception:
+        return [], 0, 0
+
+    resolved = []
+    stale = 0
+    urn = 0
+    own_title = rec.get("title", "")
+
+    for r in raw_rels:
+        rtype = (r.get("type") or "").lower().strip()
+        if rtype not in _EMBEDDED_RELATION_TYPES:
+            continue
+        target = (r.get("target") or r.get("target_id") or "").strip()
+        if not target:
+            continue
+        if target == own_title:
+            continue  # suppress self-references
+        if target in by_title:
+            resolved.append({
+                "type": rtype,
+                "target_id": by_title[target],
+                "target_title": target,
+                "evidence": "content_embedded",
+            })
+        elif target.startswith("urn:uuid:"):
+            urn += 1
+        else:
+            stale += 1
+
+    return resolved, stale, urn
+
+
 # ── Load canon shards ──────────────────────────────────────────────────────────
 
 def discover_shards(input_dir: Path) -> list:
@@ -2256,6 +2313,25 @@ def build_edges_rows(items: list[dict]) -> list[dict]:
                         "relation_type": relation_type,
                         "provenance": f"ai.relation_targets:{rel.get('evidence') or 'derived'}",
                         "confidence": safe_str(item.get("confidence") or ""),
+                        "source_file": source_file,
+                    }
+                )
+        # S84: add capa-2 embedded relations to edges
+        for rel in ai_rec.get("embedded_relations") or []:
+            if not isinstance(rel, dict):
+                continue
+            target = rel.get("target_id")
+            relation_type = rel.get("type") or "embedded"
+            key = (source_id, target, relation_type, "embedded")
+            if target and key not in seen:
+                seen.add(key)
+                rows.append(
+                    {
+                        "source_id": source_id,
+                        "target_id": target,
+                        "relation_type": relation_type,
+                        "provenance": "content_embedded",
+                        "confidence": "0.9",
                         "source_file": source_file,
                     }
                 )
@@ -3803,7 +3879,7 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
 
 def build_ai_record(rec: dict, shard_file: str, line_num: int,
                      role: str, taxonomy: list, section: list,
-                     known_ids: set,
+                     known_ids: set, by_title_to_id: dict,
                      target_tokens: int, max_tokens: int) -> tuple:
     """
     Build AI-friendly record and optional chunks.
@@ -3820,17 +3896,20 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
     payload_info = classify_payload(rec, role, target_tokens)
     role_source = "canon_contract_inherited" if role_check.get("canonical_role") == role else "s52_classifier"
 
-    # Validate relations
+    # Validate capa-1 relations (top-level)
     raw_rels = rec.get("relations") or []
     valid_rels, invalid_rels = validate_relations(raw_rels, known_ids)
 
-    # Compact relation targets
+    # Compact relation targets (capa-1)
     rel_targets = []
     for r in valid_rels:
         rt = {"type": r.get("type"), "target_id": r.get("target_id")}
         if r.get("evidence"):
             rt["evidence"] = r["evidence"]
         rel_targets.append(rt)
+
+    # S84: extract capa-2 embedded relations from content.plain
+    embedded_rels, _stale, _urn = extract_embedded_content_rels(rec, by_title_to_id)
 
     ai_rec = {
         "id": node_id,
@@ -3850,8 +3929,9 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         "retrieval_terms": hints["retrieval_terms"],
         "retrieval_aliases": hints["retrieval_aliases"],
         "retrieval_hints": hints["retrieval_hints"],
-        # Relations (validated)
+        # Relations: capa-1 (authoritative) and capa-2 embedded (S84)
         "relation_targets": rel_targets,
+        "embedded_relations": embedded_rels,
         # Source anchor
         "source_anchor": {
             "canon_id": node_id,
@@ -4289,6 +4369,13 @@ def main():
     known_ids = {rec.get("id") for rec, _, _ in canon if rec.get("id")}
     print(f"  Known node IDs: {len(known_ids)}")
 
+    # S84: title→id map for embedded capa-2 relation resolution
+    by_title_to_id: dict[str, str] = {
+        rec.get("title"): rec.get("id")
+        for rec, _, _ in canon
+        if rec.get("title") and rec.get("id")
+    }
+
     # ── Phase 1: Classify roles and derive taxonomy ──
     print(f"\n[{SESSION}] Phase 1: Classifying roles and deriving taxonomy...")
     classified = []
@@ -4331,7 +4418,7 @@ def main():
     for rec, shard_file, line_num, role, taxonomy, section in classified:
         ai_rec, chunks, invalid_rels, payload_info = build_ai_record(
             rec, shard_file, line_num, role, taxonomy, section,
-            known_ids, target_tokens, max_tokens
+            known_ids, by_title_to_id, target_tokens, max_tokens
         )
         ai_records.append(ai_rec)
         all_chunks.extend(chunks)

@@ -35,7 +35,7 @@ from path_governance import (  # noqa: E402
 from session_sync import DEFAULT_SESSION_SYNC_DIR, scan_session_sync  # noqa: E402
 
 
-DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "sessions"
+DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "sessions"
 DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp"
 DEFAULT_ADMISSION_TMP_DIR = DEFAULT_TMP_DIR / "session_admission"
 DEFAULT_ADMISSION_REPORT_DIR = DEFAULT_TMP_DIR / "admissions"
@@ -566,7 +566,7 @@ def option_preparation() -> None:
     print("\nEstado del entorno:")
     checks = [
         ("repo root", Path.cwd().resolve() == REPO_ROOT.resolve(), display(REPO_ROOT)),
-        ("data/sessions", DEFAULT_SESSIONS_DIR.exists(), display(DEFAULT_SESSIONS_DIR)),
+        ("data/out/sessions", DEFAULT_SESSIONS_DIR.exists(), display(DEFAULT_SESSIONS_DIR)),
         ("data/out/local", DEFAULT_CANON_DIR.exists(), display(DEFAULT_CANON_DIR)),
         ("python_scripts", (REPO_ROOT / "python_scripts").exists(), "python_scripts"),
         ("admit_session_candidates.py", (REPO_ROOT / "python_scripts" / "admit_session_candidates.py").exists(), ""),
@@ -1162,7 +1162,7 @@ def dry_run_report_is_usable(report_path: Path, candidate_file: Path) -> tuple[b
 
 
 def option_session_sync(state: MenuState) -> None:
-    print("\nEscaneando data/sessions por ID canonico...")
+    print("\nEscaneando data/out/sessions por ID canonico...")
     try:
         inventory = scan_session_sync(
             sessions_dir=DEFAULT_SESSIONS_DIR,

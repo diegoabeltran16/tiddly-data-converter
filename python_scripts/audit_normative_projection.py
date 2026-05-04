@@ -72,8 +72,19 @@ VALID_ROLES = role_primary_canonical_roles(CANON_POLICY_BUNDLE)
 
 # ── Known relation types ──────────────────────────────────────────────────────
 KNOWN_RELATION_TYPES = {
-    "references", "child_of", "usa", "requiere", "parte_de",
-    "define", "reemplaza", "alternativa_a", "no_combinar_con",
+    # Capa-1: canonical structural types
+    "references", "child_of",
+    # Capa-2: semantic embedded types (S84)
+    "usa", "define", "requiere", "parte_de",
+    "pertenece_a", "contiene", "prueba_de",
+    # Extended vocabulary
+    "reemplaza", "alternativa_a", "no_combinar_con",
+}
+
+# Known evidence types (S84)
+KNOWN_EVIDENCE_TYPES = {
+    "explicit_field", "structural_tag", "wikilink",
+    "content_embedded",  # S84 capa-2
 }
 
 # ── UUID v5 regex ─────────────────────────────────────────────────────────────
@@ -164,7 +175,7 @@ def load_reports(reports_dir: Path) -> dict:
 
 
 def load_normative_rules() -> list[dict]:
-    """Return the static catalog of 21 normative rules."""
+    """Return the static catalog of normative rules (23 as of S84)."""
     return [
         {"id": "RULE-01", "block": "structural", "description": "id, key, title present", "level": "obligatoria", "severity": "critical"},
         {"id": "RULE-02", "block": "structural", "description": "schema_version present and non-empty", "level": "obligatoria", "severity": "major"},
@@ -188,6 +199,7 @@ def load_normative_rules() -> list[dict]:
         {"id": "RULE-20", "block": "normative_report", "description": "non-binary text nodes have content.plain non-null", "level": "recomendada", "severity": "minor"},
         {"id": "RULE-21", "block": "normative_report", "description": "unclassified fraction < 0.25 (soft threshold)", "level": "flexible", "severity": "info"},
         {"id": "RULE-22", "block": "normative_report", "description": "section_path auto-referential fraction < 0.70 (depth-1 quality gate, S81)", "level": "flexible", "severity": "info"},
+        {"id": "RULE-23", "block": "relations", "description": "relational coverage gate: log-family isolation < 95% (S84 capa-2 exposure)", "level": "flexible", "severity": "info"},
     ]
 
 
@@ -560,6 +572,76 @@ def evaluate_corpus_level(
             "fix_type": "review_needed",
             "field": "section_path",
             "detail": "No nodes have section_path — field not populated.",
+            "evidence_sources": [],
+            "proposed_value": None,
+        })
+
+    # RULE-23 (S84): relational coverage gate by family.
+    # Measures the fraction of non-code nodes with at least one effective
+    # relation in the top-level relations field. Emits per-family isolation
+    # metrics. Threshold: warn if log-family isolation >= 95%.
+    non_code = [r for r in canon_records if r.get("role_primary") not in ("code", None)]
+    nc_total = len(non_code)
+    if nc_total > 0:
+        by_role: dict[str, dict] = {}
+        for r in non_code:
+            role = r.get("role_primary", "unknown")
+            if role not in by_role:
+                by_role[role] = {"total": 0, "with_relations": 0, "isolated": 0}
+            by_role[role]["total"] += 1
+            if r.get("relations"):
+                by_role[role]["with_relations"] += 1
+            else:
+                by_role[role]["isolated"] += 1
+
+        nc_isolated = sum(v["isolated"] for v in by_role.values())
+        nc_isolated_frac = nc_isolated / nc_total
+
+        log_data = by_role.get("log", {"total": 0, "isolated": 0})
+        log_total = log_data["total"]
+        log_isolated_frac = log_data["isolated"] / log_total if log_total else 0.0
+
+        per_role_summary = {
+            role: {
+                "total": v["total"],
+                "with_relations": v["with_relations"],
+                "isolated": v["isolated"],
+                "isolated_pct": round(100 * v["isolated"] / v["total"], 1) if v["total"] else 0,
+            }
+            for role, v in sorted(by_role.items())
+        }
+
+        status_23 = "warn" if log_isolated_frac >= 0.95 else "pass"
+        findings.append({
+            "rule_id": "RULE-23",
+            "node_id": "CORPUS",
+            "title": "corpus",
+            "shard_file": "all",
+            "compliance_status": status_23,
+            "severity": "info",
+            "fix_type": "review_needed" if status_23 == "warn" else "none",
+            "field": "relations",
+            "detail": (
+                f"non-code relational coverage: {nc_total - nc_isolated}/{nc_total} connected "
+                f"({100*(1-nc_isolated_frac):.1f}%). "
+                f"log-family isolation: {log_data['isolated']}/{log_total} "
+                f"({100*log_isolated_frac:.1f}%). "
+                f"per_role={per_role_summary}"
+            ),
+            "evidence_sources": ["canon_shards"],
+            "proposed_value": None,
+        })
+    else:
+        findings.append({
+            "rule_id": "RULE-23",
+            "node_id": "CORPUS",
+            "title": "corpus",
+            "shard_file": "all",
+            "compliance_status": "pass",
+            "severity": "info",
+            "fix_type": "none",
+            "field": "relations",
+            "detail": "No non-code nodes found; coverage trivially met.",
             "evidence_sources": [],
             "proposed_value": None,
         })
