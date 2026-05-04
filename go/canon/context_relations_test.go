@@ -412,3 +412,82 @@ func TestBuildRelations_EmbeddedContent_NoSelfRef(t *testing.T) {
 		t.Errorf("status = %q, want none (self-ref excluded)", status)
 	}
 }
+
+// TestClassifyUnresolvedTarget_Template verifies that targets containing "##"
+// (template placeholders) are classified as non_promotable_template (S85).
+func TestClassifyUnresolvedTarget_Template(t *testing.T) {
+	cases := []string{
+		"#### 🌀 Sesión = m##",
+		"#### 🌀📦 Hipótesis de dependencias = m##",
+		"#### 🌀 Sesión ## = slug",
+	}
+	for _, tc := range cases {
+		got := ClassifyUnresolvedTarget(tc)
+		if got != UnresolvedTemplate {
+			t.Errorf("ClassifyUnresolvedTarget(%q) = %q, want %q", tc, got, UnresolvedTemplate)
+		}
+	}
+}
+
+// TestClassifyUnresolvedTarget_URNMissing verifies that urn:uuid: targets and
+// bare UUIDs not in the corpus are classified as urn_missing (S85).
+func TestClassifyUnresolvedTarget_URNMissing(t *testing.T) {
+	cases := []string{
+		"urn:uuid:00000000-0000-5000-8000-000000000001",
+		"urn:uuid:4c1d9f7a-2e53-5b84-93c1-6fa2d8be1074",
+		"4c1d9f7a-2e53-5b84-93c1-6fa2d8be1074",
+	}
+	for _, tc := range cases {
+		got := ClassifyUnresolvedTarget(tc)
+		if got != UnresolvedURN {
+			t.Errorf("ClassifyUnresolvedTarget(%q) = %q, want %q", tc, got, UnresolvedURN)
+		}
+	}
+}
+
+// TestClassifyUnresolvedTarget_Concept verifies that dot-notation concept
+// references are classified as non_promotable_concept (S85).
+func TestClassifyUnresolvedTarget_Concept(t *testing.T) {
+	cases := []string{
+		"relations.type",
+		"canon.schema",
+	}
+	for _, tc := range cases {
+		got := ClassifyUnresolvedTarget(tc)
+		if got != UnresolvedConcept {
+			t.Errorf("ClassifyUnresolvedTarget(%q) = %q, want %q", tc, got, UnresolvedConcept)
+		}
+	}
+}
+
+// TestClassifyUnresolvedTarget_Path verifies that file-path references are
+// classified as non_promotable_path (S85).
+func TestClassifyUnresolvedTarget_Path(t *testing.T) {
+	cases := []string{
+		"docs/Informe_Tecnico_de_Tiddler (Esp).md",
+		"docs/Technical_Report_Tiddler_Sys_(Eng).md",
+	}
+	for _, tc := range cases {
+		got := ClassifyUnresolvedTarget(tc)
+		if got != UnresolvedPath {
+			t.Errorf("ClassifyUnresolvedTarget(%q) = %q, want %q", tc, got, UnresolvedPath)
+		}
+	}
+}
+
+// TestClassifyUnresolvedTarget_Stale verifies that normal title-looking
+// targets that do not resolve are classified as stale (S85).
+func TestClassifyUnresolvedTarget_Stale(t *testing.T) {
+	cases := []string{
+		"🎯 4. Flujo de interaccion",
+		"🎯 5. Arquitectura",
+		"## 🌀🧱 Desarrollo y Evolución",
+		"m01-s13-canon-bootstrap",
+	}
+	for _, tc := range cases {
+		got := ClassifyUnresolvedTarget(tc)
+		if got != UnresolvedStale {
+			t.Errorf("ClassifyUnresolvedTarget(%q) = %q, want %q", tc, got, UnresolvedStale)
+		}
+	}
+}

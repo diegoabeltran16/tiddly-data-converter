@@ -614,6 +614,77 @@ func extractWikilinks(text *string) []string {
 	return out
 }
 
+// UnresolvedTargetClass categorises a capa-2 target that failed resolution so
+// that auditing surfaces can distinguish actionable stale links from structural
+// non-promotables. Classes (S85):
+//
+//	non_promotable_template  — placeholder pattern, e.g. "#### 🌀 Sesión = m##"
+//	non_promotable_concept   — dot/slash notation referencing a concept, not a node
+//	non_promotable_path      — file-system path, not a canon title
+//	urn_missing              — urn:uuid: or bare UUID not present in the canon
+//	stale                    — resolvable-looking title that simply does not exist
+type UnresolvedTargetClass string
+
+const (
+	UnresolvedTemplate UnresolvedTargetClass = "non_promotable_template"
+	UnresolvedConcept  UnresolvedTargetClass = "non_promotable_concept"
+	UnresolvedPath     UnresolvedTargetClass = "non_promotable_path"
+	UnresolvedURN      UnresolvedTargetClass = "urn_missing"
+	UnresolvedStale    UnresolvedTargetClass = "stale"
+)
+
+var (
+	uuidBareRe   = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	headingPrefRe = regexp.MustCompile(`^#{1,6} `)
+)
+
+// ClassifyUnresolvedTarget returns the S85 class for a target string that
+// failed all resolution strategies. It does NOT attempt resolution itself;
+// call ResolveRelationTargets first and only invoke this on "unresolved" results.
+func ClassifyUnresolvedTarget(target string) UnresolvedTargetClass {
+	t := strings.TrimSpace(target)
+	if t == "" {
+		return UnresolvedStale
+	}
+
+	// URN or bare UUID reference not in canon.
+	if strings.HasPrefix(t, "urn:uuid:") {
+		return UnresolvedURN
+	}
+	bare := strings.ToLower(t)
+	if uuidBareRe.MatchString(bare) {
+		return UnresolvedURN
+	}
+
+	// Template placeholder: "##" appearing as a variable placeholder, NOT as
+	// the leading markdown heading prefix (e.g. "## Heading" is a heading; "m##"
+	// or "#### Node = m##" are template patterns).
+	isHeadingPrefix := headingPrefRe.MatchString(t)
+	stripped := t
+	if isHeadingPrefix {
+		// Remove the heading prefix (e.g. "## ") before checking for ## placeholders.
+		stripped = headingPrefRe.ReplaceAllString(t, "")
+	}
+	if strings.Contains(stripped, "##") || strings.Contains(t, "<") || strings.Contains(t, ">") {
+		return UnresolvedTemplate
+	}
+
+	// Concept notation: dot-delimited identifier (e.g. "relations.type") or
+	// slash-delimited path segment that is not a recognisable file path.
+	if strings.Contains(t, ".") && !strings.Contains(t, " ") && !strings.Contains(t, "/") {
+		return UnresolvedConcept
+	}
+
+	// File-system path reference (markdown or common doc extension).
+	lower := strings.ToLower(t)
+	if strings.HasSuffix(lower, ".md") || strings.HasSuffix(lower, ".html") ||
+		strings.HasSuffix(lower, ".json") || strings.Contains(t, "/") {
+		return UnresolvedPath
+	}
+
+	return UnresolvedStale
+}
+
 func dedupeSortRelations(relations []NodeRelation) []NodeRelation {
 	if len(relations) == 0 {
 		return nil
