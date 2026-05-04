@@ -30,7 +30,7 @@ from path_governance import (
 CANON_STATUS_CANDIDATE = "candidate_not_admitted"
 CANON_STATUS_ADMITTED = "local_admitted"
 
-DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "sessions"
+DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp" / "session_admission"
 DEFAULT_REPORT_DIR = REPO_ROOT / "data" / "tmp" / "admissions"
 SESSION_ID_RE = re.compile(r"^(m\d+)-s([0-9]+[a-z]?)-(.+)$")
@@ -353,7 +353,7 @@ def _contract_candidate_from_artifact(path: Path, sessions_dir: Path) -> dict[st
         "source_fields": {
             "artifact_family": "contrato_de_sesion",
             "canonical_status": CANON_STATUS_CANDIDATE,
-            "document_key": f"data/out/sessions/{session_id}",
+            "document_key": f"data/out/local/sessions/{session_id}",
             "provenance_ref": source_path,
             "session_origin": session_id,
             "source_path": source_path,
@@ -1865,7 +1865,7 @@ def _shared_mode_arguments(subparser: argparse.ArgumentParser) -> None:
         "--all-contracts",
         action="store_true",
         help=(
-            "Generate candidates for every data/out/sessions/00_contratos/*.md.json "
+            "Generate candidates for every data/out/local/sessions/00_contratos/*.md.json "
             "and admit missing contract artifacts"
         ),
     )
@@ -1888,7 +1888,7 @@ def _shared_mode_arguments(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument(
         "--sessions-dir",
         default=as_display_path(DEFAULT_SESSIONS_DIR),
-        help="Session artifacts root (default: data/out/sessions)",
+        help="Session artifacts root (default: data/out/local/sessions)",
     )
     subparser.add_argument(
         "--tmp-dir",

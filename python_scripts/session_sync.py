@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inventory data/out/sessions artifacts and prepare safe canon candidates.
+"""Inventory data/out/local/sessions artifacts and prepare safe canon candidates.
 
 This helper does not modify the canon. It reads session artifacts, derives
 canonical identity through the existing canon_preflight normalize command, and
@@ -201,14 +201,16 @@ def _session_tags(session_id: str, artifact_family: str) -> list[str]:
 
 
 _MIGRATION_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
-    ("data/sessions/", "data/out/sessions/"),
-    ("data\\sessions\\", "data\\out\\sessions\\"),
+    ("data/sessions/", "data/out/local/sessions/"),
+    ("data/out/sessions/", "data/out/local/sessions/"),
+    ("data\\sessions\\", "data\\out\\local\\sessions\\"),
+    ("data\\out\\sessions\\", "data\\out\\local\\sessions\\"),
 )
 
 
 def _is_migration_equivalent_path(old_path: str, new_path: str) -> bool:
     """Return True when old_path and new_path differ only by the sessions-dir
-    migration prefix (data/sessions/ → data/out/sessions/), confirming that
+    migration prefix (data/sessions/ → data/out/local/sessions/), confirming that
     the artifact was relocated but not semantically changed."""
     old_path = old_path.replace("\\", "/").strip()
     new_path = new_path.replace("\\", "/").strip()
@@ -278,7 +280,7 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
         "source_fields": {
             "artifact_family": artifact_family,
             "canonical_status": CANON_STATUS_CANDIDATE,
-            "document_key": f"data/out/sessions/{session_id}",
+            "document_key": f"data/out/local/sessions/{session_id}",
             "provenance_ref": _provenance_ref(session_id, path, sessions_dir),
             "session_origin": session_id,
             "source_path": source_path,
@@ -475,8 +477,8 @@ def scan_session_sync(
                         "classification": "replaceable_migrated_source_path",
                         "existing_source_path": existing_source_path,
                         "message": (
-                            "id exists in canon with different content; source_path migrated from "
-                            "data/sessions/ to data/out/sessions/ — eligible for controlled replacement"
+                            "id exists in canon with different content; source_path migrated to "
+                            "data/out/local/sessions/ — eligible for controlled replacement"
                         ),
                     }
                 )
@@ -547,12 +549,12 @@ def scan_session_sync(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Scan data/out/sessions by canonical id and generate missing plus "
+            "Scan data/out/local/sessions by canonical id and generate missing plus "
             "controlled replacement session candidates."
         )
     )
     parser.add_argument("command", choices=["scan"], help="Operation to run")
-    parser.add_argument("--sessions-dir", default=as_display_path(DEFAULT_SESSIONS_DIR))
+    parser.add_argument("--sessions-dir", default=as_display_path(DEFAULT_SESSIONS_DIR))  # default: data/out/local/sessions
     parser.add_argument("--canon-dir", default=as_display_path(DEFAULT_CANON_DIR))
     parser.add_argument("--out-dir", default=as_display_path(DEFAULT_SESSION_SYNC_DIR))
     parser.add_argument("--run-id", default=None)

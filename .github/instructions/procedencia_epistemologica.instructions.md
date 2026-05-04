@@ -28,9 +28,9 @@
 - No ocultar contribuciones mixtas humano-IA cuando afectan el contenido.
 
 ## Regla transversal S66
-- Toda sesión debe producir procedencia de sesión en `data/sessions/01_procedencia/<session>.md.json`.
+- Toda sesión debe producir procedencia de sesión en `data/out/local/sessions/01_procedencia/<session>.md.json`.
 - El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión <NN> = <slug>`, por ejemplo `#### 🌀🧾 Procedencia de sesión 69 = canon-admission-hardening-and-docs-v0`.
-- Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/sessions/`.
+- Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/out/local/sessions/`.
 - No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente.
 
 ## Interacción con otros nodos

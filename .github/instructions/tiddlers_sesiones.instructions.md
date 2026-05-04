@@ -1,5 +1,5 @@
 ---
-applyTo: "data/sessions/**"
+applyTo: "data/out/local/sessions/**"
 description: >
   Instruccion local-first para producir artefactos de sesion, lineas
   candidatas en formato canon y evidencia de validacion sin escribir
@@ -9,15 +9,15 @@ description: >
 ## Instruccion: familia de sesion, candidatos canonicos y cierre reversible
 
 Para toda sesion de trabajo en `tiddly-data-converter`, el agente debe cerrar
-con la familia minima de artefactos bajo `data/sessions/`:
+con la familia minima de artefactos bajo `data/out/local/sessions/`:
 
-1. `data/sessions/00_contratos/<session>.md.json`
-2. `data/sessions/01_procedencia/<session>.md.json`
-3. `data/sessions/02_detalles_de_sesion/<session>.md.json`
-4. `data/sessions/03_hipotesis/<session>.md.json`
-5. `data/sessions/04_balance_de_sesion/<session>.md.json`
-6. `data/sessions/05_propuesta_de_sesion/<session>.md.json`
-7. `data/sessions/06_diagnoses/sesion/<session>.md.json`
+1. `data/out/local/sessions/00_contratos/<session>.md.json`
+2. `data/out/local/sessions/01_procedencia/<session>.md.json`
+3. `data/out/local/sessions/02_detalles_de_sesion/<session>.md.json`
+4. `data/out/local/sessions/03_hipotesis/<session>.md.json`
+5. `data/out/local/sessions/04_balance_de_sesion/<session>.md.json`
+6. `data/out/local/sessions/05_propuesta_de_sesion/<session>.md.json`
+7. `data/out/local/sessions/06_diagnoses/sesion/<session>.md.json`
 
 El diagnostico de sesion es obligatorio. Los diagnosticos especializados
 (`canon`, `derivados`, `hipotesis`, `modulo`, `proyecto`, `repositorio`,
@@ -45,12 +45,12 @@ aparezca como prefijo operativo.
 
 ## Regla central
 
-`data/sessions/` es una zona de entrega, trazabilidad y staging operativo. No es
+`data/out/local/sessions/` es una zona de entrega, trazabilidad y staging operativo. No es
 canon paralelo.
 
 El canon local sigue siendo `data/out/local/tiddlers_*.jsonl`, pero el agente
 no debe escribirlo directamente por defecto. Las nuevas lineas deben quedar
-como candidatas bajo `data/sessions/` y solo pueden absorberse mediante un proceso
+como candidatas bajo `data/out/local/sessions/` y solo pueden absorberse mediante un proceso
 local o manual que valide antes de aplicar.
 
 ## Lectura previa obligatoria
@@ -70,12 +70,12 @@ de proponer admision o reparacion.
 
 ### Siempre permitido
 
-- `data/sessions/**`
+- `data/out/local/sessions/**`
 - documentacion y scripts del repositorio relacionados con el objetivo
 
 ### Permitido como staging canonico
 
-- archivos JSONL candidatos bajo `data/sessions/`, con nombre propio de sesion
+- archivos JSONL candidatos bajo `data/out/local/sessions/`, con nombre propio de sesion
 
 ### Prohibido por defecto
 
@@ -96,7 +96,7 @@ Toda linea candidata debe:
 - exponer la forma canonica vigente;
 - declarar `session_origin`;
 - declarar `artifact_family`;
-- declarar `source_path` hacia el archivo fuente bajo `data/sessions/`;
+- declarar `source_path` hacia el archivo fuente bajo `data/out/local/sessions/`;
 - declarar procedencia suficiente;
 - conservar `canonical_status` o equivalente como `candidate_not_admitted`;
 - evitar campos reservados por reverse dentro de `source_fields`;
@@ -140,7 +140,7 @@ exactamente con esa proyeccion; en general, evitarla.
 
 1. Leer canon, derivados e instrucciones pertinentes.
 2. Analizar el cambio necesario.
-3. Emitir la familia minima bajo `data/sessions/`.
+3. Emitir la familia minima bajo `data/out/local/sessions/`.
 4. Emitir lineas candidatas en formato canon si la sesion deja memoria que deba poder entrar al canon.
 5. Validar candidatos y/o copia temporal con comandos reales.
 6. Registrar en el diagnostico que paso, que no paso y que queda pendiente.
@@ -191,6 +191,6 @@ env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
 ## Regla de foco
 
 El objetivo de la sesion no es nutrir el canon con escritura libre. El objetivo
-es producir memoria operativa trazable en `data/sessions/`, dejar candidatos
+es producir memoria operativa trazable en `data/out/local/sessions/`, dejar candidatos
 canonicos reversibles cuando correspondan y documentar evidencia suficiente
 para que un proceso local decida si puede absorberlos al canon.

@@ -29,9 +29,9 @@
 - No usar este nodo como lugar para tomar decisiones técnicas que pertenecen a `## 🗂🧱 Principios de Gestión` o a un bloque temático específico.
 
 ## Regla transversal S66
-- Usar `data/sessions/` para nombrar artefactos de cierre de sesión: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico.
+- Usar `data/out/local/sessions/` para nombrar artefactos de cierre de sesión: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico.
 - Nombrar todo tiddler resultado de sesión con `title` iniciado por `#### 🌀` y forma `#### 🌀 <familia> de sesión <NN> = <slug>`. Ejemplos: `#### 🌀 Sesión 69 = canon-admission-hardening-and-docs-v0`, `#### 🌀🧾 Procedencia de sesión 69 = canon-admission-hardening-and-docs-v0` y `#### 🌀🧪 Hipótesis de sesión 69 = canon-admission-hardening-and-docs-v0`.
-- Distinguir siempre `línea candidata`, `canon local` y `derivado`; `data/sessions/` no es canon paralelo.
+- Distinguir siempre `línea candidata`, `canon local` y `derivado`; `data/out/local/sessions/` no es canon paralelo.
 - No crear nombres alternos para carpetas de sesión si ya existe una ruta real en el repositorio.
 
 ## Interacción con otros nodos

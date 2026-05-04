@@ -22,13 +22,13 @@ BASE_CANDIDATES = (
     / "sesion"
     / "m03-s66-session-family-and-canonical-closure-flow-v0.canon-candidates.jsonl"
 )
-SESSIONS_DIR = REPO_ROOT / "data" / "sessions"
+SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 REAL_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
 DATA_TMP = REPO_ROOT / "data" / "tmp"
 REPORT_DIR = DATA_TMP / "admissions" / "s69_unittest"
 WORK_DIR = DATA_TMP / "session_admission_s69_unittest"
 S66_PROVENANCE_SOURCE = (
-    "data/sessions/01_procedencia/m03-s66-session-family-and-canonical-closure-flow-v0.md.json"
+    "data/out/local/sessions/01_procedencia/m03-s66-session-family-and-canonical-closure-flow-v0.md.json"
 )
 
 
@@ -293,7 +293,7 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
         same_id_drift = self.make_content_drift()
         missing_source = copy.deepcopy(self.base_candidate)
         missing_source["source_fields"]["source_path"] = (
-            "data/sessions/00_contratos/m03-s69-missing-source-fixture.md.json"
+            "data/out/local/sessions/00_contratos/m03-s69-missing-source-fixture.md.json"
         )
 
         cases = [

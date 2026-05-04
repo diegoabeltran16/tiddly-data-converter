@@ -29,7 +29,7 @@
 - No duplicar aquí reglas madre que pertenecen a `## 🗂🧱 Principios de Gestión`.
 
 ## Regla transversal S66
-- La continuidad entre sesiones se materializa primero en `data/sessions/`, no por escritura directa al canon final.
+- La continuidad entre sesiones se materializa primero en `data/out/local/sessions/`, no por escritura directa al canon final.
 - Cada sesión debe cerrar con contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
 - Cuando haya nuevas líneas candidatas, deben permanecer como candidatas hasta pasar validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y tests pertinentes.
 

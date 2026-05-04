@@ -85,7 +85,7 @@ const RICHNESS_EXPECTED_FIELDS: &[&str] = &[
 ];
 
 const FAMILY_PROFILE_RULE_PREFIX: &str = "family-profile-";
-const ROLE_CONTRACT_REL_PATH: &str = "data/out/sessions/00_contratos/policy/canon_policy_bundle.json";
+const ROLE_CONTRACT_REL_PATH: &str = "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json";
 
 const SESSION_PROFILE_TOP_LEVEL_FIELDS: &[&str] = &[
     "schema_version",
@@ -646,7 +646,7 @@ fn classify_canonical_value(
             issues.push(issue(
                 "session-artifact-without-source-path",
                 CanonicalLineVerdict::CanonLineWarning,
-                "artefacto de sesion sin source_fields.source_path bajo data/out/sessions",
+                "artefacto de sesion sin source_fields.source_path bajo data/out/local/sessions",
             ));
         }
     }
@@ -2252,31 +2252,31 @@ fn session_family_profile(family: &str) -> Option<SessionFamilyProfile> {
     match family {
         "contrato_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀 Contrato de sesión",
-            source_path_prefix: "data/out/sessions/00_contratos/",
+            source_path_prefix: "data/out/local/sessions/00_contratos/",
         }),
         "procedencia_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀🧾 Procedencia de sesión",
-            source_path_prefix: "data/out/sessions/01_procedencia/",
+            source_path_prefix: "data/out/local/sessions/01_procedencia/",
         }),
         "detalles_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀 Sesión",
-            source_path_prefix: "data/out/sessions/02_detalles_de_sesion/",
+            source_path_prefix: "data/out/local/sessions/02_detalles_de_sesion/",
         }),
         "hipotesis_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀🧪 Hipótesis de sesión",
-            source_path_prefix: "data/out/sessions/03_hipotesis/",
+            source_path_prefix: "data/out/local/sessions/03_hipotesis/",
         }),
         "balance_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀 Balance de sesión",
-            source_path_prefix: "data/out/sessions/04_balance_de_sesion/",
+            source_path_prefix: "data/out/local/sessions/04_balance_de_sesion/",
         }),
         "propuesta_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀 Propuesta de sesión",
-            source_path_prefix: "data/out/sessions/05_propuesta_de_sesion/",
+            source_path_prefix: "data/out/local/sessions/05_propuesta_de_sesion/",
         }),
         "diagnostico_de_sesion" => Some(SessionFamilyProfile {
             title_prefix: "#### 🌀 Diagnóstico de sesión",
-            source_path_prefix: "data/out/sessions/06_diagnoses/sesion/",
+            source_path_prefix: "data/out/local/sessions/06_diagnoses/sesion/",
         }),
         _ => None,
     }

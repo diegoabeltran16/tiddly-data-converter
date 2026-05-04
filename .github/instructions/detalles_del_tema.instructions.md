@@ -29,8 +29,8 @@
 - No usar este nodo para explicar el flujo de trabajo de sesión o la política de memoria.
 
 ## Regla transversal S66
-- La producción situada de sesión se escribe bajo `data/sessions/` y no como archivo acumulativo global.
-- El detalle de sesión propio de cada cierre vive en `data/sessions/02_detalles_de_sesion/<session>.md.json`.
+- La producción situada de sesión se escribe bajo `data/out/local/sessions/` y no como archivo acumulativo global.
+- El detalle de sesión propio de cada cierre vive en `data/out/local/sessions/02_detalles_de_sesion/<session>.md.json`.
 - El `title` del detalle/sesión debe usar `#### 🌀 Sesión <NN> = <slug>`, por ejemplo `#### 🌀 Sesión 69 = canon-admission-hardening-and-docs-v0`.
 - Si un detalle debe poder entrar al canon, se representa como línea candidata y no como autoridad canónica final hasta completar validación local y reverse sin rechazo.
 

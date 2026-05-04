@@ -6,14 +6,14 @@ S40 introduced a narrow, testable admission circuit on top of canon governance.
 S66 keeps that guarded circuit but changes the default session closure regime:
 
 - `data/out/local/tiddlers_*.jsonl` remains the local source of truth.
-- `data/sessions/` is the default surface for session artifacts, traceability and candidate canon lines.
+- `data/out/local/sessions/` is the default surface for session artifacts, traceability and candidate canon lines.
 - Agents do not write directly into the final canon by default.
 - Candidate lines can be admitted only through a local/manual validation flow.
 - `data/out/local/proposals.jsonl` remains available only as a legacy or manual-recovery buffer.
 - `data/out/remote/` is reserved for remote exchange or cloud projection.
 - reverse HTML outputs live under `data/out/local/reverse_html/`.
 
-`data/sessions/` is not a parallel canon. It is staging and evidence.
+`data/out/local/sessions/` is not a parallel canon. It is staging and evidence.
 
 ## Scope
 
@@ -31,8 +31,8 @@ S66 keeps that guarded circuit but changes the default session closure regime:
 
 - Agents may read `data/out/local/tiddlers_*.jsonl`.
 - Agents may derive from the canon and inspect local derived layers in `data/out/local/enriched/` and `data/out/local/ai/`.
-- When a session emits semantic-documentary closure artifacts, agents write them under `data/sessions/`.
-- When those artifacts must be canonizable, agents write candidate JSONL lines under `data/sessions/`.
+- When a session emits semantic-documentary closure artifacts, agents write them under `data/out/local/sessions/`.
+- When those artifacts must be canonizable, agents write candidate JSONL lines under `data/out/local/sessions/`.
 - Candidate lines must not claim final canonical authority before admission.
 
 ### Local canon admission
@@ -57,7 +57,7 @@ If any gate fails, the final canon is not modified.
 - a manual recovery path is required;
 - or a historical candidate batch must be staged outside the daily closure flow.
 
-It must not replace `data/sessions/` as the default session closure surface.
+It must not replace `data/out/local/sessions/` as the default session closure surface.
 
 ### Direct canon repair remains exceptional
 
@@ -98,7 +98,7 @@ Candidate lines must declare:
 - origin session;
 - artifact family;
 - provenance;
-- source path under `data/sessions/`;
+- source path under `data/out/local/sessions/`;
 - non-final canonical status.
 
 Use non-reserved `source_fields` keys for those declarations.

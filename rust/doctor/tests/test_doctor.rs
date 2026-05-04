@@ -58,7 +58,7 @@ fn minimal_policy_bundle() -> &'static str {
 
 fn write_minimal_role_contract(root: &Path) {
     write_file(
-        &root.join("data/out/sessions/00_contratos/policy/canon_policy_bundle.json"),
+        &root.join("data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json"),
         minimal_policy_bundle(),
     );
 }
@@ -73,7 +73,7 @@ fn write_minimal_perimeter_fixture(root: &Path) {
         &root.join("data/in/tiddly-data-converter (Saved).html"),
         "<html>saved</html>",
     );
-    std::fs::create_dir_all(root.join("data/out/sessions")).expect("sessions dir");
+    std::fs::create_dir_all(root.join("data/out/local/sessions")).expect("sessions dir");
     std::fs::create_dir_all(root.join("data/tmp")).expect("tmp dir");
     std::fs::create_dir_all(root.join("data/out/local/reverse_html")).expect("reverse dir");
     write_file(&root.join("data/out/local/tiddlers_1.jsonl"), "{}\n");
@@ -84,7 +84,7 @@ fn write_minimal_perimeter_fixture(root: &Path) {
     );
     write_minimal_role_contract(root);
     write_file(
-        &root.join("data/out/sessions/00_contratos/projections/derived_layers_registry.json"),
+        &root.join("data/out/local/sessions/00_contratos/projections/derived_layers_registry.json"),
         r#"{
           "source_of_truth_layer": "canon",
           "layer_classes": {
@@ -136,7 +136,7 @@ fn complete_canon_line(title: &str, family: &str, order: usize) -> String {
         "diagnostico_de_sesion" => "06_diagnoses/sesion",
         _ => "02_detalles_de_sesion",
     };
-    let source_path = format!("data/out/sessions/{source_folder}/test.md.json");
+    let source_path = format!("data/out/local/sessions/{source_folder}/test.md.json");
     serde_json::json!({
         "schema_version": "v0",
         "id": format!("123e4567-e89b-12d3-a456-426614174{order:03}"),
@@ -167,8 +167,8 @@ fn complete_canon_line(title: &str, family: &str, order: usize) -> String {
             "artifact_family": family,
             "source_path": source_path.clone(),
             "canonical_status": "candidate_not_admitted",
-            "document_key": "data/out/sessions/m99-s99-test",
-            "provenance_ref": "data/out/sessions/01_procedencia/test.md.json"
+            "document_key": "data/out/local/sessions/m99-s99-test",
+            "provenance_ref": "data/out/local/sessions/01_procedencia/test.md.json"
         },
         "source_role": "reporte",
         "text": "Contenido",
@@ -353,7 +353,7 @@ fn test_canonical_line_gate_detecta_deriva_de_plantilla_por_familia() {
         "source_fields": {"artifact_family": "detalles_de_sesion"},
         "text": "Contenido",
         "source_type": "text/markdown",
-        "source_position": "data/out/sessions/test.md.json:2",
+        "source_position": "data/out/local/sessions/test.md.json:2",
         "created": "20260430000000000",
         "modified": "20260430000000000"
     })

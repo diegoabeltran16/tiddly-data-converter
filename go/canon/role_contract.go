@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	rolePrimaryContractPolicyRelPath = "data/out/sessions/00_contratos/policy/canon_policy_bundle.json"
+	rolePrimaryContractPolicyRelPath = "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json"
 	// EnvCanonPolicyBundlePath is the env var that overrides the default policy bundle path.
 	// When set, it takes precedence over all auto-discovery strategies.
 	// Useful for CI/CD environments or when the repo layout differs from the default.
