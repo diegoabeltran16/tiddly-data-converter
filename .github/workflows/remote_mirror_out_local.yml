@@ -1,0 +1,70 @@
+name: Remote Mirror — data/out/local/ → OneDrive
+
+# Mirrors the local canon root (data/out/local/) to OneDrive via Microsoft
+# Graph API. Runs in SYNC_DRY_RUN=true by default for safety.
+#
+# Prerequisites:
+# - A GitHub Environment named "remote-mirror" with the variables and secrets
+#   listed below configured.
+# - data/out/local/ must be present on the runner. Because data/out/ is
+#   gitignored, this workflow is designed for self-hosted runners that keep
+#   a persistent working copy, or for manual dispatch after restoring the
+#   data layer from a known source.
+#
+# Sync mode: local_primary — local canon is authoritative; OneDrive is a replica.
+# The mirror does NOT perform any canon admission; that path goes through
+# python_scripts/admit_session_candidates.py exclusively.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run in dry-run mode (no uploads to OneDrive)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    name: "Mirror data/out/local/ → OneDrive"
+    runs-on: ubuntu-latest
+    environment: remote-mirror
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run remote mirror
+        env:
+          # Non-sensitive variables — configure in the "remote-mirror" GitHub Environment
+          AGENT_ADMISSION_SCRIPT:       ${{ vars.AGENT_ADMISSION_SCRIPT }}
+          AGENT_DIRECT_CANON_WRITE:     ${{ vars.AGENT_DIRECT_CANON_WRITE }}
+          AGENT_PRIMARY_READ_ROOT:      ${{ vars.AGENT_PRIMARY_READ_ROOT }}
+          AGENT_SESSION_ROOT:           ${{ vars.AGENT_SESSION_ROOT }}
+          LOCAL_SYNC_SOURCE:            ${{ vars.LOCAL_SYNC_SOURCE }}
+          MSA_TENANT:                   ${{ vars.MSA_TENANT }}
+          ONEDRIVE_PROJECT_ROOT_NAME:   ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+          ONEDRIVE_ROOT_MODE:           ${{ vars.ONEDRIVE_ROOT_MODE }}
+          REMOTE_CONFLICT_BEHAVIOR:     ${{ vars.REMOTE_CONFLICT_BEHAVIOR }}
+          REMOTE_CREATE_MISSING_DIRS:   ${{ vars.REMOTE_CREATE_MISSING_DIRS }}
+          REMOTE_DELETE_EXTRANEOUS:     ${{ vars.REMOTE_DELETE_EXTRANEOUS }}
+          REMOTE_SYNC_MODE:             ${{ vars.REMOTE_SYNC_MODE }}
+          # dry_run: workflow_dispatch input overrides the env var; defaults true
+          SYNC_DRY_RUN: >-
+            ${{ github.event_name == 'workflow_dispatch'
+                && toJSON(inputs.dry_run)
+                || vars.SYNC_DRY_RUN
+                || 'true' }}
+          # Secrets — configure in the "remote-mirror" GitHub Environment
+          AZURE_CLIENT_ID:    ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID:    ${{ secrets.AZURE_TENANT_ID }}
+          MSA_REFRESH_TOKEN:  ${{ secrets.MSA_REFRESH_TOKEN }}
+
+        run: python3 python_scripts/remote_mirror_out_local.py

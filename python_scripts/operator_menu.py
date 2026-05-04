@@ -33,6 +33,15 @@ from path_governance import (  # noqa: E402
     sorted_canon_shards,
 )
 from session_sync import DEFAULT_SESSION_SYNC_DIR, scan_session_sync  # noqa: E402
+from tdc_cat import (  # noqa: E402
+    tdc_cat_error,
+    tdc_cat_loading,
+    tdc_cat_loading_start,
+    tdc_cat_loading_stop,
+    tdc_cat_open,
+    tdc_cat_success,
+    tdc_cat_warning,
+)
 
 
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
@@ -663,6 +672,7 @@ def option_extract_html(state: MenuState) -> None:
         return
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    tdc_cat_loading("Extraer HTML a JSONL temporal")
     result = run_command(
         [
             "go",
@@ -708,7 +718,9 @@ def option_extract_html(state: MenuState) -> None:
         print(f"- manifest: {display(manifest)}")
         print(f"- reporte reconstruccion: {display(gate_report_dir / 'reconstruction-report.json')}")
         print("Siguiente paso recomendado: opcion 5 para shardizar si quieres reconstruir el canon local.")
+        tdc_cat_success("Extraccion completada.")
     else:
+        tdc_cat_error()
         print("Extraccion fallida. No se escribio el canon.")
 
 
@@ -804,6 +816,7 @@ def option_shard_jsonl(state: MenuState) -> None:
     input_hash = canonical_file_hash(selected)
     input_content_hash = file_content_hash(selected)
 
+    tdc_cat_loading("Shardizar JSONL en canon local")
     result = run_command(
         [
             "go",
@@ -894,10 +907,14 @@ def option_shard_jsonl(state: MenuState) -> None:
     if result.returncode == 0:
         option_canon_status()
         if validation_ok:
+            tdc_cat_success("Shardizacion y cadena de validacion OK.")
             print("Cadena post-shardizacion OK: strict + reverse-preflight.")
             print("Siguiente paso recomendado: opcion 9 para ejecutar reverse. Derivados siguen bloqueados hasta Rejected: 0.")
         else:
+            tdc_cat_warning("Shardizacion aplicada, pero validacion pendiente.")
             print("Continuidad bloqueada: strict y reverse-preflight deben pasar antes de reverse o derivados.")
+    else:
+        tdc_cat_error()
 
 
 def run_preflight(mode: str) -> CommandResult:
@@ -908,10 +925,12 @@ def run_preflight(mode: str) -> CommandResult:
 
 
 def option_validate_canon() -> bool:
+    tdc_cat_loading("Validar canon — strict + reverse-preflight")
     print("\nValidacion strict")
     strict = run_preflight("strict")
     print_command_result(strict)
     if strict.returncode != 0:
+        tdc_cat_error("Fallo strict. Corregir antes de reverse o admision.")
         print("Fallo strict. No se recomienda reverse ni admision hasta corregir.")
         return False
 
@@ -919,10 +938,12 @@ def option_validate_canon() -> bool:
     reverse = run_preflight("reverse-preflight")
     print_command_result(reverse)
     if reverse.returncode != 0:
+        tdc_cat_error("Fallo reverse-preflight. Corregir antes de reverse o admision.")
         print("Fallo reverse-preflight. No se recomienda reverse ni admision hasta corregir.")
         return False
 
     print("\nEstado final: OK. Condicion critica esperada: not_ready=0 y Rejected=0 en reverse.")
+    tdc_cat_success("Strict + reverse-preflight OK.")
     return True
 
 
@@ -1391,6 +1412,7 @@ def option_reverse(state: MenuState) -> None:
         print("Reverse cancelado.")
         return
 
+    tdc_cat_loading("Ejecutar reverse authoritative-upsert")
     result = run_command(
         [
             "go",
@@ -1452,8 +1474,13 @@ def option_reverse(state: MenuState) -> None:
     )
     state.last_reverse_report = DEFAULT_REVERSE_REPORT if reverse_ok else report_path
     if reverse_ok:
+        tdc_cat_success("Reverse OK. Rejected: 0. Continuidad hacia derivados habilitada.")
         print("Reverse OK con Rejected: 0. Continuidad hacia derivados habilitada.")
+    elif result.returncode != 0:
+        tdc_cat_error()
+        print("Continuidad hacia derivados bloqueada: reverse debe terminar con Rejected: 0.")
     else:
+        tdc_cat_warning(f"Reverse terminado con rechazos ({reverse_rejected}). Revisar reporte.")
         print("Continuidad hacia derivados bloqueada: reverse debe terminar con Rejected: 0.")
 
 
@@ -1622,9 +1649,17 @@ def option_reconstruction_rollback() -> None:
         print("Rollback aplicado, pero la validacion minima no quedo OK. Revisar reporte antes de continuar.")
 
 
+def option_mcp_manager() -> None:
+    subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "mcp_env_manager.py")],
+        cwd=REPO_ROOT,
+    )
+
+
 def main_menu() -> None:
     state = MenuState()
     while True:
+        tdc_cat_open()
         print(
             "\nTiddly Data Converter - Operador local\n\n"
             "1) Preparacion\n"
@@ -1640,6 +1675,7 @@ def main_menu() -> None:
             "11) Rollback de admision\n"
             "12) Rollback de reconstruccion\n"
             "13) Auditar calidad canonica / nodos\n"
+            "14) Configurar MCP / mirror remoto\n"
             "0) Salir"
         )
         choice = prompt("> ").strip()
@@ -1674,6 +1710,8 @@ def main_menu() -> None:
             option_reconstruction_rollback()
         elif choice == "13":
             option_canon_quality()
+        elif choice == "14":
+            option_mcp_manager()
         else:
             print("Opcion invalida.")
         pause()
