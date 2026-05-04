@@ -155,6 +155,28 @@ def _safe_str(value: Any) -> str:
     return "" if value is None else str(value)
 
 
+_MIGRATION_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("data/sessions/", "data/out/local/sessions/"),
+    ("data/out/sessions/", "data/out/local/sessions/"),
+    ("data\\sessions\\", "data\\out\\local\\sessions\\"),
+    ("data\\out\\sessions\\", "data\\out\\local\\sessions\\"),
+)
+
+
+def _is_migration_equivalent_path(old_path: str, new_path: str) -> bool:
+    """Return True when old_path and new_path differ only by the sessions-dir
+    migration prefix (data/sessions/ → data/out/local/sessions/)."""
+    old_path = old_path.replace("\\", "/").strip()
+    new_path = new_path.replace("\\", "/").strip()
+    for old_prefix, new_prefix in _MIGRATION_PATH_PREFIXES:
+        old_p = old_prefix.replace("\\", "/")
+        new_p = new_prefix.replace("\\", "/")
+        if old_path.startswith(old_p) and new_path.startswith(new_p):
+            if old_path[len(old_p):] == new_path[len(new_p):]:
+                return True
+    return False
+
+
 def _canonical_json(record: dict[str, Any]) -> str:
     return json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -761,7 +783,13 @@ def _classify_against_index(
                     }
                 )
                 stats["already_admitted_skip"] += 1
-            elif allow_replacements and _safe_str((canon_same_id.record.get("source_fields") or {}).get("source_path")) == entry.source_path:
+            elif allow_replacements and (
+                _safe_str((canon_same_id.record.get("source_fields") or {}).get("source_path")) == entry.source_path
+                or _is_migration_equivalent_path(
+                    _safe_str((canon_same_id.record.get("source_fields") or {}).get("source_path")),
+                    entry.source_path,
+                )
+            ):
                 entry.replacement = canon_same_id
                 warnings.append(
                     {
@@ -771,7 +799,7 @@ def _classify_against_index(
                         "classification": "replace_existing_by_source_path",
                         "message": (
                             f"id {rec_id} already exists with different content in {canon_same_id.shard}; "
-                            "will replace it because source_path is identical"
+                            "will replace it because source_path is identical or migration-equivalent"
                         ),
                     }
                 )
@@ -844,7 +872,13 @@ def _classify_against_index(
 
         sf_existing = canon_index.by_session_family.get(sf_key)
         if sf_existing is not None and _safe_str(sf_existing.record.get("id")) != rec_id:
-            if allow_replacements and _safe_str((sf_existing.record.get("source_fields") or {}).get("source_path")) == entry.source_path:
+            if allow_replacements and (
+                _safe_str((sf_existing.record.get("source_fields") or {}).get("source_path")) == entry.source_path
+                or _is_migration_equivalent_path(
+                    _safe_str((sf_existing.record.get("source_fields") or {}).get("source_path")),
+                    entry.source_path,
+                )
+            ):
                 entry.replacement = sf_existing
                 warnings.append(
                     {
