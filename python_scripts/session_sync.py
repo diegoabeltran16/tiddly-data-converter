@@ -86,6 +86,30 @@ FAMILY_BY_RELATIVE_ROOT: dict[tuple[str, ...], dict[str, Any]] = {
         "source_role": "reporte",
         "order": 7,
     },
+    ("06_diagnoses", "tema"): {
+        "family": "diagnostico_tematico",
+        "role_primary": "log",
+        "source_role": "reporte",
+        "order": 8,
+    },
+    ("06_diagnoses", "module"): {
+        "family": "diagnostico_de_modulo",
+        "role_primary": "log",
+        "source_role": "reporte",
+        "order": 9,
+    },
+    ("06_diagnoses", "micro_ciclo"): {
+        "family": "diagnostico_de_micro_ciclo",
+        "role_primary": "log",
+        "source_role": "reporte",
+        "order": 10,
+    },
+    ("06_diagnoses", "meso_ciclo"): {
+        "family": "diagnostico_de_meso_ciclo",
+        "role_primary": "log",
+        "source_role": "reporte",
+        "order": 11,
+    },
 }
 
 
@@ -174,6 +198,27 @@ def _session_tags(session_id: str, artifact_family: str) -> list[str]:
             seen.add(tag)
             deduped.append(tag)
     return deduped
+
+
+_MIGRATION_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("data/sessions/", "data/out/sessions/"),
+    ("data\\sessions\\", "data\\out\\sessions\\"),
+)
+
+
+def _is_migration_equivalent_path(old_path: str, new_path: str) -> bool:
+    """Return True when old_path and new_path differ only by the sessions-dir
+    migration prefix (data/sessions/ → data/out/sessions/), confirming that
+    the artifact was relocated but not semantically changed."""
+    old_path = old_path.replace("\\", "/").strip()
+    new_path = new_path.replace("\\", "/").strip()
+    for old_prefix, new_prefix in _MIGRATION_PATH_PREFIXES:
+        old_p = old_prefix.replace("\\", "/")
+        new_p = new_prefix.replace("\\", "/")
+        if old_path.startswith(old_p) and new_path.startswith(new_p):
+            if old_path[len(old_p):] == new_path[len(new_p):]:
+                return True
+    return False
 
 
 def _provenance_ref(session_id: str, source_path: Path, sessions_dir: Path) -> str:
@@ -418,6 +463,20 @@ def scan_session_sync(
                         "message": (
                             "id exists in canon with different content and the same source_path; "
                             "eligible for controlled replacement"
+                        ),
+                    }
+                )
+                replacement_records.append(candidate.record)
+                sync_records.append(candidate.record)
+            elif _is_migration_equivalent_path(existing_source_path, summary["source_path"]):
+                replaceable_same_id_different_content.append(
+                    {
+                        **item,
+                        "classification": "replaceable_migrated_source_path",
+                        "existing_source_path": existing_source_path,
+                        "message": (
+                            "id exists in canon with different content; source_path migrated from "
+                            "data/sessions/ to data/out/sessions/ — eligible for controlled replacement"
                         ),
                     }
                 )

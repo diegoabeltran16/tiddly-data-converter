@@ -1,8 +1,8 @@
 ![License](https://img.shields.io/github/license/diegoabeltran16/tiddly-data-converter.svg)
 ![CI](https://github.com/diegoabeltran16/tiddly-data-converter/actions/workflows/ci.yml/badge.svg)
 
-<p align="center">
-  <img src="./assets/open-eyes.png" alt="Tiddly Data Converter icon" width="160">
+<p>
+  <img src="./.assets/Open%20eyes.PNG" alt="Tiddly Data Converter icon" width="130">
 </p>
 
 # tiddly-data-converter
