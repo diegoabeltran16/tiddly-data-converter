@@ -69,6 +69,165 @@ Titulos obligatorios para las familias principales:
 el resto del identificador sin el prefijo `mXX-sNN-` y sin `session-` cuando
 aparezca como prefijo operativo.
 
+### Diagnósticos de ciclo de sesiones
+
+Los diagnósticos de ciclo son sesiones diagnósticas propias.
+No forman parte del paquete obligatorio de entregables de toda sesión.
+
+Una sesión normal produce sus 7 entregables ordinarios.
+
+Una sesión diagnóstica de microciclo produce:
+- sus 7 entregables normales de sesión;
+- el diagnóstico de microciclo correspondiente.
+
+Una sesión diagnóstica de mesociclo produce:
+- sus 7 entregables normales de sesión;
+- el diagnóstico de mesociclo correspondiente.
+
+#### Clasificación de tipos de sesión
+
+El sistema distingue seis tipos de sesión relevantes para la gobernanza de
+artefactos:
+
+1. **Diagnóstico puro**.
+   Lee evidencia y produce el diagnóstico solicitado.
+   No toca código, tests ni instrucciones.
+   Si descubre que necesita modificar infraestructura para poder producir el
+   diagnóstico, debe detenerse y reportar el bloqueo.
+
+2. **Infraestructura diagnóstica**.
+   Ajusta instrucciones, scripts o tests para mejorar el sistema diagnóstico.
+   Debe producir los 7 entregables normales de sesión, además de cualquier
+   diagnóstico explícitamente solicitado.
+
+3. **Sesión mixta**.
+   Combina ajuste técnico limitado con un diagnóstico mayor.
+   Debe producir los 7 entregables normales de sesión y declarar qué parte fue
+   infraestructura y qué parte fue diagnóstico.
+
+4. **Sesión práctica/desarrollo**.
+   Implementa o corrige superficies del sistema: código, tests, CI, canon,
+   scripts, documentación operativa o integraciones.
+   Debe producir los 7 entregables normales de sesión.
+
+5. **Sesión teórica/analítica**.
+   Produce análisis, contratos, decisiones, hipótesis o diseño sin necesidad de
+   tocar código.
+   Debe producir entregables normales cuando cambia memoria, procedencia o
+   dirección del proyecto.
+
+6. **Híbrida/transicional**.
+   Solo es aceptable mientras el flujo diagnóstico se está estabilizando.
+   Debe quedar marcada como excepción y explicar por qué no pudo separarse en
+   diagnóstico puro e infraestructura diagnóstica.
+
+Regla madura:
+
+Cuando el sistema diagnóstico ya está disponible, una sesión diagnóstica pura
+no debe tocar código. Las correcciones de scripts, tests o instrucciones deben
+abrirse como sesión de infraestructura diagnóstica.
+
+#### Gobernanza de procedencia diagnóstica
+
+Los diagnósticos deben declarar de dónde sale cada conclusión importante y no
+confundir ausencia de staging con ausencia histórica.
+
+Jerarquía de lectura:
+
+1. **Diagnósticos previos específicos**.
+   Para mesociclos, leer primero los microdiagnósticos ya producidos.
+
+2. **Sessions local**.
+   Leer `data/out/local/sessions/` cuando exista evidencia reciente o staging
+   operativo.
+
+3. **Canon local**.
+   Leer `data/out/local/tiddlers_*.jsonl` cuando `sessions/` haya sido depurado
+   o para validar completitud canónica.
+
+4. **Auditorías y derivados**.
+   Leer `data/out/local/audit/`, `data/out/local/enriched/` o
+   `data/out/local/ai/` solo si ayudan a validar una hipótesis concreta.
+
+5. **Repositorio**.
+   Leer código, tests, workflows e instrucciones para validar el estado
+   arquitectónico actual.
+
+6. **Espejo remoto**.
+   El remoto/OneDrive es superficie de sincronización y paridad. No es fuente
+   de verdad superior al canon local salvo que una sesión futura lo declare de
+   forma explícita.
+
+Completitud diagnóstica:
+
+- **Completitud en staging local**: `presente`, `parcial`, `ausente` o
+  `depurado`.
+- **Completitud canónica**: `admitida completa`, `admitida parcial` o
+  `no encontrada`.
+- **Fuente usada**: `microdiagnóstico`, `sessions`, `canon`, `auditoría`,
+  `repositorio` o `remoto dry-run`.
+
+Regla:
+
+Depurar `sessions/` es válido cuando el canon local ya absorbió la evidencia.
+El diagnóstico debe registrar esa diferencia en vez de interpretar la ausencia
+local como pérdida automática de memoria.
+
+#### Diagnóstico de microciclo
+
+Uso:
+
+Diagnóstico agregado de 10 sesiones recientes o consecutivas.
+
+Ruta oficial:
+
+```txt
+data/out/local/sessions/06_diagnoses/micro-ciclo/
+```
+
+Formato sugerido de archivo:
+
+```txt
+m04-micro-ciclo-s085-s094-diagnostico.md.json
+```
+
+Formato obligatorio de título:
+
+```txt
+#### 🌀 Diagnóstico de microciclo = sesiones S85-S94
+#### 🌀 Diagnóstico de microciclo = sesiones S65-S74
+```
+
+#### Diagnóstico de mesociclo
+
+Uso:
+
+Diagnóstico agregado de 3 microciclos.
+
+Ruta oficial:
+
+```txt
+data/out/local/sessions/06_diagnoses/meso-ciclo/
+```
+
+Formato sugerido de archivo:
+
+```txt
+m04-meso-ciclo-s064-s094-diagnostico.md.json
+```
+
+Formato obligatorio de título:
+
+```txt
+#### 🌀 Diagnóstico de mesociclo = microciclos S64-S94
+#### 🌀 Diagnóstico de mesociclo = microciclos S65-S94
+```
+
+Regla:
+
+El mesociclo debe consumir diagnósticos de microciclo ya existentes.
+No debe releer 30 sesiones crudas si los 3 microciclos requeridos ya existen.
+
 ## Regla central
 
 `data/out/local/sessions/` es una zona de entrega, trazabilidad y staging operativo. No es

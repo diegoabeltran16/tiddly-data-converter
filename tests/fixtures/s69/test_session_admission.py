@@ -13,22 +13,30 @@ import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+SCRIPT_DIR = REPO_ROOT / "python_scripts"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import admit_session_candidates as asc
+
 ADMIT_SCRIPT = REPO_ROOT / "python_scripts" / "admit_session_candidates.py"
-BASE_CANDIDATES = (
+SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
+BASE_CONTRACT_SOURCE = (
     REPO_ROOT
     / "data"
+    / "out"
+    / "local"
     / "sessions"
-    / "06_diagnoses"
-    / "sesion"
-    / "m03-s66-session-family-and-canonical-closure-flow-v0.canon-candidates.jsonl"
+    / "00_contratos"
+    / "m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
 )
-SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 REAL_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
 DATA_TMP = REPO_ROOT / "data" / "tmp"
 REPORT_DIR = DATA_TMP / "admissions" / "s69_unittest"
 WORK_DIR = DATA_TMP / "session_admission_s69_unittest"
-S66_PROVENANCE_SOURCE = (
-    "data/out/local/sessions/01_procedencia/m03-s66-session-family-and-canonical-closure-flow-v0.md.json"
+BASE_SESSION_ORIGIN = "m04-s98-propagacion-relacional-chunks-ai-y-rule23"
+ALT_EXISTING_SOURCE = (
+    "data/out/local/sessions/01_procedencia/m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
 )
 
 
@@ -52,7 +60,7 @@ def copy_canon_fixture(target_dir: Path) -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
     for shard in sorted(REAL_CANON_DIR.glob("tiddlers_*.jsonl")):
         shutil.copy2(shard, target_dir / shard.name)
-    remove_session_origin(target_dir, "m03-s66-session-family-and-canonical-closure-flow-v0")
+    remove_session_origin(target_dir, BASE_SESSION_ORIGIN)
 
 
 def remove_session_origin(canon_dir: Path, session_origin: str) -> None:
@@ -69,13 +77,11 @@ def remove_session_origin(canon_dir: Path, session_origin: str) -> None:
         shard.write_text("\n".join(kept) + ("\n" if kept else ""), encoding="utf-8")
 
 
-def first_s66_candidate() -> dict:
-    with BASE_CANDIDATES.open("r", encoding="utf-8") as handle:
-        for raw in handle:
-            line = raw.strip()
-            if line:
-                return json.loads(line)
-    raise AssertionError(f"{BASE_CANDIDATES} has no JSONL records")
+def base_session_candidate(tmp_dir: Path) -> dict:
+    raw = asc._contract_candidate_from_artifact(BASE_CONTRACT_SOURCE, SESSIONS_DIR)
+    normalized = normalize_records([raw], tmp_dir)[0]
+    normalized["raw_payload_ref"] = f"node:{normalized['id']}"
+    return normalized
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
@@ -167,7 +173,7 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
         self.real_canon_before = canon_hash(REAL_CANON_DIR)
         self.tmp = tempfile.TemporaryDirectory(prefix="s69_admission_", dir=DATA_TMP)
         self.tmp_dir = Path(self.tmp.name)
-        self.base_candidate = first_s66_candidate()
+        self.base_candidate = base_session_candidate(self.tmp_dir)
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
@@ -288,7 +294,7 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
         )
         session_family_conflict = self.make_variant(
             "#### 🌀 Contrato de sesión 69 = session-family-conflict-fixture-v0",
-            source_path=S66_PROVENANCE_SOURCE,
+            source_path=ALT_EXISTING_SOURCE,
         )
         same_id_drift = self.make_content_drift()
         missing_source = copy.deepcopy(self.base_candidate)

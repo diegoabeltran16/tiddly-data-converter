@@ -10,7 +10,7 @@ Reads:
   - data/out/local/ai/reports/*.json
   - docs/ (normative reference)
 
-Evaluates 21 normative rules, classifies findings, applies safe autofixes,
+Evaluates 23 normative rules, classifies findings, applies safe autofixes,
 rewrites affected canon shards, optionally regenerates derived layers, and emits:
   - data/out/local/audit/manifest.json
   - data/out/local/audit/compliance_report.json
@@ -175,7 +175,7 @@ def load_reports(reports_dir: Path) -> dict:
 
 
 def load_normative_rules() -> list[dict]:
-    """Return the static catalog of normative rules (23 as of S84)."""
+    """Return the static catalog of normative rules (23 as of S98)."""
     return [
         {"id": "RULE-01", "block": "structural", "description": "id, key, title present", "level": "obligatoria", "severity": "critical"},
         {"id": "RULE-02", "block": "structural", "description": "schema_version present and non-empty", "level": "obligatoria", "severity": "major"},
@@ -199,7 +199,7 @@ def load_normative_rules() -> list[dict]:
         {"id": "RULE-20", "block": "normative_report", "description": "non-binary text nodes have content.plain non-null", "level": "recomendada", "severity": "minor"},
         {"id": "RULE-21", "block": "normative_report", "description": "unclassified fraction < 0.25 (soft threshold)", "level": "flexible", "severity": "info"},
         {"id": "RULE-22", "block": "normative_report", "description": "section_path auto-referential fraction < 0.70 (depth-1 quality gate, S81)", "level": "flexible", "severity": "info"},
-        {"id": "RULE-23", "block": "relations", "description": "relational coverage gate: log-family isolation < 95% (S84 capa-2 exposure)", "level": "flexible", "severity": "info"},
+        {"id": "RULE-23", "block": "relations", "description": "relational coverage across canon and AI chunks", "level": "flexible", "severity": "info"},
     ]
 
 
@@ -471,6 +471,166 @@ def evaluate_record(
     return findings
 
 
+def _pct(part: int, total: int) -> float:
+    return round((100.0 * part / total), 2) if total else 0.0
+
+
+def _new_coverage_bucket() -> dict:
+    return {
+        "total_nodes": 0,
+        "nodes_with_relations": 0,
+        "nodes_without_relations": 0,
+        "coverage_pct": 0.0,
+    }
+
+
+def _record_family(rec: dict) -> str:
+    taxonomy_path = rec.get("taxonomy_path")
+    if isinstance(taxonomy_path, list) and taxonomy_path:
+        return str(taxonomy_path[0])[:160]
+
+    for key in ("source_tags", "tags", "normalized_tags"):
+        tags = rec.get(key)
+        if not isinstance(tags, list):
+            continue
+        for tag in tags:
+            tag_s = str(tag)
+            if tag_s.startswith(("session:", "topic:", "layer:", "core:", "channel:")):
+                return tag_s[:160]
+        for tag in tags:
+            tag_s = str(tag)
+            if tag_s.startswith(("#", "##", "###", "####")):
+                return tag_s[:160]
+
+    return str(rec.get("role_primary") or "unknown")
+
+
+def _finalize_coverage_bucket(bucket: dict) -> dict:
+    bucket["coverage_pct"] = _pct(bucket["nodes_with_relations"], bucket["total_nodes"])
+    return bucket
+
+
+def build_rule23_metrics(canon_records: list[dict], chunks: list[dict]) -> dict:
+    total_nodes = len(canon_records)
+    nodes_with_relations = 0
+    by_role: dict[str, dict] = {}
+    by_family: dict[str, dict] = {}
+
+    for rec in canon_records:
+        has_relations = bool(rec.get("relations"))
+        if has_relations:
+            nodes_with_relations += 1
+
+        role = str(rec.get("role_primary") or "unknown")
+        role_bucket = by_role.setdefault(role, _new_coverage_bucket())
+        role_bucket["total_nodes"] += 1
+        if has_relations:
+            role_bucket["nodes_with_relations"] += 1
+        else:
+            role_bucket["nodes_without_relations"] += 1
+
+        family = _record_family(rec)
+        family_bucket = by_family.setdefault(family, _new_coverage_bucket())
+        family_bucket["total_nodes"] += 1
+        if has_relations:
+            family_bucket["nodes_with_relations"] += 1
+        else:
+            family_bucket["nodes_without_relations"] += 1
+
+    for bucket in by_role.values():
+        _finalize_coverage_bucket(bucket)
+    for bucket in by_family.values():
+        _finalize_coverage_bucket(bucket)
+
+    total_chunks = len(chunks)
+    chunks_with_relation_targets = sum(1 for c in chunks if "relation_targets" in c)
+    chunks_with_non_empty_relation_targets = sum(
+        1 for c in chunks
+        if isinstance(c.get("relation_targets"), list) and bool(c.get("relation_targets"))
+    )
+    chunks_with_bad_relation_targets = sum(
+        1 for c in chunks
+        if "relation_targets" in c and not isinstance(c.get("relation_targets"), list)
+    )
+    chunks_with_relation_count = sum(1 for c in chunks if "relation_count" in c)
+    chunks_with_relation_count_mismatch = sum(
+        1 for c in chunks
+        if isinstance(c.get("relation_targets"), list)
+        and "relation_count" in c
+        and c.get("relation_count") != len(c.get("relation_targets") or [])
+    )
+
+    log_bucket = by_role.get("log") or _new_coverage_bucket()
+    log_isolation_pct = _pct(log_bucket.get("nodes_without_relations", 0), log_bucket.get("total_nodes", 0))
+    fully_isolated_families = sorted(
+        family for family, bucket in by_family.items()
+        if bucket["total_nodes"] > 0 and bucket["nodes_with_relations"] == 0
+    )
+
+    notes: list[str] = []
+    if total_chunks and chunks_with_relation_targets < total_chunks:
+        notes.append(
+            f"{total_chunks - chunks_with_relation_targets} chunks_ai records lack relation_targets."
+        )
+    if chunks_with_bad_relation_targets:
+        notes.append(
+            f"{chunks_with_bad_relation_targets} chunks_ai records have non-list relation_targets."
+        )
+    if chunks_with_relation_count_mismatch:
+        notes.append(
+            f"{chunks_with_relation_count_mismatch} chunks_ai records have relation_count mismatches."
+        )
+    if log_bucket.get("total_nodes", 0) and log_isolation_pct >= 95.0:
+        notes.append(
+            f"log nodes remain isolated: {log_bucket['nodes_without_relations']}/{log_bucket['total_nodes']} without relations."
+        )
+    if fully_isolated_families:
+        notes.append(
+            "Families with zero relational coverage observed: "
+            + ", ".join(fully_isolated_families[:12])
+            + ("..." if len(fully_isolated_families) > 12 else "")
+        )
+
+    status = "PASS"
+    if chunks_with_bad_relation_targets or chunks_with_relation_count_mismatch:
+        status = "FAIL"
+    elif (
+        (total_chunks and chunks_with_relation_targets < total_chunks)
+        or log_isolation_pct >= 95.0
+        or _pct(nodes_with_relations, total_nodes) < 25.0
+        or fully_isolated_families
+    ):
+        status = "WARN"
+
+    return {
+        "rule": "RULE-23",
+        "name": "relational_coverage",
+        "status": status,
+        "total_nodes": total_nodes,
+        "nodes_with_relations": nodes_with_relations,
+        "nodes_without_relations": total_nodes - nodes_with_relations,
+        "coverage_pct": _pct(nodes_with_relations, total_nodes),
+        "by_role_primary": dict(sorted(by_role.items())),
+        "by_family": dict(sorted(by_family.items())),
+        "chunks_ai": {
+            "total_chunks": total_chunks,
+            "chunks_with_relation_targets": chunks_with_relation_targets,
+            "chunks_without_relation_targets": total_chunks - chunks_with_relation_targets,
+            "chunks_with_non_empty_relation_targets": chunks_with_non_empty_relation_targets,
+            "chunks_with_relation_count": chunks_with_relation_count,
+            "chunks_with_relation_count_mismatch": chunks_with_relation_count_mismatch,
+            "chunks_with_bad_relation_targets": chunks_with_bad_relation_targets,
+        },
+        "observations": {
+            "log_nodes_total": log_bucket.get("total_nodes", 0),
+            "log_nodes_without_relations": log_bucket.get("nodes_without_relations", 0),
+            "log_isolation_pct": log_isolation_pct,
+            "fully_isolated_families": fully_isolated_families,
+        },
+        "notes": notes,
+    }
+
+
 def evaluate_corpus_level(
     canon_records: list[dict],
     enriched_records: list[dict],
@@ -576,75 +736,33 @@ def evaluate_corpus_level(
             "proposed_value": None,
         })
 
-    # RULE-23 (S84): relational coverage gate by family.
-    # Measures the fraction of non-code nodes with at least one effective
-    # relation in the top-level relations field. Emits per-family isolation
-    # metrics. Threshold: warn if log-family isolation >= 95%.
-    non_code = [r for r in canon_records if r.get("role_primary") not in ("code", None)]
-    nc_total = len(non_code)
-    if nc_total > 0:
-        by_role: dict[str, dict] = {}
-        for r in non_code:
-            role = r.get("role_primary", "unknown")
-            if role not in by_role:
-                by_role[role] = {"total": 0, "with_relations": 0, "isolated": 0}
-            by_role[role]["total"] += 1
-            if r.get("relations"):
-                by_role[role]["with_relations"] += 1
-            else:
-                by_role[role]["isolated"] += 1
-
-        nc_isolated = sum(v["isolated"] for v in by_role.values())
-        nc_isolated_frac = nc_isolated / nc_total
-
-        log_data = by_role.get("log", {"total": 0, "isolated": 0})
-        log_total = log_data["total"]
-        log_isolated_frac = log_data["isolated"] / log_total if log_total else 0.0
-
-        per_role_summary = {
-            role: {
-                "total": v["total"],
-                "with_relations": v["with_relations"],
-                "isolated": v["isolated"],
-                "isolated_pct": round(100 * v["isolated"] / v["total"], 1) if v["total"] else 0,
-            }
-            for role, v in sorted(by_role.items())
-        }
-
-        status_23 = "warn" if log_isolated_frac >= 0.95 else "pass"
-        findings.append({
-            "rule_id": "RULE-23",
-            "node_id": "CORPUS",
-            "title": "corpus",
-            "shard_file": "all",
-            "compliance_status": status_23,
-            "severity": "info",
-            "fix_type": "review_needed" if status_23 == "warn" else "none",
-            "field": "relations",
-            "detail": (
-                f"non-code relational coverage: {nc_total - nc_isolated}/{nc_total} connected "
-                f"({100*(1-nc_isolated_frac):.1f}%). "
-                f"log-family isolation: {log_data['isolated']}/{log_total} "
-                f"({100*log_isolated_frac:.1f}%). "
-                f"per_role={per_role_summary}"
-            ),
-            "evidence_sources": ["canon_shards"],
-            "proposed_value": None,
-        })
-    else:
-        findings.append({
-            "rule_id": "RULE-23",
-            "node_id": "CORPUS",
-            "title": "corpus",
-            "shard_file": "all",
-            "compliance_status": "pass",
-            "severity": "info",
-            "fix_type": "none",
-            "field": "relations",
-            "detail": "No non-code nodes found; coverage trivially met.",
-            "evidence_sources": [],
-            "proposed_value": None,
-        })
+    # RULE-23 (S98): relational coverage across canon and AI chunks.
+    rule23 = build_rule23_metrics(canon_records, chunks)
+    status_23 = rule23["status"].lower()
+    detail = (
+        f"relational coverage: {rule23['nodes_with_relations']}/{rule23['total_nodes']} "
+        f"nodes ({rule23['coverage_pct']:.2f}%). "
+        f"chunks with relation_targets: "
+        f"{rule23['chunks_ai']['chunks_with_relation_targets']}/"
+        f"{rule23['chunks_ai']['total_chunks']}; "
+        f"non-empty chunks: "
+        f"{rule23['chunks_ai']['chunks_with_non_empty_relation_targets']}. "
+        f"notes={rule23['notes']}"
+    )
+    findings.append({
+        "rule_id": "RULE-23",
+        "node_id": "CORPUS",
+        "title": "corpus",
+        "shard_file": "all",
+        "compliance_status": status_23,
+        "severity": "info",
+        "fix_type": "review_needed" if status_23 in ("warn", "fail") else "none",
+        "field": "relations/relation_targets",
+        "detail": detail,
+        "evidence_sources": ["canon_shards", "ai_chunks"],
+        "proposed_value": None,
+        "metrics": rule23,
+    })
 
     return findings
 
@@ -847,6 +965,7 @@ def emit_audit_reports(
     rules_catalog = load_normative_rules()
     rules_by_id = {r["id"]: r for r in rules_catalog}
     by_rule: dict[str, dict] = {}
+    rule_metrics: dict[str, dict] = {}
     for f in all_findings:
         rid = f["rule_id"]
         if rid not in by_rule:
@@ -862,6 +981,9 @@ def emit_audit_reports(
                 "fail_count": 0,
                 "affected_nodes": [],
             }
+        if f.get("metrics") is not None:
+            by_rule[rid]["metrics"] = f["metrics"]
+            rule_metrics[rid] = f["metrics"]
         status = f["compliance_status"]
         if status == "pass":
             by_rule[rid]["pass_count"] += 1
@@ -899,6 +1021,8 @@ def emit_audit_reports(
         "global_compliance": "pass" if global_pass else "fail",
         "total_nodes_audited": total_nodes,
         "compliance_by_rule": list(by_rule.values()),
+        "rule_metrics": rule_metrics,
+        "relational_coverage": rule_metrics.get("RULE-23"),
         "summary_by_severity": dict(by_severity),
         "summary_by_block": dict(by_layer),
         "rules_with_issues": failed_rules,
@@ -957,6 +1081,24 @@ def emit_audit_reports(
         lines_md.append(
             f"| {r['rule_id']} | {r['block']} | {r['description']} | {r['fail_count']} | {r['warn_count']} |"
         )
+    relational_coverage = rule_metrics.get("RULE-23")
+    if relational_coverage:
+        chunks_ai = relational_coverage.get("chunks_ai", {})
+        lines_md += [
+            f"",
+            f"## RULE-23 Relational Coverage",
+            f"",
+            f"| Metric | Value |",
+            f"|--------|-------|",
+            f"| Status | `{relational_coverage.get('status')}` |",
+            f"| Canon nodes with relations | {relational_coverage.get('nodes_with_relations')}/{relational_coverage.get('total_nodes')} ({relational_coverage.get('coverage_pct')}%) |",
+            f"| Chunks with relation_targets | {chunks_ai.get('chunks_with_relation_targets')}/{chunks_ai.get('total_chunks')} |",
+            f"| Chunks with non-empty relation_targets | {chunks_ai.get('chunks_with_non_empty_relation_targets')} |",
+            f"| Chunks with relation_count mismatch | {chunks_ai.get('chunks_with_relation_count_mismatch')} |",
+            f"",
+        ]
+        for note in relational_coverage.get("notes", []):
+            lines_md.append(f"- {note}")
     lines_md += [
         f"",
         f"## Notes for UI Readiness",

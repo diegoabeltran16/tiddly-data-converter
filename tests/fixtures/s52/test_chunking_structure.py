@@ -45,7 +45,7 @@ class ChunkingStructureTests(unittest.TestCase):
         }
         payload = derive_layers.classify_payload(rec, "html_artifact", 1800)
         self.assertFalse(payload["is_chunkable_text"])
-        self.assertEqual(payload["chunk_exclusion_reason"], "archival_only_skip")
+        self.assertEqual(payload["chunk_exclusion_reason"], "archival_only")
         self.assertEqual(payload["corpus_state"], "archival_only")
 
     def test_structural_split_respects_target(self) -> None:
@@ -93,6 +93,47 @@ class ChunkingStructureTests(unittest.TestCase):
         self.assertEqual(first["source_anchor"]["shard_file"], "tiddlers_1.jsonl")
         self.assertEqual(first["section_path"], ["README.md"])
         self.assertEqual(first["taxonomy_path"], ["project/docs/readme"])
+        self.assertEqual(first["relation_targets"], [])
+        self.assertEqual(first["relation_count"], 0)
+
+    def test_chunk_records_inherit_compact_relation_context(self) -> None:
+        rec = {
+            "id": "node-1",
+            "title": "README.md",
+            "text": "# Intro\n" + ("texto de prueba. " * 900),
+            "content_type": "text/markdown",
+            "tags": ["⚙️ Markdown", "README.md", "--- Codigo", "state:live-path"],
+        }
+        payload = derive_layers.classify_payload(rec, "readme", 1800)
+        relation_targets = [
+            {"type": "usa", "target_id": "target-1", "evidence": "content_embedded"},
+            {"type": "usa", "target_id": "target-1", "evidence": "content_embedded"},
+            {"type": "define", "target_id": "target-2"},
+        ]
+        chunks, _, _ = derive_layers.chunk_node(
+            rec,
+            "node-1",
+            "tiddlers_1.jsonl",
+            1,
+            "readme",
+            ["project/docs/readme"],
+            ["README.md"],
+            ["readme", "repo"],
+            payload,
+            1800,
+            4000,
+            relation_targets=relation_targets,
+        )
+        self.assertGreater(len(chunks), 0)
+        first = chunks[0]
+        self.assertEqual(
+            first["relation_targets"],
+            [
+                {"target_id": "target-1", "type": "usa", "evidence": "content_embedded"},
+                {"target_id": "target-2", "type": "define"},
+            ],
+        )
+        self.assertEqual(first["relation_count"], 2)
 
 
 if __name__ == "__main__":
