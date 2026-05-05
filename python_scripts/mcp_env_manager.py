@@ -145,7 +145,7 @@ def assert_not_secret_key(key: str) -> None:
     """
     if key in SECRETS or looks_sensitive(key):
         raise ValueError(
-            f"Refusing to persist sensitive key '{key}' in clear-text .env. "
+            "Refusing to persist a sensitive key in clear-text .env. "
             "Use runtime environment variables or a temporary prompt instead."
         )
 
@@ -323,12 +323,7 @@ def action_show_status() -> None:
     print("  ── Secrets (runtime only — politica S92) ────────────────────────────────────")
     print("  Los secrets no se almacenan ni se inspeccionan en .env.")
     print("  Fuente esperada: variable de entorno del proceso o prompt temporal.")
-    print()
-    for key in SECRETS:
-        desc = SECRET_DESCRIPTIONS.get(key, "")
-        print(f"  • {key}")
-        print(f"    {desc}")
-        print(f"    Fuente: os.environ o prompt temporal — no persistido en .env")
+    print("  No se listan nombres ni descripciones de claves secretas.")
 
     print()
     ignored = _is_gitignored(ENV_PATH)
@@ -390,29 +385,26 @@ def action_show_secret_policy() -> None:
     print("    1. Variable de entorno del proceso (export VAR=valor o GitHub Actions secrets)")
     print("    2. Prompt temporal con getpass al ejecutar auth/sync (no persistido)")
     print()
-    for key in SECRETS:
-        desc = SECRET_DESCRIPTIONS.get(key, "")
-        print(f"  • {key}")
-        print(f"    {desc}")
+    print("  Los secrets de autenticacion no se listan aqui (nombres ni descripciones).")
     print()
     print("  RECOMENDACION DE SEGURIDAD:")
-    print("  Si MSA_REFRESH_TOKEN fue persistido previamente en .env o fue leido por")
-    print("  un agente automatizado, se recomienda rotarlo / revocarlo desde el portal")
-    print("  Azure AD o la cuenta Microsoft correspondiente y generar uno nuevo.")
+    print("  Si algun secret de autenticacion Microsoft fue persistido previamente")
+    print("  en .env o fue leido por un agente automatizado, rotarlo / revocarlo")
+    print("  desde el portal Azure AD o la cuenta Microsoft correspondiente.")
 
 
 def action_test_auth() -> None:
     """Test Azure MSA authentication using runtime secrets (S92)."""
     values = read_env_values()
     tenant = values.get("MSA_TENANT") or os.environ.get("MSA_TENANT") or "consumers"
-    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "AZURE_CLIENT_ID")
-    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "MSA_REFRESH_TOKEN")
+    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "ID de aplicacion Azure AD")
+    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "token de actualizacion Microsoft")
 
     if not client_id:
-        print("  AZURE_CLIENT_ID no disponible en el entorno runtime.")
+        print("  Credencial de autenticacion Azure no disponible en el entorno runtime.")
         return
     if not refresh_token:
-        print("  MSA_REFRESH_TOKEN no disponible en el entorno runtime.")
+        print("  Token de actualizacion Microsoft no disponible en el entorno runtime.")
         return
 
     print(f"  Probando autenticacion (tenant={tenant})...")
@@ -428,12 +420,12 @@ def action_test_appfolder() -> None:
     """Test OneDrive App Folder access after successful authentication (S92)."""
     values = read_env_values()
     tenant = values.get("MSA_TENANT") or os.environ.get("MSA_TENANT") or "consumers"
-    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "AZURE_CLIENT_ID")
-    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "MSA_REFRESH_TOKEN")
+    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "ID de aplicacion Azure AD")
+    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "token de actualizacion Microsoft")
     root_mode = values.get("ONEDRIVE_ROOT_MODE") or "approot"
 
     if not client_id or not refresh_token:
-        print("  AZURE_CLIENT_ID y/o MSA_REFRESH_TOKEN no disponibles en el entorno runtime.")
+        print("  Credenciales de autenticacion Microsoft no disponibles en el entorno runtime.")
         return
 
     print(f"  Obteniendo token (tenant={tenant})...")
@@ -509,18 +501,16 @@ def action_sync_manual() -> None:
     print("  ADVERTENCIA: Esto ejecutara el mirror real a OneDrive.")
     print("  AGENT_DIRECT_CANON_WRITE no aplica aqui — mirror y canon son flujos separados.")
     print()
-    print("  Fuente de secrets (runtime only — no se guardaran en .env):")
-    print("    AZURE_CLIENT_ID:   variable de entorno o prompt temporal")
-    print("    MSA_REFRESH_TOKEN: variable de entorno o prompt temporal")
+    print("  Credenciales de autenticacion Microsoft: runtime only — no se guardan en .env.")
     print()
-    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "AZURE_CLIENT_ID")
+    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "ID de aplicacion Azure AD")
     if not client_id:
-        print("  AZURE_CLIENT_ID no disponible. Sync cancelado.")
+        print("  Credencial de autenticacion Azure no disponible. Sync cancelado.")
         return
 
-    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "MSA_REFRESH_TOKEN")
+    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "token de actualizacion Microsoft")
     if not refresh_token:
-        print("  MSA_REFRESH_TOKEN no disponible. Sync cancelado.")
+        print("  Token de actualizacion Microsoft no disponible. Sync cancelado.")
         client_id = ""
         return
 

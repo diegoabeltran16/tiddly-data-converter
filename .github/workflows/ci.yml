@@ -2,7 +2,7 @@ name: CI — Rust + Go
 
 on:
   push:
-    branches: [main, "m01-*", "m02-*"]
+    branches: [main, "m01-*", "m02-*", "m03-*", "m04-*"]
   pull_request:
     branches: [main]
 
