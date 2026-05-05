@@ -12,6 +12,9 @@ import (
 
 const (
 	rolePrimaryContractPolicyRelPath = "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json"
+	// canonPolicyBundleFixtureRelPath is the tracked fallback used when data/out/ is not
+	// present (e.g. in CI where /data/out is gitignored). Always a copy of the canonical bundle.
+	canonPolicyBundleFixtureRelPath = "tests/fixtures/canon_policy_bundle.json"
 	// EnvCanonPolicyBundlePath is the env var that overrides the default policy bundle path.
 	// When set, it takes precedence over all auto-discovery strategies.
 	// Useful for CI/CD environments or when the repo layout differs from the default.
@@ -128,9 +131,13 @@ func findPolicyBundleFrom(start string) (string, bool) {
 		return "", false
 	}
 	for {
-		candidate := filepath.Join(dir, rolePrimaryContractPolicyRelPath)
-		if stat, err := os.Stat(candidate); err == nil && !stat.IsDir() {
-			return candidate, true
+		// Prefer the canonical bundle (data/out/local/sessions/...) over the tracked fixture.
+		// In CI where data/out/ is gitignored, the fixture fallback is used instead.
+		if c := filepath.Join(dir, rolePrimaryContractPolicyRelPath); fileExists(c) {
+			return c, true
+		}
+		if c := filepath.Join(dir, canonPolicyBundleFixtureRelPath); fileExists(c) {
+			return c, true
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -138,6 +145,11 @@ func findPolicyBundleFrom(start string) (string, bool) {
 		}
 		dir = parent
 	}
+}
+
+func fileExists(path string) bool {
+	stat, err := os.Stat(path)
+	return err == nil && !stat.IsDir()
 }
 
 func LoadRolePrimaryContract(path string) (RolePrimaryContract, error) {

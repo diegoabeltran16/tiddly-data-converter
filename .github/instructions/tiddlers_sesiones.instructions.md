@@ -24,6 +24,32 @@ El diagnostico de sesion es obligatorio. Los diagnosticos especializados
 `reverse`, `tema`) solo se generan bajo solicitud explicita o cuando la
 instruccion de sesion lo requiera.
 
+## Gobernanza de rutas de artefactos de sesion
+
+La unica raiz activa para artefactos de sesion es:
+
+```
+data/out/local/sessions/
+```
+
+Rutas clasificadas:
+
+| Ruta | Clasificacion | Politica |
+|---|---|---|
+| `data/out/local/sessions/` | **Activa** | Raiz gobernada para todos los artefactos de sesion |
+| `data/sessions/` | **Prohibida / Legacy** | Gitignoreada; no escribir nuevos entregables ahi |
+| `data/out/sessions/` | **Prohibida / Typo** | No existe; error tipografico historico |
+
+Los logs auxiliares de diagnostico tambien van bajo:
+
+```
+data/out/local/sessions/06_diagnoses/sesion/
+```
+
+Las lineas candidatas y artefactos de sesion deben permanecer bajo
+`data/out/local/sessions/` hasta pasar validacion local, `strict`,
+`reverse-preflight` y reverse sin rechazos.
+
 ## Convencion de titulos de sesion
 
 Todo tiddler que sea resultado de sesion debe tener un `title` iniciado por
