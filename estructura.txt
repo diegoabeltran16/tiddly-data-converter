@@ -23,366 +23,265 @@
 │   ├── in
 │   │   └── objeto_de_estudio_trazabilidad_y_desarrollo.html
 │   ├── out
-│   │   ├── local
-│   │   │   ├── ai
-│   │   │   │   ├── chunks_ai_1.jsonl
-│   │   │   │   ├── chunks_ai_2.jsonl
-│   │   │   │   ├── chunks_ai_3.jsonl
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── reports
-│   │   │   │   │   ├── chunk_qc_report.json
-│   │   │   │   │   ├── classification_report.json
-│   │   │   │   │   ├── derivation_report.json
-│   │   │   │   │   ├── relations_qc_report.json
-│   │   │   │   │   └── retrieval_qc_report.json
-│   │   │   │   ├── tiddlers_ai_1.jsonl
-│   │   │   │   ├── tiddlers_ai_2.jsonl
-│   │   │   │   ├── tiddlers_ai_3.jsonl
-│   │   │   │   ├── tiddlers_ai_4.jsonl
-│   │   │   │   ├── tiddlers_ai_5.jsonl
-│   │   │   │   ├── tiddlers_ai_6.jsonl
-│   │   │   │   ├── tiddlers_ai_7.jsonl
-│   │   │   │   ├── tiddlers_ai_8.jsonl
-│   │   │   │   └── tiddlers_ai_9.jsonl
-│   │   │   ├── audit
-│   │   │   │   ├── applied_safe_fixes.json
-│   │   │   │   ├── audit_log.jsonl
-│   │   │   │   ├── compliance_report.json
-│   │   │   │   ├── compliance_summary.md
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── manual_review_queue.jsonl
-│   │   │   │   ├── pre_post_diff.json
-│   │   │   │   ├── proposed_fixes.json
-│   │   │   │   ├── s85_capa2_stale_target_classification.json
-│   │   │   │   ├── s85_session_admission_before_after.json
-│   │   │   │   └── warnings.jsonl
-│   │   │   ├── enriched
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── tiddlers_enriched_1.jsonl
-│   │   │   │   ├── tiddlers_enriched_2.jsonl
-│   │   │   │   ├── tiddlers_enriched_3.jsonl
-│   │   │   │   ├── tiddlers_enriched_4.jsonl
-│   │   │   │   ├── tiddlers_enriched_5.jsonl
-│   │   │   │   ├── tiddlers_enriched_6.jsonl
-│   │   │   │   ├── tiddlers_enriched_7.jsonl
-│   │   │   │   ├── tiddlers_enriched_8.jsonl
-│   │   │   │   └── tiddlers_enriched_9.jsonl
-│   │   │   ├── export
-│   │   │   │   ├── s33-export-log.jsonl
-│   │   │   │   ├── s33-functional-tiddlers.jsonl
-│   │   │   │   └── s33-manifest.json
-│   │   │   ├── microsoft_copilot
-│   │   │   │   ├── artifacts.csv
-│   │   │   │   ├── bundles
-│   │   │   │   │   ├── governance_core.txt
-│   │   │   │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │   └── recent_sessions.txt
-│   │   │   │   ├── copilot_agent
-│   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   ├── entities.json
-│   │   │   │   │   └── relations.csv
-│   │   │   │   ├── coverage.csv
-│   │   │   │   ├── edges.csv
-│   │   │   │   ├── entities.json
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── navigation_index.json
-│   │   │   │   ├── nodes.csv
-│   │   │   │   ├── overview.txt
-│   │   │   │   ├── reading_guide.txt
-│   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   ├── spec
-│   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   └── summaries
-│   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       ├── prcommits.json
-│   │   │   │   │       ├── prcommits.md
-│   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       ├── sesiones.json
-│   │   │   │   │       ├── sesiones.md
-│   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   └── topics.json
-│   │   │   ├── pipeline
-│   │   │   ├── reverse_html
-│   │   │   │   ├── reverse-report.json
-│   │   │   │   └── tiddly-data-converter.derived.html
-│   │   │   ├── sessions
-│   │   │   │   ├── 00_contratos
-│   │   │   │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
-│   │   │   │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │   │   ├── policy
-│   │   │   │   │   │   ├── canon_policy_bundle.json
-│   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
-│   │   │   │   │   └── projections
-│   │   │   │   │       └── derived_layers_registry.json
-│   │   │   │   ├── 01_procedencia
-│   │   │   │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
-│   │   │   │   │   └── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │   ├── 02_detalles_de_sesion
-│   │   │   │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
-│   │   │   │   │   └── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │   ├── 03_hipotesis
-│   │   │   │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
-│   │   │   │   │   └── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │   ├── 04_balance_de_sesion
-│   │   │   │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
-│   │   │   │   │   └── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │   ├── 05_propuesta_de_sesion
-│   │   │   │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
-│   │   │   │   │   └── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │   └── 06_diagnoses
-│   │   │   │       ├── module
-│   │   │   │       ├── sesion
-│   │   │   │       │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
-│   │   │   │       │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
-│   │   │   │       │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
-│   │   │   │       │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
-│   │   │   │       │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
-│   │   │   │       │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
-│   │   │   │       │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
-│   │   │   │       │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
-│   │   │   │       │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
-│   │   │   │       │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
-│   │   │   │       │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
-│   │   │   │       │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
-│   │   │   │       │   └── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
-│   │   │   │       └── tema
-│   │   │   │           ├── diagnostico-tematico-01-alineacion-de-roles.md.json
-│   │   │   │           ├── diagnostico-tematico-02-histories-extraibles.md.json
-│   │   │   │           ├── diagnostico-tematico-03-contexto-documental.md.json
-│   │   │   │           ├── diagnostico-tematico-04-segmentacion-ontologica-de-unclassified.md.json
-│   │   │   │           ├── diagnostico-tematico-05-utilidad-de-relaciones.md.json
-│   │   │   │           └── diagnostico-tematico-06-utilidad-eficiencia-y-practicidad-relacional-post-s83.md.json
-│   │   │   ├── tiddlers_1.jsonl
-│   │   │   ├── tiddlers_2.jsonl
-│   │   │   ├── tiddlers_3.jsonl
-│   │   │   ├── tiddlers_4.jsonl
-│   │   │   ├── tiddlers_5.jsonl
-│   │   │   ├── tiddlers_6.jsonl
-│   │   │   ├── tiddlers_7.jsonl
-│   │   │   └── tiddlers_8.jsonl
-│   │   └── remote
+│   │   └── local
+│   │       ├── ai
+│   │       │   ├── chunks_ai_1.jsonl
+│   │       │   ├── chunks_ai_2.jsonl
+│   │       │   ├── chunks_ai_3.jsonl
+│   │       │   ├── manifest.json
+│   │       │   ├── reports
+│   │       │   │   ├── chunk_qc_report.json
+│   │       │   │   ├── classification_report.json
+│   │       │   │   ├── derivation_report.json
+│   │       │   │   ├── relations_qc_report.json
+│   │       │   │   └── retrieval_qc_report.json
+│   │       │   ├── tiddlers_ai_1.jsonl
+│   │       │   ├── tiddlers_ai_10.jsonl
+│   │       │   ├── tiddlers_ai_2.jsonl
+│   │       │   ├── tiddlers_ai_3.jsonl
+│   │       │   ├── tiddlers_ai_4.jsonl
+│   │       │   ├── tiddlers_ai_5.jsonl
+│   │       │   ├── tiddlers_ai_6.jsonl
+│   │       │   ├── tiddlers_ai_7.jsonl
+│   │       │   ├── tiddlers_ai_8.jsonl
+│   │       │   └── tiddlers_ai_9.jsonl
+│   │       ├── audit
+│   │       │   ├── applied_safe_fixes.json
+│   │       │   ├── audit_log.jsonl
+│   │       │   ├── compliance_report.json
+│   │       │   ├── compliance_summary.md
+│   │       │   ├── manifest.json
+│   │       │   ├── manual_review_queue.jsonl
+│   │       │   ├── pre_post_diff.json
+│   │       │   ├── proposed_fixes.json
+│   │       │   ├── s85_capa2_stale_target_classification.json
+│   │       │   ├── s85_session_admission_before_after.json
+│   │       │   └── warnings.jsonl
+│   │       ├── enriched
+│   │       │   ├── manifest.json
+│   │       │   ├── tiddlers_enriched_1.jsonl
+│   │       │   ├── tiddlers_enriched_10.jsonl
+│   │       │   ├── tiddlers_enriched_2.jsonl
+│   │       │   ├── tiddlers_enriched_3.jsonl
+│   │       │   ├── tiddlers_enriched_4.jsonl
+│   │       │   ├── tiddlers_enriched_5.jsonl
+│   │       │   ├── tiddlers_enriched_6.jsonl
+│   │       │   ├── tiddlers_enriched_7.jsonl
+│   │       │   ├── tiddlers_enriched_8.jsonl
+│   │       │   └── tiddlers_enriched_9.jsonl
+│   │       ├── export
+│   │       │   ├── s33-export-log.jsonl
+│   │       │   ├── s33-functional-tiddlers.jsonl
+│   │       │   └── s33-manifest.json
+│   │       ├── microsoft_copilot
+│   │       │   ├── artifacts.csv
+│   │       │   ├── bundles
+│   │       │   │   ├── governance_core.txt
+│   │       │   │   ├── pipeline_and_layers.txt
+│   │       │   │   └── recent_sessions.txt
+│   │       │   ├── copilot_agent
+│   │       │   │   ├── corpus.txt
+│   │       │   │   ├── entities.json
+│   │       │   │   └── relations.csv
+│   │       │   ├── coverage.csv
+│   │       │   ├── edges.csv
+│   │       │   ├── entities.json
+│   │       │   ├── manifest.json
+│   │       │   ├── navigation_index.json
+│   │       │   ├── nodes.csv
+│   │       │   ├── overview.txt
+│   │       │   ├── reading_guide.txt
+│   │       │   ├── source_arbitration_report.json
+│   │       │   ├── spec
+│   │       │   │   ├── checklist_global_s61.md
+│   │       │   │   ├── memoria_decisiones_s61.md
+│   │       │   │   ├── plan_de_implementacion_s61.md
+│   │       │   │   └── summaries
+│   │       │   │       ├── contratos-instructions.json
+│   │       │   │       ├── contratos-instructions.md
+│   │       │   │       ├── contratos-s58-s59-s60.json
+│   │       │   │       ├── contratos-s58-s59-s60.md
+│   │       │   │       ├── dependencia-y-superficie-externa.json
+│   │       │   │       ├── dependencia-y-superficie-externa.md
+│   │       │   │       ├── desarrollo-y-evolucion.json
+│   │       │   │       ├── desarrollo-y-evolucion.md
+│   │       │   │       ├── detalles-del-tema.json
+│   │       │   │       ├── detalles-del-tema.md
+│   │       │   │       ├── elementos-especificos.json
+│   │       │   │       ├── elementos-especificos.md
+│   │       │   │       ├── glosario-y-convenciones.json
+│   │       │   │       ├── glosario-y-convenciones.md
+│   │       │   │       ├── hipotesis.json
+│   │       │   │       ├── hipotesis.md
+│   │       │   │       ├── microsoft-support-formats.json
+│   │       │   │       ├── microsoft-support-formats.md
+│   │       │   │       ├── politica-de-memoria-activa.json
+│   │       │   │       ├── politica-de-memoria-activa.md
+│   │       │   │       ├── prcommits.json
+│   │       │   │       ├── prcommits.md
+│   │       │   │       ├── principios-de-gestion.json
+│   │       │   │       ├── principios-de-gestion.md
+│   │       │   │       ├── procedencia-epistemologica.json
+│   │       │   │       ├── procedencia-epistemologica.md
+│   │       │   │       ├── protocolo-de-sesion.json
+│   │       │   │       ├── protocolo-de-sesion.md
+│   │       │   │       ├── repo-y-derivados-actuales.json
+│   │       │   │       ├── repo-y-derivados-actuales.md
+│   │       │   │       ├── sesiones.json
+│   │       │   │       ├── sesiones.md
+│   │       │   │       ├── tiddlers-sesiones.json
+│   │       │   │       └── tiddlers-sesiones.md
+│   │       │   └── topics.json
+│   │       ├── pipeline
+│   │       │   ├── canon.entries.json
+│   │       │   ├── canon.jsonl
+│   │       │   ├── ingesta.tiddlers.json
+│   │       │   └── raw.tiddlers.json
+│   │       ├── reverse_html
+│   │       │   ├── reverse-report.json
+│   │       │   └── tiddly-data-converter.derived.html
+│   │       ├── sessions
+│   │       │   ├── 00_contratos
+│   │       │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │   │   ├── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │   │   ├── policy
+│   │       │   │   │   ├── canon_policy_bundle.json
+│   │       │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
+│   │       │   │   └── projections
+│   │       │   │       └── derived_layers_registry.json
+│   │       │   ├── 01_procedencia
+│   │       │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │   │   └── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │   ├── 02_detalles_de_sesion
+│   │       │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │   │   └── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │   ├── 03_hipotesis
+│   │       │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │   │   └── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │   ├── 04_balance_de_sesion
+│   │       │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │   │   └── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │   ├── 05_propuesta_de_sesion
+│   │       │   │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │   │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │   │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │   │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │   │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │   │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │   │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │   │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │   │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │   │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │   │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │   │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │   │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │   │   └── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │   └── 06_diagnoses
+│   │       │       ├── meso-ciclo
+│   │       │       ├── micro-ciclo
+│   │       │       ├── module
+│   │       │       ├── sesion
+│   │       │       │   ├── m04-s79-rust-kernel-role-vocabulary-alignment-and-semantic-contract-hardening-v0.md.json
+│   │       │       │   ├── m04-s80-unclassified-residual-mapping-and-contract-propagation-hardening-v0.md.json
+│   │       │       │   ├── m04-s81-document-context-rebaseline-hardening-and-technical-report-sync-v0.md.json
+│   │       │       │   ├── m04-s82-relation-self-reference-cleanup-and-policy-contract-path-hardening-v0.md.json
+│   │       │       │   ├── m04-s83-relation-materialization-sessions-path-migration-and-universal-session-canonization-v0.md.json
+│   │       │       │   ├── m04-s84-embedded-relations-pipeline-exposure-and-audited-downstream-propagation-v0.md.json
+│   │       │       │   ├── m04-s85-stale-layer2-target-resolution-diagnostic-admission-normalization-and-policy-loader-hardening-v0.md.json
+│   │       │       │   ├── m04-s86-local-remote-read-root-alignment-and-universal-session-canonization-v0.md.json
+│   │       │       │   ├── m04-s87-remote-mirror-and-env-contract-v0.md.json
+│   │       │       │   ├── m04-s88-remote-first-out-local-mirror-and-env-contract-formalization-v0.md.json
+│   │       │       │   ├── m04-s89-local-mcp-menu-and-env-management-integration-v0.md.json
+│   │       │       │   ├── m04-s90-mcp-menu-ux-improvements-v0.md.json
+│   │       │       │   ├── m04-s91-terminal-cat-states-ui-seed.md.json
+│   │       │       │   ├── m04-s92-hardening-mcp-env-manager-secretless-runtime-v0.md.json
+│   │       │       │   ├── m04-s93-ci-codeql-canon-greenline.md.json
+│   │       │       │   ├── s93-go-canon-test.jsonl
+│   │       │       │   └── s93-go-canon-test.log
+│   │       │       └── tema
+│   │       │           ├── diagnostico-tematico-01-alineacion-de-roles.md.json
+│   │       │           ├── diagnostico-tematico-02-histories-extraibles.md.json
+│   │       │           ├── diagnostico-tematico-03-contexto-documental.md.json
+│   │       │           ├── diagnostico-tematico-04-segmentacion-ontologica-de-unclassified.md.json
+│   │       │           ├── diagnostico-tematico-05-utilidad-de-relaciones.md.json
+│   │       │           └── diagnostico-tematico-06-utilidad-eficiencia-y-practicidad-relacional-post-s83.md.json
+│   │       ├── tiddlers_1.jsonl
+│   │       ├── tiddlers_2.jsonl
+│   │       ├── tiddlers_3.jsonl
+│   │       ├── tiddlers_4.jsonl
+│   │       ├── tiddlers_5.jsonl
+│   │       ├── tiddlers_6.jsonl
+│   │       ├── tiddlers_7.jsonl
+│   │       ├── tiddlers_8.jsonl
+│   │       └── tiddlers_9.jsonl
 │   ├── README.md
 │   └── tmp
-│       ├── admissions
-│       │   ├── admit-20260504205021-multi-session.json
-│       │   ├── admit-20260504205037-multi-session.json
-│       │   ├── admit-20260504205101-multi-session.json
-│       │   ├── admit-20260504210736-multi-session.json
-│       │   ├── admit-20260504210813-multi-session.json
-│       │   ├── admit-20260504210829-multi-session.json
-│       │   ├── backups
-│       │   │   └── admit-20260504210829-multi-session
-│       │   │       ├── tiddlers_1.jsonl
-│       │   │       ├── tiddlers_2.jsonl
-│       │   │       ├── tiddlers_3.jsonl
-│       │   │       ├── tiddlers_4.jsonl
-│       │   │       ├── tiddlers_5.jsonl
-│       │   │       ├── tiddlers_6.jsonl
-│       │   │       ├── tiddlers_7.jsonl
-│       │   │       └── tiddlers_8.jsonl
-│       │   └── validate-20260504205018-multi-session.json
-│       ├── canonical_quality
-│       │   └── quality-20260504233828
-│       │       ├── canonical-line-gate.json
-│       │       └── deep-node-inspect.json
-│       ├── html_export
-│       │   └── export-20260504204813
-│       │       ├── tiddlers.export.log
-│       │       └── tiddlers.export.manifest.json
-│       ├── reconstruction
-│       │   ├── diagnostic-20260504204808
-│       │   │   └── gate-report.json
-│       │   ├── export-20260504204813
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260504204823
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   └── tiddlers_8.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   └── tiddlers_8.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   └── reverse-20260504211206
-│       │       ├── gate-report.json
-│       │       └── reconstruction-report.json
-│       ├── session_admission
-│       │   ├── admit-20260504210736-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   └── tiddlers_8.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260504210736-multi-session.derived.html
-│       │   │       └── admit-20260504210736-multi-session.reverse-report.json
-│       │   ├── admit-20260504210813-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   └── tiddlers_8.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260504210813-multi-session.derived.html
-│       │   │       └── admit-20260504210813-multi-session.reverse-report.json
-│       │   └── admit-20260504210829-multi-session
-│       │       ├── admission_lines.normalized.jsonl
-│       │       ├── admission_lines.raw.jsonl
-│       │       ├── canon
-│       │       │   ├── tiddlers_1.jsonl
-│       │       │   ├── tiddlers_2.jsonl
-│       │       │   ├── tiddlers_3.jsonl
-│       │       │   ├── tiddlers_4.jsonl
-│       │       │   ├── tiddlers_5.jsonl
-│       │       │   ├── tiddlers_6.jsonl
-│       │       │   ├── tiddlers_7.jsonl
-│       │       │   └── tiddlers_8.jsonl
-│       │       └── reverse_html
-│       │           ├── admit-20260504210829-multi-session.derived.html
-│       │           └── admit-20260504210829-multi-session.reverse-report.json
-│       └── session_sync
-│           ├── sync-20260504204852
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           └── sync-20260504205055
-│               ├── inventory.json
-│               ├── missing-candidates.canon-candidates.jsonl
-│               ├── normalize
-│               │   ├── admission_lines.normalized.jsonl
-│               │   └── admission_lines.raw.jsonl
-│               ├── replacement-candidates.canon-candidates.jsonl
-│               └── sync-candidates.canon-candidates.jsonl
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── refs
