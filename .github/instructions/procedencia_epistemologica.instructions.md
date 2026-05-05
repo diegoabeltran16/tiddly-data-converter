@@ -33,6 +33,37 @@
 - Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/out/local/sessions/`.
 - No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente.
 
+## Gobernanza de procedencia diagnóstica
+
+Cuando una sesión produce diagnósticos por ciclos, la procedencia debe separar
+fuente primaria, fuente auxiliar e inferencia del agente.
+
+Jerarquía operativa:
+
+1. **Diagnósticos previos específicos**: un mesociclo consume primero
+   microdiagnósticos ya producidos y válidos.
+2. **Sessions local**: `data/out/local/sessions/` conserva staging y memoria
+   reciente cuando existe.
+3. **Canon local**: `data/out/local/tiddlers_*.jsonl` sostiene memoria durable
+   cuando `sessions/` fue depurado.
+4. **Auditorías y derivados**: `data/out/local/audit/`, `enriched/` y `ai/`
+   se consultan solo para hipótesis concretas.
+5. **Repositorio**: código, tests, workflows e instrucciones validan el estado
+   arquitectónico actual.
+6. **Espejo remoto**: OneDrive o superficies remotas son paridad operativa, no
+   autoridad superior al canon local por defecto.
+
+Todo diagnóstico de ciclo debe declarar:
+
+- completitud en staging local;
+- completitud canónica;
+- fuente usada para cada conclusión importante;
+- si hubo consulta remota, si fue dry-run, estática o real.
+
+Si `sessions/` está ausente o depurado, no se debe concluir pérdida histórica
+sin revisar canon local. La ausencia de staging y la ausencia de evidencia
+histórica son estados distintos.
+
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para situar la procedencia dentro del marco del tema.
 - Se articula con `## 🧰🧱 Elementos específicos` cuando existe un recurso concreto que también debe preservarse.

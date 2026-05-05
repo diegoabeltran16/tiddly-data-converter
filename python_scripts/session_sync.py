@@ -98,13 +98,13 @@ FAMILY_BY_RELATIVE_ROOT: dict[tuple[str, ...], dict[str, Any]] = {
         "source_role": "reporte",
         "order": 9,
     },
-    ("06_diagnoses", "micro_ciclo"): {
+    ("06_diagnoses", "micro-ciclo"): {
         "family": "diagnostico_de_micro_ciclo",
         "role_primary": "log",
         "source_role": "reporte",
         "order": 10,
     },
-    ("06_diagnoses", "meso_ciclo"): {
+    ("06_diagnoses", "meso-ciclo"): {
         "family": "diagnostico_de_meso_ciclo",
         "role_primary": "log",
         "source_role": "reporte",

@@ -1246,6 +1246,48 @@ def extract_chunk_heading(chunk_text: str, section_path: list, title: str) -> st
     return safe_str(title)[:160]
 
 
+def normalize_relation_targets(relation_targets: list | None) -> list[dict]:
+    """Return deterministic compact relation targets for AI projections."""
+    normalized: list[dict] = []
+    seen: set[tuple[str, str, str]] = set()
+    for rel in relation_targets or []:
+        if isinstance(rel, dict):
+            target = rel.get("target_id") or rel.get("target") or rel.get("id")
+            rel_type = rel.get("type") or ""
+            evidence = rel.get("evidence") or ""
+        elif isinstance(rel, str):
+            target = rel
+            rel_type = ""
+            evidence = ""
+        else:
+            continue
+        if not target:
+            continue
+        key = (safe_str(rel_type), safe_str(target), safe_str(evidence))
+        if key in seen:
+            continue
+        seen.add(key)
+        compact = {"target_id": safe_str(target)}
+        if rel_type:
+            compact["type"] = safe_str(rel_type)
+        if evidence:
+            compact["evidence"] = safe_str(evidence)
+        normalized.append(compact)
+    return normalized
+
+
+def relation_targets_from_relations(relations: list | None) -> list[dict]:
+    """Derive compact relation_targets from canonical relations."""
+    return normalize_relation_targets(relations)
+
+
+def relation_targets_from_record(rec: dict) -> list[dict]:
+    """Prefer existing relation_targets; fall back to canonical relations."""
+    if isinstance(rec.get("relation_targets"), list):
+        return normalize_relation_targets(rec.get("relation_targets"))
+    return relation_targets_from_relations(rec.get("relations") or [])
+
+
 def chunk_node(
     rec: dict,
     node_id: str,
@@ -1258,6 +1300,7 @@ def chunk_node(
     payload_info: dict,
     target_tokens: int,
     max_tokens: int,
+    relation_targets: list | None = None,
 ) -> tuple:
     """
     Chunk a node using hierarchical strategy.
@@ -1274,7 +1317,14 @@ def chunk_node(
     }
 
     # Non-chunkable cases
-    if strategy in ("binary_skip", "no_chunk_type", "archival_only_skip", "historical_out_artifact_skip"):
+    if strategy in (
+        "binary_skip",
+        "no_chunk_type",
+        "archival_only",
+        "archival_only_skip",
+        "historical_snapshot",
+        "historical_out_artifact_skip",
+    ):
         return [], False, strategy
     if strategy == "json_no_chunk":
         return [], False, "json_payload_no_chunk"
@@ -1311,6 +1361,11 @@ def chunk_node(
             validated.append(ct)
 
     validated = densify_microchunks(validated, target_tokens)
+    compact_relation_targets = (
+        normalize_relation_targets(relation_targets)
+        if relation_targets is not None
+        else relation_targets_from_record(rec)
+    )
 
     # Build chunk records
     chunks = []
@@ -1337,6 +1392,8 @@ def chunk_node(
             "section_path": section,
             "taxonomy_path": taxonomy,
             "retrieval_hints": retrieval_hints[:8],
+            "relation_targets": list(compact_relation_targets),
+            "relation_count": len(compact_relation_targets),
             "corpus_state": payload_info["corpus_state"],
             "corpus_state_rule_id": payload_info["corpus_state_rule_id"],
             "chunk_eligibility": payload_info["chunk_eligibility"],
@@ -3387,8 +3444,6 @@ def render_copilot_agent_corpus_lines(
 
     for family in COPILOT_AGENT_FAMILY_ORDER:
         family_entities = by_family.get(family, [])
-        if not family_entities:
-            continue
         lines.extend(
             [
                 f"SECTION_ID: {family}",
@@ -3900,13 +3955,9 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
     raw_rels = rec.get("relations") or []
     valid_rels, invalid_rels = validate_relations(raw_rels, known_ids)
 
-    # Compact relation targets (capa-1)
-    rel_targets = []
-    for r in valid_rels:
-        rt = {"type": r.get("type"), "target_id": r.get("target_id")}
-        if r.get("evidence"):
-            rt["evidence"] = r["evidence"]
-        rel_targets.append(rt)
+    # Compact relation targets (capa-1 plus any content_embedded relations
+    # already materialized in the canonical top-level relations field).
+    rel_targets = relation_targets_from_relations(valid_rels)
 
     # S84: extract capa-2 embedded relations from content.plain
     embedded_rels, _stale, _urn = extract_embedded_content_rels(rec, by_title_to_id)
@@ -3983,6 +4034,7 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
             payload_info,
             target_tokens,
             max_tokens,
+            relation_targets=rel_targets,
         )
 
     return ai_rec, chunks, invalid_rels, payload_info

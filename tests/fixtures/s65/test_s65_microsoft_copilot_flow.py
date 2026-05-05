@@ -44,6 +44,8 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
     CONTRACT_PATH = (
         REPO_ROOT
         / "data"
+        / "out"
+        / "local"
         / "sessions"
         / "00_contratos"
         / "m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json"
@@ -73,8 +75,12 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
         self.assertTrue(self.COPILOT_AGENT_DIR.exists(), "copilot_agent sub-directory missing")
 
     def test_contract_file_exists(self) -> None:
-        """S65 must leave an importable contract in contratos/."""
-        self.assertTrue(self.CONTRACT_PATH.exists(), "S65 contract file is missing")
+        """S65 contract must be present in canon or staged under the governed session root."""
+        titles = {record.get("title") for record in load_canon_records()}
+        self.assertTrue(
+            self.CONTRACT_TITLE in titles or self.CONTRACT_PATH.exists(),
+            "S65 contract is neither in canon nor staged under data/out/local/sessions",
+        )
 
     def test_s65_contract_is_absorbed_or_staged(self) -> None:
         """S65 contract must be staged in data/out/local/sessions or already present in canon."""

@@ -41,7 +41,7 @@ class SemanticMicrochunkTests(unittest.TestCase):
         payload = derive_layers.classify_payload(rec, "manifest", 1800)
         self.assertFalse(payload["is_chunkable_text"])
         self.assertEqual(payload["corpus_state"], "archival_only")
-        self.assertEqual(payload["chunk_exclusion_reason"], "archival_only_skip")
+        self.assertEqual(payload["chunk_exclusion_reason"], "archival_only")
 
     def test_densify_microchunks_merges_heading_stub_into_context(self) -> None:
         parts = [
