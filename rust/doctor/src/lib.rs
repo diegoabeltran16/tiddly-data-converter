@@ -215,9 +215,9 @@ pub fn audit_perimeter(repo_root: &Path) -> PerimeterReport {
         &mut checks,
         root,
         "sessions-staging-exists",
-        "data/out/sessions",
+        "data/out/local/sessions",
         ExpectedPathKind::Dir,
-        "staging operativo de sesiones",
+        "staging operativo de sesiones (subzona durable bajo data/out/local/)",
     );
     push_path_check(
         &mut checks,
@@ -257,7 +257,7 @@ pub fn audit_perimeter(repo_root: &Path) -> PerimeterReport {
         push_error(
             &mut checks,
             "no-root-sessions-dir",
-            "sessions/ en raíz existe; la ruta oficial es data/out/sessions",
+            "sessions/ en raíz existe; la ruta oficial es data/out/local/sessions",
         );
     } else {
         push_ok(
@@ -1661,7 +1661,7 @@ fn shard_number(file_name: &str) -> Option<u32> {
 }
 
 fn check_policy_bundle(root: &Path, checks: &mut Vec<PerimeterCheck>) {
-    let path = root.join("data/out/sessions/00_contratos/policy/canon_policy_bundle.json");
+    let path = root.join("data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json");
     let value = match read_json_object(&path) {
         Ok(value) => value,
         Err(message) => {
@@ -1768,7 +1768,7 @@ fn check_policy_bundle(root: &Path, checks: &mut Vec<PerimeterCheck>) {
 }
 
 fn check_derived_registry(root: &Path, checks: &mut Vec<PerimeterCheck>) {
-    let path = root.join("data/out/sessions/00_contratos/projections/derived_layers_registry.json");
+    let path = root.join("data/out/local/sessions/00_contratos/projections/derived_layers_registry.json");
     let value = match read_json_object(&path) {
         Ok(value) => value,
         Err(message) => {

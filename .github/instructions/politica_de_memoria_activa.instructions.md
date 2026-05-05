@@ -60,7 +60,7 @@ Este núcleo define qué significa memoria activa en el sistema, qué debe mante
 - No usar esta política como sustituto del registro explícito en hipótesis, procedencia, glosario o desarrollo.
 
 ## Regla transversal S66
-- La memoria operativa de cada sesión se registra en la familia mínima de `data/sessions/`.
+- La memoria operativa de cada sesión se registra en la familia mínima de `data/out/local/sessions/`.
 - El balance de sesión es memoria de aprendizaje y debe incluir aciertos, errores, decisiones_a_conservar, riesgos_detectados, ajustes_sugeridos e impacto_en_proxima_sesion.
 - La recuperabilidad futura no equivale a admisión canónica: una línea candidata sigue siendo candidata hasta pasar validación local y reverse sin rechazo.
 

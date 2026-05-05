@@ -18,8 +18,8 @@
 - Declarar al menos `local_frame`, `purpose`, `mode` y `expected_output`.
 - Revisar, antes de actuar, las hipótesis abiertas relevantes, las definiciones estabilizadas pertinentes, los elementos específicos recientes, las tensiones no resueltas y las decisiones previas que afectan el objetivo local.
 - Registrar durante la sesión qué se produjo, qué se confirmó, qué se contradijo, qué se refinó y qué quedó pendiente.
-- Cerrar la sesión con la familia mínima bajo `data/sessions/`: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
-- Cuando la sesión genere memoria que deba poder entrar al canon, dejar líneas candidatas en formato canon bajo `data/sessions/`, no escribir directamente en el canon final por defecto.
+- Cerrar la sesión con la familia mínima bajo `data/out/local/sessions/`: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
+- Cuando la sesión genere memoria que deba poder entrar al canon, dejar líneas candidatas en formato canon bajo `data/out/local/sessions/`, no escribir directamente en el canon final por defecto.
 - Mantener la autoridad semántica en el humano: la IA sugiere, estructura y facilita, pero no decide por sí sola las relaciones o estados finales.
 
 ### Modos de operación
@@ -69,7 +69,7 @@ memory_tags: ["project-x", "hypothesis"]
 ### Contrato operativo de sesión asistida por IA
 Toda sesión asistida debe declarar objetivo local, salida estructural esperada, lectura mínima de apertura y política de expansión contextual. La lectura mínima debe comenzar por `# 1_tiddly-data-converter`, `## 🧭🧱 Protocolo de Sesión` y `## 🧠🧱 Política de Memoria Activa`, y expandirse solo hacia los bloques que el objetivo local necesite realmente.
 
-La sesión asistida se considera cumplida cuando produce el artefacto estructural esperado para su nivel de trabajo y su familia mínima de cierre. Si recae sobre canon, la salida normal del agente son líneas JSONL candidatas bajo `data/sessions/`; la admisión al canon requiere validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y tests pertinentes.
+La sesión asistida se considera cumplida cuando produce el artefacto estructural esperado para su nivel de trabajo y su familia mínima de cierre. Si recae sobre canon, la salida normal del agente son líneas JSONL candidatas bajo `data/out/local/sessions/`; la admisión al canon requiere validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y tests pertinentes.
 
 ## No hacer
 - No iniciar una sesión como si el tema partiera de cero.

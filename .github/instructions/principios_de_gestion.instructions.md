@@ -29,7 +29,7 @@
 - No usarlo como sustituto de `## 🎯🧱 Detalles del tema`, `## 🧭🧱 Protocolo de Sesión` o `## 🌀🧱 Desarrollo y Evolución`.
 
 ## Regla transversal S66
-- La regla estable de cierre es: `data/sessions/` registra memoria operativa; el canon conserva autoridad final.
+- La regla estable de cierre es: `data/out/local/sessions/` registra memoria operativa; el canon conserva autoridad final.
 - Git versiona evidencia y artefactos, pero no decide admisión canónica.
 - La admisión al canon requiere validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y pruebas pertinentes.
 

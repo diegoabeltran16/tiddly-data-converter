@@ -49,3 +49,4 @@ go/canon/canon_preflight
 data/sessions
 /.agents
 /.claude
+/.env

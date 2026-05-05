@@ -1,0 +1,550 @@
+{
+  "schema_version": "v0",
+  "canon_artifact_role": "canon_export",
+  "local_output_root": "data/out/local",
+  "remote_output_root": "data/out/remote",
+  "session_semantic_close_default": "data_sessions_staging",
+  "session_proposal_artifact_pattern": "data/out/local/proposals.jsonl",
+  "reverse_html_root": "data/out/local/reverse_html",
+  "direct_canon_write_default": "prohibited_by_default_requires_local_admission",
+  "required_fields": [
+    "schema_version",
+    "key",
+    "title"
+  ],
+  "derived_fields": [
+    "id",
+    "canonical_slug",
+    "version_id",
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only",
+    "role_primary",
+    "roles_secondary",
+    "tags",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type",
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations"
+  ],
+  "editable_fields": [
+    "key",
+    "title",
+    "text",
+    "created",
+    "modified",
+    "source_type",
+    "source_position",
+    "source_tags",
+    "source_fields",
+    "source_role"
+  ],
+  "allowed_top_level_fields": [
+    "schema_version",
+    "id",
+    "key",
+    "title",
+    "canonical_slug",
+    "version_id",
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only",
+    "role_primary",
+    "roles_secondary",
+    "tags",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type",
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations",
+    "source_tags",
+    "source_fields",
+    "source_type",
+    "source_position",
+    "source_role",
+    "text",
+    "created",
+    "modified"
+  ],
+  "reverse_required_fields": [
+    "title",
+    "text",
+    "created",
+    "modified"
+  ],
+  "reverse_optional_fields": [
+    "source_type",
+    "source_tags",
+    "source_fields"
+  ],
+  "reverse_excluded_fields": [
+    "id",
+    "canonical_slug",
+    "version_id",
+    "content_type",
+    "modality",
+    "encoding",
+    "is_binary",
+    "is_reference_only",
+    "role_primary",
+    "roles_secondary",
+    "taxonomy_path",
+    "semantic_text",
+    "content",
+    "normalized_tags",
+    "raw_payload_ref",
+    "asset_id",
+    "mime_type",
+    "document_id",
+    "section_path",
+    "order_in_document",
+    "relations",
+    "source_role"
+  ],
+  "role_primary_contract": {
+    "schema_version": "s79-role-primary-contract-v0",
+    "field": "role_primary",
+    "contract_status": "normative_single_source",
+    "canonical_vocabulary_id": "s36_go_operational_vocabulary",
+    "policy_session": "m04-s79-role-contract-unification-and-cross-layer-semantic-alignment-v0",
+    "migration_decision": "El vocabulario canonico operativo para role_primary es el vocabulario S36 ya materializado por el canon vivo y emitido por Go. El vocabulario epistemologico del Informe queda registrado como alias de entrada o deuda de alineacion profunda, no como migracion canonica inmediata en S79.",
+    "role_primary_must_emit": "canonical_roles_only",
+    "alias_policy": "Los aliases permitidos pueden aparecer como source_role o senales de tags; no deben emitirse como role_primary canonico.",
+    "legacy_policy": "Los valores legados se aceptan transicionalmente para diagnostico y migracion de capas derivadas antiguas; no son valores canonicos nuevos de role_primary.",
+    "canonical_roles": [
+      "concept",
+      "procedure",
+      "evidence",
+      "definition",
+      "glossary",
+      "policy",
+      "log",
+      "asset",
+      "config",
+      "code",
+      "narrative",
+      "note",
+      "warning",
+      "unclassified"
+    ],
+    "canonical_role_catalog": {
+      "concept": {
+        "migration_class": "canonical",
+        "report_alignment": "concepto"
+      },
+      "procedure": {
+        "migration_class": "canonical",
+        "report_alignment": "procedimiento"
+      },
+      "evidence": {
+        "migration_class": "canonical",
+        "report_alignment": "dato|evidencia"
+      },
+      "definition": {
+        "migration_class": "canonical",
+        "report_alignment": "definicion"
+      },
+      "glossary": {
+        "migration_class": "canonical",
+        "report_alignment": "glosario"
+      },
+      "policy": {
+        "migration_class": "canonical",
+        "report_alignment": "procedimiento normativo"
+      },
+      "log": {
+        "migration_class": "canonical",
+        "report_alignment": "reporte|evento"
+      },
+      "asset": {
+        "migration_class": "canonical",
+        "report_alignment": "rol tecnico sin equivalente epistemologico directo"
+      },
+      "config": {
+        "migration_class": "canonical",
+        "report_alignment": "rol tecnico sin equivalente epistemologico directo"
+      },
+      "code": {
+        "migration_class": "canonical",
+        "report_alignment": "procedimiento tecnico"
+      },
+      "narrative": {
+        "migration_class": "canonical",
+        "report_alignment": "contenido narrativo/documental"
+      },
+      "note": {
+        "migration_class": "canonical",
+        "report_alignment": "nota"
+      },
+      "warning": {
+        "migration_class": "canonical",
+        "report_alignment": "advertencia"
+      },
+      "unclassified": {
+        "migration_class": "canonical",
+        "report_alignment": "sin clasificacion suficiente"
+      }
+    },
+    "source_role_mappings": {
+      "concept": "concept",
+      "procedure": "procedure",
+      "evidence": "evidence",
+      "definition": "definition",
+      "glossary": "glossary",
+      "policy": "policy",
+      "log": "log",
+      "asset": "asset",
+      "config": "config",
+      "code": "code",
+      "narrative": "narrative",
+      "note": "note",
+      "warning": "warning",
+      "sesión": "log",
+      "sesion": "log",
+      "hipótesis": "evidence",
+      "hipotesis": "evidence",
+      "procedencia": "evidence",
+      "arquitectura": "concept",
+      "documentación": "narrative",
+      "documentacion": "narrative",
+      "reporte": "log",
+      "dato": "evidence",
+      "evento": "log"
+    },
+    "tag_role_mappings": {
+      "hipótesis": "evidence",
+      "hipotesis": "evidence",
+      "procedencia": "evidence",
+      "sesión": "log",
+      "sesion": "log",
+      "layer:session": "log",
+      "glosario": "glossary",
+      "glossary": "glossary",
+      "## 📚🧱 glosario y convenciones": "glossary",
+      "definición": "definition",
+      "definicion": "definition",
+      "definition": "definition",
+      "política": "policy",
+      "politica": "policy",
+      "policy": "policy",
+      "arquitectura": "concept",
+      "concepto": "concept",
+      "concept": "concept",
+      "código": "code",
+      "codigo": "code",
+      "code": "code",
+      "--- codigo": "code",
+      "config": "config",
+      "warning": "warning",
+      "narrative": "narrative",
+      "nota": "note",
+      "note": "note",
+      "asset": "asset",
+      "procedure": "procedure",
+      "procedimiento": "procedure",
+      "evidence": "evidence",
+      "evidencia": "evidence",
+      "#### referencias especificas 🌀": "evidence",
+      "log": "log"
+    },
+    "aliases_allowed": {
+      "concepto": "concept",
+      "procedimiento": "procedure",
+      "evidencia": "evidence",
+      "dato": "evidence",
+      "definición": "definition",
+      "definicion": "definition",
+      "política": "policy",
+      "politica": "policy",
+      "código": "code",
+      "codigo": "code",
+      "documentación": "narrative",
+      "documentacion": "narrative",
+      "nota": "note",
+      "advertencia": "warning",
+      "sesión": "log",
+      "sesion": "log",
+      "reporte": "log",
+      "evento": "log"
+    },
+    "legacy_accepted_transitional": {
+      "session": {
+        "canonical_role": "log",
+        "migration_note": "Vocabulario documental Python previo a S79; usar solo como pista derivada, no como role_primary canonico nuevo."
+      },
+      "provenance": {
+        "canonical_role": "evidence",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "contract": {
+        "canonical_role": "policy",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "architecture": {
+        "canonical_role": "concept",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "code_source": {
+        "canonical_role": "code",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "manifest": {
+        "canonical_role": "config",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "schema": {
+        "canonical_role": "config",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "dictionary": {
+        "canonical_role": "glossary",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "reference": {
+        "canonical_role": "evidence",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "readme": {
+        "canonical_role": "narrative",
+        "migration_note": "Vocabulario documental Python previo a S79."
+      },
+      "hypothesis": {
+        "canonical_role": null,
+        "migration_note": "Ambiguo entre evidencia epistemologica y artefacto procedimental de sesion; requiere decision humana antes de migrar."
+      },
+      "protocol": {
+        "canonical_role": null,
+        "migration_note": "Ambiguo entre procedimiento y politica; requiere decision humana antes de migrar."
+      },
+      "component": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "requirements": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "objective": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "dofa": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "algorithm": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "test_fixture": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "dataset": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      },
+      "html_artifact": {
+        "canonical_role": null,
+        "migration_note": "Rol documental de capa derivada; no tiene mapping canonico unico en S79."
+      }
+    },
+    "ambiguous_roles": {
+      "hipótesis": [
+        "evidence",
+        "procedure"
+      ],
+      "hipotesis": [
+        "evidence",
+        "procedure"
+      ],
+      "hypothesis": [
+        "evidence",
+        "procedure"
+      ],
+      "protocol": [
+        "procedure",
+        "policy"
+      ],
+      "algorithm": [
+        "procedure",
+        "code"
+      ]
+    },
+    "verdicts": [
+      "role_ok",
+      "role_alias_mapped",
+      "role_legacy_detected",
+      "role_ambiguous",
+      "role_invalid",
+      "role_cross_layer_mismatch"
+    ],
+    "invalid_policy": {
+      "default_verdict": "role_invalid",
+      "safe_autofix_value": "unclassified",
+      "new_emission_policy": "reject_or_normalize_before_admission"
+    }
+  },
+  "corpus_state_catalog": {
+    "live_path": {
+      "description": "Registro activo del canon local; puede participar en capas derivadas y chunking cuando su payload lo permite.",
+      "evidence_mode": "authoritative_local",
+      "outside_live_corpus": false,
+      "chunk_eligibility": "eligible",
+      "chunk_exclusion_reason": ""
+    },
+    "historical_snapshot": {
+      "description": "Registro historico o reemplazado que se preserva por trazabilidad pero no debe alimentar chunking operativo.",
+      "evidence_mode": "historical",
+      "outside_live_corpus": true,
+      "chunk_eligibility": "excluded",
+      "chunk_exclusion_reason": "historical_snapshot"
+    },
+    "archival_only": {
+      "description": "Artefacto de archivo, build, reporte generado o referencia tecnica que no debe tratarse como corpus vivo.",
+      "evidence_mode": "archival",
+      "outside_live_corpus": true,
+      "chunk_eligibility": "excluded",
+      "chunk_exclusion_reason": "archival_only"
+    }
+  },
+  "corpus_state_resolution_rules": [
+    {
+      "rule_id": "archival_only_by_tag",
+      "priority": 10,
+      "match": {
+        "tags_any": [
+          "status:archival-only"
+        ]
+      },
+      "result": {
+        "corpus_state": "archival_only"
+      }
+    },
+    {
+      "rule_id": "historical_snapshot_by_superseded_tag",
+      "priority": 20,
+      "match": {
+        "tags_prefix_any": [
+          "superseded-by:"
+        ]
+      },
+      "result": {
+        "corpus_state": "historical_snapshot"
+      }
+    },
+    {
+      "rule_id": "historical_snapshot_by_state_tag",
+      "priority": 30,
+      "match": {
+        "tags_any": [
+          "state:historical-snapshot"
+        ]
+      },
+      "result": {
+        "corpus_state": "historical_snapshot"
+      }
+    },
+    {
+      "rule_id": "live_path_by_state_tag",
+      "priority": 40,
+      "match": {
+        "tags_any": [
+          "state:live-path"
+        ]
+      },
+      "result": {
+        "corpus_state": "live_path"
+      }
+    },
+    {
+      "rule_id": "archival_only_build_artifact",
+      "priority": 50,
+      "match": {
+        "title_contains_any": [
+          "/target/",
+          "target/debug",
+          "target/release",
+          ".fingerprint",
+          "__pycache__",
+          ".pytest_cache",
+          "coverage.csv",
+          "artifacts.csv",
+          "edges.csv",
+          "nodes.csv",
+          "relations.csv",
+          "entities.json",
+          "topics.json",
+          "navigation_index.json",
+          "source_arbitration_report.json",
+          "manifest.json",
+          "derivation_report.json",
+          "reverse-report.json"
+        ]
+      },
+      "result": {
+        "corpus_state": "archival_only"
+      }
+    },
+    {
+      "rule_id": "archival_only_repo_path",
+      "priority": 60,
+      "match": {
+        "repo_path_like": true,
+        "tags_absent": [
+          "state:live-path"
+        ]
+      },
+      "result": {
+        "corpus_state": "archival_only"
+      }
+    },
+    {
+      "rule_id": "general_fallback",
+      "priority": 1000,
+      "match": {},
+      "result": {
+        "corpus_state": "live_path"
+      }
+    }
+  ],
+  "corpus_state_transitions": [
+    {
+      "from": "live_path",
+      "to": "historical_snapshot",
+      "allowed": true
+    },
+    {
+      "from": "live_path",
+      "to": "archival_only",
+      "allowed": true
+    },
+    {
+      "from": "historical_snapshot",
+      "to": "archival_only",
+      "allowed": true
+    },
+    {
+      "from": "archival_only",
+      "to": "live_path",
+      "allowed": false
+    }
+  ]
+}

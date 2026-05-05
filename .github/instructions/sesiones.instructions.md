@@ -1,6 +1,6 @@
 # Plantilla de instruccion de sesion para agentes
 
-## tiddly-data-converter — cierre por `data/sessions/`, candidatos canonicos y admision local reversible
+## tiddly-data-converter — cierre por `data/out/local/sessions/`, candidatos canonicos y admision local reversible
 
 ---
 
@@ -14,7 +14,7 @@
 
 Frase rectora por defecto:
 
-> `data/sessions/` registra y ordena la memoria operativa de cada sesion; el canon conserva la autoridad final. El agente puede producir lineas candidatas, pero solo la validacion local, el strict check, el reverse sin rechazo y las pruebas permiten absorberlas al canon.
+> `data/out/local/sessions/` registra y ordena la memoria operativa de cada sesion; el canon conserva la autoridad final. El agente puede producir lineas candidatas, pero solo la validacion local, el strict check, el reverse sin rechazo y las pruebas permiten absorberlas al canon.
 
 ---
 
@@ -22,7 +22,7 @@ Frase rectora por defecto:
 
 La sesion debe asumir como verdad operativa este layout:
 
-- `data/sessions/` = superficie versionable de entrega, trazabilidad, staging y cierre operativo de sesiones.
+- `data/out/local/sessions/` = superficie versionable de entrega, trazabilidad, staging y cierre operativo de sesiones.
 - `data/in/` = entradas locales, incluido el HTML vivo.
 - `data/out/local/` = canon local, derivados locales y reverse.
 - `data/out/remote/` = proyeccion o intercambio remoto preparado, no autoritativo.
@@ -31,7 +31,7 @@ La sesion debe asumir como verdad operativa este layout:
 Reglas centrales:
 
 - `data/out/local/tiddlers_*.jsonl` es la fuente de verdad local cuando existe en la maquina.
-- `data/sessions/` no es canon paralelo y no compite con `data/out/local/tiddlers_*.jsonl`.
+- `data/out/local/sessions/` no es canon paralelo y no compite con `data/out/local/tiddlers_*.jsonl`.
 - `data/out/local/proposals.jsonl` queda como artefacto legado o extraordinario, no como ruta diaria de cierre.
 - `data/out/local/enriched/`, `data/out/local/ai/`, `data/out/local/audit/`, `data/out/local/export/` y `data/out/local/microsoft_copilot/` son capas derivadas.
 - `data/out/local/reverse_html/` no es canon.
@@ -50,7 +50,7 @@ Antes de ejecutar cambios, leer integramente, respetar y usar como normativa act
 - `esquemas/canon/derived_field_rules.md`
 - `README.md`
 - `data/README.md`, si existe en local
-- contratos, artefactos de `data/sessions/` o reportes previos directamente relevantes al objetivo
+- contratos, artefactos de `data/out/local/sessions/` o reportes previos directamente relevantes al objetivo
 - shards canonicos pertinentes dentro de `data/out/local/tiddlers_*.jsonl`, solo cuando el objetivo requiera leer canon
 
 Tratamiento obligatorio:
@@ -71,8 +71,8 @@ Permitido por defecto:
 
 - leer `data/out/local/tiddlers_*.jsonl`;
 - derivar diagnostico desde canon;
-- producir artefactos de sesion bajo `data/sessions/`;
-- producir lineas candidatas en formato canon bajo `data/sessions/`.
+- producir artefactos de sesion bajo `data/out/local/sessions/`;
+- producir lineas candidatas en formato canon bajo `data/out/local/sessions/`.
 
 Prohibido por defecto:
 
@@ -101,13 +101,13 @@ Toda sesion debe cerrar con un archivo propio por sesion y por familia de artefa
 Rutas preferidas:
 
 ```text
-data/sessions/00_contratos/<session>.md.json
-data/sessions/01_procedencia/<session>.md.json
-data/sessions/02_detalles_de_sesion/<session>.md.json
-data/sessions/03_hipotesis/<session>.md.json
-data/sessions/04_balance_de_sesion/<session>.md.json
-data/sessions/05_propuesta_de_sesion/<session>.md.json
-data/sessions/06_diagnoses/sesion/<session>.md.json
+data/out/local/sessions/00_contratos/<session>.md.json
+data/out/local/sessions/01_procedencia/<session>.md.json
+data/out/local/sessions/02_detalles_de_sesion/<session>.md.json
+data/out/local/sessions/03_hipotesis/<session>.md.json
+data/out/local/sessions/04_balance_de_sesion/<session>.md.json
+data/out/local/sessions/05_propuesta_de_sesion/<session>.md.json
+data/out/local/sessions/06_diagnoses/sesion/<session>.md.json
 ```
 
 Convencion de titulo:
@@ -131,7 +131,7 @@ Reglas:
 - no mover ni renombrar carpetas existentes sin justificacion explicita;
 - respetar el orden logico: contrato -> procedencia -> detalles -> hipotesis -> balance -> propuesta -> diagnostico.
 
-En el estado actual del repositorio pueden existir subcarpetas historicas en ingles bajo `data/sessions/06_diagnoses/` (`project`, `module`). No crear variantes nuevas si la ruta real ya existe; documentar la ruta real usada.
+En el estado actual del repositorio pueden existir subcarpetas historicas en ingles bajo `data/out/local/sessions/06_diagnoses/` (`project`, `module`). No crear variantes nuevas si la ruta real ya existe; documentar la ruta real usada.
 
 ---
 
@@ -188,7 +188,7 @@ No inflar el cierre con diagnosticos especializados si no aportan al objetivo de
 
 ## 7. Lineas candidatas en formato canon
 
-Cuando la sesion produzca memoria que deba poder entrar al canon, el agente debe dejar lineas candidatas en formato canon bajo `data/sessions/`.
+Cuando la sesion produzca memoria que deba poder entrar al canon, el agente debe dejar lineas candidatas en formato canon bajo `data/out/local/sessions/`.
 
 Las lineas candidatas deben:
 
@@ -199,7 +199,7 @@ Las lineas candidatas deben:
 - declarar sesion de origen;
 - declarar familia de artefacto;
 - declarar procedencia;
-- apuntar al archivo fuente bajo `data/sessions/`;
+- apuntar al archivo fuente bajo `data/out/local/sessions/`;
 - poder pasar `strict`;
 - poder pasar `reverse-preflight`;
 - poder ser procesadas por reverse autoritativo sin rechazo;
@@ -215,8 +215,8 @@ La admision al canon debe ocurrir localmente porque el canon bajo `data/out/` es
 
 Flujo recomendado:
 
-1. El agente produce artefactos en `data/sessions/`.
-2. El agente produce lineas candidatas en formato canon bajo `data/sessions/`.
+1. El agente produce artefactos en `data/out/local/sessions/`.
+2. El agente produce lineas candidatas en formato canon bajo `data/out/local/sessions/`.
 3. Un proceso local o manual toma esas lineas.
 4. El proceso copia el canon actual a una zona temporal.
 5. Inserta las lineas candidatas en esa copia temporal.
@@ -325,7 +325,7 @@ Regla:
 3. detectar rutas y artefactos implicados;
 4. modificar, mover o crear solo lo necesario;
 5. respetar la arquitectura vigente;
-6. producir la familia minima bajo `data/sessions/`;
+6. producir la familia minima bajo `data/out/local/sessions/`;
 7. producir diagnostico de sesion;
 8. producir lineas candidatas si la sesion genera memoria que debe poder entrar al canon;
 9. validar con comandos reales cuando existan;
@@ -337,7 +337,7 @@ Regla:
 
 1. reabrir decisiones cerradas sin razon tecnica fuerte;
 2. crear archivo acumulativo global de sesiones;
-3. convertir `data/sessions/` en canon paralelo;
+3. convertir `data/out/local/sessions/` en canon paralelo;
 4. usar `data/out/local/proposals.jsonl` como cierre diario;
 5. insertar lineas en canon final por defecto;
 6. declarar lineas admitidas sin `strict`, `reverse-preflight` y reverse autoritativo sin rechazo;
@@ -350,7 +350,7 @@ Regla:
 
 ## 13. Contenido minimo del contrato
 
-El contrato en `data/sessions/00_contratos/` debe contener como minimo:
+El contrato en `data/out/local/sessions/00_contratos/` debe contener como minimo:
 
 - identidad de la sesion;
 - objetivo real;

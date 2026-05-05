@@ -77,11 +77,11 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
         self.assertTrue(self.CONTRACT_PATH.exists(), "S65 contract file is missing")
 
     def test_s65_contract_is_absorbed_or_staged(self) -> None:
-        """S65 contract must be staged in data/sessions or already present in canon."""
+        """S65 contract must be staged in data/out/local/sessions or already present in canon."""
         titles = {record.get("title") for record in load_canon_records()}
         self.assertTrue(
             self.CONTRACT_TITLE in titles or self.CONTRACT_PATH.exists(),
-            "S65 contract is neither staged under data/sessions nor present in canon",
+            "S65 contract is neither staged under data/out/local/sessions nor present in canon",
         )
 
     # ── required artifacts ────────────────────────────────────────────────────

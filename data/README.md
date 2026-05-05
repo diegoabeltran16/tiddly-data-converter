@@ -2,7 +2,7 @@
 
 ## Autoridad
 
-- `data/sessions/`: artefactos versionables de sesión, staging operativo y líneas candidatas; no es canon paralelo
+- `data/out/local/sessions/`: artefactos versionables de sesión, staging operativo y líneas candidatas; no es canon paralelo
 - `data/in/`: entradas locales
 - `data/out/local/tiddlers_*.jsonl`: canon operativo y única fuente de verdad
 - `data/out/local/proposals.jsonl`: artefacto legado para recuperación manual o candidate storage extraordinario; no es la ruta diaria de cierre semántico de sesión
@@ -24,7 +24,7 @@ Reglas:
 - `microsoft_copilot/` no usa `.jsonl` como salida final primaria de lectura; JSON estructura, CSV tabula y TXT contextualiza
 - `reverse_html/` no es canon
 - `data/out/remote/` no es autoridad local
-- las líneas candidatas producidas en `data/sessions/` solo pueden absorberse al canon local tras validación local, `strict`, `reverse-preflight`, reverse autoritativo con `Rejected: 0` y tests pertinentes
+- las líneas candidatas producidas en `data/out/local/sessions/` solo pueden absorberse al canon local tras validación local, `strict`, `reverse-preflight`, reverse autoritativo con `Rejected: 0` y tests pertinentes
 - `python_scripts/admit_session_candidates.py` orquesta ese flujo de admisión y rollback con compuertas reales
 - la verificación reproducible S69 se ejecuta con `bash tests/fixtures/s69/run_session_admission_test.sh` y usa fixtures temporales bajo `data/tmp/`
 
@@ -38,6 +38,6 @@ Reglas:
 
 ## Fuentes machine-readable
 
-- `data/sessions/00_contratos/policy/canon_policy_bundle.json`: catálogo de `corpus_state`, resolución y transiciones
-- `data/sessions/00_contratos/projections/derived_layers_registry.json`: mapa de autoridad y linaje entre capas
+- `data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json`: catálogo de `corpus_state`, resolución y transiciones
+- `data/out/local/sessions/00_contratos/projections/derived_layers_registry.json`: mapa de autoridad y linaje entre capas
 - `python_scripts/validate_corpus_governance.py`: validación ejecutable contra el layout real
