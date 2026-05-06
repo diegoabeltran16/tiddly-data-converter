@@ -7,9 +7,9 @@
 
 # tiddly-data-converter
 
-Repositorio local-first para extraer, canonizar, derivar, auditar y revertir un corpus TiddlyWiki sin perder trazabilidad ni reversibilidad.
+Aplicación de escritorio local‑first para convertir un corpus TiddlyWiki básico en un canon gestionado, mediante procesos de extracción, canonización, derivación, auditoría y reversión, preservando trazabilidad y reversibilidad.
 
-## Operación
+## Ejecución
 
 Desde la raíz del repositorio, usar ejecutable:
 
@@ -18,5 +18,3 @@ shell_scripts/tdc.sh
 ```
 
 Este comando invoca de forma guiada al orquestador de admisión, al canonizador, al reverse y los scripts existentes; muestra métricas y exige confirmaciones robustas antes de cualquier acción que pueda escribirse en el canon local.
-
-El menú incluye la opción `Generación de derivados`, que regenera las capas locales desde `data/out/local/tiddlers_*.jsonl` hacia `enriched/`, `ai/`, `audit/`, `export/` y `microsoft_copilot/` según corresponda. Los derivados no son fuente de verdad: pueden borrarse y regenerarse desde el canon local y sus artefactos gobernados.

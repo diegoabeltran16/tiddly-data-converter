@@ -9,13 +9,16 @@ Este núcleo define qué significa memoria activa en el sistema, qué debe mante
 - Separar preferencias humanas, cómputo técnico y decisión operativa sobre memoria.
 
 ## Cuándo aplica
-- Cuando una sesión declara `memory_policy`, `memory_ttl` o `memory_tags`.
-- Cuando el convertidor o un gestor de memoria computan señales de reactivación, prioridad o decaimiento.
-- Cuando hay que decidir qué contexto reaparece entre sesiones.
-- Cuando confirmaciones, contradicciones o refinamientos alteran la relevancia futura de un nodo.
+
+Aplicar en este orden de prioridad:
+
+1. Cuando una sesión declara `memory_policy`, `memory_ttl` o `memory_tags` (preferencia humana explícita — prioridad máxima).
+2. Cuando el convertidor o un gestor de memoria computan señales de reactivación, prioridad o decaimiento (cómputo técnico).
+3. Cuando hay que decidir qué contexto reaparece entre sesiones (decisión operativa).
+4. Cuando confirmaciones, contradicciones o refinamientos alteran la relevancia futura de un nodo (actualización de estado).
 
 ## Obligaciones
-- Mantener la diferencia entre `open_loop`, `relevance`, `recency`, prioridad contextual y recuperabilidad.
+- Mantener la diferencia entre `open_loop`, `relevance`, `recency`, prioridad contextual y recuperabilidad, aplicando la siguiente precedencia cuando entren en conflicto: preferencia humana declarada > relevancia contextual para el objetivo local > recencia > recuperabilidad general.
 - Exigir recuperación situada: reentra lo que ayuda al objetivo local, no todo el historial disponible.
 - Tratar `memory_policy`, `memory_ttl` y `memory_tags` como preferencias declarables, no como decisión final automática.
 - Hacer trazable cualquier cambio de estado o acción de memoria.
@@ -76,7 +79,8 @@ Antes de una sesión asistida, la memoria activa debe orientar la selección de 
 Los resultados de una sesión asistida deben alimentar la recuperabilidad futura cuando abren bucles de seguimiento, cambian la prioridad contextual de un nodo, estabilizan definiciones antes abiertas, introducen señales de contradicción o confirmación, o generan dependencias con incidencia conocida sobre el trabajo posterior. Las referencias específicas solo deben reactivarse cuando el objetivo local de la sesión siguiente lo requiera de forma explícita.
 
 ## Criterio de salida
-- Debe quedar claro por qué un nodo permanece recuperable entre sesiones y qué señales justifican esa decisión.
+- Debe quedar claro por qué un nodo permanece recuperable entre sesiones y qué señales justifican esa decisión (relevancia contextual para el objetivo local, frecuencia de referencia, bucles abiertos de seguimiento, o preferencia humana declarada explícitamente).
+- Cuando un nodo presenta señales en conflicto (por ejemplo, alta relevancia pero baja recencia), debe priorizarse la relevancia contextual para el objetivo local de la sesión siguiente; si no hay objetivo local declarado, priorizar recencia.
 - Debe poder distinguirse entre preferencia declarada, señal computada y acción operativa.
 - Un agente debe saber qué contexto reentra, por qué reentra y bajo qué revisión humana sigue siendo modificable.
 

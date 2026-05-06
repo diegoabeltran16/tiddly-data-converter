@@ -24,30 +24,35 @@ Esto no aplica solo a una respuesta aislada. Aplica a toda propuesta que el agen
 
 `PRcommits.instructions.md` es la proyección operativa legible de esa fuente de verdad. Su función es impedir que el agente reduzca la entrega a un resumen informal, omita tablas, omita secciones, use categorías inventadas o entregue un PR incompleto.
 
-Si existe divergencia entre este archivo y el contrato JSON activo, el JSON prevalece. Sin embargo, la divergencia debe considerarse deuda documental y debe corregirse en el mismo PR o declararse explícitamente en `Notas para el revisor`.
+Si existe divergencia entre este archivo y el contrato JSON activo, el JSON prevalece sin excepción. La divergencia no cambia la autoridad del JSON; en cambio, constituye deuda documental que debe corregirse en el mismo PR o declararse explícitamente en `Notas para el revisor`.
 
 ---
 
 ## Instrucción crítica
 
-Debes:
+**Lectura previa obligatoria:**
+- Leer `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON` antes de responder.
+- Leer `.github/instructions/contratos.instructions.md` antes de responder.
 
-- leer `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON` antes de responder;
-- leer `.github/instructions/contratos.instructions.md` antes de responder;
-- obedecer las reglas duras del contrato JSON;
-- usar sus clasificaciones;
-- aplicar sus templates;
-- respetar sus enums;
-- inferir campos faltantes según su política conservadora;
-- usar sus fallbacks cuando falte información suficiente;
-- mantener consistencia semántica con el repositorio;
-- no reemplazar el contrato por convenciones genéricas de Git, GitHub o Conventional Commits.
+**Clasificación y taxonomía:**
+- Obedecer las reglas duras del contrato JSON.
+- Usar sus clasificaciones.
+- Respetar sus enums.
+- No reemplazar el contrato por convenciones genéricas de Git, GitHub o Conventional Commits.
+
+**Construcción de salida:**
+- Aplicar sus templates.
+- Inferir campos faltantes usando los valores por defecto especificados en el contrato JSON.
+- Usar sus fallbacks cuando falte información suficiente.
+- Mantener consistencia semántica con el repositorio.
 
 ---
 
 ## Objetivo obligatorio
 
 Cuando el usuario describa lo realizado en una sesión o un cambio técnico concreto, debes analizar ese cambio y devolver siempre exactamente estos 3 artefactos, en este orden:
+
+Si la descripción del usuario es incompleta o ambigua y no permite clasificar el cambio ni construir los artefactos con coherencia, solicita aclaración antes de generar la salida.
 
 1. `commitName`
 2. `prTitle`
@@ -566,7 +571,10 @@ Git no decide la admisión canónica. Antes de recomendar commit o push de una s
 1. Leer `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`.
 2. Leer `.github/instructions/contratos.instructions.md`.
 3. Identificar el tipo de cambio descrito por el usuario.
-4. Identificar si el cambio es documental, runtime o transversal.
+4. Identificar si el cambio es documental, runtime o transversal usando esta guía:
+   - **Documental**: solo modifica instrucciones, contratos `.md.json`, `README`, `.instructions.md` u otros artefactos que no afectan ejecución; usar `ContextoCambio = documental`.
+   - **Runtime**: modifica código, scripts, tests, CI, validadores o cualquier artefacto que cambia el comportamiento en ejecución; usar `ContextoCambio = runtime`.
+   - **Transversal**: el cambio afecta a la vez zonas documentales y zonas de ejecución (por ejemplo, una nueva regla del contrato JSON que también requiere actualizar un validador); usar `ContextoCambio = transversal`.
 5. Identificar si el cambio es normativo sobre estructura de commits y pull requests.
 6. Clasificar el cambio según enums, reglas y criterios del contrato.
 7. Construir `commitName`.

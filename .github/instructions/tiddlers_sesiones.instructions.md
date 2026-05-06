@@ -19,12 +19,15 @@ con la familia minima de artefactos bajo `data/out/local/sessions/`:
 6. `data/out/local/sessions/05_propuesta_de_sesion/<session>.md.json`
 7. `data/out/local/sessions/06_diagnoses/sesion/<session>.md.json`
 
-El diagnostico de sesion es obligatorio. Los diagnosticos especializados
-(`canon`, `derivados`, `hipotesis`, `modulo`, `proyecto`, `repositorio`,
-`reverse`, `tema`) solo se generan bajo solicitud explicita o cuando la
-instruccion de sesion lo requiera.
+El diagnóstico de sesión (tipo `sesion`) es el único diagnóstico obligatorio
+del paquete. Los diagnósticos especializados (`canon`, `derivados`,
+`hipotesis`, `modulo`, `proyecto`, `repositorio`, `reverse`, `tema`) son
+opcionales: solo se generan bajo solicitud explícita o cuando la instrucción
+de sesión lo requiera.
 
 ## Gobernanza de rutas de artefactos de sesion
+
+### Raiz activa de artefactos
 
 La unica raiz activa para artefactos de sesion es:
 
@@ -32,7 +35,7 @@ La unica raiz activa para artefactos de sesion es:
 data/out/local/sessions/
 ```
 
-Rutas clasificadas:
+### Rutas clasificadas
 
 | Ruta | Clasificacion | Politica |
 |---|---|---|
@@ -40,15 +43,21 @@ Rutas clasificadas:
 | `data/sessions/` | **Prohibida / Legacy** | Gitignoreada; no escribir nuevos entregables ahi |
 | `data/out/sessions/` | **Prohibida / Typo** | No existe; error tipografico historico |
 
+### Logs de diagnostico
+
 Los logs auxiliares de diagnostico tambien van bajo:
 
 ```
 data/out/local/sessions/06_diagnoses/sesion/
 ```
 
+### Politica de permanencia y validacion
+
 Las lineas candidatas y artefactos de sesion deben permanecer bajo
-`data/out/local/sessions/` hasta pasar validacion local, `strict`,
-`reverse-preflight` y reverse sin rechazos.
+`data/out/local/sessions/` hasta pasar, en este orden, validacion local,
+`strict`, `reverse-preflight` y reverse sin rechazos. Si una linea candidata
+no pasa alguna de estas validaciones, el agente debe registrar el error en el
+diagnostico y detener el proceso hasta que se resuelva.
 
 ## Convencion de titulos de sesion
 
@@ -57,17 +66,19 @@ Todo tiddler que sea resultado de sesion debe tener un `title` iniciado por
 
 Titulos obligatorios para las familias principales:
 
-- contrato de sesion: `#### 🌀 Contrato de sesión <NN> = <slug>`;
-- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NN> = <slug>`;
-- detalles/sesion: `#### 🌀 Sesión <NN> = <slug>`;
-- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión <NN> = <slug>`;
-- balance de sesion: `#### 🌀 Balance de sesión <NN> = <slug>`;
-- propuesta de sesion: `#### 🌀 Propuesta de sesión <NN> = <slug>`;
-- diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NN> = <slug>`.
+- contrato de sesion: `#### 🌀 Contrato de sesión <NNNN> = <slug>`;
+- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NNNN> = <slug>`;
+- detalles/sesion: `#### 🌀 Sesión <NNNN> = <slug>`;
+- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión <NNNN> = <slug>`;
+- balance de sesion: `#### 🌀 Balance de sesión <NNNN> = <slug>`;
+- propuesta de sesion: `#### 🌀 Propuesta de sesión <NNNN> = <slug>`;
+- diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NNNN> = <slug>`.
 
-`<NN>` corresponde al numero de sesion extraido de `mXX-sNN-...`; `<slug>` es
-el resto del identificador sin el prefijo `mXX-sNN-` y sin `session-` cuando
-aparezca como prefijo operativo.
+`<NNNN>` corresponde al numero de sesion cero-rellenado a 4 dígitos (un cero
+a la izquierda por nivel de magnitud; en la era actual de 3 cifras: `str(n).zfill(4)`).
+Se extrae de `mXX-sNN-...` y se rellena: `sNN` → `int(NN)` → `zfill(4)`.
+`<slug>` es el resto del identificador sin el prefijo `mXX-sNN-` y sin
+`session-` cuando aparezca como prefijo operativo.
 
 ### Diagnósticos de ciclo de sesiones
 
@@ -88,6 +99,17 @@ Una sesión diagnóstica de mesociclo produce:
 
 El sistema distingue seis tipos de sesión relevantes para la gobernanza de
 artefactos:
+
+| Tipo | Toca código | Entregables obligatorios | Observación |
+|---|---|---|---|
+| Diagnóstico puro | No | 7 normales | Se detiene si requiere infraestructura |
+| Infraestructura diagnóstica | Sí | 7 normales + diagnósticos explícitos | — |
+| Sesión mixta | Limitado | 7 normales + diagnóstico mayor | Declarar qué parte es cada cosa |
+| Sesión práctica/desarrollo | Sí | 7 normales | — |
+| Sesión teórica/analítica | No | 7 normales (si cambia memoria/procedencia) | — |
+| Híbrida/transicional | Según caso | 7 normales + justificación | Excepción temporal |
+
+Descripción detallada de cada tipo:
 
 1. **Diagnóstico puro**.
    Lee evidencia y produce el diagnóstico solicitado.
@@ -393,7 +415,7 @@ para que un proceso local decida si puede absorberlos al canon.
 
 Los diagnósticos no sesionales son artefactos de análisis del ciclo de trabajo.
 No son tiddlers canon. Viven en `06_diagnoses/` y se sincronizan a OneDrive
-via el mirror normal.
+via publicación puntual o, en mantenimiento controlado, via mirror completo.
 
 ### Familias válidas y nombres esperados
 
@@ -416,8 +438,8 @@ La extensión obligatoria es `.md.json`. Archivos con extensión `.json`, `.md` 
 1. El agente produce el diagnóstico local:
    data/out/local/sessions/06_diagnoses/<familia>/<nombre>.md.json
 
-2. El mirror lo envía a OneDrive (requiere SYNC_DRY_RUN=false):
-   remote_mirror_out_local.py → OneDrive approot:/tiddly-data-converter/sessions/06_diagnoses/<familia>/
+2. La publicación puntual lo envía a OneDrive (requiere dry_run=false):
+   remote_publish_diagnostic.py → OneDrive approot:/tiddly-data-converter/sessions/06_diagnoses/<familia>/
 
 3. Para traer un diagnóstico remoto al local (pull):
    El agente remoto deposita el archivo en OneDrive _remote_outbox/sessions/
@@ -426,17 +448,36 @@ La extensión obligatoria es `.md.json`. Archivos con extensión `.json`, `.md` 
 ```
 
 **Crear un archivo en el runner remoto NO equivale automáticamente a verlo en OneDrive.**
-El mirror debe ejecutarse con `SYNC_DRY_RUN=false` para que los archivos lleguen.
+El workflow de publicación puntual debe ejecutarse con `dry_run=false` para que
+los archivos lleguen. El mirror completo (`remote_mirror_out_local.py`) no debe
+ser la ruta normal para diagnósticos no sesionales producidos en un workspace
+remoto que puede tener `data/out/local/` vacío o incompleto.
 
-### SYNC_DRY_RUN=true
+Equivalencia obligatoria:
+
+```txt
+Local:
+data/out/local/sessions/06_diagnoses/tema/
+
+OneDrive:
+sessions/06_diagnoses/tema/
+```
+
+En OneDrive no debe esperarse `data/out/local/`; esa raíz solo existe como
+origen local gitignoreado.
+
+### SYNC_DRY_RUN y dry_run
 
 Cuando `SYNC_DRY_RUN=true` (valor por defecto):
 - El mirror simula las operaciones pero no escribe en OneDrive.
 - El pull no puede autenticar sin credenciales, por lo que solo muestra la política.
-- Ningún diagnóstico llega realmente a OneDrive ni se descarga desde allí.
+- Ningún diagnóstico llega a OneDrive por mirror completo.
 
-Para sincronización real, el operador debe ejecutar con `SYNC_DRY_RUN=false`
-como instrucción operativa explícita. **No cambiar este valor en el repositorio.**
+Para publicación diagnóstica puntual real, el operador debe ejecutar
+`remote_publish_diagnostic.yml` con input `dry_run=false`. Para mirror completo
+real, el operador debe ejecutar `remote_mirror_out_local.yml` con
+`SYNC_DRY_RUN=false` y confirmación explícita. **No cambiar estos valores por
+defecto en el repositorio.**
 
 ### Cómo verificar que un diagnóstico remoto llegó realmente
 
@@ -444,9 +485,33 @@ como instrucción operativa explícita. **No cambiar este valor en el repositori
 # Verificar en el inbox local después de un pull real:
 ls data/tmp/remote_inbox/
 
-# Verificar en OneDrive después de un mirror real:
+# Verificar en OneDrive después de una publicación puntual real:
 # Revisar via Microsoft Graph Explorer o el cliente OneDrive sincronizado.
 ```
+
+### Publicación puntual segura
+
+Ejemplo dry-run:
+
+```bash
+python_scripts/remote_publish_diagnostic.py \
+  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
+  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
+  --dry-run
+```
+
+Ejemplo live:
+
+```bash
+python_scripts/remote_publish_diagnostic.py \
+  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
+  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
+```
+
+Este flujo usa Microsoft Graph, `ONEDRIVE_ROOT_MODE=approot`,
+`ONEDRIVE_PROJECT_ROOT_NAME=tiddly-data-converter`, crea carpetas faltantes
+cuando `REMOTE_CREATE_MISSING_DIRS=true`, respeta
+`REMOTE_CONFLICT_BEHAVIOR=replace|skip`, y nunca borra archivos remotos.
 
 ### Gobernanza de rutas
 

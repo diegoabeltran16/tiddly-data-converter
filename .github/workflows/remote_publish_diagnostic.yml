@@ -1,0 +1,101 @@
+name: Remote Publish Diagnostic — OneDrive
+
+# Publishes one governed non-session diagnostic artifact to OneDrive.
+# This workflow intentionally does not run a full mirror and never deletes
+# remote files. The local data/out/local/ prefix maps to the OneDrive project
+# root, so diagnostics land under sessions/06_diagnoses/... remotely.
+
+on:
+  workflow_dispatch:
+    inputs:
+      diagnostic_file:
+        description: "Ruta local del diagnóstico dentro del workspace"
+        required: true
+        type: string
+      remote_relative_path:
+        description: "Ruta relativa destino dentro de OneDrive project root"
+        required: true
+        type: string
+      dry_run:
+        description: "Ejecutar sin publicar realmente"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish-diagnostic:
+    name: "Publish one diagnostic artifact"
+    runs-on: ubuntu-latest
+    environment: onedrive-remote
+
+    env:
+      DIAGNOSTIC_FILE: ${{ inputs.diagnostic_file }}
+      REMOTE_RELATIVE_PATH: ${{ inputs.remote_relative_path }}
+      DRY_RUN: ${{ toJSON(inputs.dry_run) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Show checked out branch and commit
+        run: |
+          git branch --show-current
+          git rev-parse --short HEAD
+          git log -1 --oneline
+
+      - name: Validate S101, diagnostic file, and governed paths
+        shell: bash
+        run: |
+          test -f python_scripts/diagnostic_governance.py
+          test -f "$DIAGNOSTIC_FILE"
+          python -m json.tool "$DIAGNOSTIC_FILE" >/dev/null
+
+          case "$DIAGNOSTIC_FILE" in
+            data/out/local/sessions/06_diagnoses/*) ;;
+            *) echo "error: diagnostic_file must be under data/out/local/sessions/06_diagnoses/" >&2; exit 1 ;;
+          esac
+
+          case "$REMOTE_RELATIVE_PATH" in
+            sessions/06_diagnoses/*) ;;
+            *) echo "error: remote_relative_path must be under sessions/06_diagnoses/" >&2; exit 1 ;;
+          esac
+
+          case "$DIAGNOSTIC_FILE" in
+            /*|*../*|../*) echo "error: diagnostic_file must be a safe repo-relative path" >&2; exit 1 ;;
+          esac
+
+          case "$REMOTE_RELATIVE_PATH" in
+            /*|*../*|../*|data/out/local/*) echo "error: remote_relative_path must be a safe OneDrive project-relative path" >&2; exit 1 ;;
+          esac
+
+      - name: Publish diagnostic artifact
+        shell: bash
+        env:
+          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
+          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
+          REMOTE_CONFLICT_BEHAVIOR:   ${{ vars.REMOTE_CONFLICT_BEHAVIOR }}
+          REMOTE_CREATE_MISSING_DIRS: ${{ vars.REMOTE_CREATE_MISSING_DIRS }}
+          AZURE_CLIENT_ID:            ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID:            ${{ secrets.AZURE_TENANT_ID }}
+          MSA_REFRESH_TOKEN:          ${{ secrets.MSA_REFRESH_TOKEN }}
+        run: |
+          args=(
+            python3 python_scripts/remote_publish_diagnostic.py
+            --local-file "$DIAGNOSTIC_FILE"
+            --remote-relative-path "$REMOTE_RELATIVE_PATH"
+          )
+
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+
+          "${args[@]}"

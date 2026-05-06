@@ -11,15 +11,23 @@
 - Al abrir, conducir y cerrar cualquier sesión.
 - Cuando una sesión va a crear o modificar hipótesis, procedencias, elementos específicos, definiciones, contratos, parches o líneas canónicas.
 - Cuando la sesión se desarrolla con asistencia de IA.
-- Antes de actuar, para decidir qué lectura mínima y qué expansión contextual son realmente necesarias.
+- Antes de actuar, para decidir qué lectura mínima (como mínimo: `# 1_tiddly-data-converter`, `## 🧭🧱 Protocolo de Sesión` y `## 🧠🧱 Política de Memoria Activa`) y qué expansión contextual (limitada a los bloques que el objetivo local necesite realmente) son necesarias.
 
 ## Obligaciones
+
+**Apertura:**
 - Abrir la sesión como trabajo situado, no como conversación difusa.
 - Declarar al menos `local_frame`, `purpose`, `mode` y `expected_output`.
 - Revisar, antes de actuar, las hipótesis abiertas relevantes, las definiciones estabilizadas pertinentes, los elementos específicos recientes, las tensiones no resueltas y las decisiones previas que afectan el objetivo local.
+
+**Conducción:**
 - Registrar durante la sesión qué se produjo, qué se confirmó, qué se contradijo, qué se refinó y qué quedó pendiente.
+
+**Cierre:**
 - Cerrar la sesión con la familia mínima bajo `data/out/local/sessions/`: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
 - Cuando la sesión genere memoria que deba poder entrar al canon, dejar líneas candidatas en formato canon bajo `data/out/local/sessions/`, no escribir directamente en el canon final por defecto.
+
+**Gobernanza:**
 - Mantener la autoridad semántica en el humano: la IA sugiere, estructura y facilita, pero no decide por sí sola las relaciones o estados finales.
 
 ### Modos de operación

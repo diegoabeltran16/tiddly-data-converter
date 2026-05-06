@@ -14,7 +14,7 @@
 
 Frase rectora por defecto:
 
-> `data/out/local/sessions/` registra y ordena la memoria operativa de cada sesion; el canon conserva la autoridad final. El agente puede producir lineas candidatas, pero solo la validacion local, el strict check, el reverse sin rechazo y las pruebas permiten absorberlas al canon.
+> `data/out/local/sessions/` registra y ordena la memoria operativa de cada sesion; el canon conserva la autoridad final. El agente puede producir lineas candidatas, pero solo la validacion local, el strict check, el reverse sin rechazo y las pruebas de validacion JSONL y de estructura canonica permiten absorberlas al canon.
 
 ---
 
@@ -30,12 +30,14 @@ La sesion debe asumir como verdad operativa este layout:
 
 Reglas centrales:
 
-- `data/out/local/tiddlers_*.jsonl` es la fuente de verdad local cuando existe en la maquina.
-- `data/out/local/sessions/` no es canon paralelo y no compite con `data/out/local/tiddlers_*.jsonl`.
-- `data/out/local/proposals.jsonl` queda como artefacto legado o extraordinario, no como ruta diaria de cierre.
-- `data/out/local/enriched/`, `data/out/local/ai/`, `data/out/local/audit/`, `data/out/local/export/` y `data/out/local/microsoft_copilot/` son capas derivadas.
-- `data/out/local/reverse_html/` no es canon.
-- `data/out/remote/` no habilita integracion cloud productiva por si sola.
+| Categoria | Ruta | Rol |
+|---|---|---|
+| Canon (fuente de verdad) | `data/out/local/tiddlers_*.jsonl` | Fuente de verdad local cuando existe en la maquina |
+| Staging de sesion | `data/out/local/sessions/` | No es canon paralelo; no compite con el canon |
+| Artefacto legado | `data/out/local/proposals.jsonl` | Solo extraordinario; no es ruta diaria de cierre |
+| Capas derivadas | `enriched/`, `ai/`, `audit/`, `export/`, `microsoft_copilot/` | Derivadas del canon; no son fuente de verdad |
+| Reverse | `data/out/local/reverse_html/` | Salida de reverse; no es canon |
+| Remoto | `data/out/remote/` | No habilita integracion cloud productiva por si sola |
 
 ---
 
@@ -215,15 +217,32 @@ La admision al canon debe ocurrir localmente porque el canon bajo `data/out/` es
 
 Flujo recomendado:
 
-1. El agente produce artefactos en `data/out/local/sessions/`.
+**Fase 1 — Produccion de artefactos** (solo escritura en sessions):
+
+1. El agente produce artefactos de sesion en `data/out/local/sessions/`.
 2. El agente produce lineas candidatas en formato canon bajo `data/out/local/sessions/`.
-3. Un proceso local o manual toma esas lineas.
+
+> Punto de control 1: verificar que los artefactos existen y son JSONL valido antes de continuar.
+
+**Fase 2 — Preparacion de copia temporal** (nunca toca el canon real):
+
+3. Un proceso local o manual toma esas lineas candidatas.
 4. El proceso copia el canon actual a una zona temporal.
 5. Inserta las lineas candidatas en esa copia temporal.
-6. Ejecuta validaciones.
+
+> Punto de control 2: verificar que la copia temporal es legible y contiene las lineas esperadas antes de continuar.
+
+**Fase 3 — Validacion** (sobre la copia temporal, no sobre el canon real):
+
+6. Ejecuta las compuertas de validacion definidas en la seccion 9.
 7. Ejecuta verificacion de reversibilidad.
+
+> Punto de control 3: si cualquier validacion falla, registrar el error en el diagnostico y detener el proceso. No continuar a la Fase 4.
+
+**Fase 4 — Aplicacion** (solo si las tres fases anteriores pasaron):
+
 8. Si todo pasa, aplica los cambios al canon local.
-9. Si algo falla, no modifica el canon.
+9. Si algo falla en este paso, revertir a la copia temporal y no modificar el canon.
 
 No crear automatizaciones complejas salvo que la sesion lo pida o exista un script equivalente que solo requiera ajuste menor.
 

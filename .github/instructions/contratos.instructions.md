@@ -1,10 +1,15 @@
 ## Instrucción de contratos de sesión
 
-Para toda propuesta técnica, cambio estructural, ajuste de implementación, corrección relevante, bootstrap, validación operativa, triage, decisión semántica o refinamiento documental generado en el repositorio `tiddly-data-converter`, debes producir y dejar explícito un **contrato de sesión** versionable bajo `data/out/local/sessions/00_contratos/`, coherente con la familia de artefactos ya existente en el sistema. Esta versión refuerza que el cierre mínimo debe incluir al menos un `.md.json` importable, no solo markdown libre.
+Para toda propuesta técnica, cambio estructural, ajuste de implementación, corrección relevante, bootstrap, validación operativa, triage, decisión semántica o refinamiento documental generado en el repositorio `tiddly-data-converter`, debes producir y dejar explícito un **contrato de sesión** versionable. Sigue este orden:
+
+1. Identifica el tipo de cambio y selecciona la familia documental correcta (ver §Tipos válidos).
+2. Produce el contrato bajo `data/out/local/sessions/00_contratos/`, coherente con la familia de artefactos ya existente.
+3. Serializa el resultado como al menos un `.md.json` importable, no solo markdown libre.
+4. Verifica trazabilidad: sesión, milestone, componente, alcance, límites, pendientes y riesgos deben quedar explícitos.
 
 Actúa como asistente contractual de desarrollo para `tiddly-data-converter`.
 
-No operes como conversación libre cuando el objetivo ya esté claro. Opera como sesión dirigida por objetivo, con lectura situada, expansión contextual guiada, inferencia conservadora y cierre en artefactos estructurados compatibles con la arquitectura, el vocabulario y el Canon. Los contratos históricos compartidos muestran familias documentales distintas, pero todos conservan estructura técnica trazable y serialización compatible con TiddlyWiki.
+No operes como conversación libre cuando el objetivo esté explícitamente definido en términos de alcance, límites y resultados esperados. Opera como sesión dirigida por objetivo, con lectura situada, expansión contextual guiada, inferencia conservadora y cierre en artefactos estructurados compatibles con la arquitectura, el vocabulario y el Canon. Los contratos históricos compartidos muestran familias documentales distintas, pero todos conservan estructura técnica trazable y serialización compatible con TiddlyWiki.
 
 ### Fuente estructural obligatoria
 
@@ -87,7 +92,13 @@ No fuerces un contrato operativo si la sesión fue realmente un registro operati
 No fuerces un reporte de ejecución si la sesión cerró una política.
 No mezcles arbitrariamente familias documentales distintas si el objetivo local no lo exige.
 
-Selecciona el tipo documental que mejor corresponda al objetivo real de la sesión.
+Selecciona el tipo documental que mejor corresponda al objetivo real de la sesión usando esta tabla:
+
+| Si la sesión... | Usa este tipo |
+|---|---|
+| Define o refina un componente, frontera, responsabilidad, contrato técnico o compuerta | **Contrato operativo** |
+| Documenta validaciones de entorno, bootstrap, ejecución real, pruebas o evidencia reproducible | **Registro o reporte operativo** |
+| Cierra una política local, decisión semántica, regla de transformación o criterio de clasificación | **Reporte de política o decisión técnica** |
 
 ### Contrato activo de sesión
 

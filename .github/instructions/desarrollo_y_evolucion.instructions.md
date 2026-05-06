@@ -14,11 +14,17 @@
 - Cuando una conclusión local todavía no debe promoverse a verdad estructural estable.
 
 ## Obligaciones
+
+**Registro de estado:**
 - Registrar el estado actual y su relación con estados previos relevantes.
-- Distinguir explícitamente entre avance, corrección, refinamiento, promoción y descarte.
 - Hacer visible qué cambió, por qué cambió y qué queda pendiente.
+- Distinguir explícitamente entre avance, corrección, refinamiento, promoción y descarte.
+
+**Continuidad:**
 - Conservar continuidad acumulativa y trazable entre sesiones.
 - Remitir a `## 🧭🧱 Protocolo de Sesión` para la apertura, conducción y cierre del trabajo situado.
+
+**Separación de capas:**
 - Remitir a `## 🧪🧱 Hipótesis`, `## 🧾🧱 Procedencia epistemológica` y `## 🧰🧱 Elementos específicos` cuando el contenido pertenezca de forma primaria a esas capas.
 
 ## No hacer
@@ -29,9 +35,9 @@
 - No duplicar aquí reglas madre que pertenecen a `## 🗂🧱 Principios de Gestión`.
 
 ## Regla transversal S66
-- La continuidad entre sesiones se materializa primero en `data/out/local/sessions/`, no por escritura directa al canon final.
+- La continuidad entre sesiones debe comenzar y permanecer en `data/out/local/sessions/`; la escritura directa al canon final no está permitida por defecto. Si los datos de continuidad están incompletos o ausentes, registrar explícitamente esa situación en el diagnóstico de sesión y declarar qué evidencia falta antes de continuar.
 - Cada sesión debe cerrar con contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
-- Cuando haya nuevas líneas candidatas, deben permanecer como candidatas hasta pasar validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y tests pertinentes.
+- Cuando haya nuevas líneas candidatas, deben permanecer como candidatas hasta pasar, en este orden: validación local, `strict` (validación de estructura canónica), `reverse-preflight` (verificación previa de reversibilidad), reverse autoritativo sin rechazos (ejecución real de `reverse_tiddlers` con `Rejected: 0`) y tests pertinentes.
 
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para saber qué está evolucionando.

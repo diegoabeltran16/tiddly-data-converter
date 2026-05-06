@@ -4,26 +4,34 @@ name: Remote Mirror — data/out/local/ → OneDrive
 # Graph API. Runs in SYNC_DRY_RUN=true by default for safety.
 #
 # Prerequisites:
-# - A GitHub Environment named "remote-mirror" with the variables and secrets
-#   listed below configured.
+# - A GitHub Environment named "onedrive-remote" with the variables and secrets
+#   listed below configured. "remote-mirror" may exist as a legacy environment,
+#   but it is not the official OneDrive environment for this repository.
 # - data/out/local/ must be present on the runner. Because data/out/ is
 #   gitignored, this workflow is designed for self-hosted runners that keep
 #   a persistent working copy, or for manual dispatch after restoring the
 #   data layer from a known source.
+#
+# Non-session diagnostics should use remote_publish_diagnostic.yml instead.
+# That punctual flow writes one file to sessions/06_diagnoses/... and never
+# prunes remote files.
 #
 # Sync mode: local_primary — local canon is authoritative; OneDrive is a replica.
 # The mirror does NOT perform any canon admission; that path goes through
 # python_scripts/admit_session_candidates.py exclusively.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Run in dry-run mode (no uploads to OneDrive)"
         type: boolean
         default: true
+      confirm_full_mirror:
+        description: "Type MIRROR_DATA_OUT_LOCAL to allow a live full mirror"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -32,7 +40,7 @@ jobs:
   mirror:
     name: "Mirror data/out/local/ → OneDrive"
     runs-on: ubuntu-latest
-    environment: remote-mirror
+    environment: onedrive-remote
 
     steps:
       - uses: actions/checkout@v4
@@ -41,9 +49,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Guard live full mirror
+        if: ${{ inputs.dry_run == false && inputs.confirm_full_mirror != 'MIRROR_DATA_OUT_LOCAL' }}
+        run: |
+          echo "error: live full mirror requires confirm_full_mirror=MIRROR_DATA_OUT_LOCAL" >&2
+          exit 1
+
       - name: Run remote mirror
         env:
-          # Non-sensitive variables — configure in the "remote-mirror" GitHub Environment
+          # Non-sensitive variables — configure in the "onedrive-remote" GitHub Environment
           AGENT_ADMISSION_SCRIPT:       ${{ vars.AGENT_ADMISSION_SCRIPT }}
           AGENT_DIRECT_CANON_WRITE:     ${{ vars.AGENT_DIRECT_CANON_WRITE }}
           AGENT_PRIMARY_READ_ROOT:      ${{ vars.AGENT_PRIMARY_READ_ROOT }}
@@ -62,7 +76,7 @@ jobs:
                 && toJSON(inputs.dry_run)
                 || vars.SYNC_DRY_RUN
                 || 'true' }}
-          # Secrets — configure in the "remote-mirror" GitHub Environment
+          # Secrets — configure in the "onedrive-remote" GitHub Environment
           AZURE_CLIENT_ID:    ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID:    ${{ secrets.AZURE_TENANT_ID }}
           MSA_REFRESH_TOKEN:  ${{ secrets.MSA_REFRESH_TOKEN }}
