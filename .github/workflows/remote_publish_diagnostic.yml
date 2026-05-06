@@ -37,7 +37,7 @@ jobs:
       DRY_RUN: ${{ toJSON(inputs.dry_run) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
 
