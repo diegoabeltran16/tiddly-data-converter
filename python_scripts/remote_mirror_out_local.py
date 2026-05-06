@@ -37,11 +37,13 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import quote
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -60,6 +62,21 @@ TOKEN_URL_TMPL = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 # Files up to this size use a single PUT; larger files use an upload session.
 SIMPLE_UPLOAD_LIMIT = 4 * 1024 * 1024   # 4 MB
 CHUNK_SIZE = 10 * 1024 * 1024            # 10 MB per chunk in upload sessions
+
+# HTTP status codes that warrant a retry with exponential backoff.
+TRANSIENT_HTTP_CODES: frozenset[int] = frozenset({408, 429, 500, 502, 503, 504})
+MAX_RETRIES = 4
+BASE_BACKOFF_SECONDS = 2
+
+# Remote path prefixes that must NEVER be pruned even with REMOTE_DELETE_EXTRANEOUS=true.
+PROTECTED_REMOTE_PREFIXES: tuple[str, ...] = (
+    "_remote_outbox",
+)
+
+# Files whose names match these patterns are excluded from sync with a reason.
+_EXCLUSION_CHECKS: list[tuple[str, str]] = [
+    # (reason_key, description) — checked in order
+]
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +161,103 @@ class MirrorStats:
     uploaded: int = 0
     skipped: int = 0
     deleted: int = 0
+    protected: int = 0
+    excluded: int = 0
+    excluded_reasons: dict[str, int] = field(default_factory=dict)
+    errors_by_type: dict[str, int] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
+
+    def add_error(self, error_type: str, message: str) -> None:
+        self.errors_by_type[error_type] = self.errors_by_type.get(error_type, 0) + 1
+        self.errors.append(message)
+
+    def add_excluded(self, reason: str) -> None:
+        self.excluded += 1
+        self.excluded_reasons[reason] = self.excluded_reasons.get(reason, 0) + 1
+
+
+# ---------------------------------------------------------------------------
+# Syncable file iterator with exclusions
+# ---------------------------------------------------------------------------
+
+def _exclusion_reason(path: Path) -> str | None:
+    """Return an exclusion reason key if this file should not be synced, else None."""
+    name = path.name
+
+    # Windows Alternate Data Streams (Zone.Identifier and similar ADS files)
+    if ":" in name:
+        return "windows_ads_zone_identifier"
+
+    # Dotenv files — never sync credentials
+    if name == ".env" or name.startswith(".env."):
+        return "dotenv_credentials"
+
+    # macOS metadata
+    if name == ".DS_Store":
+        return "macos_metadata"
+
+    # Windows metadata
+    if name in ("Thumbs.db", "desktop.ini"):
+        return "windows_metadata"
+
+    # Temporary / lock files
+    lower = name.lower()
+    if lower.endswith((".tmp", ".lock", ".swp", ".bak")):
+        return "temporary_file"
+
+    # Python / tool caches — check any path segment, not just the filename
+    for part in path.parts:
+        if part in ("__pycache__", ".pytest_cache", ".mypy_cache", "node_modules", ".venv", ".git"):
+            return "cache_or_vcs_directory"
+
+    return None
+
+
+def iter_syncable_files(
+    source: Path,
+    stats: MirrorStats | None = None,
+    verbose: bool = False,
+) -> list[tuple[str, Path]]:
+    """Return (rel_path, abs_path) pairs for all syncable files under source.
+
+    Files failing the exclusion check are logged and counted in stats but
+    not returned.  This is the single source of truth for what gets synced.
+    """
+    result: list[tuple[str, Path]] = []
+    for p in sorted(source.rglob("*")):
+        if not p.is_file():
+            continue
+        reason = _exclusion_reason(p)
+        if reason:
+            rel = str(p.relative_to(source)).replace("\\", "/")
+            if stats is not None:
+                stats.add_excluded(reason)
+            if verbose:
+                print(f"  excluded: {rel}  reason={reason}")
+            continue
+        rel = str(p.relative_to(source)).replace("\\", "/")
+        result.append((rel, p))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Graph path encoding
+# ---------------------------------------------------------------------------
+
+def encode_graph_path_segment(segment: str) -> str:
+    """URL-encode a single Microsoft Graph path segment (no slashes encoded)."""
+    return quote(segment, safe="")
+
+
+def encode_graph_rel_path(rel: str) -> str:
+    """URL-encode each segment of a relative path for Microsoft Graph URLs.
+
+    Example:
+      'sessions/06_diagnoses/m04 diag.md.json'
+      -> 'sessions/06_diagnoses/m04%20diag.md.json'
+    """
+    segments = rel.replace("\\", "/").split("/")
+    return "/".join(encode_graph_path_segment(seg) for seg in segments)
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +332,7 @@ def resolve_project_folder(cfg: MirrorConfig, token: str) -> str:
     if not cfg.project_root_name:
         return root
 
-    folder_check_url = f"{root}:/{cfg.project_root_name}"
+    folder_check_url = f"{root}:/{encode_graph_path_segment(cfg.project_root_name)}"
     try:
         _http_json(folder_check_url, headers=_auth(token))
     except urllib.error.HTTPError as exc:
@@ -237,16 +350,17 @@ def resolve_project_folder(cfg: MirrorConfig, token: str) -> str:
         else:
             raise
 
-    return f"{root}:/{cfg.project_root_name}"
+    return f"{root}:/{encode_graph_path_segment(cfg.project_root_name)}"
 
 
 def upload_file(remote_prefix: str, rel: str, path: Path, token: str) -> None:
-    rel = rel.replace("\\", "/")
+    """Upload a local file to OneDrive using an encoded Graph URL."""
+    encoded_rel = encode_graph_rel_path(rel)
     size = path.stat().st_size
 
     if size <= SIMPLE_UPLOAD_LIMIT:
         _http_put_raw(
-            f"{remote_prefix}/{rel}:/content",
+            f"{remote_prefix}/{encoded_rel}:/content",
             path.read_bytes(),
             {**_auth(token), "Content-Type": "application/octet-stream"},
         )
@@ -254,7 +368,7 @@ def upload_file(remote_prefix: str, rel: str, path: Path, token: str) -> None:
 
     # Large file — upload session with chunked PUT
     session = _http_json(
-        f"{remote_prefix}/{rel}:/createUploadSession",
+        f"{remote_prefix}/{encoded_rel}:/createUploadSession",
         method="POST",
         data=json.dumps({
             "item": {"@microsoft.graph.conflictBehavior": "replace"}
@@ -273,6 +387,40 @@ def upload_file(remote_prefix: str, rel: str, path: Path, token: str) -> None:
             with urllib.request.urlopen(req):
                 pass
             offset += len(chunk)
+
+
+def _upload_with_retry(
+    remote_prefix: str,
+    rel: str,
+    path: Path,
+    token: str,
+    stats: MirrorStats,
+    verbose: bool = False,
+) -> None:
+    """Upload with exponential backoff on transient Graph errors."""
+    last_exc: Exception | None = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            upload_file(remote_prefix, rel, path, token)
+            return
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            if exc.code in TRANSIENT_HTTP_CODES and attempt < MAX_RETRIES:
+                retry_after = 0
+                try:
+                    retry_after = int(exc.headers.get("Retry-After", 0) or 0)
+                except (TypeError, ValueError):
+                    pass
+                wait = max(retry_after, BASE_BACKOFF_SECONDS ** attempt)
+                print(f"  upload retry {attempt}/{MAX_RETRIES - 1}: {rel} — HTTP {exc.code}")
+                time.sleep(wait)
+            else:
+                raise
+        except Exception as exc:
+            last_exc = exc
+            raise
+    if last_exc is not None:
+        raise last_exc
 
 
 def list_remote_files(remote_prefix: str, token: str, folder_rel: str = "") -> set[str]:
@@ -299,43 +447,54 @@ def list_remote_files(remote_prefix: str, token: str, folder_rel: str = "") -> s
     return result
 
 
+def _is_protected_remote_path(rel: str) -> bool:
+    """Return True if this remote path is under a protected prefix (e.g. _remote_outbox)."""
+    normalized = rel.replace("\\", "/").lstrip("/")
+    for prefix in PROTECTED_REMOTE_PREFIXES:
+        if normalized == prefix or normalized.startswith(prefix + "/"):
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Mirror orchestration
 # ---------------------------------------------------------------------------
 
-def collect_local_files(source: Path) -> list[tuple[str, Path]]:
-    return [
-        (str(p.relative_to(source)).replace("\\", "/"), p)
-        for p in sorted(source.rglob("*"))
-        if p.is_file()
-    ]
-
-
-def run_dry_run(cfg: MirrorConfig, local_files: list[tuple[str, Path]]) -> MirrorStats:
-    stats = MirrorStats()
+def run_dry_run(cfg: MirrorConfig, local_files: list[tuple[str, Path]], stats: MirrorStats) -> None:
     for rel, path in local_files:
         size_kb = path.stat().st_size // 1024
         print(f"  [dry-run] upload  {rel}  ({size_kb} KB)")
         stats.uploaded += 1
     if cfg.delete_extraneous:
         print("  [dry-run] delete-extraneous: remote listing skipped in dry-run")
-    return stats
 
 
-def run_live(cfg: MirrorConfig, local_files: list[tuple[str, Path]]) -> MirrorStats:
-    stats = MirrorStats()
-
+def run_live(cfg: MirrorConfig, local_files: list[tuple[str, Path]], stats: MirrorStats) -> None:
     print("Authenticating via MSA refresh token...")
-    token = exchange_refresh_token(cfg)
+    try:
+        token = exchange_refresh_token(cfg)
+    except Exception as exc:
+        stats.add_error("AUTH_ERROR", f"auth failed: {exc}")
+        print(f"  error AUTH_ERROR: {exc}", file=sys.stderr)
+        return
 
     print(f"Resolving project folder '{cfg.project_root_name}' under {cfg.root_mode}...")
-    remote_prefix = resolve_project_folder(cfg, token)
+    try:
+        remote_prefix = resolve_project_folder(cfg, token)
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            stats.add_error("PERMISSION_ERROR", f"cannot resolve project folder: HTTP {exc.code}")
+        else:
+            stats.add_error("TRANSIENT_GRAPH_ERROR", f"cannot resolve project folder: HTTP {exc.code}")
+        print(f"  error: cannot resolve project folder: HTTP {exc.code}", file=sys.stderr)
+        return
 
     for rel, path in local_files:
         try:
             if cfg.conflict_behavior == "skip":
+                encoded_rel = encode_graph_rel_path(rel)
                 try:
-                    _http_json(f"{remote_prefix}/{rel}", headers=_auth(token))
+                    _http_json(f"{remote_prefix}/{encoded_rel}", headers=_auth(token))
                     if cfg.verbose:
                         print(f"  skip    {rel}")
                     stats.skipped += 1
@@ -344,23 +503,45 @@ def run_live(cfg: MirrorConfig, local_files: list[tuple[str, Path]]) -> MirrorSt
                     if exc.code != 404:
                         raise
 
-            upload_file(remote_prefix, rel, path, token)
+            _upload_with_retry(remote_prefix, rel, path, token, stats, cfg.verbose)
             if cfg.verbose:
                 print(f"  upload  {rel}")
             stats.uploaded += 1
-        except Exception as exc:  # noqa: BLE001
+        except urllib.error.HTTPError as exc:
+            if exc.code in (401, 403):
+                error_type = "AUTH_ERROR" if exc.code == 401 else "PERMISSION_ERROR"
+            elif exc.code in TRANSIENT_HTTP_CODES:
+                error_type = "TRANSIENT_GRAPH_ERROR"
+            else:
+                # Likely a path encoding or bad request issue
+                error_type = "PATH_ENCODING_ERROR" if exc.code == 400 else "TRANSIENT_GRAPH_ERROR"
+            msg = f"{rel}: HTTP {exc.code}"
+            stats.add_error(error_type, msg)
+            print(f"  error {error_type}: {msg}", file=sys.stderr)
+        except Exception as exc:
             msg = f"{rel}: {exc}"
-            stats.errors.append(msg)
+            stats.add_error("TRANSIENT_GRAPH_ERROR", msg)
             print(f"  error   {msg}", file=sys.stderr)
 
     if cfg.delete_extraneous:
         print("Listing remote files for prune...")
-        remote_files = list_remote_files(remote_prefix, token)
+        try:
+            remote_files = list_remote_files(remote_prefix, token)
+        except Exception as exc:
+            stats.add_error("REMOTE_PRUNE_ERROR", f"list remote failed: {exc}")
+            print(f"  error REMOTE_PRUNE_ERROR: listing failed: {exc}", file=sys.stderr)
+            return
+
         local_rels = {rel for rel, _ in local_files}
         for rel in sorted(remote_files - local_rels):
+            if _is_protected_remote_path(rel):
+                print(f"  protected  {rel}  (skipping prune)")
+                stats.protected += 1
+                continue
             try:
+                encoded_rel = encode_graph_rel_path(rel)
                 req = urllib.request.Request(
-                    f"{remote_prefix}/{rel}", method="DELETE"
+                    f"{remote_prefix}/{encoded_rel}", method="DELETE"
                 )
                 req.add_header("Authorization", f"Bearer {token}")
                 with urllib.request.urlopen(req):
@@ -368,12 +549,10 @@ def run_live(cfg: MirrorConfig, local_files: list[tuple[str, Path]]) -> MirrorSt
                 if cfg.verbose:
                     print(f"  delete  {rel}")
                 stats.deleted += 1
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 msg = f"delete {rel}: {exc}"
-                stats.errors.append(msg)
-                print(f"  error   {msg}", file=sys.stderr)
-
-    return stats
+                stats.add_error("REMOTE_PRUNE_ERROR", msg)
+                print(f"  error REMOTE_PRUNE_ERROR: {msg}", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -408,18 +587,34 @@ def main() -> int:
             print("error: MSA_REFRESH_TOKEN is required for live mode", file=sys.stderr)
             return 1
 
-    local_files = collect_local_files(cfg.source)
-    print(f"  {len(local_files)} file(s) in source\n")
+    stats = MirrorStats()
+    local_files = iter_syncable_files(cfg.source, stats=stats, verbose=cfg.verbose)
+    total_seen = len(local_files) + stats.excluded
+    print(f"  {total_seen} file(s) seen — {len(local_files)} syncable — {stats.excluded} excluded\n")
 
-    stats = run_dry_run(cfg, local_files) if cfg.dry_run else run_live(cfg, local_files)
+    if stats.excluded_reasons and cfg.verbose:
+        for reason, count in sorted(stats.excluded_reasons.items()):
+            print(f"  excluded by reason: {reason}={count}")
+        print()
+
+    if cfg.dry_run:
+        run_dry_run(cfg, local_files, stats)
+    else:
+        run_live(cfg, local_files, stats)
 
     summary = {
         "source": as_display_path(cfg.source),
         "project_root": cfg.project_root_name,
         "dry_run": cfg.dry_run,
+        "total_seen": total_seen,
+        "syncable": len(local_files),
         "uploaded": stats.uploaded,
         "skipped": stats.skipped,
         "deleted": stats.deleted,
+        "protected": stats.protected,
+        "excluded": stats.excluded,
+        "excluded_reasons": stats.excluded_reasons,
+        "errors_by_type": stats.errors_by_type,
         "errors": stats.errors,
     }
     print()

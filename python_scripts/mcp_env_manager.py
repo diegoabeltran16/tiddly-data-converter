@@ -578,17 +578,132 @@ def action_reset_key() -> None:
 # Submenu
 # ---------------------------------------------------------------------------
 
+def action_preview_pull() -> None:
+    """Show what would be pulled from OneDrive _remote_outbox/sessions/ (dry-run, no auth)."""
+    print("  Preview pull remoto \u2192 local staging (SYNC_DRY_RUN=true)\n")
+    print("  Origen remoto : OneDrive approot:/<project>/_remote_outbox/sessions/")
+    print("  Destino local : data/tmp/remote_inbox/  (staging \u2014 NO canon)")
+    print("  Admision      : python_scripts/admit_session_candidates.py")
+    print("  Canon write   : NUNCA \u2014 AGENT_DIRECT_CANON_WRITE=false")
+    print()
+    env = _build_mirror_env("true")
+    import subprocess as _sp
+    _sp.run(
+        [sys.executable, str(SCRIPT_DIR / "remote_pull_sessions.py")],
+        cwd=REPO_ROOT,
+        env=env,
+    )
+
+
+def action_pull_and_admit() -> None:
+    """Pull from _remote_outbox/sessions/ to staging then run admission gate (live)."""
+    print()
+    print("  PULL REMOTO \u2192 LOCAL + ADMISION")
+    print()
+    print("  Este flujo descarga candidatos de:")
+    print("    OneDrive approot:/<project>/_remote_outbox/sessions/")
+    print("  hacia el staging local:")
+    print("    data/tmp/remote_inbox/")
+    print()
+    print("  El pull NO sobrescribe canon ni derivados base.")
+    print("  Solo archivos de sesion con nombre mXX-sNN-<slug>.md.json son aceptados.")
+    print()
+    print("  Credenciales de autenticacion Microsoft: runtime only \u2014 no se guardan en .env.")
+    print()
+    client_id = _get_runtime_secret("AZURE_CLIENT_ID", "ID de aplicacion Azure AD")
+    if not client_id:
+        print("  Credencial de autenticacion Azure no disponible. Pull cancelado.")
+        return
+    refresh_token = _get_runtime_secret("MSA_REFRESH_TOKEN", "token de actualizacion Microsoft")
+    if not refresh_token:
+        print("  Token de actualizacion Microsoft no disponible. Pull cancelado.")
+        client_id = ""
+        return
+
+    confirm = _prompt("  Ejecutar pull real? [s/N] ").strip().lower()
+    if confirm not in ("s", "si", "y", "yes"):
+        print("  Cancelado.")
+        client_id = refresh_token = ""
+        return
+
+    env = _build_mirror_env("false")
+    env["AZURE_CLIENT_ID"] = client_id
+    env["MSA_REFRESH_TOKEN"] = refresh_token
+
+    import subprocess as _sp
+    print(flush=True)
+    _sp.run(
+        [sys.executable, str(SCRIPT_DIR / "remote_pull_sessions.py")],
+        cwd=REPO_ROOT,
+        env=env,
+    )
+    client_id = refresh_token = ""
+
+    print()
+    inbox = REPO_ROOT / "data" / "tmp" / "remote_inbox"
+    candidates = list(inbox.glob("*.md.json")) if inbox.exists() else []
+    if candidates:
+        print(f"  {len(candidates)} candidato(s) en staging. Ejecutar admision?")
+        print("  Comando: python3 python_scripts/admit_session_candidates.py dry-run --all-contracts")
+        run_admit = _prompt("  Ejecutar dry-run de admision? [s/N] ").strip().lower()
+        if run_admit in ("s", "si", "y", "yes"):
+            _sp.run(
+                [sys.executable, str(SCRIPT_DIR / "admit_session_candidates.py"), "dry-run", "--all-contracts"],
+                cwd=REPO_ROOT,
+                env=os.environ.copy(),
+            )
+    else:
+        print("  data/tmp/remote_inbox/ no tiene candidatos .md.json todavia.")
+
+
+def action_show_last_sync() -> None:
+    """Show the last sync/pull summary from data/tmp/ if available."""
+    import glob as _glob
+    reports_dir = REPO_ROOT / "data" / "tmp" / "admissions"
+    pattern = str(reports_dir / "*.json")
+    matches = sorted(_glob.glob(pattern), reverse=True)
+    if not matches:
+        print("  No hay reportes de admision en data/tmp/admissions/.")
+        print("  Los reportes de sync de mirror no se persisten localmente por defecto.")
+        inbox = REPO_ROOT / "data" / "tmp" / "remote_inbox"
+        if inbox.exists():
+            candidates = list(inbox.glob("*.md.json"))
+            print(f"  Candidatos actuales en staging: {len(candidates)}")
+            for c in candidates[:10]:
+                print(f"    {c.name}")
+        return
+    latest = matches[0]
+    print(f"  Ultimo reporte: {latest}")
+    try:
+        import json as _json
+        with open(latest, encoding="utf-8") as fh:
+            data = _json.load(fh)
+        print(f"  mode     : {data.get('mode', '?')}")
+        print(f"  status   : {data.get('status', '?')}")
+        print(f"  session  : {data.get('session_id', '?')}")
+        print(f"  timestamp: {data.get('timestamp', '?')}")
+        admitted = data.get('admitted_count', 0)
+        rejected = len(data.get('rejected_candidates', []))
+        print(f"  admitted : {admitted}")
+        print(f"  rejected : {rejected}")
+    except Exception as exc:
+        print(f"  No se pudo leer el reporte: {exc}")
+
+
 _MENU_BODY = (
-    "1) Inicializar .env\n"
-    "2) Editar variable operativa\n"
-    "3) Politica de secrets (runtime only)\n"
-    "4) Ver estado de configuracion\n"
-    "5) Probar autenticacion Azure\n"
-    "6) Probar acceso a App Folder\n"
-    "7) Preview mirror local \u2192 remoto (dry-run)\n"
-    "8) Sync manual (mirror real a OneDrive)\n"
-    "9) Resetear variable a vacio\n"
-    "0) Volver"
+    "1)  Inicializar variables operativas locales\n"
+    "2)  Editar variable operativa\n"
+    "3)  Politica de secrets (runtime only)\n"
+    "4)  Ver estado de configuracion\n"
+    "5)  Probar autenticacion Azure\n"
+    "6)  Probar acceso a App Folder\n"
+    "7)  Preview mirror local \u2192 remoto (dry-run)\n"
+    "8)  Sync manual local \u2192 remoto (mirror real)\n"
+    "9)  Preview pull remoto \u2192 local staging (dry-run)\n"
+    "10) Pull remoto \u2192 staging + admision\n"
+    "11) Ver ultimo reporte de sync/admision\n"
+    "12) Resetear variable operativa a vacio\n"
+    "0)  Volver"
 )
 
 _ACTIONS = {
@@ -600,7 +715,10 @@ _ACTIONS = {
     "6": action_test_appfolder,
     "7": action_preview,
     "8": action_sync_manual,
-    "9": action_reset_key,
+    "9": action_preview_pull,
+    "10": action_pull_and_admit,
+    "11": action_show_last_sync,
+    "12": action_reset_key,
 }
 
 
