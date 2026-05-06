@@ -92,6 +92,7 @@ def ensure_runtime_directories() -> None:
         DEFAULT_SESSIONS_DIR / "06_diagnoses" / "module",
         DEFAULT_SESSIONS_DIR / "06_diagnoses" / "micro-ciclo",
         DEFAULT_SESSIONS_DIR / "06_diagnoses" / "meso-ciclo",
+        DEFAULT_SESSIONS_DIR / "06_diagnoses" / "proyecto",
     ):
         directory.mkdir(parents=True, exist_ok=True)
 

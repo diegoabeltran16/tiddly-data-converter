@@ -379,3 +379,82 @@ El objetivo de la sesion no es nutrir el canon con escritura libre. El objetivo
 es producir memoria operativa trazable en `data/out/local/sessions/`, dejar candidatos
 canonicos reversibles cuando correspondan y documentar evidencia suficiente
 para que un proceso local decida si puede absorberlos al canon.
+
+---
+
+## Gobernanza de diagnósticos no sesionales
+
+### Diferencia entre sesión normal y diagnóstico no sesional
+
+| Tipo | Patrón de nombre | Destino | Llega al canon |
+|---|---|---|---|
+| Sesión normal | `mXX-sNN-slug.md.json` | `data/out/local/sessions/00_contratos/` … `05_propuesta_de_sesion/` | Sí, via admission gate |
+| Diagnóstico no sesional | Ver patrones por familia | `data/out/local/sessions/06_diagnoses/<familia>/` | No directamente |
+
+Los diagnósticos no sesionales son artefactos de análisis del ciclo de trabajo.
+No son tiddlers canon. Viven en `06_diagnoses/` y se sincronizan a OneDrive
+via el mirror normal.
+
+### Familias válidas y nombres esperados
+
+| Familia | Subfolder | Patrón de nombre |
+|---|---|---|
+| `tema` | `06_diagnoses/tema/` | `diagnostico-tematico-NN-slug.md.json` |
+| `micro_ciclo` | `06_diagnoses/micro-ciclo/` | `mXX-micro-ciclo-sNNN-sNNN-diagnostico.md.json` |
+| `meso_ciclo` | `06_diagnoses/meso-ciclo/` | `mXX-meso-ciclo-sNNN-sNNN-diagnostico.md.json` |
+| `proyecto` | `06_diagnoses/proyecto/` | `diagnostico-proyecto-NN-slug.md.json` o `mXX-diagnostico-proyecto-slug.md.json` |
+| `sesion` | `06_diagnoses/sesion/` | `diagnostico-sesion-sNNN-slug.md.json` |
+
+Solo estas cinco familias son válidas. Cualquier otro subdirectorio bajo `06_diagnoses/`
+es inválido y debe rechazarse.
+
+La extensión obligatoria es `.md.json`. Archivos con extensión `.json`, `.md` o `.txt` son rechazados.
+
+### Cómo llega un diagnóstico a OneDrive
+
+```
+1. El agente produce el diagnóstico local:
+   data/out/local/sessions/06_diagnoses/<familia>/<nombre>.md.json
+
+2. El mirror lo envía a OneDrive (requiere SYNC_DRY_RUN=false):
+   remote_mirror_out_local.py → OneDrive approot:/tiddly-data-converter/sessions/06_diagnoses/<familia>/
+
+3. Para traer un diagnóstico remoto al local (pull):
+   El agente remoto deposita el archivo en OneDrive _remote_outbox/sessions/
+   remote_pull_sessions.py lo baja a data/tmp/remote_inbox/
+   El operador mueve manualmente al subfolder correcto de 06_diagnoses/
+```
+
+**Crear un archivo en el runner remoto NO equivale automáticamente a verlo en OneDrive.**
+El mirror debe ejecutarse con `SYNC_DRY_RUN=false` para que los archivos lleguen.
+
+### SYNC_DRY_RUN=true
+
+Cuando `SYNC_DRY_RUN=true` (valor por defecto):
+- El mirror simula las operaciones pero no escribe en OneDrive.
+- El pull no puede autenticar sin credenciales, por lo que solo muestra la política.
+- Ningún diagnóstico llega realmente a OneDrive ni se descarga desde allí.
+
+Para sincronización real, el operador debe ejecutar con `SYNC_DRY_RUN=false`
+como instrucción operativa explícita. **No cambiar este valor en el repositorio.**
+
+### Cómo verificar que un diagnóstico remoto llegó realmente
+
+```bash
+# Verificar en el inbox local después de un pull real:
+ls data/tmp/remote_inbox/
+
+# Verificar en OneDrive después de un mirror real:
+# Revisar via Microsoft Graph Explorer o el cliente OneDrive sincronizado.
+```
+
+### Gobernanza de rutas
+
+- **Permitida:** `data/out/local/sessions/06_diagnoses/<familia>/`
+- **Prohibida:** cualquier ruta fuera de esa raíz
+- **Prohibida:** `data/sessions/`, `data/out/sessions/`, `sessions/` en raíz
+- **Rechazada:** ruta con `..` (path traversal)
+- **Rechazada:** ruta absoluta
+
+La lógica centralizada está en `python_scripts/diagnostic_governance.py`.
+El allowlist del pull está en `python_scripts/remote_pull_sessions.py::_is_allowed_outbox_file`.

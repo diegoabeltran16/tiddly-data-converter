@@ -254,7 +254,7 @@ class TestPullAllowlist(unittest.TestCase):
     def test_generic_json_file_not_allowed(self):
         allowed, reason = self._check("output.json")
         self.assertFalse(allowed)
-        self.assertEqual(reason, "allowlist_not_session_artifact")
+        self.assertEqual(reason, "allowlist_not_session_or_diagnostic_artifact")
 
     def test_wrong_prefix_not_allowed(self):
         allowed, reason = self._check("session-100-sync.md.json")

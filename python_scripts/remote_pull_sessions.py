@@ -47,6 +47,10 @@ from path_governance import (  # noqa: E402
     as_display_path,
     resolve_repo_path,
 )
+from diagnostic_governance import (  # noqa: E402
+    is_diagnostic_artifact,
+    SESSION_ARTIFACT_RE as _SESSION_ARTIFACT_RE,
+)
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 TOKEN_URL_TMPL = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
@@ -57,11 +61,9 @@ REMOTE_OUTBOX_PREFIX = "_remote_outbox/sessions"
 # Default local staging directory for pulled candidates.
 DEFAULT_REMOTE_INBOX = REPO_ROOT / "data" / "tmp" / "remote_inbox"
 
-# Allowlist: only files matching these patterns may be pulled from the outbox.
-_ALLOWED_FILENAME_RE = re.compile(
-    r"^m\d+-s\d+[a-z]?-.+\.md\.json$",
-    re.IGNORECASE,
-)
+# Allowlist: session artifacts (mXX-sNN-<slug>.md.json).
+# Diagnostic artifacts are handled via is_diagnostic_artifact() from diagnostic_governance.
+_ALLOWED_FILENAME_RE = _SESSION_ARTIFACT_RE
 
 # Denylist: these filename patterns are always rejected regardless of path.
 _CANON_SHARD_RE = re.compile(r"^tiddlers_\d+\.jsonl$")
@@ -231,8 +233,16 @@ def exchange_refresh_token(cfg: PullConfig) -> str:
 def _is_allowed_outbox_file(filename: str) -> tuple[bool, str]:
     """Return (allowed, reason) for a candidate remote filename.
 
-    Only session artifacts following the project naming convention are allowed.
-    Canon shards, env files, and non-session artifacts are explicitly rejected.
+    Accepts two artifact families:
+    - session_artifact:    mXX-sNN-<slug>.md.json
+    - diagnostic_artifact: diagnostico-tematico-NN-slug.md.json,
+                           mXX-micro-ciclo-sNNN-sNNN-diagnostico.md.json,
+                           mXX-meso-ciclo-sNNN-sNNN-diagnostico.md.json,
+                           diagnostico-proyecto-NN-slug.md.json,
+                           mXX-diagnostico-proyecto-slug.md.json,
+                           diagnostico-sesion-sNNN-slug.md.json
+
+    Canon shards, env files, and unknown artifacts are rejected.
     """
     # Reject canon shards unconditionally
     if _CANON_SHARD_RE.match(filename):
@@ -246,11 +256,15 @@ def _is_allowed_outbox_file(filename: str) -> tuple[bool, str]:
     if ":" in filename:
         return False, "denylist_ads_zone_identifier"
 
-    # Must match session artifact naming convention
-    if not _ALLOWED_FILENAME_RE.match(filename):
-        return False, "allowlist_not_session_artifact"
+    # Session artifact (mXX-sNN-<slug>.md.json)
+    if _ALLOWED_FILENAME_RE.match(filename):
+        return True, ""
 
-    return True, ""
+    # Diagnostic artifact (non-session, governed by diagnostic_governance)
+    if is_diagnostic_artifact(filename):
+        return True, ""
+
+    return False, "allowlist_not_session_or_diagnostic_artifact"
 
 
 def _is_protected_local_path(local_path: Path, inbox_dir: Path) -> bool:
@@ -404,9 +418,15 @@ def main() -> int:
         # In dry-run we can't list remote files without auth; show policy and exit.
         print("  [dry-run] Would list files under:")
         print(f"            OneDrive approot:/{cfg.project_root_name}/{REMOTE_OUTBOX_PREFIX}/")
-        print(f"  [dry-run] Allowed files matching: mXX-sNN-<slug>.md.json")
+        print(f"  [dry-run] Allowed session artifacts:    mXX-sNN-<slug>.md.json")
+        print(f"  [dry-run] Allowed diagnostic artifacts: diagnostico-tematico-NN-slug.md.json")
+        print(f"  [dry-run]                               mXX-micro-ciclo-sNNN-sNNN-diagnostico.md.json")
+        print(f"  [dry-run]                               mXX-meso-ciclo-sNNN-sNNN-diagnostico.md.json")
+        print(f"  [dry-run]                               diagnostico-proyecto-NN-slug.md.json")
+        print(f"  [dry-run]                               mXX-diagnostico-proyecto-slug.md.json")
+        print(f"  [dry-run]                               diagnostico-sesion-sNNN-slug.md.json")
         print(f"  [dry-run] Staging target: {as_display_path(cfg.inbox_dir)}/")
-        print(f"  [dry-run] Admission gate: AGENT_ADMISSION_SCRIPT")
+        print(f"  [dry-run] Admission gate: AGENT_ADMISSION_SCRIPT (session) / manual placement (diagnostic)")
         print(f"  [dry-run] Canon overwrite: NEVER (AGENT_DIRECT_CANON_WRITE=false)")
         stats.listed = 0
         summary = {
