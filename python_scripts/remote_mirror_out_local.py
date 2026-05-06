@@ -11,6 +11,10 @@ because the source root is data/out/local/ only.
 
 Sync mode: local_primary — local canon is authoritative; remote is a replica.
 
+For remote non-session diagnostic publication, prefer
+remote_publish_diagnostic.py. It uploads a single governed artifact to
+sessions/06_diagnoses/... and never uses REMOTE_DELETE_EXTRANEOUS.
+
 Non-sensitive env vars (loadable from .env or shell environment):
   LOCAL_SYNC_SOURCE           source root (default: data/out/local/)
   AGENT_PRIMARY_READ_ROOT     informational

@@ -17,8 +17,12 @@ Official root: data/out/local/sessions/06_diagnoses/<family>/
 
 Sync path:
   LOCAL  data/out/local/sessions/06_diagnoses/<family>/
-    → mirror (remote_mirror_out_local.py, SYNC_DRY_RUN=false)
+    → punctual publish (remote_publish_diagnostic.py)
     → OneDrive approot:/tiddly-data-converter/sessions/06_diagnoses/<family>/
+
+  Equivalent roots:
+    Local    data/out/local/sessions/06_diagnoses/<family>/
+    OneDrive sessions/06_diagnoses/<family>/
 
   OneDrive _remote_outbox/sessions/ (flat)
     → pull (remote_pull_sessions.py)
@@ -26,7 +30,9 @@ Sync path:
     → manual placement into data/out/local/sessions/06_diagnoses/<family>/
 
 NOTE: Creating a file in a remote runner does NOT automatically sync it to OneDrive.
-The mirror script must run with SYNC_DRY_RUN=false for files to reach OneDrive.
+The punctual publish workflow must run with dry_run=false for files to reach OneDrive.
+The full mirror remains a controlled maintenance path and must not be used as
+the default diagnostic publication mechanism from an incomplete remote workspace.
 """
 
 from __future__ import annotations

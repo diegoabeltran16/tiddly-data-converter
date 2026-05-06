@@ -15,13 +15,19 @@
 - Cuando una hipótesis cambia de estatuto por confirmación, refinamiento, contradicción o descarte.
 
 ## Obligaciones
+
+**Formulación:**
 - Formular cada hipótesis con claridad suficiente para volver a evaluarla.
 - Separar hipótesis de hechos, resultados y definiciones.
-- Registrar contexto de surgimiento, alcance y relación con el tema.
 - Conservar las líneas de validación relevantes.
-- Registrar confirmación, refinamiento, contradicción o descarte cuando ocurra.
-- Usar `# 3_🧪 Hipótesis inicial` y `#### 🌀🧪 Hipótesis de sesión ##` cuando la hipótesis pertenezca a esas escalas.
+
+**Contexto y origen:**
+- Registrar contexto de surgimiento, alcance y relación con el tema.
 - Remitir a `## 🧾🧱 Procedencia epistemológica` cuando haga falta explicar el origen o soporte de una hipótesis.
+
+**Seguimiento de estatuto:**
+- Registrar confirmación, refinamiento, contradicción o descarte cuando ocurra.
+- Usar `# 3_🧪 Hipótesis inicial` y `#### 🌀🧪 Hipótesis de sesión <NNNN>` cuando la hipótesis pertenezca a esas escalas.
 
 ## No hacer
 - No presentar una hipótesis como conclusión consolidada.
@@ -31,7 +37,7 @@
 
 ## Regla transversal S66
 - Toda sesión debe producir hipótesis de sesión en `data/out/local/sessions/03_hipotesis/<session>.md.json`, aunque sea para declarar que no se abrieron hipótesis nuevas.
-- El `title` de hipótesis de sesión debe usar `#### 🌀🧪 Hipótesis de sesión <NN> = <slug>`, por ejemplo `#### 🌀🧪 Hipótesis de sesión 69 = canon-admission-hardening-and-docs-v0`.
+- El `title` de hipótesis de sesión debe usar `#### 🌀🧪 Hipótesis de sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión con cero a la izquierda por nivel (4 dígitos: 0001–0999), por ejemplo `#### 🌀🧪 Hipótesis de sesión 0069 = canon-admission-hardening-and-docs-v0`.
 - Una hipótesis de sesión candidata al canon debe conservar su estatuto tentativo y no reclamar autoridad final antes de validación local y reversibilidad.
 - El diagnóstico de sesión debe registrar si las hipótesis quedaron validadas, abiertas, descartadas o pendientes.
 
@@ -43,7 +49,7 @@
 - Puede apoyarse en `## 📚🧱 Glosario y Convenciones` cuando la hipótesis depende de distinciones terminológicas finas.
 
 ## Criterio de salida
-- Debe poder distinguirse qué sigue siendo tentativo y qué ya no.
+- Debe poder distinguirse claramente si la hipótesis, su validación o su contexto siguen siendo tentativos o ya están consolidados.
 - Debe quedar visible el alcance de la hipótesis, su contexto y su línea de validación.
 - Un agente debe poder revisar después si la hipótesis se confirmó, se refinó, se contradijo o se descartó.
 

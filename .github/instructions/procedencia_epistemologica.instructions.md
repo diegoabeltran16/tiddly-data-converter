@@ -14,12 +14,20 @@
 - Cuando una sesión necesita dejar trazable de dónde surgió una formulación relevante.
 
 ## Obligaciones
+
+**Declaración de origen:**
 - Declarar, cuando corresponda, origen, actor, método y referencia rastreable.
 - Distinguir entre observación, inferencia, generación, compilación, estimación y otras mediaciones relevantes.
+
+**Trazabilidad:**
 - Separar con claridad el recurso concreto de la explicación sobre su entrada al sistema.
-- Registrar de forma suficiente el papel de la IA cuando participe, sin inflar el nodo con transcripciones innecesarias.
-- Usar `# 2_🧾 Procedencia inicial` y `#### 🌀🧾 Procedencia de sesión ##` cuando la procedencia pertenezca a esas escalas.
 - Mantener trazabilidad suficiente para que una decisión importante no dependa de memoria tácita.
+
+**Participación de IA:**
+- Registrar de forma suficiente el papel de la IA cuando participe, sin inflar el nodo con transcripciones innecesarias.
+
+**Escalas específicas:**
+- Usar `# 2_🧾 Procedencia inicial` y `#### 🌀🧾 Procedencia de sesión <NNNN>` cuando la procedencia pertenezca a esas escalas.
 
 ## No hacer
 - No confundir procedencia con contenido temático.
@@ -29,9 +37,9 @@
 
 ## Regla transversal S66
 - Toda sesión debe producir procedencia de sesión en `data/out/local/sessions/01_procedencia/<session>.md.json`.
-- El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión <NN> = <slug>`, por ejemplo `#### 🌀🧾 Procedencia de sesión 69 = canon-admission-hardening-and-docs-v0`.
+- El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión con cero a la izquierda por nivel (4 dígitos: 0001–0999), por ejemplo `#### 🌀🧾 Procedencia de sesión 0069 = canon-admission-hardening-and-docs-v0`.
 - Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/out/local/sessions/`.
-- No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente.
+- No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente mediante revisión manual del archivo fuente bajo `data/out/local/sessions/` o mediante validación automática (`strict`, `reverse-preflight`) según corresponda.
 
 ## Gobernanza de procedencia diagnóstica
 
@@ -73,6 +81,7 @@ histórica son estados distintos.
 
 ## Criterio de salida
 - Debe quedar claro de dónde surge el contenido, cómo fue obtenido y qué referencia permite rastrearlo.
+- Si el origen no puede determinarse, debe declararse explícitamente esa situación y registrar cualquier contexto disponible que ayude a una futura reconstrucción.
 - Debe poder distinguirse recurso, contenido, hipótesis y procedencia como capas distintas.
 - Un agente debe poder reconstruir origen suficiente sin recurrir a memoria informal.
 

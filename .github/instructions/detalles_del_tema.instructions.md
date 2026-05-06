@@ -16,22 +16,28 @@
 - Cuando una sesión modifica el contenido sustantivo del tema y no solo su gestión operativa.
 
 ## Obligaciones
+
+**Contenido sustantivo:**
 - Colocar aquí, o en sus bloques temáticos derivados, el contenido sustantivo del desarrollo.
-- Mantener coherencia entre objetivos, requisitos, DOFA, flujo, arquitectura, componentes, algoritmos e ingeniería asistida por IA.
 - Usar como base de arranque `# 2_🧾 Procedencia inicial` y `# 3_🧪 Hipótesis inicial` cuando sea pertinente.
-- Separar con claridad lo temático de lo normativo y de lo puramente procedimental.
 - Remitir a `## 📚🧱 Glosario y Convenciones` para estabilizar términos y a `## 🧪🧱 Hipótesis` para formulaciones todavía tentativas.
+
+**Coherencia interna:**
+- Mantener coherencia entre objetivos, requisitos, DOFA, flujo, arquitectura, componentes, algoritmos e ingeniería asistida por IA; si surgiera contradicción entre ellos, resolver primero en objetivos y requisitos, y luego propagar hacia los bloques dependientes.
+
+**Separación de capas:**
+- Separar con claridad lo temático (contenido sustantivo del desarrollo del tema, vive en los ocho bloques `🎯`) de lo normativo (reglas transversales y principios de gestión, vive en `## 🗂🧱 Principios de Gestión`) y de lo puramente procedimental (apertura, conducción y cierre de sesiones, vive en `## 🧭🧱 Protocolo de Sesión`).
 
 ## No hacer
 - No convertir este nodo en bitácora de sesión.
 - No duplicar aquí principios madre o reglas de gobernanza.
-- No esconder hipótesis abiertas dentro de afirmaciones aparentemente consolidadas.
+- No esconder hipótesis abiertas dentro de afirmaciones que parecen finalizadas pero carecen de evidencia o validación suficiente; toda formulación no validada debe ir explícitamente a `## 🧪🧱 Hipótesis`.
 - No usar este nodo para explicar el flujo de trabajo de sesión o la política de memoria.
 
 ## Regla transversal S66
 - La producción situada de sesión se escribe bajo `data/out/local/sessions/` y no como archivo acumulativo global.
 - El detalle de sesión propio de cada cierre vive en `data/out/local/sessions/02_detalles_de_sesion/<session>.md.json`.
-- El `title` del detalle/sesión debe usar `#### 🌀 Sesión <NN> = <slug>`, por ejemplo `#### 🌀 Sesión 69 = canon-admission-hardening-and-docs-v0`.
+- El `title` del detalle/sesión debe usar `#### 🌀 Sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión con cero a la izquierda por nivel de magnitud (4 dígitos en la era actual: 0001–0999), por ejemplo `#### 🌀 Sesión 0069 = canon-admission-hardening-and-docs-v0`.
 - Si un detalle debe poder entrar al canon, se representa como línea candidata y no como autoridad canónica final hasta completar validación local y reverse sin rechazo.
 
 ## Interacción con otros nodos

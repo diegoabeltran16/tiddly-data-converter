@@ -34,7 +34,7 @@ REPO_ROOT = SCRIPT_DIR.parent
 ENV_PATH = REPO_ROOT / ".env"
 
 # ---------------------------------------------------------------------------
-# Contract — exact names from S88 / GitHub Environment "remote-mirror"
+# Contract — variable names established in S88; official GitHub Environment is now "onedrive-remote" (legacy "remote-mirror" retired)
 # ---------------------------------------------------------------------------
 
 VARIABLES: list[str] = [

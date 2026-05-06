@@ -15,23 +15,27 @@
 - Cuando hace falta distinguir forma humana, forma canónica y uso contextual de un mismo término.
 
 ## Obligaciones
+
+**Definición y consistencia:**
 - Definir los términos antes de usarlos extensivamente.
 - Mantener consistencia entre nombre humano, forma canónica y uso contextual.
 - Declarar diferencias entre términos cercanos que puedan confundirse.
 - Registrar alias, equivalencias y formas preferidas.
+
+**Vocabulario nuevo:**
 - Consultar este nodo antes de introducir vocabulario nuevo que afecte capas, roles, tags, estados o funciones.
 - Conservar aquí convenciones de escritura, nombrado y lectura cuando tengan valor estable y transversal.
 
 ## No hacer
-- No redefinir términos ad hoc por sesión.
+- No redefinir términos en una sesión sin seguir el proceso establecido: consultar este nodo, declarar la diferencia respecto a la definición vigente y registrar el cambio aquí antes de usarlo en otras capas.
 - No usar el mismo término con dos sentidos sin marcar la diferencia.
 - No confundir capas, roles, tags, estados y funciones.
 - No usar este nodo como lugar para tomar decisiones técnicas que pertenecen a `## 🗂🧱 Principios de Gestión` o a un bloque temático específico.
 
 ## Regla transversal S66
 - Usar `data/out/local/sessions/` para nombrar artefactos de cierre de sesión: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico.
-- Nombrar todo tiddler resultado de sesión con `title` iniciado por `#### 🌀` y forma `#### 🌀 <familia> de sesión <NN> = <slug>`. Ejemplos: `#### 🌀 Sesión 69 = canon-admission-hardening-and-docs-v0`, `#### 🌀🧾 Procedencia de sesión 69 = canon-admission-hardening-and-docs-v0` y `#### 🌀🧪 Hipótesis de sesión 69 = canon-admission-hardening-and-docs-v0`.
-- Distinguir siempre `línea candidata`, `canon local` y `derivado`; `data/out/local/sessions/` no es canon paralelo.
+- Nombrar todo tiddler resultado de sesión con `title` iniciado por `#### 🌀` y forma `#### 🌀 <familia> de sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión cero-rellenado a 4 dígitos (un cero a la izquierda por nivel de magnitud; en la era actual de 3 cifras, siempre 4 dígitos: `0001`–`0999`). Ejemplos: `#### 🌀 Sesión 0069 = canon-admission-hardening-and-docs-v0`, `#### 🌀🧾 Procedencia de sesión 0069 = canon-admission-hardening-and-docs-v0` y `#### 🌀🧪 Hipótesis de sesión 0069 = canon-admission-hardening-and-docs-v0`.
+- Distinguir siempre `línea candidata` (artefacto JSONL producido en sesión que todavía no fue admitido al canon), `canon local` (`data/out/local/tiddlers_*.jsonl`, fuente de verdad local validada) y `derivado` (capa computada a partir del canon, como `enriched/`, `ai/` o `audit/`); `data/out/local/sessions/` no es canon paralelo.
 - No crear nombres alternos para carpetas de sesión si ya existe una ruta real en el repositorio.
 
 ## Interacción con otros nodos

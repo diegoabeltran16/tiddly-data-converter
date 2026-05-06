@@ -295,7 +295,9 @@ def _session_title_for_family(session_id: str, artifact_family: str) -> str:
     }
     label = labels.get(artifact_family, "#### 🌀 Sesión")
     if number:
-        return f"{label} {number} = {slug}"
+        m = re.match(r"^(\d+)([a-z]?)$", number)
+        padded = str(int(m.group(1))).zfill(4) + m.group(2) if m else number
+        return f"{label} {padded} = {slug}"
     return f"{label} = {slug}"
 
 

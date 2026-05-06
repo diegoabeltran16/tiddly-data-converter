@@ -15,17 +15,24 @@
 - Cuando hace falta distinguir principios duraderos de tácticas circunstanciales.
 
 ## Obligaciones
+
+**Registro normativo:**
 - Registrar aquí las reglas estables y transversales.
 - Distinguir principios duraderos de tácticas locales o pasajeras.
-- Usar este nodo para resolver conflictos normativos entre capas.
 - Dejar explícito cuando una regla afecta varios bloques o varias sesiones.
+
+**Resolución de conflictos:**
+- Usar este nodo para resolver conflictos normativos entre capas.
 - Remitir al principio específico correspondiente cuando ya exista un nodo dedicado.
+- Si ningún principio existente resuelve el conflicto, declarar explícitamente la ausencia de norma, registrar la decisión provisional tomada y crear una nota en este nodo para que una sesión futura pueda estabilizarla como principio.
+
+**Cohesión:**
 - Mantener visible la familia normativa reutilizable del sistema sin duplicar innecesariamente su contenido.
 
 ## No hacer
 - No convertir este nodo en bitácora de sesión.
 - No llenarlo de detalles tácticos o pasajeros.
-- No introducir principios incompatibles con la arquitectura sin nota explícita.
+- No introducir principios incompatibles con la arquitectura sin una nota escrita en este mismo nodo que justifique la incompatibilidad y declare su carácter provisional o experimental.
 - No usarlo como sustituto de `## 🎯🧱 Detalles del tema`, `## 🧭🧱 Protocolo de Sesión` o `## 🌀🧱 Desarrollo y Evolución`.
 
 ## Regla transversal S66
