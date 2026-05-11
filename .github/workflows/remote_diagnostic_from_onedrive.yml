@@ -1,0 +1,160 @@
+name: Remote Diagnostic Session — pull OneDrive + publish
+
+# Downloads the full canon from OneDrive into the runner's data/out/local/,
+# then publishes a governed diagnostic artifact back to OneDrive.
+# No PR, no commit, no canon write, no full mirror.
+#
+# Intended flow:
+#   1. Checkout repo (read-only, no credential persistence)
+#   2. Pull full canon from OneDrive → data/out/local/  (remote_pull_canon.py)
+#   3. Read canon + sessions + diagnostics (available to any subsequent step)
+#   4. [Agent/script generates diagnostic in data/out/local/sessions/06_diagnoses/]
+#   5. Validate diagnostic file and governed paths
+#   6. Publish diagnostic artifact to OneDrive  (remote_publish_diagnostic.py)
+#
+# Currently this workflow covers steps 1–2 and 5–6.
+# Step 4 (diagnostic generation) is tracked as the next implementation milestone.
+#
+# Prerequisites:
+# - GitHub Environment "onedrive-remote" with all variables and secrets.
+# - The diagnostic file (diagnostic_file input) must exist in the runner workspace
+#   by the time step 5 runs — either pulled from OneDrive in step 2 or generated
+#   by a script added to step 4.
+#
+# Path equivalence enforced by this workflow:
+#   Local  (runner):  data/out/local/sessions/06_diagnoses/<family>/<file>.md.json
+#   Remote (OneDrive): sessions/06_diagnoses/<family>/<file>.md.json
+
+on:
+  workflow_dispatch:
+    inputs:
+      diagnostic_file:
+        description: "Ruta local del diagnóstico dentro del workspace (data/out/local/sessions/06_diagnoses/...)"
+        required: true
+        type: string
+      remote_relative_path:
+        description: "Ruta relativa destino en OneDrive project root (sessions/06_diagnoses/...)"
+        required: true
+        type: string
+      dry_run:
+        description: "Ejecutar sin publicar realmente a OneDrive"
+        required: true
+        type: boolean
+        default: true
+      pull_dry_run:
+        description: "Solo listar archivos de OneDrive sin descargar (paso 2)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  pull-diagnose-publish:
+    name: "Pull canon + publish diagnostic"
+    runs-on: ubuntu-latest
+    environment: onedrive-remote
+
+    env:
+      DIAGNOSTIC_FILE: ${{ inputs.diagnostic_file }}
+      REMOTE_RELATIVE_PATH: ${{ inputs.remote_relative_path }}
+      DRY_RUN: ${{ toJSON(inputs.dry_run) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Show checked out branch and commit
+        run: |
+          git branch --show-current
+          git rev-parse --short HEAD
+          git log -1 --oneline
+
+      # Step 2 — Pull full canon from OneDrive → data/out/local/
+      # Uses remote_pull_canon.py with PULL_CONFLICT_BEHAVIOR=replace so the
+      # runner gets a faithful copy of the current OneDrive state.
+      # REMOTE_DELETE_EXTRANEOUS is NOT used here (pull never deletes local files).
+      - name: Pull canon from OneDrive → data/out/local/
+        env:
+          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
+          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
+          LOCAL_SYNC_TARGET:          ${{ vars.LOCAL_SYNC_SOURCE }}
+          PULL_CONFLICT_BEHAVIOR:     replace
+          PULL_CREATE_MISSING_DIRS:   "true"
+          PULL_DRY_RUN: >-
+            ${{ github.event_name == 'workflow_dispatch'
+                && toJSON(inputs.pull_dry_run)
+                || 'true' }}
+          AZURE_CLIENT_ID:   ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID:   ${{ secrets.AZURE_TENANT_ID }}
+          MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
+        run: python3 python_scripts/remote_pull_canon.py
+
+      # Step 4 placeholder — Diagnostic generation
+      # A future step will run a script or agent here that reads the pulled canon
+      # and generates the diagnostic file at $DIAGNOSTIC_FILE.
+      # Until then, the file must have been placed by the pull step (already in
+      # OneDrive) or provided via another mechanism.
+      - name: Confirm canon availability after pull
+        run: |
+          echo "data/out/local/ contents (top level):"
+          ls data/out/local/ 2>/dev/null || echo "  (empty or not present — pull was dry-run)"
+
+      # Step 5 — Validate diagnostic file and governed paths
+      - name: Validate diagnostic file and governed paths
+        shell: bash
+        run: |
+          test -f python_scripts/diagnostic_governance.py
+          test -f python_scripts/remote_publish_diagnostic.py
+          test -f "$DIAGNOSTIC_FILE"
+          python -m json.tool "$DIAGNOSTIC_FILE" >/dev/null
+
+          case "$DIAGNOSTIC_FILE" in
+            data/out/local/sessions/06_diagnoses/*) ;;
+            *) echo "error: diagnostic_file must be under data/out/local/sessions/06_diagnoses/" >&2; exit 1 ;;
+          esac
+
+          case "$REMOTE_RELATIVE_PATH" in
+            sessions/06_diagnoses/*) ;;
+            *) echo "error: remote_relative_path must be under sessions/06_diagnoses/" >&2; exit 1 ;;
+          esac
+
+          case "$DIAGNOSTIC_FILE" in
+            /*|*../*|../*) echo "error: diagnostic_file must be a safe repo-relative path" >&2; exit 1 ;;
+          esac
+
+          case "$REMOTE_RELATIVE_PATH" in
+            /*|*../*|../*|data/out/local/*) echo "error: remote_relative_path must be a safe OneDrive project-relative path" >&2; exit 1 ;;
+          esac
+
+      # Step 6 — Publish diagnostic artifact to OneDrive
+      - name: Publish diagnostic artifact to OneDrive
+        shell: bash
+        env:
+          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
+          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
+          REMOTE_CONFLICT_BEHAVIOR:   ${{ vars.REMOTE_CONFLICT_BEHAVIOR }}
+          REMOTE_CREATE_MISSING_DIRS: ${{ vars.REMOTE_CREATE_MISSING_DIRS }}
+          AZURE_CLIENT_ID:            ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID:            ${{ secrets.AZURE_TENANT_ID }}
+          MSA_REFRESH_TOKEN:          ${{ secrets.MSA_REFRESH_TOKEN }}
+        run: |
+          args=(
+            python3 python_scripts/remote_publish_diagnostic.py
+            --local-file "$DIAGNOSTIC_FILE"
+            --remote-relative-path "$REMOTE_RELATIVE_PATH"
+          )
+
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+
+          "${args[@]}"
