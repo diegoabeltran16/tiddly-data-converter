@@ -62,6 +62,9 @@ permissions:
   contents: read
 
 jobs:
+  # Opción A (S0106): workflow manual secundario.
+  # El flujo principal del Copilot Task Agent usa copilot-setup-steps.yml
+  # con los agents secrets/variables del repositorio, no este environment.
   pull-generate-publish:
     name: "Pull OneDrive → generate diagnostic → publish"
     runs-on: ubuntu-latest
