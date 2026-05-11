@@ -150,7 +150,11 @@ def _http_json(url: str, *, headers: dict[str, str] | None = None) -> dict:
 def _http_get_bytes(url: str, headers: dict[str, str]) -> bytes:
     req = urllib.request.Request(url)
     for k, v in headers.items():
-        req.add_header(k, v)
+        # add_unredirected_header: sends the header in the initial request but
+        # does NOT forward it when urllib follows the 302 redirect that Graph's
+        # :/content endpoint returns.  The redirect target is a pre-authenticated
+        # CDN URL; sending a Graph bearer token there causes HTTP 401.
+        req.add_unredirected_header(k, v)
     with urllib.request.urlopen(req) as resp:
         return resp.read()
 

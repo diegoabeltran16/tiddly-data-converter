@@ -34,28 +34,32 @@ jobs:
             python3 -m pip install requests
           fi
 
+      # Validation: checks agents secrets + variables without printing values.
+      # AZURE_TENANT_ID is intentionally NOT required here: the Python scripts
+      # use MSA_TENANT (= "consumers") for the token endpoint tenant segment.
+      # AZURE_TENANT_ID lives only in the onedrive-remote environment (manual workflow).
       - name: Validate OneDrive runtime configuration for Copilot agent
         shell: bash
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID:   ${{ secrets.AZURE_CLIENT_ID }}
           MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
 
-          MSA_TENANT: ${{ vars.MSA_TENANT }}
+          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
           ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
-          ONEDRIVE_ROOT_MODE: ${{ vars.ONEDRIVE_ROOT_MODE }}
-          LOCAL_SYNC_SOURCE: ${{ vars.LOCAL_SYNC_SOURCE }}
-          AGENT_PRIMARY_READ_ROOT: ${{ vars.AGENT_PRIMARY_READ_ROOT }}
-          AGENT_SESSION_ROOT: ${{ vars.AGENT_SESSION_ROOT }}
-          AGENT_DIRECT_CANON_WRITE: ${{ vars.AGENT_DIRECT_CANON_WRITE }}
+          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
+          LOCAL_SYNC_SOURCE:          ${{ vars.LOCAL_SYNC_SOURCE }}
+          AGENT_PRIMARY_READ_ROOT:    ${{ vars.AGENT_PRIMARY_READ_ROOT }}
+          AGENT_SESSION_ROOT:         ${{ vars.AGENT_SESSION_ROOT }}
+          AGENT_DIRECT_CANON_WRITE:   ${{ vars.AGENT_DIRECT_CANON_WRITE }}
         run: |
           python3 - <<'PY'
           import os
           import sys
 
+          # Scripts use MSA_TENANT for the tenant segment in the token URL.
+          # AZURE_TENANT_ID is not referenced by any remote script.
           required = [
               "AZURE_CLIENT_ID",
-              "AZURE_TENANT_ID",
               "MSA_REFRESH_TOKEN",
               "MSA_TENANT",
               "ONEDRIVE_PROJECT_ROOT_NAME",
@@ -78,8 +82,8 @@ jobs:
               print("AGENT_DIRECT_CANON_WRITE must remain false for remote diagnostic work.")
               sys.exit(1)
 
-          print("Copilot agent OneDrive runtime configuration is present.")
-          print("Secrets were validated by presence only; no secret values were printed.")
+          print("Copilot agent OneDrive runtime configuration: OK")
+          print("  Secrets validated by presence only — no values printed.")
           PY
 
       - name: Compile remote OneDrive scripts
@@ -93,17 +97,16 @@ jobs:
       - name: Hydrate workspace from OneDrive into data/out/local
         shell: bash
         env:
-          MSA_TENANT: ${{ vars.MSA_TENANT }}
+          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
           ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
-          ONEDRIVE_ROOT_MODE: ${{ vars.ONEDRIVE_ROOT_MODE }}
+          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
 
-          LOCAL_SYNC_TARGET: ${{ vars.LOCAL_SYNC_SOURCE }}
-          PULL_CONFLICT_BEHAVIOR: replace
+          LOCAL_SYNC_TARGET:        ${{ vars.LOCAL_SYNC_SOURCE }}
+          PULL_CONFLICT_BEHAVIOR:   replace
           PULL_CREATE_MISSING_DIRS: "true"
-          PULL_DRY_RUN: "false"
+          PULL_DRY_RUN:             "false"
 
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID:   ${{ secrets.AZURE_CLIENT_ID }}
           MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
         run: |
           python3 python_scripts/remote_pull_canon.py
@@ -111,18 +114,35 @@ jobs:
       - name: Confirm hydrated workspace
         shell: bash
         run: |
-          echo "Top-level data/out/local contents:"
+          test -d data/out/local || { echo "error: data/out/local was not created" >&2; exit 1; }
+
+          echo "=== data/out/local directory tree (depth 2) ==="
           find data/out/local -maxdepth 2 -type d | sort || true
 
           echo ""
-          echo "Checking governed session root:"
-          test -d data/out/local || {
-            echo "data/out/local was not created."
-            exit 1
-          }
+          echo "=== File counts ==="
+          total=$(find data/out/local -type f | wc -l)
+          echo "  Total files : $total"
 
-          test ! -d data/sessions
-          test ! -d sessions
+          for subdir in sessions ai audit pipeline enriched; do
+            if [ -d "data/out/local/$subdir" ]; then
+              count=$(find "data/out/local/$subdir" -type f | wc -l)
+              echo "  $subdir/     : $count file(s)"
+            else
+              echo "  $subdir/     : not present"
+            fi
+          done
+
+          canon_count=$(find data/out/local -maxdepth 1 -name "tiddlers_*.jsonl" | wc -l)
+          echo "  tiddlers_*.jsonl : $canon_count file(s)"
+
+          diag_count=$(find data/out/local/sessions/06_diagnoses -type f 2>/dev/null | wc -l)
+          echo "  sessions/06_diagnoses/ : $diag_count file(s)"
+
+          echo ""
+          echo "=== Governed path checks ==="
+          test ! -d data/sessions && echo "  data/sessions/ : absent (OK)" || { echo "error: prohibited path data/sessions/ exists" >&2; exit 1; }
+          test ! -d sessions     && echo "  sessions/      : absent (OK)" || { echo "error: prohibited path sessions/ at root exists" >&2; exit 1; }
 
       - name: Write Copilot runtime note
         shell: bash
