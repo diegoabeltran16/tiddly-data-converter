@@ -7,7 +7,7 @@
 
 # tiddly-data-converter
 
-Aplicación de escritorio local‑first para convertir un corpus TiddlyWiki básico en un canon gestionado, mediante procesos de extracción, canonización, derivación, auditoría y reversión, preservando trazabilidad y reversibilidad.
+Aplicación de escritorio local‑first para convertir un corpus TiddlyWiki básico en un canon gestionado, mediante procesos de extracción, canonización, derivación, y auditoría, preservando trazabilidad y reversibilidad.
 
 ## Ejecución
 

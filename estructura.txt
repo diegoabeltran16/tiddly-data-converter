@@ -17,8 +17,7 @@
 │   │   └── tiddlers_sesiones.instructions.md
 │   └── workflows
 │       ├── ci.yml
-│       ├── remote_mirror_out_local.yml
-│       └── remote_publish_diagnostic.yml
+│       └── remote_diagnostic_from_onedrive.yml
 ├── .gitignore
 ├── data
 │   ├── in
@@ -143,70 +142,22 @@
 │   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
-│   │   │   │   │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │   │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │   │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │   │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │   │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │   │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │   │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │   │   ├── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │   │   ├── policy
 │   │   │   │   │   │   ├── canon_policy_bundle.json
 │   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
 │   │   │   │   │   └── projections
 │   │   │   │   │       └── derived_layers_registry.json
 │   │   │   │   ├── 01_procedencia
-│   │   │   │   │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │   │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │   │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │   │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │   │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │   │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │   │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │   │   └── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │   ├── 02_detalles_de_sesion
-│   │   │   │   │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │   │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │   │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │   │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │   │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │   │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │   │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │   │   └── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │   ├── 03_hipotesis
-│   │   │   │   │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │   │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │   │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │   │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │   │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │   │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │   │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │   │   └── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │   ├── 04_balance_de_sesion
-│   │   │   │   │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │   │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │   │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │   │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │   │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │   │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │   │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │   │   └── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │   ├── 05_propuesta_de_sesion
-│   │   │   │   │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │   │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │   │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │   │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │   │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │   │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │   │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │   │   └── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │   └── 06_diagnoses
 │   │   │   │       ├── meso-ciclo
 │   │   │   │       │   ├── m04-meso-ciclo-s005-s034-diagnostico.md.json
@@ -227,26 +178,10 @@
 │   │   │   │       ├── proyecto
 │   │   │   │       │   └── m04-diagnostico-global-proyecto-post-s097.md.json
 │   │   │   │       ├── sesion
-│   │   │   │       │   ├── m04-s100-sync-bilateral-gobernada-onedrive-admission-gated.md.json
-│   │   │   │       │   ├── m04-s101-gobernanza-admision-diagnosticos-no-sesionales-local.md.json
-│   │   │   │       │   ├── m04-s102-workflow-onedrive-diagnosticos-y-saneamiento-s94.md.json
-│   │   │   │       │   ├── m04-s103-merge-logico-workflows-onedrive-y-limpieza-residual.md.json
-│   │   │   │       │   ├── m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.md.json
-│   │   │   │       │   ├── m04-s97-diagnostic-provenance-governance-and-meso-cycle-s065-s094.md.json
-│   │   │   │       │   ├── m04-s97-formalizacion-gobernanza-procedencia-diagnostica.md.json
-│   │   │   │       │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
-│   │   │   │       │   └── m04-s99-saneamiento-tests-legacy-y-flujo-ci-actual.md.json
+│   │   │   │       │   └── diagnostico-sesion-s105-revision-local-flujo-onedrive.md.json
 │   │   │   │       └── tema
-│   │   │   │           ├── diagnostico-tematico-01-alineacion-de-roles.md.json
-│   │   │   │           ├── diagnostico-tematico-02-histories-extraibles.md.json
-│   │   │   │           ├── diagnostico-tematico-03-contexto-documental.md.json
-│   │   │   │           ├── diagnostico-tematico-04-segmentacion-ontologica-de-unclassified.md.json
-│   │   │   │           ├── diagnostico-tematico-05-utilidad-de-relaciones.md.json
-│   │   │   │           ├── diagnostico-tematico-06-utilidad-eficiencia-y-practicidad-relacional-post-s83.md.json
-│   │   │   │           └── diagnostico-tematico-07-validacion-capa2-relacional-stale-slugs-canon-vivo.md.json
 │   │   │   ├── tiddlers_1.jsonl
 │   │   │   ├── tiddlers_10.jsonl
-│   │   │   ├── tiddlers_11.jsonl
 │   │   │   ├── tiddlers_2.jsonl
 │   │   │   ├── tiddlers_3.jsonl
 │   │   │   ├── tiddlers_4.jsonl
@@ -753,7 +688,11 @@
 │       │   ├── export-20260506210341
 │       │   │   ├── tiddlers.export.log
 │       │   │   └── tiddlers.export.manifest.json
-│       │   └── export-20260506220644
+│       │   ├── export-20260506220644
+│       │   │   ├── tiddlers.export.jsonl
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   └── export-20260506221839
 │       │       ├── tiddlers.export.jsonl
 │       │       ├── tiddlers.export.log
 │       │       └── tiddlers.export.manifest.json
@@ -779,6 +718,8 @@
 │       │   ├── diagnostic-20260506210337
 │       │   │   └── gate-report.json
 │       │   ├── diagnostic-20260506220631
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260506221833
 │       │   │   └── gate-report.json
 │       │   ├── export-20260505154840
 │       │   │   ├── gate-report.json
@@ -811,6 +752,9 @@
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
 │       │   ├── export-20260506220644
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260506221839
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
 │       │   ├── reconstruction-20260505154903
@@ -1034,6 +978,32 @@
 │       │   │   ├── canon_after
 │       │   │   │   └── tiddlers_1.jsonl
 │       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260506221845
+│       │   │   ├── canon_after
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_10.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   ├── tiddlers_8.jsonl
+│       │   │   │   └── tiddlers_9.jsonl
+│       │   │   ├── canon_before
+│       │   │   │   ├── tiddlers_1.jsonl
+│       │   │   │   ├── tiddlers_10.jsonl
+│       │   │   │   ├── tiddlers_11.jsonl
+│       │   │   │   ├── tiddlers_2.jsonl
+│       │   │   │   ├── tiddlers_3.jsonl
+│       │   │   │   ├── tiddlers_4.jsonl
+│       │   │   │   ├── tiddlers_5.jsonl
+│       │   │   │   ├── tiddlers_6.jsonl
+│       │   │   │   ├── tiddlers_7.jsonl
+│       │   │   │   ├── tiddlers_8.jsonl
+│       │   │   │   └── tiddlers_9.jsonl
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
 │       │   ├── reverse-20260505155050
@@ -2337,6 +2307,7 @@
 │   ├── path_governance.py
 │   ├── remote_mirror_out_local.py
 │   ├── remote_publish_diagnostic.py
+│   ├── remote_pull_canon.py
 │   ├── remote_pull_sessions.py
 │   ├── s45_derive_layers.py
 │   ├── session_cycle_diagnostics.py
