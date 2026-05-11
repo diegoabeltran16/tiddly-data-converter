@@ -1,0 +1,158 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  copilot-setup-steps:
+    name: Prepare Copilot agent workspace
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies if present
+        shell: bash
+        run: |
+          python3 -m pip install --upgrade pip
+
+          if [ -f requirements.txt ]; then
+            python3 -m pip install -r requirements.txt
+          else
+            python3 -m pip install requests
+          fi
+
+      - name: Validate OneDrive runtime configuration for Copilot agent
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
+
+          MSA_TENANT: ${{ vars.MSA_TENANT }}
+          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+          ONEDRIVE_ROOT_MODE: ${{ vars.ONEDRIVE_ROOT_MODE }}
+          LOCAL_SYNC_SOURCE: ${{ vars.LOCAL_SYNC_SOURCE }}
+          AGENT_PRIMARY_READ_ROOT: ${{ vars.AGENT_PRIMARY_READ_ROOT }}
+          AGENT_SESSION_ROOT: ${{ vars.AGENT_SESSION_ROOT }}
+          AGENT_DIRECT_CANON_WRITE: ${{ vars.AGENT_DIRECT_CANON_WRITE }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+
+          required = [
+              "AZURE_CLIENT_ID",
+              "AZURE_TENANT_ID",
+              "MSA_REFRESH_TOKEN",
+              "MSA_TENANT",
+              "ONEDRIVE_PROJECT_ROOT_NAME",
+              "ONEDRIVE_ROOT_MODE",
+              "LOCAL_SYNC_SOURCE",
+              "AGENT_PRIMARY_READ_ROOT",
+              "AGENT_SESSION_ROOT",
+              "AGENT_DIRECT_CANON_WRITE",
+          ]
+
+          missing = [name for name in required if not os.environ.get(name)]
+
+          if missing:
+              print("Missing required Copilot agent runtime variables/secrets:")
+              for name in missing:
+                  print(f" - {name}")
+              sys.exit(1)
+
+          if os.environ["AGENT_DIRECT_CANON_WRITE"].lower() != "false":
+              print("AGENT_DIRECT_CANON_WRITE must remain false for remote diagnostic work.")
+              sys.exit(1)
+
+          print("Copilot agent OneDrive runtime configuration is present.")
+          print("Secrets were validated by presence only; no secret values were printed.")
+          PY
+
+      - name: Compile remote OneDrive scripts
+        shell: bash
+        run: |
+          python3 -m py_compile python_scripts/remote_pull_canon.py
+          python3 -m py_compile python_scripts/remote_publish_diagnostic.py
+          python3 -m py_compile python_scripts/diagnostic_governance.py
+          python3 -m py_compile python_scripts/path_governance.py
+
+      - name: Hydrate workspace from OneDrive into data/out/local
+        shell: bash
+        env:
+          MSA_TENANT: ${{ vars.MSA_TENANT }}
+          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+          ONEDRIVE_ROOT_MODE: ${{ vars.ONEDRIVE_ROOT_MODE }}
+
+          LOCAL_SYNC_TARGET: ${{ vars.LOCAL_SYNC_SOURCE }}
+          PULL_CONFLICT_BEHAVIOR: replace
+          PULL_CREATE_MISSING_DIRS: "true"
+          PULL_DRY_RUN: "false"
+
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
+        run: |
+          python3 python_scripts/remote_pull_canon.py
+
+      - name: Confirm hydrated workspace
+        shell: bash
+        run: |
+          echo "Top-level data/out/local contents:"
+          find data/out/local -maxdepth 2 -type d | sort || true
+
+          echo ""
+          echo "Checking governed session root:"
+          test -d data/out/local || {
+            echo "data/out/local was not created."
+            exit 1
+          }
+
+          test ! -d data/sessions
+          test ! -d sessions
+
+      - name: Write Copilot runtime note
+        shell: bash
+        run: |
+          mkdir -p .copilot
+
+          cat > .copilot/onedrive-runtime-context.md <<'EOF'
+          # Copilot OneDrive Runtime Context
+
+          The Copilot agent workspace was hydrated from OneDrive into:
+
+          data/out/local/
+
+          Governed diagnostic outputs must be written under:
+
+          data/out/local/sessions/06_diagnoses/
+
+          Remote diagnostic publication must use:
+
+          python3 python_scripts/remote_publish_diagnostic.py \
+            --local-file <diagnostic-file> \
+            --remote-relative-path <sessions/06_diagnoses/...>
+
+          Rules:
+          - Do not write directly to canon.
+          - Do not create data/sessions/.
+          - Do not create sessions/ at repository root.
+          - Do not print secrets.
+          - Do not commit diagnostic outputs unless explicitly instructed.
+          - Publish only governed diagnostic artifacts.
+          EOF
+
+          cat .copilot/onedrive-runtime-context.md
