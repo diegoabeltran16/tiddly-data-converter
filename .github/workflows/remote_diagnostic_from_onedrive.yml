@@ -1,18 +1,30 @@
 name: Remote Diagnostic Session — pull OneDrive + generate + publish
 
-# Flujo gobernado de diagnóstico remoto:
+# Flujo gobernado de diagnóstico remoto (7 steps):
 #
-#   1. Checkout repo (lectura del repositorio + código)
+#   1. Checkout repo (código fuente disponible en el runner)
 #   2. Validar credenciales del environment onedrive-remote
 #   3. Pull controlado: OneDrive tiddly-data-converter/ → data/out/local/
-#      (el agente puede leer canon, sessions, diagnósticos previos desde OneDrive)
+#      (hidrata el runner con canon, sessions y diagnósticos previos)
 #   4. Agente genera el diagnóstico en data/out/local/sessions/06_diagnoses/<family>/
-#      (el archivo NO pre-existe — el agente lo crea en este step)
-#   5. Verificar que el agente generó el archivo correctamente
-#   6. Validar rutas gobernadas del diagnóstico
-#   7. Publicar archivo diagnóstico puntual → OneDrive (single-file upload)
+#      (el archivo NO pre-existe — el agente lo crea aquí)
+#   5. Verificar que el agente generó el archivo
+#   6. Validar rutas gobernadas
+#   7. Publicar diagnóstico puntual → OneDrive (single-file upload)
 #
-# Garantías:
+# Modos de ejecución:
+#
+#   A) Copilot Task Agent (autónomo, no usa este workflow):
+#      El agente corre con los "agents secrets and variables" del repositorio,
+#      que replican las credenciales de onedrive-remote. Usa los modelos del
+#      plan GitHub Copilot. Genera el diagnóstico y publica a OneDrive directamente
+#      sin PR ni commit.
+#
+#   B) GitHub Actions workflow_dispatch (este archivo):
+#      Steps 1–3 y 5–7 funcionales. Step 4 (generación) requiere integración
+#      con GitHub Models API via GITHUB_TOKEN (sin API key personal adicional).
+#
+# Garantías (ambos modos):
 #   - No crea PR
 #   - No hace commit al repositorio
 #   - No toca canon (data/out/local/tiddlers_*.jsonl)
@@ -21,7 +33,7 @@ name: Remote Diagnostic Session — pull OneDrive + generate + publish
 #   - No imprime secrets en logs
 #
 # Equivalencia de rutas:
-#   Local  (runner):  data/out/local/sessions/06_diagnoses/<family>/<file>.md.json
+#   Local  (runner):   data/out/local/sessions/06_diagnoses/<family>/<file>.md.json
 #   Remote (OneDrive): sessions/06_diagnoses/<family>/<file>.md.json
 
 on:
@@ -132,31 +144,32 @@ jobs:
           echo "PR disabled          : true"
           python3 python_scripts/remote_pull_canon.py
 
-      # Step 4 — El agente genera el diagnóstico
-      # El agente tiene acceso a:
-      #   - Código fuente del repositorio (checkout en Step 1)
-      #   - Canon, sessions y diagnósticos previos desde OneDrive (pull en Step 3)
-      #   - Variables del environment: AGENT_PRIMARY_READ_ROOT, AGENT_SESSION_ROOT
+      # Step 4 — Agente genera el diagnóstico (integración pendiente para modo B)
+      # Contexto disponible en el runner después de Step 3:
+      #   - Código fuente: directorio actual (checkout)
+      #   - Canon + sessions desde OneDrive: $AGENT_PRIMARY_READ_ROOT (data/out/local/)
+      #   - Instrucciones de gobernanza: .github/instructions/
       #
-      # El archivo diagnóstico NO pre-existe. El agente lo crea en:
-      #   $DIAGNOSTIC_FILE  (= data/out/local/sessions/06_diagnoses/<family>/<file>.md.json)
+      # El archivo $DIAGNOSTIC_FILE NO pre-existe. El agente lo crea aquí.
       #
-      # TODO: agregar aquí el step de integración del agente (Claude API, script, etc.)
-      # Ejemplo de integración futura:
-      #   uses: anthropic-ai/claude-code-action@v1
-      #   with:
-      #     prompt: "Genera el diagnóstico en $DIAGNOSTIC_FILE usando el canon en data/out/local/"
-      - name: "[Step 4] Agent generates diagnostic — integration pending"
+      # Integración pendiente (modo B — este workflow):
+      #   Implementar con GitHub Models API via GITHUB_TOKEN.
+      #   No requiere API key personal; usa los modelos del plan GitHub Copilot.
+      #   Ver: https://docs.github.com/en/github-models
+      #
+      # Para modo A (Copilot Task Agent): este step no aplica; el agente
+      #   corre con los agents secrets/variables del repositorio y maneja
+      #   el flujo completo de forma autónoma.
+      - name: "[Step 4] Agent generates diagnostic — GitHub Models API pending"
         shell: bash
         run: |
-          echo "Agent generation step."
-          echo "  Read root : ${AGENT_PRIMARY_READ_ROOT:-data/out/local/}"
+          echo "Step 4: agent generation (modo B — integración pendiente)"
+          echo "  Read root   : ${AGENT_PRIMARY_READ_ROOT:-data/out/local/}"
           echo "  Session root: ${AGENT_SESSION_ROOT:-data/out/local/sessions/}"
-          echo "  Output expected: $DIAGNOSTIC_FILE"
+          echo "  Output path : $DIAGNOSTIC_FILE"
           echo ""
-          echo "NOTA: la integración del agente (Claude API, script de generación)"
-          echo "debe reemplazar este step. El agente debe crear \$DIAGNOSTIC_FILE"
-          echo "antes de que continúe el Step 5."
+          echo "Pendiente: implementar llamada a GitHub Models API via GITHUB_TOKEN."
+          echo "El agente debe crear \$DIAGNOSTIC_FILE antes de continuar al Step 5."
 
       # Step 5 — Verificar que el agente generó el archivo diagnóstico
       # El archivo debe haber sido creado por el agente en Step 4.
