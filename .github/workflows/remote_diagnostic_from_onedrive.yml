@@ -1,27 +1,26 @@
-name: Remote Diagnostic Session — pull OneDrive + publish
+name: Remote Diagnostic Session — pull OneDrive + generate + publish
 
-# Downloads the full canon from OneDrive into the runner's data/out/local/,
-# then publishes a governed diagnostic artifact back to OneDrive.
-# No PR, no commit, no canon write, no full mirror.
+# Flujo gobernado de diagnóstico remoto:
 #
-# Intended flow:
-#   1. Checkout repo (read-only, no credential persistence)
-#   2. Pull full canon from OneDrive → data/out/local/  (remote_pull_canon.py)
-#   3. Read canon + sessions + diagnostics (available to any subsequent step)
-#   4. [Agent/script generates diagnostic in data/out/local/sessions/06_diagnoses/]
-#   5. Validate diagnostic file and governed paths
-#   6. Publish diagnostic artifact to OneDrive  (remote_publish_diagnostic.py)
+#   1. Checkout repo (lectura del repositorio + código)
+#   2. Validar credenciales del environment onedrive-remote
+#   3. Pull controlado: OneDrive tiddly-data-converter/ → data/out/local/
+#      (el agente puede leer canon, sessions, diagnósticos previos desde OneDrive)
+#   4. Agente genera el diagnóstico en data/out/local/sessions/06_diagnoses/<family>/
+#      (el archivo NO pre-existe — el agente lo crea en este step)
+#   5. Verificar que el agente generó el archivo correctamente
+#   6. Validar rutas gobernadas del diagnóstico
+#   7. Publicar archivo diagnóstico puntual → OneDrive (single-file upload)
 #
-# Currently this workflow covers steps 1–2 and 5–6.
-# Step 4 (diagnostic generation) is tracked as the next implementation milestone.
+# Garantías:
+#   - No crea PR
+#   - No hace commit al repositorio
+#   - No toca canon (data/out/local/tiddlers_*.jsonl)
+#   - No ejecuta mirror completo ni destructivo
+#   - No borra archivos remotos (REMOTE_DELETE_EXTRANEOUS=false)
+#   - No imprime secrets en logs
 #
-# Prerequisites:
-# - GitHub Environment "onedrive-remote" with all variables and secrets.
-# - The diagnostic file (diagnostic_file input) must exist in the runner workspace
-#   by the time step 5 runs — either pulled from OneDrive in step 2 or generated
-#   by a script added to step 4.
-#
-# Path equivalence enforced by this workflow:
+# Equivalencia de rutas:
 #   Local  (runner):  data/out/local/sessions/06_diagnoses/<family>/<file>.md.json
 #   Remote (OneDrive): sessions/06_diagnoses/<family>/<file>.md.json
 
@@ -29,20 +28,20 @@ on:
   workflow_dispatch:
     inputs:
       diagnostic_file:
-        description: "Ruta local del diagnóstico dentro del workspace (data/out/local/sessions/06_diagnoses/...)"
+        description: "Ruta local donde el agente debe generar el diagnóstico (data/out/local/sessions/06_diagnoses/...)"
         required: true
         type: string
       remote_relative_path:
-        description: "Ruta relativa destino en OneDrive project root (sessions/06_diagnoses/...)"
+        description: "Ruta en OneDrive bajo el project root (sessions/06_diagnoses/...)"
         required: true
         type: string
-      dry_run:
-        description: "Ejecutar sin publicar realmente a OneDrive"
-        required: true
-        type: boolean
-        default: true
       pull_dry_run:
-        description: "Solo listar archivos de OneDrive sin descargar (paso 2)"
+        description: "Solo listar archivos de OneDrive sin descargar (paso 3)"
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: "Validar publicación sin subir archivo (paso 7)"
         required: false
         type: boolean
         default: false
@@ -51,17 +50,41 @@ permissions:
   contents: read
 
 jobs:
-  pull-diagnose-publish:
-    name: "Pull canon + publish diagnostic"
+  pull-generate-publish:
+    name: "Pull OneDrive → generate diagnostic → publish"
     runs-on: ubuntu-latest
     environment: onedrive-remote
 
     env:
-      DIAGNOSTIC_FILE: ${{ inputs.diagnostic_file }}
+      # --- Inputs del workflow ---
+      DIAGNOSTIC_FILE:      ${{ inputs.diagnostic_file }}
       REMOTE_RELATIVE_PATH: ${{ inputs.remote_relative_path }}
-      DRY_RUN: ${{ toJSON(inputs.dry_run) }}
+      DRY_RUN:              ${{ toJSON(inputs.dry_run) }}
+
+      # --- Variables del agente (environment: onedrive-remote → vars.*) ---
+      AGENT_ADMISSION_SCRIPT:   ${{ vars.AGENT_ADMISSION_SCRIPT }}
+      AGENT_DIRECT_CANON_WRITE: ${{ vars.AGENT_DIRECT_CANON_WRITE }}
+      AGENT_PRIMARY_READ_ROOT:  ${{ vars.AGENT_PRIMARY_READ_ROOT }}
+      AGENT_SESSION_ROOT:       ${{ vars.AGENT_SESSION_ROOT }}
+      LOCAL_SYNC_SOURCE:        ${{ vars.LOCAL_SYNC_SOURCE }}
+
+      # --- Variables OneDrive (environment: onedrive-remote → vars.*) ---
+      MSA_TENANT:                 ${{ vars.MSA_TENANT }}
+      ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
+      ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
+      REMOTE_CONFLICT_BEHAVIOR:   ${{ vars.REMOTE_CONFLICT_BEHAVIOR }}
+      REMOTE_CREATE_MISSING_DIRS: ${{ vars.REMOTE_CREATE_MISSING_DIRS }}
+      REMOTE_DELETE_EXTRANEOUS:   ${{ vars.REMOTE_DELETE_EXTRANEOUS }}
+      REMOTE_SYNC_MODE:           ${{ vars.REMOTE_SYNC_MODE }}
+      SYNC_DRY_RUN:               ${{ vars.SYNC_DRY_RUN }}
+
+      # --- Secrets (environment: onedrive-remote → secrets.*; nunca se imprimen) ---
+      AZURE_CLIENT_ID:   ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID:   ${{ secrets.AZURE_TENANT_ID }}
+      MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
 
     steps:
+      # Step 1 — Checkout del repositorio (código fuente disponible para el agente)
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -70,51 +93,96 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Show checked out branch and commit
+      - name: Show branch and commit
         run: |
           git branch --show-current
           git rev-parse --short HEAD
           git log -1 --oneline
 
-      # Step 2 — Pull full canon from OneDrive → data/out/local/
-      # Uses remote_pull_canon.py with PULL_CONFLICT_BEHAVIOR=replace so the
-      # runner gets a faithful copy of the current OneDrive state.
-      # REMOTE_DELETE_EXTRANEOUS is NOT used here (pull never deletes local files).
-      - name: Pull canon from OneDrive → data/out/local/
-        env:
-          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
-          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
-          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
-          LOCAL_SYNC_TARGET:          ${{ vars.LOCAL_SYNC_SOURCE }}
-          PULL_CONFLICT_BEHAVIOR:     replace
-          PULL_CREATE_MISSING_DIRS:   "true"
-          PULL_DRY_RUN: >-
-            ${{ github.event_name == 'workflow_dispatch'
-                && toJSON(inputs.pull_dry_run)
-                || 'true' }}
-          AZURE_CLIENT_ID:   ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID:   ${{ secrets.AZURE_TENANT_ID }}
-          MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
-        run: python3 python_scripts/remote_pull_canon.py
-
-      # Step 4 placeholder — Diagnostic generation
-      # A future step will run a script or agent here that reads the pulled canon
-      # and generates the diagnostic file at $DIAGNOSTIC_FILE.
-      # Until then, the file must have been placed by the pull step (already in
-      # OneDrive) or provided via another mechanism.
-      - name: Confirm canon availability after pull
+      # Step 2 — Validar credenciales del environment onedrive-remote
+      # Los valores nunca se imprimen; solo se verifica que no estén vacíos.
+      - name: Validate OneDrive credentials
+        shell: bash
         run: |
-          echo "data/out/local/ contents (top level):"
-          ls data/out/local/ 2>/dev/null || echo "  (empty or not present — pull was dry-run)"
+          test -n "$AZURE_CLIENT_ID"   || { echo "error: AZURE_CLIENT_ID not set in environment onedrive-remote" >&2; exit 1; }
+          test -n "$AZURE_TENANT_ID"   || { echo "error: AZURE_TENANT_ID not set in environment onedrive-remote" >&2; exit 1; }
+          test -n "$MSA_REFRESH_TOKEN" || { echo "error: MSA_REFRESH_TOKEN not set in environment onedrive-remote" >&2; exit 1; }
+          echo "OneDrive credentials detected: OK"
+          echo "pull_target        : ${LOCAL_SYNC_SOURCE:-data/out/local/}"
+          echo "project_root       : ${ONEDRIVE_PROJECT_ROOT_NAME}"
+          echo "runner_workspace_only: true"
+          echo "commit_disabled      : true"
+          echo "pr_disabled          : true"
 
-      # Step 5 — Validate diagnostic file and governed paths
-      - name: Validate diagnostic file and governed paths
+      # Step 3 — Pull controlado OneDrive → data/out/local/
+      # Hidrata el runner con el contenido remoto: canon, sessions, diagnósticos previos.
+      # El agente puede leer todo desde data/out/local/ después de este step.
+      # REMOTE_DELETE_EXTRANEOUS no aplica; el pull nunca borra archivos locales.
+      - name: Pull OneDrive → data/out/local/
+        shell: bash
+        env:
+          LOCAL_SYNC_TARGET:        ${{ vars.LOCAL_SYNC_SOURCE }}
+          PULL_CONFLICT_BEHAVIOR:   replace
+          PULL_CREATE_MISSING_DIRS: "true"
+          PULL_DRY_RUN:             ${{ toJSON(inputs.pull_dry_run) }}
+        run: |
+          echo "OneDrive pull target : ${LOCAL_SYNC_TARGET:-data/out/local/}"
+          echo "Runner workspace only: true"
+          echo "Commit disabled      : true"
+          echo "PR disabled          : true"
+          python3 python_scripts/remote_pull_canon.py
+
+      # Step 4 — El agente genera el diagnóstico
+      # El agente tiene acceso a:
+      #   - Código fuente del repositorio (checkout en Step 1)
+      #   - Canon, sessions y diagnósticos previos desde OneDrive (pull en Step 3)
+      #   - Variables del environment: AGENT_PRIMARY_READ_ROOT, AGENT_SESSION_ROOT
+      #
+      # El archivo diagnóstico NO pre-existe. El agente lo crea en:
+      #   $DIAGNOSTIC_FILE  (= data/out/local/sessions/06_diagnoses/<family>/<file>.md.json)
+      #
+      # TODO: agregar aquí el step de integración del agente (Claude API, script, etc.)
+      # Ejemplo de integración futura:
+      #   uses: anthropic-ai/claude-code-action@v1
+      #   with:
+      #     prompt: "Genera el diagnóstico en $DIAGNOSTIC_FILE usando el canon en data/out/local/"
+      - name: "[Step 4] Agent generates diagnostic — integration pending"
+        shell: bash
+        run: |
+          echo "Agent generation step."
+          echo "  Read root : ${AGENT_PRIMARY_READ_ROOT:-data/out/local/}"
+          echo "  Session root: ${AGENT_SESSION_ROOT:-data/out/local/sessions/}"
+          echo "  Output expected: $DIAGNOSTIC_FILE"
+          echo ""
+          echo "NOTA: la integración del agente (Claude API, script de generación)"
+          echo "debe reemplazar este step. El agente debe crear \$DIAGNOSTIC_FILE"
+          echo "antes de que continúe el Step 5."
+
+      # Step 5 — Verificar que el agente generó el archivo diagnóstico
+      # El archivo debe haber sido creado por el agente en Step 4.
+      # Si no existe, el workflow falla — el agente no completó su tarea.
+      - name: Verify diagnostic file was generated
+        shell: bash
+        run: |
+          echo "Checking: $DIAGNOSTIC_FILE"
+          if [ ! -f "$DIAGNOSTIC_FILE" ]; then
+            echo "" >&2
+            echo "error: El agente no generó el archivo diagnóstico." >&2
+            echo "  Expected: $DIAGNOSTIC_FILE" >&2
+            echo "" >&2
+            echo "El Step 4 debe crear este archivo antes de continuar." >&2
+            echo "Reemplaza el Step 4 placeholder con la integración del agente." >&2
+            exit 1
+          fi
+          echo "Diagnostic file found: OK"
+          python -m json.tool "$DIAGNOSTIC_FILE" >/dev/null && echo "JSON valid: OK"
+
+      # Step 6 — Validar rutas gobernadas
+      - name: Validate governed paths
         shell: bash
         run: |
           test -f python_scripts/diagnostic_governance.py
           test -f python_scripts/remote_publish_diagnostic.py
-          test -f "$DIAGNOSTIC_FILE"
-          python -m json.tool "$DIAGNOSTIC_FILE" >/dev/null
 
           case "$DIAGNOSTIC_FILE" in
             data/out/local/sessions/06_diagnoses/*) ;;
@@ -131,21 +199,17 @@ jobs:
           esac
 
           case "$REMOTE_RELATIVE_PATH" in
-            /*|*../*|../*|data/out/local/*) echo "error: remote_relative_path must be a safe OneDrive project-relative path" >&2; exit 1 ;;
+            /*|*../*|../*|data/out/local/*) echo "error: remote_relative_path must not start with / .. or data/out/local/" >&2; exit 1 ;;
           esac
 
-      # Step 6 — Publish diagnostic artifact to OneDrive
-      - name: Publish diagnostic artifact to OneDrive
+          echo "Path governance: OK"
+          echo "  local : $DIAGNOSTIC_FILE"
+          echo "  remote: $REMOTE_RELATIVE_PATH"
+
+      # Step 7 — Publicar diagnóstico puntual → OneDrive (single-file upload)
+      # Nunca ejecuta mirror completo. Nunca borra archivos remotos.
+      - name: Publish diagnostic artifact → OneDrive
         shell: bash
-        env:
-          MSA_TENANT:                 ${{ vars.MSA_TENANT }}
-          ONEDRIVE_PROJECT_ROOT_NAME: ${{ vars.ONEDRIVE_PROJECT_ROOT_NAME }}
-          ONEDRIVE_ROOT_MODE:         ${{ vars.ONEDRIVE_ROOT_MODE }}
-          REMOTE_CONFLICT_BEHAVIOR:   ${{ vars.REMOTE_CONFLICT_BEHAVIOR }}
-          REMOTE_CREATE_MISSING_DIRS: ${{ vars.REMOTE_CREATE_MISSING_DIRS }}
-          AZURE_CLIENT_ID:            ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID:            ${{ secrets.AZURE_TENANT_ID }}
-          MSA_REFRESH_TOKEN:          ${{ secrets.MSA_REFRESH_TOKEN }}
         run: |
           args=(
             python3 python_scripts/remote_publish_diagnostic.py
@@ -155,6 +219,9 @@ jobs:
 
           if [ "$DRY_RUN" = "true" ]; then
             args+=(--dry-run)
+            echo "Mode: dry-run (no upload)"
+          else
+            echo "Mode: live upload → OneDrive"
           fi
 
           "${args[@]}"
