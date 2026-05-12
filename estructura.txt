@@ -17,7 +17,7 @@
 │   │   └── tiddlers_sesiones.instructions.md
 │   └── workflows
 │       ├── ci.yml
-│       └── remote_diagnostic_from_onedrive.yml
+│       └── copilot-setup-steps.yml
 ├── .gitignore
 ├── data
 │   ├── in
@@ -75,7 +75,6 @@
 │   │   │   │   └── tiddlers_enriched_9.jsonl
 │   │   │   ├── export
 │   │   │   │   ├── s33-export-log.jsonl
-│   │   │   │   ├── s33-functional-tiddlers.jsonl
 │   │   │   │   └── s33-manifest.json
 │   │   │   ├── microsoft_copilot
 │   │   │   │   ├── artifacts.csv
@@ -142,22 +141,34 @@
 │   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
+│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
 │   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   ├── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
 │   │   │   │   │   ├── policy
 │   │   │   │   │   │   ├── canon_policy_bundle.json
 │   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
 │   │   │   │   │   └── projections
 │   │   │   │   │       └── derived_layers_registry.json
 │   │   │   │   ├── 01_procedencia
-│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
+│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
 │   │   │   │   ├── 02_detalles_de_sesion
-│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
+│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
 │   │   │   │   ├── 03_hipotesis
-│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
+│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
 │   │   │   │   ├── 04_balance_de_sesion
-│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
+│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
 │   │   │   │   ├── 05_propuesta_de_sesion
-│   │   │   │   │   └── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
+│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
 │   │   │   │   └── 06_diagnoses
 │   │   │   │       ├── meso-ciclo
 │   │   │   │       │   ├── m04-meso-ciclo-s005-s034-diagnostico.md.json
@@ -178,8 +189,11 @@
 │   │   │   │       ├── proyecto
 │   │   │   │       │   └── m04-diagnostico-global-proyecto-post-s097.md.json
 │   │   │   │       ├── sesion
-│   │   │   │       │   └── diagnostico-sesion-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s105-revision-local-flujo-onedrive.md.json
+│   │   │   │       │   └── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
 │   │   │   │       └── tema
+│   │   │   │           ├── diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
+│   │   │   │           └── diagnostico-tematico-09-cobertura-relacional-util-madurez-ia-premium.md.json
 │   │   │   ├── tiddlers_1.jsonl
 │   │   │   ├── tiddlers_10.jsonl
 │   │   │   ├── tiddlers_2.jsonl
@@ -194,100 +208,12 @@
 │   ├── README.md
 │   └── tmp
 │       ├── admissions
-│       │   ├── admit-20260505154934-multi-session.json
-│       │   ├── admit-20260505154952-multi-session.json
-│       │   ├── admit-20260505164144-multi-session.json
-│       │   ├── admit-20260505164204-multi-session.json
-│       │   ├── admit-20260505184842-multi-session.json
-│       │   ├── admit-20260505184909-multi-session.json
-│       │   ├── admit-20260505190857-multi-session.json
-│       │   ├── admit-20260505190913-multi-session.json
-│       │   ├── admit-20260505204019-multi-session.json
-│       │   ├── admit-20260505204050-multi-session.json
-│       │   ├── admit-20260505210412-multi-session.json
-│       │   ├── admit-20260505210443-multi-session.json
-│       │   ├── admit-20260506002535-multi-session.json
-│       │   ├── admit-20260506002548-multi-session.json
-│       │   ├── admit-20260506170321-multi-session.json
-│       │   ├── admit-20260506170336-multi-session.json
-│       │   ├── admit-20260506202702-multi-session.json
-│       │   ├── admit-20260506202726-multi-session.json
-│       │   ├── admit-20260506205920-m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.json
-│       │   ├── admit-20260506210002-m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas.json
-│       │   ├── admit-20260506210410-multi-session.json
-│       │   ├── admit-20260506210430-multi-session.json
+│       │   ├── admit-20260511180506-multi-session.json
+│       │   ├── admit-20260511180519-multi-session.json
+│       │   ├── admit-20260511224835-multi-session.json
+│       │   ├── admit-20260511225513-multi-session.json
 │       │   ├── backups
-│       │   │   ├── admit-20260505154952-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260505164204-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260505184909-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260505190913-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260505204050-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260505210443-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260506002548-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260506170336-multi-session
+│       │   │   ├── admit-20260511180519-multi-session
 │       │   │   │   ├── tiddlers_1.jsonl
 │       │   │   │   ├── tiddlers_10.jsonl
 │       │   │   │   ├── tiddlers_2.jsonl
@@ -298,22 +224,9 @@
 │       │   │   │   ├── tiddlers_7.jsonl
 │       │   │   │   ├── tiddlers_8.jsonl
 │       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── admit-20260506202726-multi-session
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── admit-20260506210430-multi-session
+│       │   │   └── admit-20260511225513-multi-session
 │       │   │       ├── tiddlers_1.jsonl
 │       │   │       ├── tiddlers_10.jsonl
-│       │   │       ├── tiddlers_11.jsonl
 │       │   │       ├── tiddlers_2.jsonl
 │       │   │       ├── tiddlers_3.jsonl
 │       │   │       ├── tiddlers_4.jsonl
@@ -323,580 +236,23 @@
 │       │   │       ├── tiddlers_8.jsonl
 │       │   │       └── tiddlers_9.jsonl
 │       │   └── s69_unittest
-│       │       ├── admit-20260505213555-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213556-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213557-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213559-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213604-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213613-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213621-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213714-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213716-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213719-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213721-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213724-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213733-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213805-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213806-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213808-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213810-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213814-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213824-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260505213832-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011045-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011046-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011049-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011051-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011053-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011101-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506011110-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012056-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012057-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012058-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012059-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012102-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012111-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506012119-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163509-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163510-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163512-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163513-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163516-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163523-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506163529-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192710-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192711-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192713-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192714-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192717-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192726-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506192735-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195114-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195115-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195116-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195118-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195121-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195129-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506195136-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204541-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204542-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204543-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204545-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204548-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204555-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506204603-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214753-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214754-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214756-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214757-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214800-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214808-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260506214817-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── backups
-│       │       │   ├── admit-20260505213621-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260505213742-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260505213832-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506011110-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506012119-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506163529-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506192735-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506195136-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506204603-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260506214817-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260505213629-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260505213752-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260505213840-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260506011119-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260506012128-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260506163536-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260506192744-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260506195143-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260506204611-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   └── rollback-20260506214825-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │       ├── tiddlers_1.jsonl
-│       │       │       ├── tiddlers_10.jsonl
-│       │       │       ├── tiddlers_11.jsonl
-│       │       │       ├── tiddlers_2.jsonl
-│       │       │       ├── tiddlers_3.jsonl
-│       │       │       ├── tiddlers_4.jsonl
-│       │       │       ├── tiddlers_5.jsonl
-│       │       │       ├── tiddlers_6.jsonl
-│       │       │       ├── tiddlers_7.jsonl
-│       │       │       ├── tiddlers_8.jsonl
-│       │       │       └── tiddlers_9.jsonl
-│       │       ├── rollback-20260505213629-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260505213752-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260505213840-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506011119-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506012128-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506163536-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506192744-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506195143-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506204611-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260506214825-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260505213600-missing-source-path.json
-│       │       ├── validate-20260505213612-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260505213722-missing-source-path.json
-│       │       ├── validate-20260505213733-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260505213812-missing-source-path.json
-│       │       ├── validate-20260505213823-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506011052-missing-source-path.json
-│       │       ├── validate-20260506011100-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506012101-missing-source-path.json
-│       │       ├── validate-20260506012110-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506163515-missing-source-path.json
-│       │       ├── validate-20260506163523-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506192716-missing-source-path.json
-│       │       ├── validate-20260506192725-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506195119-missing-source-path.json
-│       │       ├── validate-20260506195128-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506204546-missing-source-path.json
-│       │       ├── validate-20260506204555-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260506214759-missing-source-path.json
-│       │       └── validate-20260506214808-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       ├── canonical_quality
-│       │   └── quality-20260505185713
-│       │       ├── canonical-line-gate.json
-│       │       └── deep-node-inspect.json
 │       ├── html_export
-│       │   ├── export-20260505154840
-│       │   │   ├── tiddlers.export.jsonl
+│       │   ├── export-20260511180438
 │       │   │   ├── tiddlers.export.log
 │       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260505163004
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260505184712
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260505203845
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260505204854
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260505205508
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260506003315
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260506170251
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260506171956
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260506210341
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260506220644
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   └── export-20260506221839
-│       │       ├── tiddlers.export.jsonl
+│       │   └── export-20260511224713
 │       │       ├── tiddlers.export.log
 │       │       └── tiddlers.export.manifest.json
 │       ├── reconstruction
-│       │   ├── diagnostic-20260505154831
+│       │   ├── diagnostic-20260511224710
 │       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260505162948
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260505184708
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260505203841
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260505204850
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260505205505
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260506003311
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260506170247
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260506171950
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260506210337
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260506220631
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260506221833
-│       │   │   └── gate-report.json
-│       │   ├── export-20260505154840
+│       │   ├── export-20260511180438
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── export-20260505163004
+│       │   ├── export-20260511224713
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── export-20260505184712
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260505203845
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260505204854
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260505205508
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260506003315
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260506170251
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260506171956
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260506210341
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260506220644
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── export-20260506221839
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260505154903
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260505164112
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260505184727
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260505203914
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260505204907
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260506003326
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260506170259
+│       │   ├── reconstruction-20260511180443
 │       │   │   ├── canon_after
 │       │   │   │   ├── tiddlers_1.jsonl
 │       │   │   │   ├── tiddlers_10.jsonl
@@ -921,66 +277,7 @@
 │       │   │   │   └── tiddlers_9.jsonl
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260506172006
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260506210348
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260506220659
-│       │   │   ├── canon_after
-│       │   │   │   └── tiddlers_1.jsonl
-│       │   │   ├── canon_before
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260506221845
+│       │   ├── reconstruction-20260511224727
 │       │   │   ├── canon_after
 │       │   │   │   ├── tiddlers_1.jsonl
 │       │   │   │   ├── tiddlers_10.jsonl
@@ -995,7 +292,6 @@
 │       │   │   ├── canon_before
 │       │   │   │   ├── tiddlers_1.jsonl
 │       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
 │       │   │   │   ├── tiddlers_2.jsonl
 │       │   │   │   ├── tiddlers_3.jsonl
 │       │   │   │   ├── tiddlers_4.jsonl
@@ -1006,277 +302,14 @@
 │       │   │   │   └── tiddlers_9.jsonl
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505155050
+│       │   ├── reverse-20260511180612
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505164225
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505184923
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505204318
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505204420
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505204959
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260505210510
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260506002712
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260506170543
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260506210059
-│       │   │   └── gate-report.json
-│       │   ├── reverse-20260506210515
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260506210946
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260506212421
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260506215057
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   └── reverse-20260506220953
+│       │   └── reverse-20260511225544
 │       │       ├── gate-report.json
 │       │       └── reconstruction-report.json
-│       ├── remote_inbox
 │       ├── session_admission
-│       │   ├── admit-20260505154934-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505154934-multi-session.derived.html
-│       │   │       └── admit-20260505154934-multi-session.reverse-report.json
-│       │   ├── admit-20260505154952-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505154952-multi-session.derived.html
-│       │   │       └── admit-20260505154952-multi-session.reverse-report.json
-│       │   ├── admit-20260505164144-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505164144-multi-session.derived.html
-│       │   │       └── admit-20260505164144-multi-session.reverse-report.json
-│       │   ├── admit-20260505164204-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505164204-multi-session.derived.html
-│       │   │       └── admit-20260505164204-multi-session.reverse-report.json
-│       │   ├── admit-20260505184842-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505184842-multi-session.derived.html
-│       │   │       └── admit-20260505184842-multi-session.reverse-report.json
-│       │   ├── admit-20260505184909-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505184909-multi-session.derived.html
-│       │   │       └── admit-20260505184909-multi-session.reverse-report.json
-│       │   ├── admit-20260505190857-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505190857-multi-session.derived.html
-│       │   │       └── admit-20260505190857-multi-session.reverse-report.json
-│       │   ├── admit-20260505190913-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505190913-multi-session.derived.html
-│       │   │       └── admit-20260505190913-multi-session.reverse-report.json
-│       │   ├── admit-20260505204019-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505204019-multi-session.derived.html
-│       │   │       └── admit-20260505204019-multi-session.reverse-report.json
-│       │   ├── admit-20260505204050-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505204050-multi-session.derived.html
-│       │   │       └── admit-20260505204050-multi-session.reverse-report.json
-│       │   ├── admit-20260505210412-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505210412-multi-session.derived.html
-│       │   │       └── admit-20260505210412-multi-session.reverse-report.json
-│       │   ├── admit-20260505210443-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505210443-multi-session.derived.html
-│       │   │       └── admit-20260505210443-multi-session.reverse-report.json
-│       │   ├── admit-20260506002535-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506002535-multi-session.derived.html
-│       │   │       └── admit-20260506002535-multi-session.reverse-report.json
-│       │   ├── admit-20260506002548-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506002548-multi-session.derived.html
-│       │   │       └── admit-20260506002548-multi-session.reverse-report.json
-│       │   ├── admit-20260506170321-multi-session
+│       │   ├── admit-20260511180506-multi-session
 │       │   │   ├── admission_lines.normalized.jsonl
 │       │   │   ├── admission_lines.raw.jsonl
 │       │   │   ├── canon
@@ -1291,9 +324,9 @@
 │       │   │   │   ├── tiddlers_8.jsonl
 │       │   │   │   └── tiddlers_9.jsonl
 │       │   │   └── reverse_html
-│       │   │       ├── admit-20260506170321-multi-session.derived.html
-│       │   │       └── admit-20260506170321-multi-session.reverse-report.json
-│       │   ├── admit-20260506170336-multi-session
+│       │   │       ├── admit-20260511180506-multi-session.derived.html
+│       │   │       └── admit-20260511180506-multi-session.reverse-report.json
+│       │   ├── admit-20260511180519-multi-session
 │       │   │   ├── admission_lines.normalized.jsonl
 │       │   │   ├── admission_lines.raw.jsonl
 │       │   │   ├── canon
@@ -1308,15 +341,14 @@
 │       │   │   │   ├── tiddlers_8.jsonl
 │       │   │   │   └── tiddlers_9.jsonl
 │       │   │   └── reverse_html
-│       │   │       ├── admit-20260506170336-multi-session.derived.html
-│       │   │       └── admit-20260506170336-multi-session.reverse-report.json
-│       │   ├── admit-20260506202702-multi-session
+│       │   │       ├── admit-20260511180519-multi-session.derived.html
+│       │   │       └── admit-20260511180519-multi-session.reverse-report.json
+│       │   ├── admit-20260511224835-multi-session
 │       │   │   ├── admission_lines.normalized.jsonl
 │       │   │   ├── admission_lines.raw.jsonl
 │       │   │   ├── canon
 │       │   │   │   ├── tiddlers_1.jsonl
 │       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
 │       │   │   │   ├── tiddlers_2.jsonl
 │       │   │   │   ├── tiddlers_3.jsonl
 │       │   │   │   ├── tiddlers_4.jsonl
@@ -1326,81 +358,14 @@
 │       │   │   │   ├── tiddlers_8.jsonl
 │       │   │   │   └── tiddlers_9.jsonl
 │       │   │   └── reverse_html
-│       │   │       ├── admit-20260506202702-multi-session.derived.html
-│       │   │       └── admit-20260506202702-multi-session.reverse-report.json
-│       │   ├── admit-20260506202726-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506202726-multi-session.derived.html
-│       │   │       └── admit-20260506202726-multi-session.reverse-report.json
-│       │   ├── admit-20260506205920-m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   └── canon
-│       │   │       ├── tiddlers_1.jsonl
-│       │   │       ├── tiddlers_10.jsonl
-│       │   │       ├── tiddlers_11.jsonl
-│       │   │       ├── tiddlers_2.jsonl
-│       │   │       ├── tiddlers_3.jsonl
-│       │   │       ├── tiddlers_4.jsonl
-│       │   │       ├── tiddlers_5.jsonl
-│       │   │       ├── tiddlers_6.jsonl
-│       │   │       ├── tiddlers_7.jsonl
-│       │   │       ├── tiddlers_8.jsonl
-│       │   │       └── tiddlers_9.jsonl
-│       │   ├── admit-20260506210002-m04-s104-saneamiento-canon-s94-s102-workflows-onedrive-y-plantillas-agenticas
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   └── canon
-│       │   │       ├── tiddlers_1.jsonl
-│       │   │       ├── tiddlers_10.jsonl
-│       │   │       ├── tiddlers_11.jsonl
-│       │   │       ├── tiddlers_2.jsonl
-│       │   │       ├── tiddlers_3.jsonl
-│       │   │       ├── tiddlers_4.jsonl
-│       │   │       ├── tiddlers_5.jsonl
-│       │   │       ├── tiddlers_6.jsonl
-│       │   │       ├── tiddlers_7.jsonl
-│       │   │       ├── tiddlers_8.jsonl
-│       │   │       └── tiddlers_9.jsonl
-│       │   ├── admit-20260506210410-multi-session
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506210410-multi-session.derived.html
-│       │   │       └── admit-20260506210410-multi-session.reverse-report.json
-│       │   └── admit-20260506210430-multi-session
+│       │   │       ├── admit-20260511224835-multi-session.derived.html
+│       │   │       └── admit-20260511224835-multi-session.reverse-report.json
+│       │   └── admit-20260511225513-multi-session
 │       │       ├── admission_lines.normalized.jsonl
 │       │       ├── admission_lines.raw.jsonl
 │       │       ├── canon
 │       │       │   ├── tiddlers_1.jsonl
 │       │       │   ├── tiddlers_10.jsonl
-│       │       │   ├── tiddlers_11.jsonl
 │       │       │   ├── tiddlers_2.jsonl
 │       │       │   ├── tiddlers_3.jsonl
 │       │       │   ├── tiddlers_4.jsonl
@@ -1410,655 +375,11 @@
 │       │       │   ├── tiddlers_8.jsonl
 │       │       │   └── tiddlers_9.jsonl
 │       │       └── reverse_html
-│       │           ├── admit-20260506210430-multi-session.derived.html
-│       │           └── admit-20260506210430-multi-session.reverse-report.json
+│       │           ├── admit-20260511225513-multi-session.derived.html
+│       │           └── admit-20260511225513-multi-session.reverse-report.json
 │       ├── session_admission_s69_unittest
-│       │   ├── admit-20260505213604-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213604-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213604-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213613-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213613-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213613-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213621-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213621-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213621-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213724-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213724-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213724-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213733-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213733-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213733-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213742-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213814-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213814-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213814-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213824-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213824-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213824-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260505213832-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260505213832-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260505213832-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506011053-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506011053-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506011053-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506011101-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506011101-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506011101-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506011110-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506011110-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506011110-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506012102-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506012102-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506012102-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506012111-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506012111-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506012111-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506012119-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506012119-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506012119-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506163516-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506163516-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506163516-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506163523-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506163523-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506163523-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506163529-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506163529-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506163529-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506192717-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506192717-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506192717-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506192726-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506192726-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506192726-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506192735-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506192735-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506192735-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506195121-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506195121-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506195121-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506195129-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506195129-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506195129-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506195136-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506195136-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506195136-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506204548-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506204548-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506204548-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506204555-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506204555-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506204555-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506204603-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506204603-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506204603-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506214800-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506214800-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506214800-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506214808-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506214808-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506214808-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260506214817-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260506214817-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260506214817-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260505213629-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260505213629-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260505213629-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260505213752-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260505213752-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260505213752-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260505213840-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260505213840-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260505213840-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260506011119-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260506011119-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260506011119-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260506012128-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260506012128-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260506012128-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260506163536-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260506163536-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260506163536-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260506192744-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260506192744-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260506192744-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260506195143-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260506195143-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260506195143-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260506204611-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260506204611-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260506204611-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   └── rollback-20260506214825-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       ├── canon
-│       │       │   ├── tiddlers_1.jsonl
-│       │       │   ├── tiddlers_10.jsonl
-│       │       │   ├── tiddlers_11.jsonl
-│       │       │   ├── tiddlers_2.jsonl
-│       │       │   ├── tiddlers_3.jsonl
-│       │       │   ├── tiddlers_4.jsonl
-│       │       │   ├── tiddlers_5.jsonl
-│       │       │   ├── tiddlers_6.jsonl
-│       │       │   ├── tiddlers_7.jsonl
-│       │       │   ├── tiddlers_8.jsonl
-│       │       │   └── tiddlers_9.jsonl
-│       │       └── reverse_html
-│       │           ├── rollback-20260506214825-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │           └── rollback-20260506214825-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
 │       └── session_sync
-│           ├── sync-20260505154929
+│           ├── sync-20260511180500
 │           │   ├── inventory.json
 │           │   ├── missing-candidates.canon-candidates.jsonl
 │           │   ├── normalize
@@ -2066,87 +387,14 @@
 │           │   │   └── admission_lines.raw.jsonl
 │           │   ├── replacement-candidates.canon-candidates.jsonl
 │           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260505164140
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260505184750
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260505190831
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260505204010
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260505210408
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260506002530
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260506170315
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260506202658
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260506205910
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260506210406
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           └── sync-20260506210821
+│           └── sync-20260511224746
 │               ├── inventory.json
-│               └── normalize
-│                   ├── admission_lines.normalized.jsonl
-│                   └── admission_lines.raw.jsonl
+│               ├── missing-candidates.canon-candidates.jsonl
+│               ├── normalize
+│               │   ├── admission_lines.normalized.jsonl
+│               │   └── admission_lines.raw.jsonl
+│               ├── replacement-candidates.canon-candidates.jsonl
+│               └── sync-candidates.canon-candidates.jsonl
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── plantillas
@@ -2463,6 +711,7 @@
 │   ├── smoke
 │   │   └── test_pipeline_smoke.sh
 │   ├── test.txt
+│   ├── test_controlled_relation_propagation.py
 │   ├── test_diagnostic_artifact_governance.py
 │   ├── test_mcp_env_manager_security.py
 │   ├── test_remote_mirror_out_local.py

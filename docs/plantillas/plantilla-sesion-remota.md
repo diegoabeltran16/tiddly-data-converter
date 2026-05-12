@@ -1,193 +1,274 @@
-# Plantilla de sesión remota — tiddly-data-converter
+# Plantilla de sesión diagnóstica remota — tiddly-data-converter
 
-> Usar cuando el agente opera sobre una rama GitHub y/o ambiente remoto con acceso
-> a OneDrive mediante el environment `onedrive-remote`.
+> Usar cuando el Copilot Task Agent debe leer el canon vivo desde OneDrive,
+> analizar el código y los derivados, y producir un diagnóstico gobernado.
+>
+> El agente opera con los **agents secrets/variables** del repositorio.
+> No depende del environment `onedrive-remote` (ese es el flujo manual secundario).
 
 ---
 
 ## Glosario mínimo
 
-| Término | Definición breve |
+| Término | Definición |
 |---|---|
-| **Environment oficial** | `onedrive-remote` — único environment GitHub para publicación OneDrive |
-| **OneDrive remoto** | `approot:/tiddly-data-converter/` — raíz del proyecto en OneDrive |
-| **Diagnóstico no sesional** | Artefacto analítico en `sessions/06_diagnoses/<familia>/` en OneDrive |
-| **Sesión formal** | Produce 7 entregables en `data/out/local/sessions/`; puede generar candidatas canónicas |
-| **Publicación puntual** | `remote_publish_diagnostic.py` — sube un solo archivo a OneDrive; no borra remotos |
-| **Mirror completo** | `remote_mirror_out_local.py` — sincroniza `data/out/local/` completo; no es la ruta normal para diagnósticos |
-| **Equivalencia rutas** | `data/out/local/sessions/` ↔ `sessions/` en OneDrive (no incluir prefijo `data/out/local/` en rutas remotas) |
-| **remote-mirror** | Environment legacy retirado — no recrear; usar `onedrive-remote` |
+| **Canon** | `data/out/local/tiddlers_*.jsonl` — tiddlers canónicos descargados desde OneDrive |
+| **Derivados** | `data/out/local/ai/`, `audit/`, `pipeline/`, `enriched/` — artefactos generados del canon |
+| **Workspace hidratado** | `data/out/local/` completo tras ejecutar `remote_pull_canon.py` |
+| **Diagnóstico temático** | Artefacto analítico en `06_diagnoses/<familia>/`; no es una sesión formal |
+| **Familia diagnóstica** | `tema` · `micro_ciclo` · `meso_ciclo` · `proyecto` · `sesion` |
+| **Publicación puntual** | `remote_publish_diagnostic.py` — sube un único archivo a OneDrive; nunca borra remotos |
+| **Equivalencia rutas** | `data/out/local/sessions/` ↔ `sessions/` en OneDrive (el prefijo `data/out/local/` no se incluye en rutas remotas) |
+| **Setup del agente** | `copilot-setup-steps.yml` — hidrata el workspace antes de que el agente diagnostique |
 
 ---
 
-## 1. Preflight — parada temprana
+## 0. Prerequisito — workspace hidratado
+
+El agente **no debe diagnosticar desde código fuente solamente**.
+Antes de analizar, confirmar que `data/out/local/` fue hidratado desde OneDrive:
 
 ```bash
-git branch --show-current       # verificar rama
-git rev-parse --short HEAD      # verificar commit
-git log -1 --oneline            # verificar contexto
+# Verificar que el pull ocurrió y no está vacío
+test -d data/out/local || echo "BLOQUEO: data/out/local no existe"
+
+# Contar archivos disponibles
+find data/out/local -type f | wc -l
+
+# Verificar presencia de canon y derivados
+ls data/out/local/tiddlers_*.jsonl 2>/dev/null || echo "AVISO: no hay canon local"
+ls data/out/local/sessions/06_diagnoses/ 2>/dev/null || echo "INFO: sin diagnósticos previos"
 ```
 
-**Detener si:** la rama no contiene los scripts de gobernanza requeridos:
+Si `data/out/local/` está vacío, ejecutar el pull primero:
 
 ```bash
-test -f python_scripts/diagnostic_governance.py || echo "BLOQUEO: falta diagnostic_governance.py"
+MSA_TENANT=consumers \
+ONEDRIVE_PROJECT_ROOT_NAME=tiddly-data-converter \
+ONEDRIVE_ROOT_MODE=approot \
+LOCAL_SYNC_TARGET=data/out/local/ \
+PULL_CONFLICT_BEHAVIOR=replace \
+PULL_CREATE_MISSING_DIRS=true \
+PULL_DRY_RUN=false \
+python3 python_scripts/remote_pull_canon.py
+```
+
+**Regla:** Si el pull falla con HTTP 401, detener y reportar. No diagnosticar desde código fuente como sustituto del canon vivo.
+
+---
+
+## 1. Preflight — verificación de gobernanza
+
+```bash
+# Scripts de gobernanza requeridos
+test -f python_scripts/diagnostic_governance.py   || echo "BLOQUEO: falta diagnostic_governance.py"
 test -f python_scripts/remote_publish_diagnostic.py || echo "BLOQUEO: falta remote_publish_diagnostic.py"
-test -f .github/workflows/remote_publish_diagnostic.yml || echo "BLOQUEO: falta workflow de publicación"
-```
+test -f python_scripts/remote_pull_canon.py         || echo "BLOQUEO: falta remote_pull_canon.py"
 
-**Regla de parada temprana:**
-
-Si la rama no contiene la gobernanza requerida, no producir diagnóstico ni artefactos.
-Reportar la precondición fallida y detener.
-
-Verificar variables de environment (sin imprimir valores sensibles):
-
-```bash
-# Solo verificar presencia, nunca imprimir valores
-[ -n "$AZURE_CLIENT_ID" ] && echo "AZURE_CLIENT_ID: presente" || echo "AZURE_CLIENT_ID: FALTA"
+# Credenciales — solo verificar presencia, nunca imprimir valores
+[ -n "$AZURE_CLIENT_ID" ]   && echo "AZURE_CLIENT_ID  : presente" || echo "AZURE_CLIENT_ID  : FALTA"
 [ -n "$MSA_REFRESH_TOKEN" ] && echo "MSA_REFRESH_TOKEN: presente" || echo "MSA_REFRESH_TOKEN: FALTA"
+
+# Rutas prohibidas — deben estar ausentes
+test ! -d sessions     || echo "BLOQUEO: sessions/ en raíz del repo"
+test ! -d data/sessions || echo "BLOQUEO: data/sessions/ existe"
 ```
 
 ---
 
-## 2. Presupuesto de lectura
+## 2. Lectura — orden de prioridad
 
-1. No leer el canon remoto salvo que esté disponible y el objetivo lo exija.
-2. Leer solo los scripts relevantes para el objetivo.
-3. Verificar existencia de rutas antes de listar sus contenidos.
-4. Resumir outputs largos; no pegar más de 30 líneas sin síntesis.
+Leer en este orden. Detenerse cuando el contexto sea suficiente para el diagnóstico solicitado.
 
-**Reglas de eficiencia:**
-
-- Usar `grep` antes de leer archivos completos.
-- Si el workspace remoto tiene `data/out/local/` vacío o incompleto, no usar mirror completo como ruta de diagnósticos.
-- Identificar la diferencia entre "no existe localmente" y "no existe en OneDrive" antes de actuar.
-
----
-
-## 3. Ejecución — publicación de diagnóstico
-
-### 3a. Diagnóstico local → OneDrive (publicación puntual)
-
-Producir el archivo local:
-
-```text
-data/out/local/sessions/06_diagnoses/<familia>/<nombre>.md.json
-```
-
-Ejemplo para familia `tema`:
-
-```text
-data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-slug.md.json
-```
-
-Validar dry-run antes de publicar:
+### 2a. Canon vivo (fuente primaria)
 
 ```bash
+# Contar tiddlers canónicos por shard
+wc -l data/out/local/tiddlers_*.jsonl
+
+# Leer muestra del canon (primeras 5 entradas del shard principal)
+head -5 data/out/local/tiddlers_canon.jsonl 2>/dev/null || \
+  head -5 data/out/local/tiddlers_0.jsonl 2>/dev/null
+
+# Buscar tiddlers relevantes para el diagnóstico solicitado
+grep -l "<término-del-diagnóstico>" data/out/local/tiddlers_*.jsonl
+```
+
+### 2b. Derivados AI y auditoría
+
+```bash
+# Chunks AI estructurados
+ls data/out/local/ai/
+
+# Auditoría del canon
+ls data/out/local/audit/
+
+# Artefactos de pipeline
+ls data/out/local/pipeline/
+
+# Tiddlers enriquecidos
+ls data/out/local/enriched/
+```
+
+### 2c. Diagnósticos previos en la misma familia
+
+```bash
+# Ver diagnósticos existentes en la familia objetivo
+ls data/out/local/sessions/06_diagnoses/<familia>/
+
+# Leer el diagnóstico previo más reciente para evitar repetición
+cat data/out/local/sessions/06_diagnoses/<familia>/<último>.md.json | python3 -m json.tool | head -30
+```
+
+### 2d. Código fuente relevante
+
+Leer solo los scripts directamente relacionados con el enfoque del diagnóstico.
+No leer el repo completo. Usar `grep` para ubicar antes de leer completo.
+
+```bash
+# Ubicar función o módulo relevante antes de leer el archivo
+grep -rn "<función-o-concepto>" python_scripts/
+
+# Leer solo el script identificado
+cat python_scripts/<script-relevante>.py
+```
+
+### 2e. Sesiones previas de contexto
+
+```bash
+# Balance de la sesión anterior más reciente
+ls data/out/local/sessions/04_balance_de_sesion/ | tail -3
+
+# Propuesta de la sesión anterior (qué se recomendó hacer)
+cat data/out/local/sessions/05_propuesta_de_sesion/<más-reciente>.md.json | python3 -m json.tool
+```
+
+---
+
+## 3. Análisis — enfoque del diagnóstico
+
+El diagnóstico debe responder **tres preguntas estructurales**:
+
+### 3a. Estado del canon
+
+- ¿Cuántos tiddlers hay? ¿Cuántos shards?
+- ¿Qué campos están siempre presentes? ¿Cuáles pueden estar vacíos o nulos?
+- ¿Hay tiddlers con relaciones capa-1 (`links`, `tags`)? ¿Capa-2 (`content.plain.relations`)?
+- ¿Los chunks AI (`ai/`) cubren el canon completo o solo una parte?
+
+### 3b. Eficiencia del pipeline
+
+- ¿El código del script analizado tiene rutas de error claras?
+- ¿Hay campos calculados que pueden producir resultados vacíos sin aviso?
+- ¿Las reglas de gobernanza (`diagnostic_governance.py`, `path_governance.py`) cubren los casos actuales?
+- ¿Hay brechas entre lo que el pipeline produce y lo que el canon requiere?
+
+### 3c. Enfoque específico del diagnóstico solicitado
+
+Responder la pregunta concreta del diagnóstico. No ampliar el análisis más allá del enfoque pedido.
+Si la pregunta es ambigua, declararla explícitamente antes de actuar.
+
+---
+
+## 4. Generación del entregable
+
+### Formato del archivo
+
+```json
+{
+  "title": "#### 🌀 Diagnóstico <familia> <NN> = <slug legible>",
+  "type": "text/markdown",
+  "created": "YYYYMMDDHHMMSSMMM",
+  "modified": "YYYYMMDDHHMMSSMMM",
+  "text": "## Diagnóstico <familia> <NN>\n\n..."
+}
+```
+
+### Convención de nombres
+
+| Familia | Ruta local | Nombre de archivo |
+|---|---|---|
+| `tema` | `data/out/local/sessions/06_diagnoses/tema/` | `diagnostico-tematico-<NN>-<slug>.md.json` |
+| `micro_ciclo` | `data/out/local/sessions/06_diagnoses/micro_ciclo/` | `diagnostico-micro-ciclo-<NN>-<slug>.md.json` |
+| `meso_ciclo` | `data/out/local/sessions/06_diagnoses/meso_ciclo/` | `diagnostico-meso-ciclo-<NN>-<slug>.md.json` |
+| `proyecto` | `data/out/local/sessions/06_diagnoses/proyecto/` | `diagnostico-proyecto-<NN>-<slug>.md.json` |
+| `sesion` | `data/out/local/sessions/06_diagnoses/sesion/` | `diagnostico-sesion-s<NNN>-<slug>.md.json` |
+
+### Estructura interna del campo `text`
+
+```markdown
+## Diagnóstico <familia> <NN>
+
+### Fuentes de contexto usadas
+- Canon: N tiddlers leídos desde data/out/local/tiddlers_*.jsonl
+- Derivados: ai/, audit/, pipeline/ (presentes / ausentes)
+- Diagnósticos previos: <lista o "ninguno">
+- Código revisado: <scripts consultados>
+
+### [Sección según enfoque solicitado]
+...análisis concreto...
+
+### Brechas identificadas
+...
+
+### Decisión recomendada
+...
+
+### Estado de publicación
+- Dry-run: <resultado>
+- Live: <pendiente / publicado en sessions/06_diagnoses/<familia>/>
+```
+
+### Validar antes de publicar
+
+```bash
+# Verificar que el JSON es válido
+python3 -m json.tool data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json >/dev/null \
+  && echo "JSON válido: OK"
+
+# Dry-run de publicación
 python3 python_scripts/remote_publish_diagnostic.py \
-  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-slug.md.json \
-  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-08-slug.md.json \
+  --local-file  data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json \
+  --remote-relative-path sessions/06_diagnoses/<familia>/<archivo>.md.json \
   --dry-run
 ```
 
-Publicar live (requiere `AZURE_CLIENT_ID` y `MSA_REFRESH_TOKEN` en runtime):
+---
+
+## 5. Publicación a OneDrive
 
 ```bash
+# Publicación live (requiere AZURE_CLIENT_ID y MSA_REFRESH_TOKEN en runtime)
 python3 python_scripts/remote_publish_diagnostic.py \
-  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-slug.md.json \
-  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-08-slug.md.json
+  --local-file  data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json \
+  --remote-relative-path sessions/06_diagnoses/<familia>/<archivo>.md.json
 ```
 
-### 3b. OneDrive → local (pull)
+**Confirmaciones de publicación exitosa:**
 
-```bash
-python3 python_scripts/remote_pull_sessions.py
-# Resultado en: data/tmp/remote_inbox/
-# El operador mueve manualmente al subfolder correcto de 06_diagnoses/
-```
-
-### 3c. Mirror completo (mantenimiento controlado)
-
-Solo usar si `data/out/local/` está completo y el operador lo solicitó explícitamente.
-No usar como ruta normal para diagnósticos producidos en workspace remoto incompleto.
-
-```bash
-# Verificar dry_run por defecto antes de cualquier mirror live
-echo "SYNC_DRY_RUN: ${SYNC_DRY_RUN:-true (default)}"
+```json
+{
+  "dry_run": false,
+  "status": "uploaded",
+  "remote_relative_path": "sessions/06_diagnoses/<familia>/<archivo>.md.json",
+  "delete_remote": false
+}
 ```
 
 ---
 
-## 4. Equivalencia rutas local ↔ OneDrive
+## 6. Restricciones absolutas
 
-```text
-LOCAL (gitignoreado, nunca en GitHub):
-  data/out/local/sessions/06_diagnoses/tema/
-
-OneDrive (approot:/tiddly-data-converter/):
-  sessions/06_diagnoses/tema/
-```
-
-**Regla:** No incluir `data/out/local/` en las rutas remotas. La raíz `data/out/local/`
-mapea directamente a la raíz del proyecto en OneDrive.
-
-**Verificación de llegada real:**
-
-```bash
-# Después de un pull real, verificar en inbox local:
-ls data/tmp/remote_inbox/
-
-# OneDrive no se puede verificar sin acceso a Graph o cliente sincronizado.
-# "Crear un archivo en el runner remoto" ≠ "el archivo llegó a OneDrive"
-```
-
----
-
-## 5. Validación
-
-```bash
-python3 -m py_compile python_scripts/diagnostic_governance.py
-python3 -m py_compile python_scripts/remote_publish_diagnostic.py
-python3 -m py_compile python_scripts/remote_mirror_out_local.py
-python3 -m py_compile python_scripts/remote_pull_sessions.py
-python3 -m pytest -q
-```
-
-Validar ausencia de referencias activas a `remote-mirror`:
-
-```bash
-grep -Rn "remote-mirror" .github python_scripts | grep -v "legacy\|retirad\|#" || echo "OK"
-```
-
-Validar que el environment activo es `onedrive-remote`:
-
-```bash
-grep "environment:" .github/workflows/remote_*.yml
-# Esperado: environment: onedrive-remote (en todos)
-```
-
----
-
-## 6. Cierre — familia mínima
-
-Producir 7 archivos bajo `data/out/local/sessions/`:
-
-| Carpeta | Título |
+| Prohibición | Razón |
 |---|---|
-| `00_contratos/` | `#### 🌀 Contrato de sesión NNNN = slug` |
-| `01_procedencia/` | `#### 🌀🧾 Procedencia de sesión NNNN = slug` |
-| `02_detalles_de_sesion/` | `#### 🌀 Sesión NNNN = slug` |
-| `03_hipotesis/` | `#### 🌀🧪 Hipótesis de sesión NNNN = slug` |
-| `04_balance_de_sesion/` | `#### 🌀 Balance de sesión NNNN = slug` |
-| `05_propuesta_de_sesion/` | `#### 🌀 Propuesta de sesión NNNN = slug` |
-| `06_diagnoses/sesion/` | `#### 🌀 Diagnóstico de sesión NNNN = slug` |
-
-**Títulos prohibidos:**
-
-```text
-🌀📐 Propuesta   🌀📋 Detalles   🌀🔬 Hipótesis   🌀🩺 Diagnóstico   🌀⚖️ Balance
-```
+| No hacer commit del diagnóstico al repo | Los diagnósticos viven en OneDrive, no en git |
+| No crear PR | Flujo diagnóstico es publicación directa a OneDrive |
+| No escribir en `tiddlers_*.jsonl` | El canon solo se modifica por el flujo de admisión formal |
+| No ejecutar mirror completo | `remote_mirror_out_local.py` no es la ruta de diagnósticos |
+| No crear `sessions/` en raíz ni `data/sessions/` | Rutas prohibidas por gobernanza |
+| No imprimir secrets en logs | Nunca mostrar valores de `AZURE_CLIENT_ID`, `MSA_REFRESH_TOKEN` |
+| No diagnosticar solo desde código si el pull falló | Reportar el fallo; el canon vivo es la fuente primaria |
+| No publicar fuera de `sessions/06_diagnoses/` | El script de publicación rechaza otras rutas por diseño |
 
 ---
 
@@ -195,25 +276,31 @@ Producir 7 archivos bajo `data/out/local/sessions/`:
 
 | Situación | Acción |
 |---|---|
-| Rama incorrecta | Detener; reportar bloqueo; no producir artefactos |
-| Falta `diagnostic_governance.py` | Detener; la rama no tiene gobernanza requerida |
-| `AZURE_CLIENT_ID` ausente | Ejecutar en dry-run; no publicar live |
-| `MSA_REFRESH_TOKEN` ausente | Ejecutar en dry-run; no publicar live |
-| Environment `onedrive-remote` no disponible | No ejecutar live; documentar como pendiente |
-| Workspace remoto sin `data/out/local/` | No usar mirror completo; producir artefacto y publicar puntualmente |
-| Archivo no llegó a OneDrive tras publicación | Verificar logs del workflow; revisar credenciales |
-| Test falla | Diagnosticar; documentar si es pre-existente |
-| Objetivo ambiguo | Declarar explícitamente antes de actuar |
+| Pull devuelve HTTP 401 | Detener; reportar; no diagnosticar solo desde código |
+| `data/out/local/` vacío tras pull | Verificar credenciales; reportar como bloqueante |
+| `AZURE_CLIENT_ID` o `MSA_REFRESH_TOKEN` ausente | Ejecutar dry-run; documentar publicación como pendiente |
+| JSON del diagnóstico inválido | Corregir antes de intentar publicar |
+| `remote_publish_diagnostic.py` rechaza la ruta | La ruta no cumple gobernanza; revisar familia y prefijo |
+| Diagnóstico previo cubre el mismo tema | Documentar y extender el existente; no duplicar |
+| Objetivo del diagnóstico ambiguo | Declarar la interpretación explícitamente antes de actuar |
 
 ---
 
-## 8. Prohibiciones
+## 8. Checklist de cierre
 
-- No recrear el environment `remote-mirror`.
-- No publicar en OneDrive con `SYNC_DRY_RUN=true` (default) sin cambiarlo explícitamente.
-- No imprimir ni almacenar secrets.
-- No hardcodear valores de `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` ni `MSA_REFRESH_TOKEN`.
-- No crear `data/sessions/`, `sessions/` raíz ni `data/local/`.
-- No usar mirror completo como ruta normal para diagnósticos desde workspace remoto incompleto.
-- No asumir que "crear un archivo en el runner" equivale a "el archivo llegó a OneDrive".
-- No usar emojis adicionales en títulos de familias principales de sesión.
+```text
+[ ] data/out/local/ hidratado desde OneDrive antes de diagnosticar
+[ ] Canon leído (tiddlers_*.jsonl) — N tiddlers
+[ ] Derivados revisados (ai/, audit/, pipeline/)
+[ ] Diagnósticos previos en la misma familia consultados
+[ ] Código fuente relevante revisado
+[ ] Diagnóstico generado en la ruta gobernada correcta
+[ ] JSON válido (python3 -m json.tool pasa)
+[ ] Dry-run ejecutado y validado
+[ ] Publicación live exitosa → sessions/06_diagnoses/<familia>/
+[ ] No se creó PR
+[ ] No se hizo commit
+[ ] No se escribió en canon
+[ ] No se imprimieron secrets
+[ ] No se ejecutó mirror completo
+```
