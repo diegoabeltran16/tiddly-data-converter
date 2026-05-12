@@ -41,7 +41,7 @@ import re
 import sys
 import unicodedata
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -543,6 +543,7 @@ def build_rule23_metrics(canon_records: list[dict], chunks: list[dict]) -> dict:
         _finalize_coverage_bucket(bucket)
 
     total_chunks = len(chunks)
+    canon_ids = {r.get("id") for r in canon_records if r.get("id")}
     chunks_with_relation_targets = sum(1 for c in chunks if "relation_targets" in c)
     chunks_with_non_empty_relation_targets = sum(
         1 for c in chunks
@@ -559,6 +560,40 @@ def build_rule23_metrics(canon_records: list[dict], chunks: list[dict]) -> dict:
         and "relation_count" in c
         and c.get("relation_count") != len(c.get("relation_targets") or [])
     )
+    chunks_with_relation_target_count = sum(1 for c in chunks if "relation_target_count" in c)
+    chunks_with_relation_target_count_mismatch = sum(
+        1 for c in chunks
+        if isinstance(c.get("relation_targets"), list)
+        and "relation_target_count" in c
+        and c.get("relation_target_count") != len(c.get("relation_targets") or [])
+    )
+    chunk_relation_policy_distribution = Counter(
+        c.get("relation_propagation_policy", "<missing>")
+        for c in chunks
+    )
+    chunk_relation_quality_flag_distribution = Counter()
+    chunk_relation_type_distribution = Counter()
+    chunks_with_duplicate_relation_targets = 0
+    unresolved_relation_targets_in_chunks = 0
+    for chunk in chunks:
+        rels = chunk.get("relation_targets") or []
+        if isinstance(rels, list):
+            target_ids = [
+                rel.get("target_id")
+                for rel in rels
+                if isinstance(rel, dict) and rel.get("target_id")
+            ]
+            if len(target_ids) != len(set(target_ids)):
+                chunks_with_duplicate_relation_targets += 1
+            for rel in rels:
+                if not isinstance(rel, dict):
+                    continue
+                chunk_relation_type_distribution[rel.get("type", "unknown")] += 1
+                target_id = rel.get("target_id")
+                if target_id and canon_ids and target_id not in canon_ids:
+                    unresolved_relation_targets_in_chunks += 1
+        for flag in chunk.get("relation_quality_flags") or []:
+            chunk_relation_quality_flag_distribution[str(flag)] += 1
 
     log_bucket = by_role.get("log") or _new_coverage_bucket()
     log_isolation_pct = _pct(log_bucket.get("nodes_without_relations", 0), log_bucket.get("total_nodes", 0))
@@ -580,6 +615,18 @@ def build_rule23_metrics(canon_records: list[dict], chunks: list[dict]) -> dict:
         notes.append(
             f"{chunks_with_relation_count_mismatch} chunks_ai records have relation_count mismatches."
         )
+    if chunks_with_relation_target_count_mismatch:
+        notes.append(
+            f"{chunks_with_relation_target_count_mismatch} chunks_ai records have relation_target_count mismatches."
+        )
+    if chunks_with_duplicate_relation_targets:
+        notes.append(
+            f"{chunks_with_duplicate_relation_targets} chunks_ai records have duplicate relation target IDs."
+        )
+    if unresolved_relation_targets_in_chunks:
+        notes.append(
+            f"{unresolved_relation_targets_in_chunks} relation_targets in chunks_ai do not resolve to canon IDs."
+        )
     if log_bucket.get("total_nodes", 0) and log_isolation_pct >= 95.0:
         notes.append(
             f"log nodes remain isolated: {log_bucket['nodes_without_relations']}/{log_bucket['total_nodes']} without relations."
@@ -592,7 +639,13 @@ def build_rule23_metrics(canon_records: list[dict], chunks: list[dict]) -> dict:
         )
 
     status = "PASS"
-    if chunks_with_bad_relation_targets or chunks_with_relation_count_mismatch:
+    if (
+        chunks_with_bad_relation_targets
+        or chunks_with_relation_count_mismatch
+        or chunks_with_relation_target_count_mismatch
+        or chunks_with_duplicate_relation_targets
+        or unresolved_relation_targets_in_chunks
+    ):
         status = "FAIL"
     elif (
         (total_chunks and chunks_with_relation_targets < total_chunks)
@@ -619,7 +672,14 @@ def build_rule23_metrics(canon_records: list[dict], chunks: list[dict]) -> dict:
             "chunks_with_non_empty_relation_targets": chunks_with_non_empty_relation_targets,
             "chunks_with_relation_count": chunks_with_relation_count,
             "chunks_with_relation_count_mismatch": chunks_with_relation_count_mismatch,
+            "chunks_with_relation_target_count": chunks_with_relation_target_count,
+            "chunks_with_relation_target_count_mismatch": chunks_with_relation_target_count_mismatch,
             "chunks_with_bad_relation_targets": chunks_with_bad_relation_targets,
+            "chunk_relation_policy_distribution": dict(chunk_relation_policy_distribution.most_common()),
+            "chunk_relation_quality_flag_distribution": dict(chunk_relation_quality_flag_distribution.most_common()),
+            "chunk_relation_type_distribution": dict(chunk_relation_type_distribution.most_common()),
+            "chunks_with_duplicate_relation_targets": chunks_with_duplicate_relation_targets,
+            "unresolved_relation_targets_in_chunks": unresolved_relation_targets_in_chunks,
         },
         "observations": {
             "log_nodes_total": log_bucket.get("total_nodes", 0),

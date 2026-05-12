@@ -152,6 +152,25 @@ DEFAULT_CHUNK_MAX_TOKENS = 4000   # hard max — no chunk may exceed this
 DEFAULT_MICROCHUNK_MIN_TOKENS = 80
 DEFAULT_TIDDLER_SHARD_SIZE = 100
 DEFAULT_CHUNK_SHARD_SIZE_ARG = 200
+RELATION_PROPAGATION_POLICY_VERSION = "controlled_v1"
+MAX_RELATION_TARGETS_PER_CHUNK = 8
+HUB_RELATIVE_THRESHOLD = 0.05
+HUB_ABSOLUTE_MIN_COUNT = 20
+HUB_FAMILY_DOMINANCE_THRESHOLD = 0.40
+HUB_FAMILY_MIN_COUNT = 10
+
+SEMANTIC_RELATION_TYPES = frozenset({
+    "define",
+    "requiere",
+    "contiene",
+    "pertenece_a",
+    "prueba_de",
+    "references",
+})
+STRUCTURAL_RELATION_TYPES = frozenset({"child_of", "parte_de"})
+TECHNICAL_RELATION_TYPES = frozenset()
+GENERIC_RELATION_TYPES = frozenset({"usa"})
+DECORATIVE_RELATION_TYPES = frozenset()
 
 # ── Controlled vocabulary for role_primary ────────────────────────────────────
 VALID_ROLES = role_primary_canonical_roles(CANON_POLICY_BUNDLE)
@@ -1288,6 +1307,342 @@ def relation_targets_from_record(rec: dict) -> list[dict]:
     return relation_targets_from_relations(rec.get("relations") or [])
 
 
+def _canon_record_from_entry(entry) -> dict:
+    if isinstance(entry, (tuple, list)) and entry:
+        return entry[0]
+    return entry
+
+
+def build_relation_resolution_index(canon_records: list) -> dict:
+    """Build a conservative target resolver for id, canonical_slug, key and title."""
+    by_ref: dict[str, dict] = {}
+    by_id: dict[str, dict] = {}
+
+    def add_ref(ref: str, rec: dict) -> None:
+        ref_s = safe_str(ref).strip()
+        if not ref_s:
+            return
+        by_ref.setdefault(ref_s, rec)
+        by_ref.setdefault(normalize_for_dedup(ref_s), rec)
+
+    for entry in canon_records:
+        rec = _canon_record_from_entry(entry)
+        if not isinstance(rec, dict):
+            continue
+        rec_id = safe_str(rec.get("id")).strip()
+        if rec_id:
+            by_id[rec_id] = rec
+            add_ref(rec_id, rec)
+        for field in ("canonical_slug", "key", "title"):
+            add_ref(rec.get(field), rec)
+
+    return {
+        "by_ref": by_ref,
+        "by_id": by_id,
+        "ids": set(by_id),
+    }
+
+
+def relation_target_ref(rel) -> str:
+    if isinstance(rel, dict):
+        return safe_str(rel.get("target_id") or rel.get("target") or rel.get("id")).strip()
+    return safe_str(rel).strip()
+
+
+def resolve_relation_target(target_or_rel, relation_index: dict | None) -> dict | None:
+    if not relation_index:
+        return None
+    target = relation_target_ref(target_or_rel)
+    if not target:
+        return None
+    if "by_ref" in relation_index:
+        return (
+            relation_index["by_ref"].get(target)
+            or relation_index["by_ref"].get(normalize_for_dedup(target))
+        )
+    # Backward-compatible support for the old title->id map shape.
+    if target in relation_index:
+        return {"id": relation_index[target], "title": target}
+    return None
+
+
+def relation_type_category(rel_type: str) -> str:
+    rtype = safe_str(rel_type).lower().strip() or "unknown"
+    if rtype in SEMANTIC_RELATION_TYPES:
+        return "semantic"
+    if rtype in STRUCTURAL_RELATION_TYPES:
+        return "structural"
+    if rtype in TECHNICAL_RELATION_TYPES:
+        return "technical"
+    if rtype in GENERIC_RELATION_TYPES:
+        return "generic"
+    if rtype in DECORATIVE_RELATION_TYPES:
+        return "decorative"
+    return "unknown"
+
+
+def relation_family(rec: dict, role: str | None = None, taxonomy: list | None = None) -> str:
+    if isinstance(taxonomy, list) and taxonomy:
+        return safe_str(taxonomy[0])[:160]
+    taxonomy_path = rec.get("taxonomy_path")
+    if isinstance(taxonomy_path, list) and taxonomy_path:
+        return safe_str(taxonomy_path[0])[:160]
+    for key in ("source_tags", "tags", "normalized_tags"):
+        tags = rec.get(key)
+        if not isinstance(tags, list):
+            continue
+        for tag in tags:
+            tag_s = safe_str(tag)
+            if tag_s.startswith(("session:", "topic:", "layer:", "core:", "channel:")):
+                return tag_s[:160]
+        for tag in tags:
+            tag_s = safe_str(tag)
+            if tag_s.startswith(("#", "##", "###", "####")):
+                return tag_s[:160]
+    return safe_str(role or rec.get("role_primary") or "unknown")
+
+
+def relation_usefulness_rank(rel: dict) -> tuple[int, int]:
+    category_rank = {
+        "semantic": 0,
+        "technical": 1,
+        "structural": 2,
+        "generic": 3,
+        "decorative": 4,
+        "unknown": 5,
+    }
+    source_rank = {
+        "canonical_relation": 0,
+        "content_embedded": 1,
+    }
+    category = relation_type_category(rel.get("type"))
+    source = rel.get("relation_source") or rel.get("evidence") or ""
+    return (category_rank.get(category, 5), source_rank.get(source, 2))
+
+
+def _compact_controlled_relation(rel: dict) -> dict:
+    compact = {"target_id": safe_str(rel.get("target_id"))}
+    if rel.get("type"):
+        compact["type"] = safe_str(rel.get("type")).lower().strip()
+    if rel.get("evidence"):
+        compact["evidence"] = safe_str(rel.get("evidence"))
+    return compact
+
+
+def build_relation_propagation_context(classified_records: list, relation_index: dict) -> dict:
+    """Detect corpus-wide hubs before propagating relation targets to chunks."""
+    target_counts: Counter = Counter()
+    target_type_counts: dict[str, Counter] = defaultdict(Counter)
+    family_target_counts: dict[str, Counter] = defaultdict(Counter)
+    family_totals: Counter = Counter()
+    type_counts: Counter = Counter()
+    stale_relation_target_candidates = 0
+
+    for rec, _shard_file, _line_num, role, taxonomy, _section in classified_records:
+        valid_rels, invalid_rels = validate_relations(
+            rec.get("relations") or [],
+            relation_index.get("ids", set()),
+            relation_index,
+        )
+        embedded_rels, _stale, _urn, embedded_invalid = extract_embedded_content_rels(
+            rec,
+            relation_index,
+        )
+        stale_relation_target_candidates += len(invalid_rels) + len(embedded_invalid)
+        family = relation_family(rec, role, taxonomy)
+        for rel in [*valid_rels, *embedded_rels]:
+            target_id = safe_str(rel.get("target_id")).strip()
+            if not target_id:
+                continue
+            rel_type = safe_str(rel.get("type")).lower().strip() or "unknown"
+            target_counts[target_id] += 1
+            target_type_counts[target_id][rel_type] += 1
+            family_target_counts[family][target_id] += 1
+            family_totals[family] += 1
+            type_counts[rel_type] += 1
+
+    total_candidates = sum(target_counts.values())
+    global_threshold = max(
+        HUB_ABSOLUTE_MIN_COUNT,
+        math.ceil(total_candidates * HUB_RELATIVE_THRESHOLD),
+    ) if total_candidates else HUB_ABSOLUTE_MIN_COUNT
+
+    hub_target_ids: set[str] = {
+        target_id
+        for target_id, count in target_counts.items()
+        if count >= global_threshold
+    }
+    family_hub_reasons: dict[str, list[str]] = defaultdict(list)
+    for family, counter in family_target_counts.items():
+        family_total = family_totals[family]
+        if not family_total:
+            continue
+        family_threshold = max(
+            HUB_FAMILY_MIN_COUNT,
+            math.ceil(family_total * HUB_FAMILY_DOMINANCE_THRESHOLD),
+        )
+        for target_id, count in counter.items():
+            if count >= family_threshold:
+                hub_target_ids.add(target_id)
+                family_hub_reasons[target_id].append(
+                    f"{family}:{count}/{family_total}"
+                )
+
+    hub_targets = []
+    for target_id in sorted(hub_target_ids, key=lambda tid: (-target_counts[tid], tid)):
+        target_rec = relation_index.get("by_id", {}).get(target_id, {})
+        hub_targets.append({
+            "target_id": target_id,
+            "title": target_rec.get("title"),
+            "canonical_slug": target_rec.get("canonical_slug"),
+            "count": target_counts[target_id],
+            "relation_types": dict(target_type_counts[target_id].most_common()),
+            "family_dominance": family_hub_reasons.get(target_id, []),
+        })
+
+    return {
+        "policy_version": RELATION_PROPAGATION_POLICY_VERSION,
+        "max_relation_targets_per_chunk": MAX_RELATION_TARGETS_PER_CHUNK,
+        "candidate_relation_count": total_candidates,
+        "relation_type_distribution": dict(type_counts.most_common()),
+        "generic_relation_type_distribution": {
+            rel_type: type_counts[rel_type]
+            for rel_type in sorted(GENERIC_RELATION_TYPES)
+            if type_counts.get(rel_type)
+        },
+        "hub_thresholds": {
+            "global_min_count": global_threshold,
+            "global_relative_threshold": HUB_RELATIVE_THRESHOLD,
+            "family_min_count": HUB_FAMILY_MIN_COUNT,
+            "family_dominance_threshold": HUB_FAMILY_DOMINANCE_THRESHOLD,
+        },
+        "hub_target_ids": hub_target_ids,
+        "hub_targets": hub_targets,
+        "stale_relation_target_candidates": stale_relation_target_candidates,
+    }
+
+
+def build_controlled_chunk_relation_targets(
+    source_rec: dict,
+    valid_rels: list,
+    embedded_rels: list,
+    relation_index: dict,
+    propagation_context: dict,
+) -> tuple[list[dict], dict]:
+    """Merge capa-1 and capa-2 relations for chunks under controlled_v1."""
+    hub_target_ids = propagation_context.get("hub_target_ids", set())
+    flags: set[str] = set()
+    candidates: list[dict] = []
+    event = {
+        "source_id": source_rec.get("id"),
+        "source_title": source_rec.get("title"),
+        "source_canonical_slug": source_rec.get("canonical_slug"),
+        "policy": RELATION_PROPAGATION_POLICY_VERSION,
+        "input_relation_targets": 0,
+        "resolved_relation_targets": 0,
+        "relation_targets_after": 0,
+        "stale_relation_targets_blocked": 0,
+        "duplicate_relation_targets_collapsed": 0,
+        "hub_targets_filtered": 0,
+        "generic_relation_types_detected": Counter(),
+        "generic_relation_types_filtered_or_flagged": 0,
+        "relation_targets_capped": 0,
+        "filtered_relation_samples": [],
+    }
+
+    merged_inputs = []
+    for rel in valid_rels:
+        merged_inputs.append((rel, "canonical_relation"))
+    for rel in embedded_rels:
+        merged_inputs.append((rel, "content_embedded"))
+
+    for order, (rel, relation_source) in enumerate(merged_inputs):
+        event["input_relation_targets"] += 1
+        target_rec = resolve_relation_target(rel, relation_index)
+        target_id = safe_str(rel.get("target_id") if isinstance(rel, dict) else "").strip()
+        if not target_rec and target_id:
+            target_rec = relation_index.get("by_id", {}).get(target_id)
+        if not target_rec:
+            event["stale_relation_targets_blocked"] += 1
+            flags.add("stale_target_blocked")
+            event["filtered_relation_samples"].append({
+                "target_ref": relation_target_ref(rel),
+                "reason": "target_not_found",
+            })
+            continue
+
+        rel_type = safe_str(rel.get("type") if isinstance(rel, dict) else "").lower().strip()
+        category = relation_type_category(rel_type)
+        resolved_target_id = safe_str(target_rec.get("id")).strip()
+        event["resolved_relation_targets"] += 1
+        if rel_type in GENERIC_RELATION_TYPES:
+            event["generic_relation_types_detected"][rel_type] += 1
+
+        if resolved_target_id in hub_target_ids and category in {"generic", "structural"}:
+            event["hub_targets_filtered"] += 1
+            if rel_type in GENERIC_RELATION_TYPES:
+                event["generic_relation_types_filtered_or_flagged"] += 1
+            flags.add("hub_target_filtered")
+            event["filtered_relation_samples"].append({
+                "target_id": resolved_target_id,
+                "target_title": target_rec.get("title"),
+                "type": rel_type,
+                "reason": "generic_or_structural_hub",
+            })
+            continue
+
+        if rel_type in GENERIC_RELATION_TYPES:
+            event["generic_relation_types_filtered_or_flagged"] += 1
+            flags.add("generic_relation_type_flagged")
+
+        candidate = {
+            "target_id": resolved_target_id,
+            "target_title": target_rec.get("title"),
+            "type": rel_type,
+            "evidence": (
+                safe_str(rel.get("evidence")).strip()
+                if isinstance(rel, dict) and rel.get("evidence")
+                else relation_source
+            ),
+            "relation_source": relation_source,
+            "_order": order,
+        }
+        candidates.append(candidate)
+
+    by_target: dict[str, dict] = {}
+    for candidate in candidates:
+        target_id = candidate["target_id"]
+        previous = by_target.get(target_id)
+        if previous is None:
+            by_target[target_id] = candidate
+            continue
+        event["duplicate_relation_targets_collapsed"] += 1
+        flags.add("duplicate_relation_target_collapsed")
+        if (
+            relation_usefulness_rank(candidate),
+            candidate["_order"],
+        ) < (
+            relation_usefulness_rank(previous),
+            previous["_order"],
+        ):
+            by_target[target_id] = candidate
+
+    ordered = sorted(
+        by_target.values(),
+        key=lambda rel: (relation_usefulness_rank(rel), rel["_order"]),
+    )
+    if len(ordered) > MAX_RELATION_TARGETS_PER_CHUNK:
+        event["relation_targets_capped"] = len(ordered) - MAX_RELATION_TARGETS_PER_CHUNK
+        flags.add("relation_target_limit_applied")
+        ordered = ordered[:MAX_RELATION_TARGETS_PER_CHUNK]
+
+    relation_targets = [_compact_controlled_relation(rel) for rel in ordered]
+    event["relation_targets_after"] = len(relation_targets)
+    event["generic_relation_types_detected"] = dict(event["generic_relation_types_detected"])
+    event["relation_quality_flags"] = sorted(flags)
+    return relation_targets, event
+
+
 def chunk_node(
     rec: dict,
     node_id: str,
@@ -1301,6 +1656,7 @@ def chunk_node(
     target_tokens: int,
     max_tokens: int,
     relation_targets: list | None = None,
+    relation_propagation_meta: dict | None = None,
 ) -> tuple:
     """
     Chunk a node using hierarchical strategy.
@@ -1366,6 +1722,8 @@ def chunk_node(
         if relation_targets is not None
         else relation_targets_from_record(rec)
     )
+    propagation_meta = relation_propagation_meta or {}
+    relation_quality_flags = list(propagation_meta.get("relation_quality_flags") or [])
 
     # Build chunk records
     chunks = []
@@ -1374,6 +1732,8 @@ def chunk_node(
         chunks.append({
             "chunk_id": f"{node_id}::chunk:{idx}",
             "source_id": node_id,
+            "source_title": title,
+            "source_canonical_slug": rec.get("canonical_slug"),
             "tiddler_id": node_id,
             "node_id": node_id,
             "title": title,
@@ -1394,6 +1754,7 @@ def chunk_node(
             "retrieval_hints": retrieval_hints[:8],
             "relation_targets": list(compact_relation_targets),
             "relation_count": len(compact_relation_targets),
+            "relation_target_count": len(compact_relation_targets),
             "corpus_state": payload_info["corpus_state"],
             "corpus_state_rule_id": payload_info["corpus_state_rule_id"],
             "chunk_eligibility": payload_info["chunk_eligibility"],
@@ -1401,13 +1762,19 @@ def chunk_node(
             "source_position": rec.get("source_position"),
             "source_version_id": rec.get("version_id"),
         })
+        if propagation_meta:
+            chunks[-1].update({
+                "relation_propagation_policy": RELATION_PROPAGATION_POLICY_VERSION,
+                "relation_propagation_source": "source_tiddler",
+                "relation_quality_flags": relation_quality_flags,
+            })
 
     return chunks, fallback_used, None
 
 
 # ── Relations validation ───────────────────────────────────────────────────────
 
-def validate_relations(relations: list, known_ids: set) -> tuple:
+def validate_relations(relations: list, known_ids: set, relation_index: dict | None = None) -> tuple:
     """
     Validate relation targets against known node IDs.
     Returns (valid_relations, invalid_relations).
@@ -1416,8 +1783,27 @@ def validate_relations(relations: list, known_ids: set) -> tuple:
     invalid = []
     for rel in (relations or []):
         target = rel.get("target_id") or rel.get("target") or ""
-        if target and target not in known_ids:
-            invalid.append({"type": rel.get("type"), "target_id": target, "reason": "target_not_found"})
+        if not target:
+            invalid.append({
+                "type": rel.get("type"),
+                "target_id": target,
+                "reason": "target_missing",
+            })
+            continue
+        target_rec = resolve_relation_target(rel, relation_index) if relation_index else None
+        if target_rec:
+            resolved = dict(rel)
+            resolved["target_id"] = target_rec.get("id")
+            if target_rec.get("title"):
+                resolved.setdefault("target_title", target_rec.get("title"))
+            valid.append(resolved)
+        elif target not in known_ids:
+            invalid.append({
+                "type": rel.get("type"),
+                "target_id": target,
+                "target_ref": target,
+                "reason": "target_not_found",
+            })
         else:
             valid.append(rel)
     return valid, invalid
@@ -1430,30 +1816,31 @@ _EMBEDDED_RELATION_TYPES = frozenset({
 })
 
 
-def extract_embedded_content_rels(rec: dict, by_title: dict) -> tuple[list[dict], int, int]:
+def extract_embedded_content_rels(rec: dict, relation_index: dict) -> tuple[list[dict], int, int, list[dict]]:
     """
     Extract capa-2 semantic relations from the content.plain JSON payload.
 
-    Returns (resolved_rels, stale_count, urn_count) where resolved_rels is a
+    Returns (resolved_rels, stale_count, urn_count, invalid_rels) where resolved_rels is a
     list of dicts with keys type, target_id, target_title, evidence='content_embedded'.
     Only types in _EMBEDDED_RELATION_TYPES are extracted; canonical types
     (child_of, references) are intentionally excluded.
-    Stale targets (not in by_title, not URN) increment stale_count.
+    Stale targets (not resolved by id/title/key/slug, not URN) increment stale_count.
     URN targets (urn:uuid:...) that don't resolve increment urn_count.
     """
     try:
         content = rec.get("content") or {}
         plain = content.get("plain") if isinstance(content, dict) else None
         if not plain:
-            return [], 0, 0
+            return [], 0, 0, []
         inner = json.loads(plain)
         raw_rels = inner.get("relations") or []
     except Exception:
-        return [], 0, 0
+        return [], 0, 0, []
 
     resolved = []
     stale = 0
     urn = 0
+    invalid = []
     own_title = rec.get("title", "")
 
     for r in raw_rels:
@@ -1465,19 +1852,38 @@ def extract_embedded_content_rels(rec: dict, by_title: dict) -> tuple[list[dict]
             continue
         if target == own_title:
             continue  # suppress self-references
-        if target in by_title:
+        target_rec = resolve_relation_target(target, relation_index)
+        if target_rec:
             resolved.append({
                 "type": rtype,
-                "target_id": by_title[target],
-                "target_title": target,
+                "target_id": target_rec.get("id"),
+                "target_title": target_rec.get("title") or target,
                 "evidence": "content_embedded",
             })
         elif target.startswith("urn:uuid:"):
             urn += 1
+            invalid.append({
+                "type": rtype,
+                "target_id": target,
+                "target_ref": target,
+                "reason": "urn_target_not_found",
+                "relation_source": "content_embedded",
+                "source_id": rec.get("id"),
+                "source_title": rec.get("title"),
+            })
         else:
             stale += 1
+            invalid.append({
+                "type": rtype,
+                "target_id": target,
+                "target_ref": target,
+                "reason": "target_not_found",
+                "relation_source": "content_embedded",
+                "source_id": rec.get("id"),
+                "source_title": rec.get("title"),
+            })
 
-    return resolved, stale, urn
+    return resolved, stale, urn, invalid
 
 
 # ── Load canon shards ──────────────────────────────────────────────────────────
@@ -1514,6 +1920,8 @@ def load_canon(input_dir: Path) -> tuple:
 def write_sharded(records: list, output_dir: Path, prefix: str, shard_size: int) -> list:
     """Write records to sharded JSONL files. Returns shard info list."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    for stale_shard in output_dir.glob(f"{prefix}_*.jsonl"):
+        stale_shard.unlink()
     shards_info = []
     shard_num = 1
     count_in_shard = 0
@@ -3934,8 +4342,9 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
 
 def build_ai_record(rec: dict, shard_file: str, line_num: int,
                      role: str, taxonomy: list, section: list,
-                     known_ids: set, by_title_to_id: dict,
-                     target_tokens: int, max_tokens: int) -> tuple:
+                     known_ids: set, relation_index: dict,
+                     target_tokens: int, max_tokens: int,
+                     propagation_context: dict | None = None) -> tuple:
     """
     Build AI-friendly record and optional chunks.
     Returns (ai_record, chunks, invalid_relations, payload_info)
@@ -3953,14 +4362,54 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
 
     # Validate capa-1 relations (top-level)
     raw_rels = rec.get("relations") or []
-    valid_rels, invalid_rels = validate_relations(raw_rels, known_ids)
+    valid_rels, invalid_rels = validate_relations(raw_rels, known_ids, relation_index)
+    for invalid_rel in invalid_rels:
+        invalid_rel.setdefault("relation_source", "canonical_relation")
+        invalid_rel.setdefault("source_id", node_id)
+        invalid_rel.setdefault("source_title", rec.get("title"))
 
     # Compact relation targets (capa-1 plus any content_embedded relations
     # already materialized in the canonical top-level relations field).
     rel_targets = relation_targets_from_relations(valid_rels)
 
     # S84: extract capa-2 embedded relations from content.plain
-    embedded_rels, _stale, _urn = extract_embedded_content_rels(rec, by_title_to_id)
+    embedded_rels, _stale, _urn, embedded_invalid_rels = extract_embedded_content_rels(
+        rec,
+        relation_index,
+    )
+    invalid_rels.extend(embedded_invalid_rels)
+
+    chunk_relation_targets = rel_targets
+    relation_propagation_event = {
+        "source_id": node_id,
+        "source_title": rec.get("title"),
+        "source_canonical_slug": rec.get("canonical_slug"),
+        "policy": "legacy_capa1_passthrough",
+        "input_relation_targets": len(rel_targets),
+        "resolved_relation_targets": len(rel_targets),
+        "relation_targets_after": len(rel_targets),
+        "stale_relation_targets_blocked": len(invalid_rels),
+        "duplicate_relation_targets_collapsed": 0,
+        "hub_targets_filtered": 0,
+        "generic_relation_types_detected": {},
+        "generic_relation_types_filtered_or_flagged": 0,
+        "relation_targets_capped": 0,
+        "relation_quality_flags": [],
+        "filtered_relation_samples": [],
+    }
+    if propagation_context is not None:
+        chunk_relation_targets, relation_propagation_event = build_controlled_chunk_relation_targets(
+            rec,
+            valid_rels,
+            embedded_rels,
+            relation_index,
+            propagation_context,
+        )
+        relation_propagation_event["stale_relation_targets_blocked"] += len(invalid_rels)
+        if invalid_rels:
+            flags = set(relation_propagation_event.get("relation_quality_flags") or [])
+            flags.add("stale_target_blocked")
+            relation_propagation_event["relation_quality_flags"] = sorted(flags)
 
     ai_rec = {
         "id": node_id,
@@ -4034,10 +4483,11 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
             payload_info,
             target_tokens,
             max_tokens,
-            relation_targets=rel_targets,
+            relation_targets=chunk_relation_targets,
+            relation_propagation_meta=relation_propagation_event,
         )
 
-    return ai_rec, chunks, invalid_rels, payload_info
+    return ai_rec, chunks, invalid_rels, payload_info, relation_propagation_event
 
 
 def _is_foundational(rec: dict, role: str) -> bool:
@@ -4054,6 +4504,134 @@ def _is_foundational(rec: dict, role: str) -> bool:
 
 
 # ── QC Reports ────────────────────────────────────────────────────────────────
+
+def load_existing_chunk_relation_baseline(ai_dir: Path) -> dict:
+    """Read current chunks_ai shards before regeneration for before/after QC."""
+    chunks_total = 0
+    chunks_with_relation_targets = 0
+    relation_targets_total = 0
+    shard_files = sorted(ai_dir.glob("chunks_ai_*.jsonl")) if ai_dir.exists() else []
+    for shard in shard_files:
+        with open(shard, "r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                rels = rec.get("relation_targets") if isinstance(rec.get("relation_targets"), list) else []
+                chunks_total += 1
+                relation_targets_total += len(rels)
+                if rels:
+                    chunks_with_relation_targets += 1
+    return {
+        "source": "existing_chunks_ai_before_regeneration",
+        "chunks_total_before": chunks_total,
+        "chunks_with_relation_targets_before": chunks_with_relation_targets,
+        "chunks_without_relation_targets_before": chunks_total - chunks_with_relation_targets,
+        "relation_targets_total_before": relation_targets_total,
+        "shard_count_before": len(shard_files),
+        "shard_files_before": [p.name for p in shard_files],
+    }
+
+
+def build_relation_propagation_summary(
+    all_chunks: list,
+    all_invalid_rels: list,
+    relation_events: list,
+    propagation_context: dict,
+    baseline: dict | None,
+) -> dict:
+    chunks_total = len(all_chunks)
+    chunks_with_relation_targets_after = sum(
+        1 for chunk in all_chunks
+        if isinstance(chunk.get("relation_targets"), list) and bool(chunk.get("relation_targets"))
+    )
+    relation_targets_total_after = sum(
+        len(chunk.get("relation_targets") or [])
+        for chunk in all_chunks
+        if isinstance(chunk.get("relation_targets"), list)
+    )
+    relation_types_chunks = Counter()
+    target_counts = Counter()
+    for chunk in all_chunks:
+        for rel in chunk.get("relation_targets") or []:
+            relation_types_chunks[safe_str(rel.get("type") or "unknown")] += 1
+            target_id = safe_str(rel.get("target_id")).strip()
+            if target_id:
+                target_counts[target_id] += 1
+
+    before_with = (baseline or {}).get("chunks_with_relation_targets_before", 0)
+    before_total = (baseline or {}).get("chunks_total_before", 0)
+    before_pct = _pct_local(before_with, before_total)
+    after_pct = _pct_local(chunks_with_relation_targets_after, chunks_total)
+    stale_blocked = len(all_invalid_rels)
+    invalid_reason_dist = Counter(rel.get("reason", "unknown") for rel in all_invalid_rels)
+    invalid_source_dist = Counter(rel.get("relation_source", "unknown") for rel in all_invalid_rels)
+    hub_filtered = sum(ev.get("hub_targets_filtered", 0) for ev in relation_events)
+    generic_filtered_or_flagged = sum(
+        ev.get("generic_relation_types_filtered_or_flagged", 0)
+        for ev in relation_events
+    )
+    capped = sum(ev.get("relation_targets_capped", 0) for ev in relation_events)
+    duplicates = sum(ev.get("duplicate_relation_targets_collapsed", 0) for ev in relation_events)
+    precision_risk_level = "low"
+    if stale_blocked or propagation_context.get("hub_target_ids"):
+        precision_risk_level = "medium_controlled"
+    if any(
+        len(chunk.get("relation_targets") or []) > MAX_RELATION_TARGETS_PER_CHUNK
+        for chunk in all_chunks
+    ):
+        precision_risk_level = "high"
+
+    return {
+        "chunks_total": chunks_total,
+        "chunks_with_relation_targets_before": before_with,
+        "chunks_with_relation_targets_after": chunks_with_relation_targets_after,
+        "chunks_without_relation_targets_after": chunks_total - chunks_with_relation_targets_after,
+        "relation_targets_total_after": relation_targets_total_after,
+        "resolved_relation_targets_propagated": relation_targets_total_after,
+        "source_level_relation_targets_after_filter": sum(
+            ev.get("relation_targets_after", 0) for ev in relation_events
+        ),
+        "stale_relation_targets_blocked": stale_blocked,
+        "stale_relation_target_reason_distribution": dict(invalid_reason_dist.most_common()),
+        "stale_relation_target_source_distribution": dict(invalid_source_dist.most_common()),
+        "hub_targets_detected": len(propagation_context.get("hub_target_ids", set())),
+        "hub_targets_filtered_or_capped": hub_filtered,
+        "generic_relation_types_detected": propagation_context.get("generic_relation_type_distribution", {}),
+        "generic_relation_types_filtered_or_flagged": generic_filtered_or_flagged,
+        "duplicate_relation_targets_collapsed": duplicates,
+        "relation_targets_capped_by_limit": capped,
+        "max_relation_targets_per_chunk": MAX_RELATION_TARGETS_PER_CHUNK,
+        "chunk_max_relation_targets_observed": max(
+            (len(chunk.get("relation_targets") or []) for chunk in all_chunks),
+            default=0,
+        ),
+        "chunks_over_relation_target_limit": sum(
+            1 for chunk in all_chunks
+            if len(chunk.get("relation_targets") or []) > MAX_RELATION_TARGETS_PER_CHUNK
+        ),
+        "propagation_policy_version": RELATION_PROPAGATION_POLICY_VERSION,
+        "coverage_delta": {
+            "chunks_with_relation_targets_delta": chunks_with_relation_targets_after - before_with,
+            "coverage_pct_before": before_pct,
+            "coverage_pct_after": after_pct,
+            "coverage_pct_delta": round(after_pct - before_pct, 2),
+        },
+        "precision_risk_level": precision_risk_level,
+        "relation_types_en_chunks_after": dict(relation_types_chunks.most_common()),
+        "hub_target_samples": propagation_context.get("hub_targets", [])[:12],
+        "top_chunk_relation_targets_after": [
+            {"target_id": target_id, "count": count}
+            for target_id, count in target_counts.most_common(12)
+        ],
+        "baseline": baseline or {},
+    }
+
+
+def _pct_local(part: int, total: int) -> float:
+    return round((part / total) * 100, 2) if total else 0.0
+
 
 def write_classification_report(output_dir: Path, ai_records: list,
                                   enriched_records: list) -> Path:
@@ -4101,7 +4679,8 @@ def write_classification_report(output_dir: Path, ai_records: list,
 def write_chunk_qc_report(output_dir: Path, ai_records: list,
                             all_chunks: list,
                             chunk_qc_events: list,
-                            target_tokens: int, max_tokens: int) -> Path:
+                            target_tokens: int, max_tokens: int,
+                            relation_propagation_summary: dict | None = None) -> Path:
     text_capable_nodes = [r for r in ai_records if r.get("is_textual_payload")]
     chunkable_nodes = [r for r in ai_records if r.get("is_chunkable_text")]
     chunked_node_ids = {c.get("node_id") for c in all_chunks if c.get("node_id")}
@@ -4157,11 +4736,18 @@ def write_chunk_qc_report(output_dir: Path, ai_records: list,
         "chunk_size_distribution": size_stats,
         "traceability_summary": {
             "chunks_with_source_anchor": sum(1 for c in all_chunks if c.get("source_anchor")),
+            "chunks_with_source_id": sum(1 for c in all_chunks if c.get("source_id")),
+            "chunks_with_source_title": sum(1 for c in all_chunks if c.get("source_title")),
+            "chunks_with_source_canonical_slug": sum(1 for c in all_chunks if c.get("source_canonical_slug")),
+            "chunks_with_relation_target_count": sum(1 for c in all_chunks if "relation_target_count" in c),
+            "chunks_with_relation_propagation_policy": sum(1 for c in all_chunks if c.get("relation_propagation_policy")),
             "chunks_with_section_path": sum(1 for c in all_chunks if c.get("section_path")),
             "chunks_with_taxonomy_path": sum(1 for c in all_chunks if c.get("taxonomy_path")),
         },
         "hard_max_violated": len(over_max) > 0,
     }
+    if relation_propagation_summary is not None:
+        report["relation_propagation"] = relation_propagation_summary
     if over_target:
         report["top_oversized_nodes"] = [
             {
@@ -4223,12 +4809,18 @@ def write_retrieval_qc_report(output_dir: Path, ai_records: list) -> Path:
 
 
 def write_relations_qc_report(output_dir: Path, ai_records: list,
-                                all_invalid_rels: list) -> Path:
+                                all_invalid_rels: list,
+                                all_chunks: list | None = None,
+                                relation_propagation_summary: dict | None = None) -> Path:
     total_rels = sum(len(r.get("relation_targets") or []) for r in ai_records)
     type_dist = Counter()
     for r in ai_records:
         for rel in (r.get("relation_targets") or []):
             type_dist[rel.get("type", "unknown")] += 1
+    chunk_type_dist = Counter()
+    for chunk in all_chunks or []:
+        for rel in chunk.get("relation_targets") or []:
+            chunk_type_dist[rel.get("type", "unknown")] += 1
 
     report = {
         "session": SESSION,
@@ -4237,8 +4829,17 @@ def write_relations_qc_report(output_dir: Path, ai_records: list,
         "total_valid_relations": total_rels,
         "relation_type_distribution": dict(type_dist.most_common()),
         "total_invalid_relations_discarded": len(all_invalid_rels),
+        "invalid_relation_reason_distribution": dict(
+            Counter(rel.get("reason", "unknown") for rel in all_invalid_rels).most_common()
+        ),
+        "invalid_relation_source_distribution": dict(
+            Counter(rel.get("relation_source", "unknown") for rel in all_invalid_rels).most_common()
+        ),
         "invalid_relation_samples": all_invalid_rels[:20],
+        "chunk_relation_type_distribution": dict(chunk_type_dist.most_common()),
     }
+    if relation_propagation_summary is not None:
+        report["chunk_relation_propagation"] = relation_propagation_summary
     p = output_dir / "relations_qc_report.json"
     with open(p, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
@@ -4418,15 +5019,9 @@ def main():
         sys.exit(1)
 
     # ── Build known IDs set for relation validation ──
-    known_ids = {rec.get("id") for rec, _, _ in canon if rec.get("id")}
+    relation_index = build_relation_resolution_index(canon)
+    known_ids = relation_index["ids"]
     print(f"  Known node IDs: {len(known_ids)}")
-
-    # S84: title→id map for embedded capa-2 relation resolution
-    by_title_to_id: dict[str, str] = {
-        rec.get("title"): rec.get("id")
-        for rec, _, _ in canon
-        if rec.get("title") and rec.get("id")
-    }
 
     # ── Phase 1: Classify roles and derive taxonomy ──
     print(f"\n[{SESSION}] Phase 1: Classifying roles and deriving taxonomy...")
@@ -4440,6 +5035,14 @@ def main():
 
     role_counts = Counter(role for _, _, _, role, _, _ in classified)
     print(f"  Classification summary: {dict(role_counts.most_common())}")
+
+    relation_propagation_context = build_relation_propagation_context(classified, relation_index)
+    print(
+        "  Relation propagation policy: "
+        f"{relation_propagation_context['policy_version']} "
+        f"(max {relation_propagation_context['max_relation_targets_per_chunk']} targets/chunk, "
+        f"hubs detected: {len(relation_propagation_context['hub_target_ids'])})"
+    )
 
     # ── Phase 2: Build enriched layer (Capa A) ──
     print(f"\n[{SESSION}] Phase 2: Building Capa A — Enriched Canonical Export...")
@@ -4462,19 +5065,28 @@ def main():
 
     # ── Phase 3: Build AI layer (Capa B) ──
     print(f"\n[{SESSION}] Phase 3: Building Capa B — AI-friendly Projection v2...")
+    chunk_relation_baseline = load_existing_chunk_relation_baseline(ai_dir)
+    print(
+        "  Chunk relation baseline: "
+        f"{chunk_relation_baseline['chunks_with_relation_targets_before']}/"
+        f"{chunk_relation_baseline['chunks_total_before']} chunks with relation_targets"
+    )
     ai_records = []
     all_chunks = []
     all_invalid_rels = []
+    all_relation_propagation_events = []
     chunk_qc_events = []
 
     for rec, shard_file, line_num, role, taxonomy, section in classified:
-        ai_rec, chunks, invalid_rels, payload_info = build_ai_record(
+        ai_rec, chunks, invalid_rels, payload_info, relation_event = build_ai_record(
             rec, shard_file, line_num, role, taxonomy, section,
-            known_ids, by_title_to_id, target_tokens, max_tokens
+            known_ids, relation_index, target_tokens, max_tokens,
+            relation_propagation_context,
         )
         ai_records.append(ai_rec)
         all_chunks.extend(chunks)
         all_invalid_rels.extend(invalid_rels)
+        all_relation_propagation_events.append(relation_event)
         chunk_qc_events.append({
             "node_id": rec.get("id"),
             "chunk_strategy": payload_info["chunk_strategy"],
@@ -4508,6 +5120,13 @@ def main():
     print(f"  Wrote {len(ai_records)} AI records → {len(ai_shards_info)} shards")
     print(f"  Wrote {len(all_chunks)} chunks → {len(chunk_shards_info)} chunk shards")
     print(f"  Invalid relations discarded: {len(all_invalid_rels)}")
+    relation_propagation_summary = build_relation_propagation_summary(
+        all_chunks,
+        all_invalid_rels,
+        all_relation_propagation_events,
+        relation_propagation_context,
+        chunk_relation_baseline,
+    )
 
     # ── Phase 4: QC Reports ──
     print(f"\n[{SESSION}] Phase 4: Writing QC reports to {reports_dir}...")
@@ -4515,9 +5134,10 @@ def main():
 
     p1 = write_classification_report(reports_dir, ai_records, enriched_records)
     p2 = write_chunk_qc_report(reports_dir, ai_records, all_chunks, chunk_qc_events,
-                                 target_tokens, max_tokens)
+                                 target_tokens, max_tokens, relation_propagation_summary)
     p3 = write_retrieval_qc_report(reports_dir, ai_records)
-    p4 = write_relations_qc_report(reports_dir, ai_records, all_invalid_rels)
+    p4 = write_relations_qc_report(reports_dir, ai_records, all_invalid_rels,
+                                    all_chunks, relation_propagation_summary)
     p5 = write_derivation_report(reports_dir, canon, enriched_records, ai_records,
                                    all_chunks, shard_paths, target_tokens, max_tokens)
 
