@@ -110,6 +110,12 @@ FAMILY_BY_RELATIVE_ROOT: dict[tuple[str, ...], dict[str, Any]] = {
         "source_role": "reporte",
         "order": 11,
     },
+    ("06_diagnoses", "proyecto"): {
+        "family": "diagnostico_de_proyecto",
+        "role_primary": "log",
+        "source_role": "reporte",
+        "order": 12,
+    },
 }
 
 

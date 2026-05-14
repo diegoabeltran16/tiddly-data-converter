@@ -149,6 +149,52 @@ Validar ausencia de títulos inconsistentes en sessions:
 grep -rl "🌀📐\|🌀📋\|🌀🔬\|🌀🩺\|🌀⚖️" data/out/local/sessions/ || echo "OK"
 ```
 
+Validar que los entregables pasan por la puerta canónica:
+
+```bash
+export RUN_ID="session-preflight-$(date +%Y%m%d%H%M%S)"
+python3 python_scripts/session_sync.py scan --run-id "$RUN_ID"
+
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inventory.json").read_text(encoding="utf-8"))
+if inventory.get("invalid"):
+    raise SystemExit(f"session_sync invalid={len(inventory['invalid'])}")
+if inventory.get("blocked_same_id_different_content"):
+    raise SystemExit(f"session_sync blocked={len(inventory['blocked_same_id_different_content'])}")
+print("session_sync: OK")
+PY
+
+CANDIDATE_FILE="$(python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inventory.json").read_text(encoding="utf-8"))
+print(inventory.get("generated_candidate_file") or "")
+PY
+)"
+
+if [ -n "$CANDIDATE_FILE" ]; then
+  EXTRA_ARGS="$(python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inventory.json").read_text(encoding="utf-8"))
+print("--allow-replacements" if inventory.get("replaceable_same_id_different_content") else "")
+PY
+)"
+  python3 python_scripts/admit_session_candidates.py validate \
+    --candidate-file "$CANDIDATE_FILE" $EXTRA_ARGS
+fi
+```
+
+**Detener si:** hay inválidos, conflictos bloqueantes o `validate` rechaza candidatos. Corregir títulos, rutas, familia diagnóstica o campos derivados antes de cerrar.
+
 ---
 
 ## 5. Cierre — familia mínima
