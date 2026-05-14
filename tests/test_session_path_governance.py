@@ -112,6 +112,20 @@ class TestMigrationPathTables:
 
 
 # ---------------------------------------------------------------------------
+# 3b. session_sync must support governed diagnosis families
+# ---------------------------------------------------------------------------
+
+class TestSessionSyncDiagnosisFamilies:
+
+    def test_project_diagnosis_family_is_syncable(self):
+        import session_sync as ss
+        spec = ss.FAMILY_BY_RELATIVE_ROOT[("06_diagnoses", "proyecto")]
+        assert spec["family"] == "diagnostico_de_proyecto"
+        assert spec["role_primary"] == "log"
+        assert spec["source_role"] == "reporte"
+
+
+# ---------------------------------------------------------------------------
 # 4. No current session artifacts exist under data/sessions/
 # ---------------------------------------------------------------------------
 

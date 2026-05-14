@@ -226,12 +226,55 @@ Si la pregunta es ambigua, declararla explícitamente antes de actuar.
 python3 -m json.tool data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json >/dev/null \
   && echo "JSON válido: OK"
 
+# Verificar que el entregable puede convertirse en candidato canónico gobernado
+export RUN_ID="remote-diagnostic-preflight-$(date +%Y%m%d%H%M%S)"
+python3 python_scripts/session_sync.py scan --run-id "$RUN_ID"
+
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inventory.json").read_text(encoding="utf-8"))
+if inventory.get("invalid"):
+    raise SystemExit(f"session_sync invalid={len(inventory['invalid'])}")
+if inventory.get("blocked_same_id_different_content"):
+    raise SystemExit(f"session_sync blocked={len(inventory['blocked_same_id_different_content'])}")
+print("session_sync: OK")
+PY
+
+CANDIDATE_FILE="$(python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inventory.json").read_text(encoding="utf-8"))
+print(inventory.get("generated_candidate_file") or "")
+PY
+)"
+
+if [ -n "$CANDIDATE_FILE" ]; then
+  EXTRA_ARGS="$(python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inventory.json").read_text(encoding="utf-8"))
+print("--allow-replacements" if inventory.get("replaceable_same_id_different_content") else "")
+PY
+)"
+  python3 python_scripts/admit_session_candidates.py validate \
+    --candidate-file "$CANDIDATE_FILE" $EXTRA_ARGS
+fi
+
 # Dry-run de publicación
 python3 python_scripts/remote_publish_diagnostic.py \
   --local-file  data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json \
   --remote-relative-path sessions/06_diagnoses/<familia>/<archivo>.md.json \
   --dry-run
 ```
+
+**Detener si:** `session_sync` reporta inválidos, conflictos bloqueantes o `validate` rechaza candidatos. No publicar un diagnóstico que no pueda entrar al canon.
 
 ---
 
@@ -296,6 +339,8 @@ python3 python_scripts/remote_publish_diagnostic.py \
 [ ] Código fuente relevante revisado
 [ ] Diagnóstico generado en la ruta gobernada correcta
 [ ] JSON válido (python3 -m json.tool pasa)
+[ ] session_sync sin inválidos ni conflictos bloqueantes
+[ ] Candidatos canónicos validados si se generaron
 [ ] Dry-run ejecutado y validado
 [ ] Publicación live exitosa → sessions/06_diagnoses/<familia>/
 [ ] No se creó PR
