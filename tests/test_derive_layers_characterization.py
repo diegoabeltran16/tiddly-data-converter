@@ -1,5 +1,5 @@
 """
-Characterization tests for the derive_layers.py pipeline — S0109.
+Characterization tests for the derive_layers.py pipeline — S0109, updated S0116.
 
 These tests freeze the observable behavior of the derivation pipeline:
   canon → enriched → ai → chunks
@@ -8,7 +8,12 @@ They operate read-only on existing data/out/local/ outputs and via subprocess
 for CLI checks. They do NOT run the full pipeline during tests; they verify
 the invariants of the current state.
 
-Counts frozen at: canon=1014, enriched=1014, AI=1014, chunks=879.
+Counts frozen at: canon=1090, enriched=1090, AI=1090, chunks=1012.
+Updated from S0109 baseline (1014/1014/1014/879) to post-S0115 state.
+
+When the canon changes legitimately, update the constants below and run
+  sha256sum data/out/local/tiddlers_*.jsonl
+to refresh EXPECTED_HASHES.
 """
 import hashlib
 import json
@@ -25,10 +30,10 @@ AI_DIR = CANON_DIR / "ai"
 
 # ── Count invariants ─────────────────────────────────────────────────────────
 
-EXPECTED_CANON_COUNT = 1014
-EXPECTED_ENRICHED_COUNT = 1014
-EXPECTED_AI_COUNT = 1014
-EXPECTED_CHUNK_COUNT = 879
+EXPECTED_CANON_COUNT = 1090
+EXPECTED_ENRICHED_COUNT = 1090
+EXPECTED_AI_COUNT = 1090
+EXPECTED_CHUNK_COUNT = 1012
 
 
 def _count_jsonl_records(directory: Path, glob: str) -> int:
@@ -289,18 +294,20 @@ class TestCanonImmutability:
         If this test fails after a legitimate canon update, update the
         EXPECTED_HASHES dict below with the new values.
         """
+        # Hashes actualizados al estado post-S0115 (S0116).
+        # Para actualizar: sha256sum data/out/local/tiddlers_*.jsonl
         EXPECTED_HASHES = {
-            "tiddlers_1.jsonl":  "5a8ca8fa3377a78a3b2b0ea0ce4d62d26d37cfca272a08b3742d1bafc938dd8e",
-            "tiddlers_2.jsonl":  "29bd311951e652b21926616f0655961a4d00055f0c06fa89d6855e6f9d79142e",
-            "tiddlers_3.jsonl":  "1c20ff2c23b97c3c8fe9fea1bff2ecaf286ef227990d7b3a9a34560c02bdc246",
-            "tiddlers_4.jsonl":  "e85f0632644473f62ae767f6ba8873ed862d30f0b1ba7f32c7dafccaf6d4d2e7",
-            "tiddlers_5.jsonl":  "f57dfa29e42a3cbf7d9a1f7a84c9f5825dbfa47bf10edc9a2aaeebebfc5fedc7",
-            "tiddlers_6.jsonl":  "e8419fdbbc991045054ace4535b1903a7f31456d031985f2348fe31f1b7b66b3",
-            "tiddlers_7.jsonl":  "de6918be680b4ebeb857399cac98249450d12c68bf3ff6337161ae425224b358",
-            "tiddlers_8.jsonl":  "20dbecd5e1b74f527c2d699492143b941fd37360bfafa479dcc474edf6dfca51",
-            "tiddlers_9.jsonl":  "ef223e5f663ade142d8f0db7b0d71134b20b0dcda3b842e2283af549df1cdcae",
-            "tiddlers_10.jsonl": "556047705e02b823361e0ebd2132d636deadbb6b9368df9848338420a94fe201",
-            "tiddlers_11.jsonl": "f2b6ad3d7ce8509ccdffb45753a1d1a1f3999c79f3b6f6df5bb8ddca6187dd46",
+            "tiddlers_1.jsonl":  "fdffbed24c568d455d1d66b83cced5fe150595d002549c99532c8828f508e4e0",
+            "tiddlers_2.jsonl":  "e956d8967141108f604e0348dd0eacccb32c3cfe70590b173574ff7ebfa44871",
+            "tiddlers_3.jsonl":  "b3ad9e2c5bb1fe09e2080911a17258b37798f45613c46915718d292efe43b2e1",
+            "tiddlers_4.jsonl":  "dab481405a20743577e5962028d4b2232a4d1795059aad6834d6f262d467e9a7",
+            "tiddlers_5.jsonl":  "03cc3bf410e9cd4ea011fbf90214d7f08396f114d4291be3a3f3cb4745622795",
+            "tiddlers_6.jsonl":  "1da0df6ad15c3ce46bab05990c2a345cde2a7d79605ec1ac96db429d750a6e10",
+            "tiddlers_7.jsonl":  "0221a458aa96546b09e7589fdbf9d1c18df2cc5d2fb2694407543e49b0e5f245",
+            "tiddlers_8.jsonl":  "5fd438f34a9c012b783202ad9dc8ec26cd390ff6baaa09dc397271ca11b6d62c",
+            "tiddlers_9.jsonl":  "a5e6aeefc3533424558fe45a64d3aaaadb2479a2e5cc70594b97734d6bc8bed0",
+            "tiddlers_10.jsonl": "5f581629afce82716cfcfcfb80c56c95e43a44c175bf63be042d7f76fb04904b",
+            "tiddlers_11.jsonl": "ab0968917a7fa846ce6e4e7cff4ebfd7d71ace69325822115c37f36f1806e5af",
         }
         mismatches = []
         for name, expected_hash in EXPECTED_HASHES.items():

@@ -2,40 +2,41 @@
 set -euo pipefail
 
 # pick_and_place.sh
-# Interactive helper to pick files from a Windows-mounted folder (e.g. Downloads)
+# Interactive helper to pick files from a source directory
 # and copy them into selected destinations inside the repository.
-# Usage (interactive): bash shell_scripts/pick_and_place.sh
-# Usage (batch):       bash shell_scripts/pick_and_place.sh -n "/mnt/c/Users/Ohana/Downloads/foo.json,/mnt/c/Users/Ohana/Downloads/bar.json" -d docs/tiddlers_esp
+# Usage (interactive): bash shell_scripts/pick_and_place.sh -s <source-dir>
+# Usage (batch):       bash shell_scripts/pick_and_place.sh -n "<file1>,<file2>" -d docs/tiddlers_esp
 
-REPO_ROOT="/repositorios/tiddly-data-converter"
-DEFAULT_SRC="/mnt/c/Users/Ohana/Downloads"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Source directory: env var PICK_SRC, CLI -s flag, or empty (requires -s in interactive mode)
+DEFAULT_SRC="${PICK_SRC:-}"
 
 print_usage() {
   cat <<EOF
 Usage: $0 [options]
 
-Interactive mode (default):
-  $0
+Interactive mode:
+  $0 -s <source-dir>
+  PICK_SRC=<source-dir> $0
 
 Batch / non-interactive:
   $0 -n "<file1>[,<file2>,...]" -d <dest-relative-to-repo>
 
 Options:
-  -s, --source DIR       Source directory (default: $DEFAULT_SRC)
+  -s, --source DIR       Source directory (or set PICK_SRC env var)
   -n, --non-interactive  Comma-separated full paths of files to copy
   -d, --dest DIR         Destination path (relative to repo root) for non-interactive mode
   -h, --help             Show this help
   -a, --all              Show hidden / temp files (don't filter)
 
 Examples:
-  $0                       # run interactive selector against Downloads
-  $0 -n "/mnt/c/.../a.json,/mnt/c/.../b.json" -d docs/tiddlers_esp
+  $0 -s /path/to/source
+  $0 -n "/path/to/a.json,/path/to/b.json" -d docs/tiddlers_esp
 EOF
 }
 
 # Helpers
-join_by() { local IFS="$1"; shift; echo "$*"; }
-
 ensure_inside_repo() {
   local p="$1"
   # normalize
@@ -164,6 +165,11 @@ if $NON_INTERACTIVE; then
 fi
 
 # Interactive mode
+if [[ -z "$SRC" ]]; then
+  echo "Source directory not specified. Use -s <dir> or set PICK_SRC env var." >&2
+  print_usage >&2
+  exit 2
+fi
 if [[ ! -d "$SRC" ]]; then
   echo "Source directory not found: $SRC" >&2
   exit 1
