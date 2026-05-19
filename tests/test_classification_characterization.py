@@ -1,14 +1,17 @@
 """
-Characterization tests for classify_role() and derive_taxonomy_and_section() — S0110.
+Characterization tests for classify_role() and derive_taxonomy_and_section() — S0110, updated S0116.
 
 Freezes:
-  - The role_primary distribution across 1014 AI records (read-only).
+  - The role_primary distribution across 1090 AI records (read-only).
   - The fast-path behavior for each role present in the distribution.
   - Representative heuristic paths triggered by title patterns.
   - Edge-case behavior (empty title, None fields, minimal records).
 
 These tests are a precondition for extracting classification.py (Fase C).
 They must pass before AND after the extraction with zero behavioral change.
+
+Distribution updated from S0110 baseline (1014 records, 7 roles) to
+post-S0115 state (1090 records, 5 roles active in AI layer).
 """
 import json
 import sys
@@ -26,16 +29,15 @@ AI_DIR = REPO_ROOT / "data" / "out" / "local" / "ai"
 
 # ── Distribution constants ─────────────────────────────────────────────────────
 
+# Distribution frozen at post-S0115 state. Update when AI layer is regenerated.
 EXPECTED_ROLE_DISTRIBUTION = {
-    "code": 381,
-    "log": 377,
+    "code": 392,
+    "log": 453,
     "config": 168,
-    "glossary": 60,
-    "evidence": 19,
-    "procedure": 6,
-    "policy": 3,
+    "glossary": 61,
+    "evidence": 16,
 }
-EXPECTED_TOTAL = 1014
+EXPECTED_TOTAL = 1090
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
