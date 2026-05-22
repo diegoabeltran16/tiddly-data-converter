@@ -93,6 +93,13 @@ class TestMenuExitsCleanly:
             f"Menu missing options: {missing}\nGot:\n{stdout[:600]}"
         )
 
+    def test_menu_shows_saneamiento_del_canon(self):
+        """S0121: menu must show 'Saneamiento del canon' option."""
+        result = _run_menu("0\n")
+        assert "Saneamiento del canon" in result.stdout, (
+            f"'Saneamiento del canon' not found in menu output:\n{result.stdout[:600]}"
+        )
+
     def test_menu_does_not_crash_on_invalid_option(self):
         # Feed an invalid option then exit
         result = _run_menu("999\n0\n")
@@ -171,6 +178,36 @@ class TestMenuCanonIntegrity:
         assert shards_before == shards_after, (
             f"Canon shards changed after menu exit\n"
             f"Before: {shards_before}\nAfter: {shards_after}"
+        )
+
+
+# ── Smoke: saneamiento del canon ─────────────────────────────────────────────
+
+class TestMenuCanonSanitation:
+    """S0121: verify the Saneamiento del canon submenu is reachable and safe."""
+
+    def test_sanitation_submenu_shows_options(self):
+        # Open submenu (15) then exit (0) then exit main (0)
+        result = _run_menu("15\n0\n0\n", timeout=30)
+        assert result.returncode == 0, (
+            f"Menu exited with code {result.returncode}\nstdout: {result.stdout[:400]}\nstderr: {result.stderr[:300]}"
+        )
+        assert "Saneamiento del canon" in result.stdout, (
+            f"Submenu title not found in output:\n{result.stdout[:600]}"
+        )
+
+    def test_sanitation_submenu_shows_scan_option(self):
+        result = _run_menu("15\n0\n0\n", timeout=30)
+        assert "Escanear" in result.stdout, (
+            f"'Escanear' option not found:\n{result.stdout[:400]}"
+        )
+
+    def test_sanitation_submenu_does_not_modify_canon(self):
+        hashes_before = _canon_shard_hashes()
+        _run_menu("15\n0\n0\n", timeout=30)
+        hashes_after = _canon_shard_hashes()
+        assert hashes_before == hashes_after, (
+            "Canon shards were modified by opening the Saneamiento submenu"
         )
 
 
