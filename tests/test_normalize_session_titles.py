@@ -16,6 +16,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 from normalize_session_titles import (  # noqa: E402
     NormalizationEntry,
     NormalizationPlan,
+    _canonical_json_bytes,
     apply_normalization_plan,
     audit_canon,
     audit_sessions_dir,
@@ -193,7 +194,6 @@ class TestBuildNormalizationPlan:
 
 class TestDryRun:
     def test_dry_run_does_not_modify_canon(self, tmp_path: Path) -> None:
-        """Canon-only plan returns no-op (canon entries are never applied)."""
         canon_dir = tmp_path / "canon"
         sessions_dir = tmp_path / "sessions"
         _write_shard(canon_dir, "tiddlers_1.jsonl", [
@@ -202,27 +202,10 @@ class TestDryRun:
         original = (canon_dir / "tiddlers_1.jsonl").read_bytes()
         entries = audit_canon(canon_dir)
         plan = build_normalization_plan(entries, canon_dir)
-        # Canon-only plan → no staging entries → success=False, canon untouched
-        success, msg, updated = apply_normalization_plan(plan, canon_dir, sessions_dir, confirm=False)
-        assert not success
-        assert "canon" in msg or "no hay" in msg
-        assert (canon_dir / "tiddlers_1.jsonl").read_bytes() == original
-
-    def test_dry_run_does_not_modify_staging(self, tmp_path: Path) -> None:
-        """Staging dry-run returns True but does not write files."""
-        canon_dir = tmp_path / "canon"
-        sessions_dir = tmp_path / "sessions"
-        path = _write_staging_artifact(
-            sessions_dir, "00_contratos", "test.md.json",
-            "#### 🌀 Contrato de sesión S0111 = slug"
-        )
-        original = path.read_bytes()
-        entries = audit_sessions_dir(sessions_dir)
-        plan = build_normalization_plan(entries, canon_dir)
         success, msg, updated = apply_normalization_plan(plan, canon_dir, sessions_dir, confirm=False)
         assert success
         assert "dry-run" in msg
-        assert path.read_bytes() == original
+        assert (canon_dir / "tiddlers_1.jsonl").read_bytes() == original
 
     def test_dry_run_does_not_modify_staging(self, tmp_path: Path) -> None:
         canon_dir = tmp_path / "canon"
@@ -241,37 +224,51 @@ class TestDryRun:
 # ── Apply plan: real apply ────────────────────────────────────────────────────
 
 class TestApplyPlan:
-    def test_apply_normalizes_staging_title(self, tmp_path: Path) -> None:
-        """apply_normalization_plan normalises staging entries (canon skipped)."""
+    def test_apply_normalizes_canon_title(self, tmp_path: Path) -> None:
         canon_dir = tmp_path / "canon"
         sessions_dir = tmp_path / "sessions"
         backup_dir = tmp_path / "backup"
-        # Canon shard present for backup; its entries will NOT be applied
         _write_shard(canon_dir, "tiddlers_1.jsonl", [
             _make_canon_record("id-001", "#### 🌀 Contrato de sesión S0111 = dry-run gobernado"),
         ])
-        path = _write_staging_artifact(
-            sessions_dir, "00_contratos", "m04-s0111-test.md.json",
-            "#### 🌀 Contrato de sesión S0111 = dry-run gobernado",
-        )
-        entries = audit_sessions_dir(sessions_dir)
+        entries = audit_canon(canon_dir)
         plan = build_normalization_plan(entries, canon_dir)
         success, msg, updated = apply_normalization_plan(
             plan, canon_dir, sessions_dir, backup_dir=backup_dir, confirm=True
         )
         assert success
         assert updated.applied is True
-        # Staging title was updated
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        updated_title = raw[0]["title"] if isinstance(raw, list) else raw["title"]
-        assert updated_title == "#### 🌀 Contrato de sesión 0111 = dry-run gobernado"
-        # Canon shard title was NOT changed
         with (canon_dir / "tiddlers_1.jsonl").open(encoding="utf-8") as f:
-            canon_rec = json.loads(f.readline())
-        assert canon_rec["title"] == "#### 🌀 Contrato de sesión S0111 = dry-run gobernado"
+            rec = json.loads(f.readline())
+        assert rec["title"] == "#### 🌀 Contrato de sesión 0111 = dry-run gobernado"
 
-    def test_apply_only_modifies_title(self, tmp_path: Path) -> None:
-        """All other fields must remain unchanged after apply (staging)."""
+    def test_apply_canon_recomputes_identity_fields(self, tmp_path: Path) -> None:
+        """Canon apply updates key, version_id, canonical_slug in addition to title."""
+        canon_dir = tmp_path / "canon"
+        sessions_dir = tmp_path / "sessions"
+        backup_dir = tmp_path / "backup"
+        _write_shard(canon_dir, "tiddlers_1.jsonl", [
+            _make_canon_record("id-001", "#### 🌀 Contrato de sesión S0111 = dry-run gobernado"),
+        ])
+        entries = audit_canon(canon_dir)
+        plan = build_normalization_plan(entries, canon_dir)
+        apply_normalization_plan(plan, canon_dir, sessions_dir, backup_dir=backup_dir, confirm=True)
+        with (canon_dir / "tiddlers_1.jsonl").open(encoding="utf-8") as f:
+            rec = json.loads(f.readline())
+        new_title = rec["title"]
+        assert new_title == "#### 🌀 Contrato de sesión 0111 = dry-run gobernado"
+        # key must equal new title
+        assert rec.get("key") == new_title
+        # version_id must be present (recomputed) — format sha256:hex
+        vid = rec.get("version_id", "")
+        assert vid.startswith("sha256:"), f"version_id format wrong: {vid!r}"
+        # canonical_slug must not contain "s0111" (was normalised away)
+        slug = rec.get("canonical_slug", "")
+        assert "s0111" not in slug, f"slug still has s0111: {slug!r}"
+        assert "0111" in slug
+
+    def test_apply_only_modifies_title_and_identity(self, tmp_path: Path) -> None:
+        """Non-identity fields (text, tags, relations, created) are never touched."""
         canon_dir = tmp_path / "canon"
         sessions_dir = tmp_path / "sessions"
         backup_dir = tmp_path / "backup"
@@ -283,56 +280,30 @@ class TestApplyPlan:
             "relations": [{"id": "rel-1"}],
             "created": "20260101000000000",
         }
-        path = sessions_dir / "00_contratos" / "m04-s0111-sentinel.md.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps([original_rec], ensure_ascii=False, indent=2), encoding="utf-8")
-        entries = audit_sessions_dir(sessions_dir)
+        _write_shard(canon_dir, "tiddlers_1.jsonl", [original_rec])
+        entries = audit_canon(canon_dir)
         plan = build_normalization_plan(entries, canon_dir)
         apply_normalization_plan(plan, canon_dir, sessions_dir, backup_dir=backup_dir, confirm=True)
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        updated_rec = raw[0] if isinstance(raw, list) else raw
-        assert updated_rec["id"] == "id-sentinel"
+        with (canon_dir / "tiddlers_1.jsonl").open(encoding="utf-8") as f:
+            updated_rec = json.loads(f.readline())
         assert updated_rec["text"] == "SENTINEL_TEXT"
         assert updated_rec["tags"] == ["tag-a", "tag-b"]
         assert updated_rec["relations"] == [{"id": "rel-1"}]
         assert updated_rec["created"] == "20260101000000000"
-        # Title should have changed
         assert "S0111" not in updated_rec["title"]
 
     def test_apply_creates_backup(self, tmp_path: Path) -> None:
-        """A backup of canon shards is created even when only staging is modified."""
         canon_dir = tmp_path / "canon"
         sessions_dir = tmp_path / "sessions"
         backup_dir = tmp_path / "backup"
         _write_shard(canon_dir, "tiddlers_1.jsonl", [
             _make_canon_record("id-001", "#### 🌀 Contrato de sesión S0111 = slug"),
         ])
-        _write_staging_artifact(
-            sessions_dir, "00_contratos", "m04-s0111-test.md.json",
-            "#### 🌀 Contrato de sesión S0111 = slug",
-        )
-        entries = audit_sessions_dir(sessions_dir)
+        entries = audit_canon(canon_dir)
         plan = build_normalization_plan(entries, canon_dir)
         apply_normalization_plan(plan, canon_dir, sessions_dir, backup_dir=backup_dir, confirm=True)
         assert backup_dir.exists()
         assert (backup_dir / "tiddlers_1.jsonl").exists()
-
-    def test_canon_entries_skipped_in_apply(self, tmp_path: Path) -> None:
-        """Canon entries are never applied — only staging entries are."""
-        canon_dir = tmp_path / "canon"
-        sessions_dir = tmp_path / "sessions"
-        _write_shard(canon_dir, "tiddlers_1.jsonl", [
-            _make_canon_record("id-001", "#### 🌀 Contrato de sesión S0111 = slug"),
-        ])
-        original_bytes = (canon_dir / "tiddlers_1.jsonl").read_bytes()
-        entries = audit_canon(canon_dir)
-        plan = build_normalization_plan(entries, canon_dir)
-        success, msg, updated = apply_normalization_plan(plan, canon_dir, sessions_dir, confirm=True)
-        # success=False because there are no staging entries
-        assert not success
-        assert "canon" in msg or "no hay" in msg
-        # Canon shard is UNTOUCHED
-        assert (canon_dir / "tiddlers_1.jsonl").read_bytes() == original_bytes
 
     def test_apply_staging_title(self, tmp_path: Path) -> None:
         canon_dir = tmp_path / "canon"
@@ -398,3 +369,72 @@ class TestFormatAuditReport:
         report = format_audit_report(entries)
         assert "normalizable:  1" in report
         assert "0111" in report
+
+
+# ── Canonical JSON HTML-escaping (regression S0124) ──────────────────────────
+
+class TestCanonicalJsonHtmlEscaping:
+    """_canonical_json_bytes must HTML-escape & < > to match Go's json.Marshal."""
+
+    def test_ampersand_escaped(self) -> None:
+        data = {"k": "a && b"}
+        b = _canonical_json_bytes(data)
+        assert b"\\u0026" in b, "& must be escaped as \\u0026"
+        assert b"&&" not in b
+
+    def test_lt_escaped(self) -> None:
+        data = {"k": "a < b"}
+        b = _canonical_json_bytes(data)
+        assert b"\\u003c" in b, "< must be escaped as \\u003c"
+
+    def test_gt_escaped(self) -> None:
+        data = {"k": "a > b"}
+        b = _canonical_json_bytes(data)
+        assert b"\\u003e" in b, "> must be escaped as \\u003e"
+
+    def test_keys_sorted(self) -> None:
+        """Keys must be in lexicographic order."""
+        data = {"z": 1, "a": 2, "m": 3}
+        b = _canonical_json_bytes(data).decode("utf-8")
+        a_pos = b.index('"a"')
+        m_pos = b.index('"m"')
+        z_pos = b.index('"z"')
+        assert a_pos < m_pos < z_pos
+
+    def test_version_id_matches_go_formula(self, tmp_path: Path) -> None:
+        """A record with HTML chars in text must produce the correct version_id after apply."""
+        import hashlib
+        canon_dir = tmp_path / "canon"
+        sessions_dir = tmp_path / "sessions"
+        backup_dir = tmp_path / "backup"
+        # Create a record whose text contains & < > — Go would HTML-escape these
+        text_with_html = "- use `/home/<user>` or `/mnt/c` with && to combine"
+        rec = {
+            "id": "id-html",
+            "key": "#### 🌀 Contrato de sesión S0111 = slug",
+            "title": "#### 🌀 Contrato de sesión S0111 = slug",
+            "text": text_with_html,
+            "created": "20260101000000000",
+            "modified": "20260101000000000",
+        }
+        _write_shard(canon_dir, "tiddlers_1.jsonl", [rec])
+        entries = audit_canon(canon_dir)
+        plan = build_normalization_plan(entries, canon_dir)
+        apply_normalization_plan(plan, canon_dir, sessions_dir, backup_dir=backup_dir, confirm=True)
+
+        with (canon_dir / "tiddlers_1.jsonl").open(encoding="utf-8") as f:
+            updated = json.loads(f.readline())
+
+        new_title = updated["title"]
+        new_key = updated["key"]
+        # Manually compute the expected version_id with HTML-safe encoding
+        shape = {
+            "key": new_key,
+            "title": new_title,
+            "text": text_with_html,
+            "created": "20260101000000000",
+            "modified": "20260101000000000",
+        }
+        canonical = _canonical_json_bytes(shape)
+        expected_vid = "sha256:" + hashlib.sha256(canonical).hexdigest()
+        assert updated["version_id"] == expected_vid

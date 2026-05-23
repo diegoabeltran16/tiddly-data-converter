@@ -5,15 +5,24 @@ Audits session artifact titles in the staging area and the canon, builds
 dry-run normalisation plans, and applies them with explicit confirmation
 and automatic backup.
 
-Operates only on the ``title`` field.  IDs, text, relations, tags,
-source_path and all other fields are never touched.
+Canon records have five pipeline-derived identity fields that depend on
+``title``: ``key``, ``id``, ``canonical_slug``, ``version_id``.  When
+applying to canon entries all five fields are recomputed atomically so
+the record remains consistent with ``canon_preflight --mode strict``.
+
+Staging (.md.json) records have none of these derived fields; only
+``title`` is updated there.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import shutil
 import sys
+import unicodedata
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,6 +50,82 @@ from session_title_policy import (  # noqa: E402
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 DEFAULT_AUDIT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit"
 DEFAULT_BACKUP_DIR = REPO_ROOT / "data" / "out" / "local" / "backups"
+
+# ── Canon identity helpers (S34 policy) ──────────────────────────────────────
+# These mirror the Go implementations in go/canon/identity.go and
+# go/canon/canonical.go exactly.  Verified against live canon records.
+
+_UUID_NAMESPACE_URL = uuid.UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
+_MULTI_HYPHEN_RE = re.compile(r"-{2,}")
+
+
+def _canonical_json_bytes(v: Any) -> bytes:
+    """Deterministic JSON: keys sorted, compact separators, UTF-8.
+
+    Mirrors Go's json.Marshal which HTML-safe-encodes &, <, > as \\u0026,
+    \\u003c, \\u003e.  Without this, version_id diverges from Go for any
+    record whose text contains those characters.
+
+    Ref: Go encoding/json default htmlEscape behaviour.
+    """
+    s = json.dumps(v, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    s = s.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    return s.encode("utf-8")
+
+
+def _recompute_key(new_title: str) -> str:
+    """key == title (S34 §13.2)."""
+    return new_title
+
+
+def _recompute_id(new_key: str) -> str:
+    """UUIDv5(namespace_url, canonical_json({key, type, uuid_spec_version}))."""
+    payload = {"key": new_key, "type": "tiddler_node", "uuid_spec_version": "v1"}
+    return str(uuid.uuid5(_UUID_NAMESPACE_URL, _canonical_json_bytes(payload).decode("utf-8")))
+
+
+def _recompute_canonical_slug(new_title: str) -> str:
+    """NFKC → NFD → strip combining marks → lower → hyphenate → [a-z0-9-]."""
+    s = unicodedata.normalize("NFKC", new_title)
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    s = s.lower()
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"[^a-z0-9-]", "", s)
+    s = _MULTI_HYPHEN_RE.sub("-", s)
+    return s.strip("-")
+
+
+def _recompute_version_id(new_key: str, new_title: str, text: Any, created: Any, modified: Any) -> str:
+    """sha256(canonical_json({key, title, text, created, modified}))."""
+    shape: dict[str, Any] = {
+        "key": new_key,
+        "title": new_title,
+        "text": text,
+        "created": created,
+        "modified": modified,
+    }
+    return "sha256:" + hashlib.sha256(_canonical_json_bytes(shape)).hexdigest()
+
+
+def _update_canon_record_identity(rec: dict, new_title: str) -> dict:
+    """Return *rec* with all five identity fields recomputed for *new_title*.
+
+    Updated fields: ``title``, ``key``, ``id``, ``canonical_slug``,
+    ``version_id``.  All other fields (text, relations, tags, source_fields,
+    created, modified, session_id, etc.) are untouched.
+    """
+    new_key = _recompute_key(new_title)
+    updated = dict(rec)
+    updated["title"] = new_title
+    updated["key"] = new_key
+    updated["id"] = _recompute_id(new_key)
+    updated["canonical_slug"] = _recompute_canonical_slug(new_title)
+    updated["version_id"] = _recompute_version_id(
+        new_key, new_title,
+        rec.get("text"), rec.get("created"), rec.get("modified"),
+    )
+    return updated
 
 # ── Dataclasses ───────────────────────────────────────────────────────────────
 
@@ -325,47 +410,37 @@ def apply_normalization_plan(
     backup_dir: Path | None = None,
     confirm: bool = False,
 ) -> tuple[bool, str, NormalizationPlan]:
-    """Apply a normalisation plan to staging (.md.json) files only.
+    """Apply a normalisation plan.
 
     Safety contract:
     - ``confirm=False`` (default): dry-run, no writes.
-    - ``confirm=True``: backs up canon shards, then applies normalizable staging
-      entries only.  Only the ``title`` field is modified; all other fields are
-      preserved.
+    - ``confirm=True``: backs up canon shards, then applies all normalizable
+      entries.
 
-    Canon records are intentionally skipped during apply.  Canon shards contain
-    pipeline-derived identity fields (``key``, ``id``, ``canonical_slug``,
-    ``version_id``) that are derived from ``title``.  Changing only ``title``
-    without recomputing those fields would break the ``canon_preflight --mode
-    strict`` integrity check.  To fix titles in the live canon, fix them in
-    staging first; the next pipeline run (or admission cycle) will recompute all
-    derived fields correctly.
+    For **canon** entries all five pipeline-derived identity fields are
+    recomputed atomically (``title``, ``key``, ``id``, ``canonical_slug``,
+    ``version_id``) so the record remains consistent with
+    ``canon_preflight --mode strict``.  All other fields (text, relations,
+    tags, source_fields, session_id, created, modified, …) are untouched.
+
+    For **staging** (.md.json) entries only ``title`` is updated (no
+    pipeline-derived identity fields exist in those files).
 
     Returns ``(success, message, updated_plan)``.
     """
     normalizable = [e for e in plan.entries if e.status == "normalizable"]
-    staging_normalizable = [e for e in normalizable if e.source == "staging"]
-
-    if not staging_normalizable:
-        canon_skipped = len([e for e in normalizable if e.source == "canon"])
-        if canon_skipped:
-            msg = (
-                f"0 entradas staging normalizables "
-                f"({canon_skipped} canon omitidas — requieren re-pipeline)"
-            )
-        else:
-            msg = "no hay entradas normalizables en el plan"
-        return False, msg, plan
+    if not normalizable:
+        return False, "no hay entradas normalizables en el plan", plan
 
     if not confirm:
         plan.dry_run = True
         return (
             True,
-            f"dry-run: se normalizarían {len(staging_normalizable)} título(s) de staging, sin escritura",
+            f"dry-run: se normalizarían {len(normalizable)} título(s), sin escritura",
             plan,
         )
 
-    # --- Backup canon shards first (safety reference point) ---
+    # --- Backup canon shards before any write ---
     stamp = _stamp_now()
     effective_backup_dir = backup_dir or (DEFAULT_BACKUP_DIR / f"titlenorm-{stamp}")
     effective_backup_dir.mkdir(parents=True, exist_ok=True)
@@ -374,10 +449,40 @@ def apply_normalization_plan(
 
     applied_count = 0
 
-    # Canon entries are intentionally skipped — see docstring.
+    # --- Apply canon entries (recompute all five identity fields) ---
+    canon_entries = [e for e in normalizable if e.source == "canon"]
+    if canon_entries:
+        by_shard: dict[str, list[NormalizationEntry]] = {}
+        for e in canon_entries:
+            by_shard.setdefault(e.artifact_path, []).append(e)
 
-    # --- Apply staging entries ---
-    for e in staging_normalizable:
+        for shard_name, shard_entries in by_shard.items():
+            shard_path = canon_dir / shard_name
+            if not shard_path.exists():
+                continue
+            line_map = {e.line_number: e for e in shard_entries}
+            new_lines: list[str] = []
+            with shard_path.open("r", encoding="utf-8") as fh:
+                for line_no, raw_line in enumerate(fh, start=1):
+                    stripped = raw_line.strip()
+                    if stripped and line_no in line_map:
+                        entry = line_map[line_no]
+                        try:
+                            rec = json.loads(stripped)
+                            rec = _update_canon_record_identity(rec, entry.proposed_title)
+                            new_lines.append(json.dumps(rec, ensure_ascii=False))
+                            applied_count += 1
+                        except json.JSONDecodeError:
+                            new_lines.append(raw_line.rstrip("\n"))
+                    else:
+                        new_lines.append(raw_line.rstrip("\n"))
+            with shard_path.open("w", encoding="utf-8") as fh:
+                for line in new_lines:
+                    fh.write(line + "\n")
+
+    # --- Apply staging entries (title only) ---
+    staging_entries = [e for e in normalizable if e.source == "staging"]
+    for e in staging_entries:
         artifact_path = sessions_dir / e.artifact_path
         if not artifact_path.exists():
             continue
