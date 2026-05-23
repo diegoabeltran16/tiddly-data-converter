@@ -178,8 +178,8 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
             "provenance_ref": _provenance_ref(session_id, path, sessions_dir),
             "session_origin": session_id,
             "source_path": source_path,
-            # S0124: title normalisation gate — set to True if title needs normalisation
-            "needs_title_normalization": needs_normalization(title, artifact_family),
+            # S0124: title normalisation gate — "true"/"false" string (source_fields is map[string]string in Go)
+            "needs_title_normalization": "true" if needs_normalization(title, artifact_family) else "false",
         },
         "source_role": family_spec.source_role,
         "text": text,
