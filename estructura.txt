@@ -31,6 +31,7 @@
 │   │   │   │   ├── chunks_ai_4.jsonl
 │   │   │   │   ├── chunks_ai_5.jsonl
 │   │   │   │   ├── chunks_ai_6.jsonl
+│   │   │   │   ├── chunks_ai_7.jsonl
 │   │   │   │   ├── manifest.json
 │   │   │   │   ├── reports
 │   │   │   │   │   ├── chunk_qc_report.json
@@ -41,6 +42,7 @@
 │   │   │   │   ├── tiddlers_ai_1.jsonl
 │   │   │   │   ├── tiddlers_ai_10.jsonl
 │   │   │   │   ├── tiddlers_ai_11.jsonl
+│   │   │   │   ├── tiddlers_ai_12.jsonl
 │   │   │   │   ├── tiddlers_ai_2.jsonl
 │   │   │   │   ├── tiddlers_ai_3.jsonl
 │   │   │   │   ├── tiddlers_ai_4.jsonl
@@ -60,12 +62,77 @@
 │   │   │   │   ├── proposed_fixes.json
 │   │   │   │   ├── s85_capa2_stale_target_classification.json
 │   │   │   │   ├── s85_session_admission_before_after.json
+│   │   │   │   ├── titlenorm-20260522213031.json
+│   │   │   │   ├── titlenorm-20260522213054.json
+│   │   │   │   ├── titlenorm-20260522215356.json
+│   │   │   │   ├── titlenorm-20260522215432.json
+│   │   │   │   ├── titlenorm-20260523003506.json
+│   │   │   │   ├── titlenorm-20260523023936.json
 │   │   │   │   └── warnings.jsonl
+│   │   │   ├── backups
+│   │   │   │   ├── titlenorm-20260523-diag-4digit
+│   │   │   │   │   ├── tiddlers_3.jsonl
+│   │   │   │   │   └── tiddlers_4.jsonl
+│   │   │   │   ├── titlenorm-20260523-diag-tematico
+│   │   │   │   │   └── tiddlers_4.jsonl
+│   │   │   │   ├── titlenorm-20260523-manual-propuesta
+│   │   │   │   │   ├── tiddlers_4.jsonl
+│   │   │   │   │   └── tiddlers_5.jsonl
+│   │   │   │   ├── titlenorm-20260523023944
+│   │   │   │   │   ├── tiddlers_1.jsonl
+│   │   │   │   │   ├── tiddlers_10.jsonl
+│   │   │   │   │   ├── tiddlers_11.jsonl
+│   │   │   │   │   ├── tiddlers_12.jsonl
+│   │   │   │   │   ├── tiddlers_2.jsonl
+│   │   │   │   │   ├── tiddlers_3.jsonl
+│   │   │   │   │   ├── tiddlers_4.jsonl
+│   │   │   │   │   ├── tiddlers_5.jsonl
+│   │   │   │   │   ├── tiddlers_6.jsonl
+│   │   │   │   │   ├── tiddlers_7.jsonl
+│   │   │   │   │   ├── tiddlers_8.jsonl
+│   │   │   │   │   └── tiddlers_9.jsonl
+│   │   │   │   ├── titlenorm-s0124
+│   │   │   │   │   ├── tiddlers_1.jsonl
+│   │   │   │   │   ├── tiddlers_10.jsonl
+│   │   │   │   │   ├── tiddlers_11.jsonl
+│   │   │   │   │   ├── tiddlers_2.jsonl
+│   │   │   │   │   ├── tiddlers_3.jsonl
+│   │   │   │   │   ├── tiddlers_4.jsonl
+│   │   │   │   │   ├── tiddlers_5.jsonl
+│   │   │   │   │   ├── tiddlers_6.jsonl
+│   │   │   │   │   ├── tiddlers_7.jsonl
+│   │   │   │   │   ├── tiddlers_8.jsonl
+│   │   │   │   │   └── tiddlers_9.jsonl
+│   │   │   │   ├── titlenorm-s0124-canon
+│   │   │   │   │   ├── tiddlers_1.jsonl
+│   │   │   │   │   ├── tiddlers_10.jsonl
+│   │   │   │   │   ├── tiddlers_11.jsonl
+│   │   │   │   │   ├── tiddlers_2.jsonl
+│   │   │   │   │   ├── tiddlers_3.jsonl
+│   │   │   │   │   ├── tiddlers_4.jsonl
+│   │   │   │   │   ├── tiddlers_5.jsonl
+│   │   │   │   │   ├── tiddlers_6.jsonl
+│   │   │   │   │   ├── tiddlers_7.jsonl
+│   │   │   │   │   ├── tiddlers_8.jsonl
+│   │   │   │   │   └── tiddlers_9.jsonl
+│   │   │   │   └── titlenorm-s0124-canon-reapply
+│   │   │   │       ├── tiddlers_1.jsonl
+│   │   │   │       ├── tiddlers_10.jsonl
+│   │   │   │       ├── tiddlers_11.jsonl
+│   │   │   │       ├── tiddlers_2.jsonl
+│   │   │   │       ├── tiddlers_3.jsonl
+│   │   │   │       ├── tiddlers_4.jsonl
+│   │   │   │       ├── tiddlers_5.jsonl
+│   │   │   │       ├── tiddlers_6.jsonl
+│   │   │   │       ├── tiddlers_7.jsonl
+│   │   │   │       ├── tiddlers_8.jsonl
+│   │   │   │       └── tiddlers_9.jsonl
 │   │   │   ├── enriched
 │   │   │   │   ├── manifest.json
 │   │   │   │   ├── tiddlers_enriched_1.jsonl
 │   │   │   │   ├── tiddlers_enriched_10.jsonl
 │   │   │   │   ├── tiddlers_enriched_11.jsonl
+│   │   │   │   ├── tiddlers_enriched_12.jsonl
 │   │   │   │   ├── tiddlers_enriched_2.jsonl
 │   │   │   │   ├── tiddlers_enriched_3.jsonl
 │   │   │   │   ├── tiddlers_enriched_4.jsonl
@@ -147,170 +214,55 @@
 │   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
-│   │   │   │   │   ├── m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json
-│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │   │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │   │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │   │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │   │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │   │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │   │   ├── m04-s0116-pruebas-minimas-p0-contratos-observables-modulos-core.md.json
-│   │   │   │   │   ├── m04-s0117-pruebas-p0-remote-pull-canon-session-sync-scan.md.json
-│   │   │   │   │   ├── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
-│   │   │   │   │   ├── m04-s0119-contrato-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0120-contrato-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │   │   ├── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
-│   │   │   │   │   ├── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
+│   │   │   │   │   ├── m04-s0121-contrato-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo-lineas-no-conformes.md.json
+│   │   │   │   │   ├── m04-s0122-contrato-saneamiento-selectivo-canon-busqueda-regresion-controlada.md.json
+│   │   │   │   │   ├── m04-s0123-contrato-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │   │   ├── m04-s0124-contrato-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │   │   ├── policy
 │   │   │   │   │   │   ├── canon_policy_bundle.json
 │   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
 │   │   │   │   │   └── projections
 │   │   │   │   │       └── derived_layers_registry.json
 │   │   │   │   ├── 01_procedencia
-│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │   │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │   │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │   │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │   │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │   │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │   │   ├── m04-s0116-pruebas-minimas-p0-contratos-observables-modulos-core.md.json
-│   │   │   │   │   ├── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
-│   │   │   │   │   ├── m04-s0119-procedencia-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0120-procedencia-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │   │   ├── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
-│   │   │   │   │   └── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
+│   │   │   │   │   ├── m04-s0121-procedencia-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo-lineas-no-conformes.md.json
+│   │   │   │   │   ├── m04-s0122-procedencia-saneamiento-selectivo-canon-busqueda-regresion-controlada.md.json
+│   │   │   │   │   ├── m04-s0123-procedencia-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │   │   └── m04-s0124-procedencia-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │   ├── 02_detalles_de_sesion
-│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │   │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │   │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │   │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │   │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │   │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │   │   ├── m04-s0116-pruebas-minimas-p0-contratos-observables-modulos-core.md.json
-│   │   │   │   │   ├── m04-s0117-pruebas-p0-remote-pull-canon-session-sync-scan.md.json
-│   │   │   │   │   ├── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
-│   │   │   │   │   ├── m04-s0119-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0120-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
+│   │   │   │   │   ├── m04-s0121-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo-lineas-no-conformes.md.json
+│   │   │   │   │   ├── m04-s0122-saneamiento-selectivo-canon-busqueda-regresion-controlada.md.json
+│   │   │   │   │   ├── m04-s0123-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │   │   └── m04-s0124-detalles-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │   ├── 03_hipotesis
-│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │   │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │   │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │   │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │   │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │   │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │   │   ├── m04-s0116-pruebas-minimas-p0-contratos-observables-modulos-core.md.json
-│   │   │   │   │   ├── m04-s0117-pruebas-p0-remote-pull-canon-session-sync-scan.md.json
-│   │   │   │   │   ├── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
-│   │   │   │   │   ├── m04-s0119-hipotesis-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0120-hipotesis-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
+│   │   │   │   │   ├── m04-s0121-hipotesis-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo-lineas-no-conformes.md.json
+│   │   │   │   │   ├── m04-s0122-hipotesis-saneamiento-selectivo-canon-busqueda-regresion-controlada.md.json
+│   │   │   │   │   ├── m04-s0123-hipotesis-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │   │   └── m04-s0124-hipotesis-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │   ├── 04_balance_de_sesion
-│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │   │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │   │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │   │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │   │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │   │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │   │   ├── m04-s0116-pruebas-minimas-p0-contratos-observables-modulos-core.md.json
-│   │   │   │   │   ├── m04-s0117-pruebas-p0-remote-pull-canon-session-sync-scan.md.json
-│   │   │   │   │   ├── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
-│   │   │   │   │   ├── m04-s0119-balance-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0120-balance-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
+│   │   │   │   │   ├── m04-s0121-balance-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo-lineas-no-conformes.md.json
+│   │   │   │   │   ├── m04-s0122-balance-saneamiento-selectivo-canon-busqueda-regresion-controlada.md.json
+│   │   │   │   │   ├── m04-s0123-balance-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │   │   └── m04-s0124-balance-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │   ├── 05_propuesta_de_sesion
-│   │   │   │   │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │   │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │   │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │   │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │   │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │   │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │   │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │   │   ├── m04-s0116-pruebas-minimas-p0-contratos-observables-modulos-core.md.json
-│   │   │   │   │   ├── m04-s0117-pruebas-p0-remote-pull-canon-session-sync-scan.md.json
-│   │   │   │   │   ├── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
-│   │   │   │   │   ├── m04-s0119-propuesta-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │   │   ├── m04-s0120-propuesta-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │   │   ├── m04-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │   │   └── m04-s106-limpieza-alineacion-flujo-remoto-onedrive.md.json
+│   │   │   │   │   ├── m04-s0121-propuesta-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo-lineas-no-conformes.md.json
+│   │   │   │   │   ├── m04-s0122-propuesta-saneamiento-selectivo-canon-busqueda-regresion-controlada.md.json
+│   │   │   │   │   ├── m04-s0123-propuesta-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │   │   └── m04-s0124-propuesta-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │   └── 06_diagnoses
 │   │   │   │       ├── meso-ciclo
-│   │   │   │       │   ├── m04-meso-ciclo-s005-s034-diagnostico.md.json
-│   │   │   │       │   ├── m04-meso-ciclo-s035-s064-diagnostico.md.json
-│   │   │   │       │   └── m04-meso-ciclo-s065-s094-diagnostico.md.json
 │   │   │   │       ├── micro-ciclo
-│   │   │   │       │   ├── m04-micro-ciclo-s001-s004-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s005-s014-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s015-s024-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s025-s034-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s035-s044-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s045-s054-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s055-s064-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s065-s074-diagnostico.md.json
-│   │   │   │       │   ├── m04-micro-ciclo-s075-s084-diagnostico.md.json
-│   │   │   │       │   └── m04-micro-ciclo-s085-s094-diagnostico.md.json
 │   │   │   │       ├── module
 │   │   │   │       ├── proyecto
-│   │   │   │       │   └── m04-diagnostico-global-proyecto-post-s097.md.json
 │   │   │   │       ├── sesion
-│   │   │   │       │   ├── diagnostico-sesion-s0119-refactor-modular-seguro-qc-reports-equivalencia-observable.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0120-cierre-acotado-deuda-p2-s65-s69-regresion-controlada.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s105-revision-local-flujo-onedrive.md.json
-│   │   │   │       │   ├── m04-s0107-propagacion-relacional-controlada-chunks-ai.md.json
-│   │   │   │       │   ├── m04-s0108-primer-corte-refactor-seguro-scripts-criticos-equivalencia-observable.md.json
-│   │   │   │       │   ├── m04-s0109-caracterizacion-end-to-end-derivacion-segundo-corte-seguro-chunking.md.json
-│   │   │   │       │   ├── m04-s0110-tercer-corte-refactor-clasificacion-roles-con-tests-distribucion.md.json
-│   │   │   │       │   ├── m04-s0111-dry-run-gobernado-write-sharded-aislamiento-prefijos.md.json
-│   │   │   │       │   ├── m04-s0112-equivalencia-campo-a-campo-enriched-ai-chunks.md.json
-│   │   │   │       │   ├── m04-s0113-extraccion-segura-build-enriched-record-enrichment-equivalencia-campo-a-campo.md.json
-│   │   │   │       │   ├── m04-s0114-extraccion-segura-build-ai-record-ai-records-equivalencia-campo-a-campo.md.json
-│   │   │   │       │   ├── m04-s0115-limpieza-segura-imports-stubs-residuos-post-refactor.md.json
-│   │   │   │       │   └── m04-s0118-saneamiento-quirurgico-scripts-shell-flujo-ci.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s0121-canonizacion-gobernada-artefactos-sessions-saneamiento-minimo.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s0122-saneamiento-selectivo-del-canon-por-busqueda-con-regresion-contro.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s0123-regularizacion-post-s0122-diagnostico-obligatorio-reconciliacion-tests.md.json
+│   │   │   │       │   └── diagnostico-sesion-s0124-normalizacion-nomenclatura-canonica-artefactos-sessions-prevencion-deriva.md.json
 │   │   │   │       └── tema
-│   │   │   │           ├── diagnostico-tematico-011-baseline-comportamiento-observable-pruebas-caracterizacion.md.json
-│   │   │   │           ├── diagnostico-tematico-012-mapa-dependencias-internas-fronteras-modularizacion-segura.md.json
-│   │   │   │           ├── diagnostico-tematico-013-matriz-riesgo-refactor-ruta-incremental-intervencion-segura.md.json
-│   │   │   │           ├── diagnostico-tematico-014-contratos-funcionales-scripts-criticos-equivalencia-salidas.md.json
-│   │   │   │           ├── diagnostico-tematico-015-matriz-riesgo-corte-seguro-modularizacion.md.json
-│   │   │   │           ├── diagnostico-tematico-016-arquitectura-modular-minima-extraccion-incremental.md.json
-│   │   │   │           ├── diagnostico-tematico-017-superficie-residual-derive-layers-integracion-operativa-post-refactor.md.json
-│   │   │   │           ├── diagnostico-tematico-018-preservacion-metadata-extraccion-semantica-sesiones-markdown.md.json
-│   │   │   │           ├── diagnostico-tematico-019-archivos-grandes-potencial-refactorizacion-segura.md.json
-│   │   │   │           ├── diagnostico-tematico-020-mapa-procedencia-relacional-canon-vivo.md.json
-│   │   │   │           ├── diagnostico-tematico-021-contrato-relaciones-candidatas-generadas-ia.md.json
-│   │   │   │           ├── diagnostico-tematico-022-control-falsos-positivos-automatizacion-relacional-y-publicacion-onedrive.md.json
-│   │   │   │           ├── diagnostico-tematico-023-trazabilidad-canon-enriched-ai-chunks-y-reverse.md.json
-│   │   │   │           ├── diagnostico-tematico-024-integracion-operativa-pipeline-relacional-menu-local.md.json
-│   │   │   │           ├── diagnostico-tematico-025-modularizacion-pendiente-scripts-shell-operadores-locales.md.json
-│   │   │   │           ├── diagnostico-tematico-026-matriz-pruebas-minimas-modulo-critico-post-refactor.md.json
-│   │   │   │           ├── diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
-│   │   │   │           ├── diagnostico-tematico-09-cobertura-relacional-util-madurez-ia-premium.md.json
-│   │   │   │           └── diagnostico-tematico-10-complejidad-scripts-criticos-plan-modularizacion-segura.md.json
 │   │   │   ├── tiddlers_1.jsonl
 │   │   │   ├── tiddlers_10.jsonl
 │   │   │   ├── tiddlers_11.jsonl
+│   │   │   ├── tiddlers_12.jsonl
 │   │   │   ├── tiddlers_2.jsonl
 │   │   │   ├── tiddlers_3.jsonl
 │   │   │   ├── tiddlers_4.jsonl
@@ -322,325 +274,21 @@
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
-│       ├── admissions
-│       │   └── s69_unittest
-│       │       ├── admit-20260516023623-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023625-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023627-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023628-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023631-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023641-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023648-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023812-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023813-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023814-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023816-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023819-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023832-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260516023843-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── backups
-│       │       │   ├── admit-20260516023648-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── admit-20260516023843-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   ├── rollback-20260516023656-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   │   ├── tiddlers_1.jsonl
-│       │       │   │   ├── tiddlers_10.jsonl
-│       │       │   │   ├── tiddlers_11.jsonl
-│       │       │   │   ├── tiddlers_2.jsonl
-│       │       │   │   ├── tiddlers_3.jsonl
-│       │       │   │   ├── tiddlers_4.jsonl
-│       │       │   │   ├── tiddlers_5.jsonl
-│       │       │   │   ├── tiddlers_6.jsonl
-│       │       │   │   ├── tiddlers_7.jsonl
-│       │       │   │   ├── tiddlers_8.jsonl
-│       │       │   │   └── tiddlers_9.jsonl
-│       │       │   └── rollback-20260516023852-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │       ├── tiddlers_1.jsonl
-│       │       │       ├── tiddlers_10.jsonl
-│       │       │       ├── tiddlers_11.jsonl
-│       │       │       ├── tiddlers_2.jsonl
-│       │       │       ├── tiddlers_3.jsonl
-│       │       │       ├── tiddlers_4.jsonl
-│       │       │       ├── tiddlers_5.jsonl
-│       │       │       ├── tiddlers_6.jsonl
-│       │       │       ├── tiddlers_7.jsonl
-│       │       │       ├── tiddlers_8.jsonl
-│       │       │       └── tiddlers_9.jsonl
-│       │       ├── rollback-20260516023656-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260516023852-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260516023630-missing-source-path.json
-│       │       ├── validate-20260516023640-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260516023818-missing-source-path.json
-│       │       └── validate-20260516023831-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       ├── html_export
-│       │   ├── export-20260514140832
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   ├── export-20260514140840
-│       │   │   ├── tiddlers.export.jsonl
-│       │   │   ├── tiddlers.export.log
-│       │   │   └── tiddlers.export.manifest.json
-│       │   └── export-20260514154650
-│       │       ├── tiddlers.export.jsonl
-│       │       ├── tiddlers.export.log
-│       │       └── tiddlers.export.manifest.json
 │       ├── reconstruction
-│       │   ├── diagnostic-20260514140305
-│       │   │   └── gate-report.json
-│       │   ├── diagnostic-20260514154639
-│       │   │   └── gate-report.json
-│       │   ├── export-20260514140832
+│       │   ├── reverse-20260523023012
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── export-20260514140840
+│       │   ├── reverse-20260523024656
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── export-20260514154650
+│       │   ├── reverse-20260523025102
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260514154658
-│       │   │   ├── canon_after
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── canon_before
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260514140402
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   └── reverse-20260514154738
+│       │   └── reverse-20260523025706
 │       │       ├── gate-report.json
 │       │       └── reconstruction-report.json
-│       ├── s0120
-│       │   ├── s65-s69-after.log
-│       │   ├── s65-s69-baseline.log
-│       │   └── s65-s69-references.txt
-│       ├── session_admission_s69_unittest
-│       │   ├── admit-20260516023631-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260516023631-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260516023631-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260516023641-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260516023641-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260516023641-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260516023648-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260516023648-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260516023648-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260516023819-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260516023819-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260516023819-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260516023832-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260516023832-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260516023832-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260516023843-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── admission_lines.normalized.jsonl
-│       │   │   ├── admission_lines.raw.jsonl
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260516023843-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260516023843-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260516023656-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   │   ├── tiddlers_1.jsonl
-│       │   │   │   ├── tiddlers_10.jsonl
-│       │   │   │   ├── tiddlers_11.jsonl
-│       │   │   │   ├── tiddlers_2.jsonl
-│       │   │   │   ├── tiddlers_3.jsonl
-│       │   │   │   ├── tiddlers_4.jsonl
-│       │   │   │   ├── tiddlers_5.jsonl
-│       │   │   │   ├── tiddlers_6.jsonl
-│       │   │   │   ├── tiddlers_7.jsonl
-│       │   │   │   ├── tiddlers_8.jsonl
-│       │   │   │   └── tiddlers_9.jsonl
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260516023656-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260516023656-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   └── rollback-20260516023852-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       ├── canon
-│       │       │   ├── tiddlers_1.jsonl
-│       │       │   ├── tiddlers_10.jsonl
-│       │       │   ├── tiddlers_11.jsonl
-│       │       │   ├── tiddlers_2.jsonl
-│       │       │   ├── tiddlers_3.jsonl
-│       │       │   ├── tiddlers_4.jsonl
-│       │       │   ├── tiddlers_5.jsonl
-│       │       │   ├── tiddlers_6.jsonl
-│       │       │   ├── tiddlers_7.jsonl
-│       │       │   ├── tiddlers_8.jsonl
-│       │       │   └── tiddlers_9.jsonl
-│       │       └── reverse_html
-│       │           ├── rollback-20260516023852-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │           └── rollback-20260516023852-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
 │       └── session_sync
-│           ├── m04-s0118-session-sync-20260515204618
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── s0119-session-sync-20260515211725
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── s0120-session-sync-20260515214253
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── s0120-session-sync-20260515214301
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           ├── sync-20260514145949
-│           │   ├── inventory.json
-│           │   └── normalize
-│           │       ├── admission_lines.normalized.jsonl
-│           │       └── admission_lines.raw.jsonl
-│           ├── sync-20260516002054
-│           │   ├── inventory.json
-│           │   ├── missing-candidates.canon-candidates.jsonl
-│           │   ├── normalize
-│           │   │   ├── admission_lines.normalized.jsonl
-│           │   │   └── admission_lines.raw.jsonl
-│           │   ├── replacement-candidates.canon-candidates.jsonl
-│           │   └── sync-candidates.canon-candidates.jsonl
-│           └── sync-codex-check-detalles
+│           └── sync-20260523023002
 │               ├── inventory.json
 │               └── normalize
 │                   ├── admission_lines.normalized.jsonl
@@ -798,6 +446,7 @@
 │   ├── ai_records.py
 │   ├── audit_normative_projection.py
 │   ├── canon_proposal.py
+│   ├── canon_sanitation.py
 │   ├── chunking.py
 │   ├── classification.py
 │   ├── corpus_governance.py
@@ -805,6 +454,7 @@
 │   ├── diagnostic_governance.py
 │   ├── enrichment.py
 │   ├── mcp_env_manager.py
+│   ├── normalize_session_titles.py
 │   ├── operator_menu.py
 │   ├── path_governance.py
 │   ├── qc_reports.py
@@ -813,8 +463,10 @@
 │   ├── remote_pull_canon.py
 │   ├── remote_pull_sessions.py
 │   ├── s45_derive_layers.py
+│   ├── session_artifact_governance.py
 │   ├── session_cycle_diagnostics.py
 │   ├── session_sync.py
+│   ├── session_title_policy.py
 │   ├── stage_modal_delta.py
 │   ├── tdc_cat.py
 │   ├── text_utils.py
@@ -973,6 +625,8 @@
 │   ├── smoke
 │   │   └── test_pipeline_smoke.sh
 │   ├── test.txt
+│   ├── test_canon_sanitation.py
+│   ├── test_canon_sanitation_selective.py
 │   ├── test_chunking_characterization.py
 │   ├── test_classification_characterization.py
 │   ├── test_controlled_relation_propagation.py
@@ -980,6 +634,7 @@
 │   ├── test_diagnostic_artifact_governance.py
 │   ├── test_field_equivalence_characterization.py
 │   ├── test_mcp_env_manager_security.py
+│   ├── test_normalize_session_titles.py
 │   ├── test_operator_menu_smoke.py
 │   ├── test_qc_reports_characterization.py
 │   ├── test_remote_mirror_out_local.py
@@ -987,9 +642,11 @@
 │   ├── test_remote_pull_canon_p0.py
 │   ├── test_reverse_contract.py
 │   ├── test_rule23_relational_coverage.py
+│   ├── test_session_artifact_governance.py
 │   ├── test_session_cycle_diagnostics.py
 │   ├── test_session_path_governance.py
 │   ├── test_session_sync_scan_p0.py
+│   ├── test_session_title_policy.py
 │   ├── test_text_utils.py
 │   └── test_write_sharded_dry_run.py
 ├── tools
