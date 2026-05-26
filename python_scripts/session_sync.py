@@ -38,85 +38,18 @@ from path_governance import (  # noqa: E402
     as_display_path,
     resolve_repo_path,
 )
+from session_artifact_governance import (  # noqa: E402
+    FAMILY_BY_RELATIVE_ROOT,
+    SESSION_RE,
+    classify_artifact_family,
+    extract_session_id,
+    parse_session_parts,
+    build_session_tags,
+)
+from session_title_policy import needs_normalization  # noqa: E402
 
 
 DEFAULT_SESSION_SYNC_DIR = REPO_ROOT / "data" / "tmp" / "session_sync"
-SESSION_RE = re.compile(r"^(m\d+)-s([0-9]+[a-z]?)-(.+)$")
-
-FAMILY_BY_RELATIVE_ROOT: dict[tuple[str, ...], dict[str, Any]] = {
-    ("00_contratos",): {
-        "family": "contrato_de_sesion",
-        "role_primary": "policy",
-        "source_role": "policy",
-        "order": 1,
-    },
-    ("01_procedencia",): {
-        "family": "procedencia_de_sesion",
-        "role_primary": "evidence",
-        "source_role": "procedencia",
-        "order": 2,
-    },
-    ("02_detalles_de_sesion",): {
-        "family": "detalles_de_sesion",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 3,
-    },
-    ("03_hipotesis",): {
-        "family": "hipotesis_de_sesion",
-        "role_primary": "procedure",
-        "source_role": "procedure",
-        "order": 4,
-    },
-    ("04_balance_de_sesion",): {
-        "family": "balance_de_sesion",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 5,
-    },
-    ("05_propuesta_de_sesion",): {
-        "family": "propuesta_de_sesion",
-        "role_primary": "procedure",
-        "source_role": "procedure",
-        "order": 6,
-    },
-    ("06_diagnoses", "sesion"): {
-        "family": "diagnostico_de_sesion",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 7,
-    },
-    ("06_diagnoses", "tema"): {
-        "family": "diagnostico_tematico",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 8,
-    },
-    ("06_diagnoses", "module"): {
-        "family": "diagnostico_de_modulo",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 9,
-    },
-    ("06_diagnoses", "micro-ciclo"): {
-        "family": "diagnostico_de_micro_ciclo",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 10,
-    },
-    ("06_diagnoses", "meso-ciclo"): {
-        "family": "diagnostico_de_meso_ciclo",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 11,
-    },
-    ("06_diagnoses", "proyecto"): {
-        "family": "diagnostico_de_proyecto",
-        "role_primary": "log",
-        "source_role": "reporte",
-        "order": 12,
-    },
-}
 
 
 @dataclass
@@ -154,56 +87,11 @@ def _load_session_tiddler(path: Path) -> dict[str, Any]:
     raise ValueError("JSON payload is not an object or tiddler array")
 
 
-def _session_id_from_path(path: Path) -> str:
-    name = path.name
-    if name.endswith(".md.json"):
-        return name[: -len(".md.json")]
-    return path.stem
-
-
-def _session_parts(session_id: str) -> tuple[str, str, str]:
-    match = SESSION_RE.match(session_id)
-    if not match:
-        return "", "", session_id
-    milestone, number, slug = match.groups()
-    if slug.startswith("session-"):
-        slug = slug[len("session-") :]
-    return milestone, number, slug
-
-
-def _family_spec(path: Path, sessions_dir: Path) -> dict[str, Any] | None:
-    rel = path.relative_to(sessions_dir)
-    parts = rel.parts
-    for prefix, spec in FAMILY_BY_RELATIVE_ROOT.items():
-        if parts[: len(prefix)] == prefix:
-            return spec
-    return None
-
-
 def _artifact_text(payload: dict[str, Any]) -> str:
     text = payload.get("text")
     if isinstance(text, str) and text.strip():
         return text
     return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
-
-
-def _session_tags(session_id: str, artifact_family: str) -> list[str]:
-    milestone, number, _slug = _session_parts(session_id)
-    tags = []
-    if milestone and number:
-        tags.append(f"session:{milestone}-s{number}")
-        tags.append(f"milestone:{milestone}")
-    else:
-        tags.append(f"session:{session_id}")
-    tags.extend([f"artifact:{artifact_family}", "status:candidate", "layer:session"])
-
-    deduped: list[str] = []
-    seen = set()
-    for tag in tags:
-        if tag not in seen:
-            seen.add(tag)
-            deduped.append(tag)
-    return deduped
 
 
 _MIGRATION_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
@@ -237,8 +125,8 @@ def _provenance_ref(session_id: str, source_path: Path, sessions_dir: Path) -> s
 
 
 def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArtifactCandidate:
-    spec = _family_spec(path, sessions_dir)
-    if spec is None:
+    family_spec = classify_artifact_family(path, sessions_dir)
+    if family_spec is None:
         raise ValueError("unsupported session artifact family")
 
     payload = _load_session_tiddler(path)
@@ -246,14 +134,14 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
     if not title:
         raise ValueError("session artifact has no title")
 
-    session_id = _session_id_from_path(path)
-    artifact_family = _safe_str(spec["family"])
+    session_id = extract_session_id(path)
+    artifact_family = family_spec.family
     source_type = _safe_str(payload.get("type")) or "text/markdown"
     text = _artifact_text(payload)
     created = _safe_str(payload.get("created")) or "19700101000000000"
     modified = _safe_str(payload.get("modified")) or created
     source_path = as_display_path(path)
-    tags = _session_tags(session_id, artifact_family)
+    tags = build_session_tags(session_id, artifact_family)
 
     content_type = "application/json" if source_type == "application/json" else "text/markdown"
     modality = "metadata" if content_type == "application/json" else "text"
@@ -270,7 +158,7 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
         "encoding": "utf-8",
         "is_binary": False,
         "is_reference_only": False,
-        "role_primary": spec["role_primary"],
+        "role_primary": family_spec.role_primary,
         "tags": tags,
         "taxonomy_path": ["sessions", artifact_family],
         "semantic_text": None,
@@ -279,7 +167,7 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
         "mime_type": source_type,
         "document_id": f"sessions-{session_id}",
         "section_path": ["sessions", artifact_family, session_id],
-        "order_in_document": spec["order"],
+        "order_in_document": family_spec.order,
         "relations": [],
         "source_tags": list(tags),
         "normalized_tags": list(tags),
@@ -290,8 +178,10 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
             "provenance_ref": _provenance_ref(session_id, path, sessions_dir),
             "session_origin": session_id,
             "source_path": source_path,
+            # S0124: title normalisation gate — "true"/"false" string (source_fields is map[string]string in Go)
+            "needs_title_normalization": "true" if needs_normalization(title, artifact_family) else "false",
         },
-        "source_role": spec["source_role"],
+        "source_role": family_spec.source_role,
         "text": text,
         "source_type": source_type,
         "source_position": source_path,

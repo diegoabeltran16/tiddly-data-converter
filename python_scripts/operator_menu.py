@@ -33,6 +33,32 @@ from path_governance import (  # noqa: E402
     sorted_canon_shards,
 )
 from session_sync import DEFAULT_SESSION_SYNC_DIR, scan_session_sync  # noqa: E402
+from canon_sanitation import (  # noqa: E402
+    DEFAULT_SANITATION_DIR,
+    NonConformingLine,
+    apply_elimination_plan,
+    build_elimination_plan,
+    build_elimination_plan_from_search,
+    format_nonconforming_summary,
+    format_search_results_numbered,
+    load_last_plan,
+    parse_index_selection,
+    save_plan,
+    scan_canon_for_nonconforming,
+    search_canon_by_id,
+    search_canon_by_title,
+)
+from normalize_session_titles import (  # noqa: E402
+    DEFAULT_AUDIT_DIR,
+    DEFAULT_SESSIONS_DIR as NORM_SESSIONS_DIR,
+    apply_normalization_plan,
+    audit_canon as audit_titles_canon,
+    audit_sessions_dir as audit_titles_sessions,
+    build_normalization_plan,
+    format_audit_report,
+    load_last_plan as load_last_norm_plan,
+    save_plan as save_norm_plan,
+)
 from tdc_cat import (  # noqa: E402
     tdc_cat_error,
     tdc_cat_loading,
@@ -1656,6 +1682,363 @@ def option_mcp_manager() -> None:
     )
 
 
+def option_title_normalization() -> None:
+    """Sub-submenú de normalización de nomenclatura de títulos sessions (S0124)."""
+    while True:
+        print(
+            "\nAuditar/normalizar nomenclatura de títulos sessions\n\n"
+            "1. Auditar títulos de artefactos sessions\n"
+            "2. Generar plan de normalización en dry-run\n"
+            "3. Ver último plan de normalización\n"
+            "4. Aplicar normalización con confirmación explícita\n"
+            "0. Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+
+        if choice == "1":
+            print("\nAuditando títulos en staging y canon...")
+            try:
+                staging_entries = audit_titles_sessions(NORM_SESSIONS_DIR)
+                canon_entries = audit_titles_canon(DEFAULT_CANON_DIR)
+            except (OSError, Exception) as exc:
+                print(f"Error durante la auditoría: {exc}")
+                continue
+            all_entries = staging_entries + canon_entries
+            print(format_audit_report(all_entries))
+            report_path = DEFAULT_AUDIT_DIR / "session_title_normalization_report.json"
+            try:
+                import json as _json
+                report_path.parent.mkdir(parents=True, exist_ok=True)
+                with report_path.open("w", encoding="utf-8") as fh:
+                    _json.dump(
+                        [{"source": e.source, "artifact_path": e.artifact_path,
+                          "family": e.artifact_family, "status": e.status,
+                          "current_title": e.current_title,
+                          "proposed_title": e.proposed_title, "issue": e.issue}
+                         for e in all_entries],
+                        fh, ensure_ascii=False, indent=2,
+                    )
+                    fh.write("\n")
+                print(f"\nReporte guardado en: {display(report_path)}")
+            except Exception as exc:
+                print(f"No se pudo guardar el reporte: {exc}")
+
+        elif choice == "2":
+            print("\nGenerando plan de normalización (dry-run)...")
+            try:
+                staging_entries = audit_titles_sessions(NORM_SESSIONS_DIR)
+                canon_entries = audit_titles_canon(DEFAULT_CANON_DIR)
+                all_entries = staging_entries + canon_entries
+                plan = build_normalization_plan(all_entries, DEFAULT_CANON_DIR)
+            except Exception as exc:
+                print(f"Error al generar el plan: {exc}")
+                continue
+            plan_path = save_norm_plan(plan, DEFAULT_AUDIT_DIR)
+            print(f"\nPlan generado: {display(plan_path)}")
+            print(f"- normalizables:  {plan.normalizable_count}")
+            print(f"- revisión manual: {plan.manual_review_count}")
+            print(f"- bloqueados:     {plan.blocked_count}")
+            print("\nEste plan NO ha sido aplicado. Usa la opción 4 para aplicarlo.")
+
+        elif choice == "3":
+            plan = load_last_norm_plan(DEFAULT_AUDIT_DIR)
+            if plan is None:
+                print("No se encontró ningún plan de normalización guardado.")
+            else:
+                print(f"\nÚltimo plan: {plan.run_id}")
+                print(f"- timestamp: {plan.timestamp}")
+                print(f"- normalizables:  {plan.normalizable_count}")
+                print(f"- revisión manual: {plan.manual_review_count}")
+                print(f"- bloqueados:     {plan.blocked_count}")
+                print(f"- aplicado: {plan.applied}")
+                if plan.applied:
+                    print(f"- aplicados: {plan.applied_count}  backup: {plan.backup_dir}")
+                norm_entries = [e for e in plan.entries if e.status == "normalizable"]
+                for e in norm_entries[:20]:
+                    src = f"{e.artifact_path}:{e.line_number}" if e.source == "canon" else e.artifact_path
+                    print(f"  [{e.source}] {src}")
+                    print(f"    → {e.proposed_title or '(sin propuesta)'}")
+                if len(norm_entries) > 20:
+                    print(f"  ... {len(norm_entries) - 20} más")
+
+        elif choice == "4":
+            plan = load_last_norm_plan(DEFAULT_AUDIT_DIR)
+            if plan is None:
+                print("No hay plan guardado. Genera uno con la opción 2.")
+                continue
+            if plan.applied:
+                print("El plan ya fue aplicado. Genera uno nuevo con la opción 2.")
+                continue
+            if plan.normalizable_count == 0:
+                print("El plan no tiene entradas normalizables.")
+                continue
+            print(f"\nPlan a aplicar: {plan.run_id}")
+            print(f"- títulos a normalizar: {plan.normalizable_count}")
+            norm_entries = [e for e in plan.entries if e.status == "normalizable"]
+            for e in norm_entries[:20]:
+                src = f"{e.artifact_path}:{e.line_number}" if e.source == "canon" else e.artifact_path
+                print(f"  [{e.source}] {src[:60]}")
+                print(f"    actual:    {e.current_title[:80]}")
+                print(f"    propuesto: {e.proposed_title or '?'[:80]}")
+            if len(norm_entries) > 20:
+                print(f"  ... {len(norm_entries) - 20} más")
+            print(
+                "\nATENCIÓN: se modificará únicamente el campo 'title'. "
+                "Se creará backup automático del canon antes de escribir."
+            )
+            confirmation = prompt(
+                "Escribe NORMALIZAR para aplicar el plan: "
+            ).strip()
+            if confirmation != "NORMALIZAR":
+                print("Operación cancelada.")
+                continue
+            success, message, updated_plan = apply_normalization_plan(
+                plan,
+                canon_dir=DEFAULT_CANON_DIR,
+                sessions_dir=NORM_SESSIONS_DIR,
+                confirm=True,
+            )
+            save_norm_plan(updated_plan, DEFAULT_AUDIT_DIR)
+            if success:
+                tdc_cat_success(f"Normalización aplicada: {message}")
+                print(f"Resultado: {message}")
+                if updated_plan.backup_dir:
+                    print(f"Backup en: {updated_plan.backup_dir}")
+            else:
+                tdc_cat_error(f"Normalización falló: {message}")
+                print(f"Error: {message}")
+        else:
+            print("Opción inválida.")
+
+
+def option_canon_sanitation() -> None:
+    """Saneamiento del canon — submenú seguro para identificar y eliminar líneas no conformes."""
+    non_conforming: list[NonConformingLine] = []
+    last_search_results: list[dict] = []
+    last_search_kind: str = ""
+    last_search_query: str = ""
+
+    while True:
+        print(
+            "\nSaneamiento del canon\n\n"
+            "1. Escanear líneas/tiddlers no conformes\n"
+            "2. Buscar tiddler por ID\n"
+            "3. Buscar tiddler por título o fragmento de título\n"
+            "4. Preparar plan de eliminación en dry-run\n"
+            "5. Ver último plan de saneamiento generado\n"
+            "6. Aplicar plan de eliminación con confirmación explícita\n"
+            "7. Auditar/normalizar nomenclatura de títulos sessions\n"
+            "0. Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+
+        if choice == "1":
+            print("\nEscaneando shards del canon por líneas no conformes...")
+            try:
+                non_conforming = scan_canon_for_nonconforming(DEFAULT_CANON_DIR)
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"Error al escanear el canon: {exc}")
+                continue
+            if not non_conforming:
+                print("No se encontraron líneas no conformes. El canon está limpio.")
+            else:
+                print(f"\nSe encontraron {len(non_conforming)} línea(s) no conforme(s):\n")
+                print(format_nonconforming_summary(non_conforming))
+
+        elif choice == "2":
+            fragment = prompt("Fragmento de ID a buscar: ").strip()
+            if not fragment:
+                print("Fragmento vacío, operación cancelada.")
+                continue
+            results = search_canon_by_id(fragment, DEFAULT_CANON_DIR)
+            if not results:
+                print(f"No se encontraron tiddlers con ID que contenga: {fragment!r}")
+            else:
+                last_search_results = results
+                last_search_kind = "search_id"
+                last_search_query = fragment
+                print(f"\nResultados para ID ≈ {fragment!r} ({len(results)} encontrados):")
+                print(format_search_results_numbered(results[:40]))
+                if len(results) > 40:
+                    print(f"  ... {len(results) - 40} más (usa la opción 4 para seleccionar)")
+
+        elif choice == "3":
+            fragment = prompt("Fragmento de título a buscar: ").strip()
+            if not fragment:
+                print("Fragmento vacío, operación cancelada.")
+                continue
+            results = search_canon_by_title(fragment, DEFAULT_CANON_DIR)
+            if not results:
+                print(f"No se encontraron tiddlers con título que contenga: {fragment!r}")
+            else:
+                last_search_results = results
+                last_search_kind = "search_title"
+                last_search_query = fragment
+                print(f"\nResultados para título ≈ {fragment!r} ({len(results)} encontrados):")
+                print(format_search_results_numbered(results[:40]))
+                if len(results) > 40:
+                    print(f"  ... {len(results) - 40} más (usa la opción 4 para seleccionar)")
+
+        elif choice == "4":
+            has_scan = bool(non_conforming)
+            has_search = bool(last_search_results)
+
+            if not has_scan and not has_search:
+                print(
+                    "Sin resultados disponibles. "
+                    "Ejecuta la opción 1 (escaneo) o 2/3 (búsqueda) primero."
+                )
+                continue
+
+            use_scan: bool
+            if has_scan and has_search:
+                print(
+                    f"\nHay resultados de escaneo ({len(non_conforming)} no conforme(s)) "
+                    f"y de búsqueda ({len(last_search_results)} encontrado(s))."
+                )
+                print("  S = usar resultados de escaneo")
+                print("  B = usar resultados de búsqueda")
+                src_choice = prompt("Selecciona fuente (S/B): ").strip().upper()
+                if src_choice == "S":
+                    use_scan = True
+                elif src_choice == "B":
+                    use_scan = False
+                else:
+                    print("Selección inválida, operación cancelada.")
+                    continue
+            else:
+                use_scan = has_scan
+
+            if use_scan:
+                print(f"\nHay {len(non_conforming)} línea(s) no conforme(s):")
+                print(format_nonconforming_summary(non_conforming))
+                raw_selection = prompt(
+                    "\nSelecciona índices a incluir en el plan (ej: 1,3,5-7): "
+                ).strip()
+                if not raw_selection:
+                    print("Selección vacía, plan cancelado.")
+                    continue
+                indices, errors = parse_index_selection(raw_selection, len(non_conforming))
+                if errors:
+                    for err in errors:
+                        print(f"  Error de selección: {err}")
+                if not indices:
+                    print("Sin índices válidos seleccionados.")
+                    continue
+                plan = build_elimination_plan(indices, non_conforming, DEFAULT_CANON_DIR)
+            else:
+                print(
+                    f"\nResultados de búsqueda ({last_search_kind}) "
+                    f"para {last_search_query!r}: {len(last_search_results)} encontrado(s):"
+                )
+                print(format_search_results_numbered(last_search_results[:40]))
+                if len(last_search_results) > 40:
+                    print(f"  ... {len(last_search_results) - 40} más omitidos en pantalla")
+                raw_selection = prompt(
+                    "\nSelecciona índices a incluir en el plan (ej: 1,3,5-7): "
+                ).strip()
+                if not raw_selection:
+                    print("Selección vacía, plan cancelado.")
+                    continue
+                indices, errors = parse_index_selection(
+                    raw_selection, len(last_search_results)
+                )
+                if errors:
+                    for err in errors:
+                        print(f"  Error de selección: {err}")
+                if not indices:
+                    print("Sin índices válidos seleccionados.")
+                    continue
+                plan = build_elimination_plan_from_search(
+                    indices,
+                    last_search_results,
+                    last_search_kind,
+                    last_search_query,
+                    DEFAULT_CANON_DIR,
+                )
+
+            plan_path = save_plan(plan, DEFAULT_SANITATION_DIR)
+            print(f"\nPlan dry-run generado: {display(plan_path)}")
+            print(f"- fuente: {plan.source_kind}  query: {plan.query!r}")
+            print(f"- objetivos seleccionados: {len(plan.targets)}")
+            for t in plan.targets:
+                print(f"  [{t.index}] {t.shard}:{t.line_no}  {t.reason}  {t.title or t.description}")
+            print("\nEste plan NO ha sido aplicado. Usa la opción 6 para aplicarlo.")
+
+        elif choice == "5":
+            plan = load_last_plan(DEFAULT_SANITATION_DIR)
+            if plan is None:
+                print("No se encontró ningún plan de saneamiento guardado.")
+            else:
+                print(f"\nÚltimo plan: {plan.run_id}")
+                print(f"- timestamp: {plan.timestamp}")
+                print(f"- canon_dir: {plan.canon_dir}")
+                print(f"- fuente: {plan.source_kind}  query: {plan.query!r}")
+                print(f"- hash_before: {plan.canon_hash_before}")
+                print(f"- objetivos: {len(plan.targets)}")
+                print(f"- aplicado: {plan.applied}")
+                print(f"- dry_run: {plan.dry_run}")
+                if plan.backup_dir:
+                    print(f"- backup: {plan.backup_dir}")
+                if plan.applied:
+                    print(f"- eliminadas: {plan.removed_count} línea(s)")
+                    print(f"- hash_after: {plan.canon_hash_after}")
+                for t in plan.targets[:20]:
+                    print(f"  [{t.index}] {t.shard}:{t.line_no}  {t.reason}  {t.title or t.description}")
+                if len(plan.targets) > 20:
+                    print(f"  ... {len(plan.targets) - 20} más")
+
+        elif choice == "6":
+            plan = load_last_plan(DEFAULT_SANITATION_DIR)
+            if plan is None:
+                print("No hay plan de saneamiento guardado. Genera uno con la opción 4.")
+                continue
+            if plan.applied:
+                print("El plan más reciente ya fue aplicado. Genera uno nuevo con la opción 4.")
+                continue
+            print(f"\nPlan a aplicar: {plan.run_id}")
+            print(f"- objetivos: {len(plan.targets)} línea(s)")
+            for t in plan.targets[:20]:
+                print(f"  [{t.index}] {t.shard}:{t.line_no}  {t.reason}  {t.title or t.description}")
+            if len(plan.targets) > 20:
+                print(f"  ... {len(plan.targets) - 20} más")
+            print(
+                "\nATENCIÓN: esta operación modifica data/out/local. "
+                "Se creará backup automático antes de eliminar."
+            )
+            confirmation = prompt(
+                "Escribe SANEAR para aplicar el plan de eliminación: "
+            ).strip()
+            if confirmation != "SANEAR":
+                print("Operación cancelada.")
+                continue
+            success, message, updated_plan = apply_elimination_plan(
+                plan,
+                canon_dir=DEFAULT_CANON_DIR,
+                confirm=True,
+            )
+            save_plan(updated_plan, DEFAULT_SANITATION_DIR)
+            if success:
+                tdc_cat_success(f"Saneamiento aplicado: {message}")
+                print(f"Resultado: {message}")
+                if updated_plan.backup_dir:
+                    print(f"Backup en: {updated_plan.backup_dir}")
+                non_conforming = []  # invalidar caché de escaneo
+            else:
+                tdc_cat_error(f"Saneamiento falló: {message}")
+                print(f"Error: {message}")
+
+        elif choice == "7":
+            option_title_normalization()
+
+        else:
+            print("Opción inválida.")
+
+
 def main_menu() -> None:
     state = MenuState()
     while True:
@@ -1676,6 +2059,7 @@ def main_menu() -> None:
             "12) Rollback de reconstruccion\n"
             "13) Auditar calidad canonica / nodos\n"
             "14) Configurar MCP / mirror remoto\n"
+            "15) Saneamiento del canon\n"
             "0) Salir"
         )
         choice = prompt("> ").strip()
@@ -1712,6 +2096,8 @@ def main_menu() -> None:
             option_canon_quality()
         elif choice == "14":
             option_mcp_manager()
+        elif choice == "15":
+            option_canon_sanitation()
         else:
             print("Opcion invalida.")
         pause()

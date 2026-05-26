@@ -22,8 +22,8 @@ con la familia minima de artefactos bajo `data/out/local/sessions/`:
 El diagnóstico de sesión (tipo `sesion`) es el único diagnóstico obligatorio
 del paquete. Los diagnósticos especializados (`canon`, `derivados`,
 `hipotesis`, `modulo`, `proyecto`, `repositorio`, `reverse`, `tema`) son
-opcionales: solo se generan bajo solicitud explícita o cuando la instrucción
-de sesión lo requiera.
+opcionales: solo se generan bajo solicitud explícita del operador en el prompt
+de sesión. No se generan automáticamente bajo ninguna otra condición.
 
 ## Gobernanza de rutas de artefactos de sesion
 
@@ -43,9 +43,9 @@ data/out/local/sessions/
 | `data/sessions/` | **Prohibida / Legacy** | Gitignoreada; no escribir nuevos entregables ahi |
 | `data/out/sessions/` | **Prohibida / Typo** | No existe; error tipografico historico |
 
-### Logs de diagnostico
+### Artefactos de diagnóstico de sesión
 
-Los logs auxiliares de diagnostico tambien van bajo:
+Los diagnósticos de sesión (familia `sesion`) van bajo:
 
 ```
 data/out/local/sessions/06_diagnoses/sesion/
@@ -64,7 +64,45 @@ diagnostico y detener el proceso hasta que se resuelva.
 Todo tiddler que sea resultado de sesion debe tener un `title` iniciado por
 `#### 🌀`.
 
-Titulos obligatorios para las familias principales:
+### Regla de numeración universal — formato `XXXX`
+
+**Todos** los números de sesión, rango o secuencia que aparezcan en un título
+de tiddler deben usar exactamente **4 dígitos con ceros a la izquierda**:
+
+```
+n → f'{int(n):04d}'   # Python
+```
+
+Ejemplos:
+- Sesión 1   → `0001`
+- Sesión 97  → `0097`
+- Sesión 124 → `0124`
+- Temático 7 → `0007`
+- Temático 33→ `0033`
+
+**Prohibiciones absolutas** (nunca usar en títulos de tiddlers):
+
+| Forma incorrecta | Forma correcta | Motivo |
+|---|---|---|
+| `S0124` | `0124` | El prefijo `S` no es parte del título canónico |
+| `S97` | `0097` | Prefijo `S` + padding insuficiente |
+| `S85-S94` | `0085-0094` | Prefijo `S` en rangos de sesión |
+| `011`, `033` | `0011`, `0033` | Padding de 3 dígitos en lugar de 4 |
+| `01`, `09` | `0001`, `0009` | Padding de 2 dígitos en lugar de 4 |
+| `(siguiente tras S0115)` | _(eliminar)_ | Texto extra no canónico en el título |
+| `0116 (siguiente tras...)` | `0116` | Paréntesis no canónicos |
+
+El prefijo `S` es **solo** para uso en código, rutas de archivo o texto libre
+de narrativa. **Nunca aparece dentro del campo `title` de un tiddler.**
+
+### Títulos obligatorios por familia de sesión
+
+`<NNNN>` = número de sesión formateado como `f'{n:04d}'`.
+
+> Si el número de sesión no puede determinarse antes de producir los artefactos,
+> el agente debe detenerse y solicitar al operador el número de sesión antes de
+> generar ningún artefacto. No usar placeholders como `0000` o `XXXX` en
+> artefactos reales.
 
 - contrato de sesion: `#### 🌀 Contrato de sesión <NNNN> = <slug>`;
 - procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NNNN> = <slug>`;
@@ -74,18 +112,77 @@ Titulos obligatorios para las familias principales:
 - propuesta de sesion: `#### 🌀 Propuesta de sesión <NNNN> = <slug>`;
 - diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NNNN> = <slug>`.
 
-`<NNNN>` corresponde al numero de sesion cero-rellenado a 4 dígitos (un cero
-a la izquierda por nivel de magnitud; en la era actual de 3 cifras: `str(n).zfill(4)`).
-Se extrae de `mXX-sNN-...` y se rellena: `sNN` → `int(NN)` → `zfill(4)`.
-`<slug>` es el resto del identificador sin el prefijo `mXX-sNN-` y sin
-`session-` cuando aparezca como prefijo operativo.
+`<slug>` es la parte restante del identificador tras eliminar el prefijo
+`mXX-sNN-` y, si está presente inmediatamente después, el prefijo `session-`.
+Si ninguno de estos prefijos está presente, el identificador se usa tal cual.
+No se elimina ningún otro prefijo.
+
+### Títulos obligatorios para diagnósticos de ciclo
+
+#### Diagnóstico temático
+
+`<XXXX>` = número secuencial del diagnóstico formateado como `f'{n:04d}'`.
+
+```
+#### 🌀 Diagnóstico temático <XXXX> = <slug>
+```
+
+Ejemplos correctos:
+```
+#### 🌀 Diagnóstico temático 0001 = alineacion-de-roles-v0
+#### 🌀 Diagnóstico temático 0010 = complejidad de scripts críticos y plan de modularización segura
+#### 🌀 Diagnóstico temático 0033 = frontera canon/archivo para diagnósticos temáticos y admisión gobernada
+```
+
+#### Diagnóstico de microciclo
+
+`<XXXX>` y `<YYYY>` = números de sesión formateados como `f'{n:04d}'`.
+
+```
+#### 🌀 Diagnóstico de microciclo = sesiones <XXXX>-<YYYY>
+#### 🌀 Diagnóstico de microciclo parcial = sesiones <XXXX>-<YYYY>
+```
+
+Ejemplos correctos:
+```
+#### 🌀 Diagnóstico de microciclo = sesiones 0001-0004
+#### 🌀 Diagnóstico de microciclo = sesiones 0085-0094
+#### 🌀 Diagnóstico de microciclo = sesiones 0105-0114
+#### 🌀 Diagnóstico de microciclo parcial = sesiones 0115-0120
+```
+
+#### Diagnóstico de mesociclo
+
+```
+#### 🌀 Diagnóstico de mesociclo = microciclos <XXXX>-<YYYY>
+```
+
+Ejemplos correctos:
+```
+#### 🌀 Diagnóstico de mesociclo = microciclos 0005-0034
+#### 🌀 Diagnóstico de mesociclo = microciclos 0065-0094
+```
+
+#### Diagnóstico de proyecto
+
+```
+#### 🌀 Diagnóstico de proyecto = <slug>
+```
+
+Si el slug hace referencia a una sesión, el número también debe seguir el
+formato `XXXX`:
+```
+#### 🌀 Diagnóstico de proyecto = estado completo del repositorio post-0097
+```
 
 ### Diagnósticos de ciclo de sesiones
 
 Los diagnósticos de ciclo son sesiones diagnósticas propias.
-No forman parte del paquete obligatorio de entregables de toda sesión.
+No forman parte del paquete obligatorio de entregables de una sesión ordinaria.
+Cuando el propósito explícito de la sesión es producir un diagnóstico de ciclo,
+ese diagnóstico sí forma parte de sus entregables obligatorios.
 
-Una sesión normal produce sus 7 entregables ordinarios.
+Una sesión ordinaria produce sus 7 entregables normales.
 
 Una sesión diagnóstica de microciclo produce:
 - sus 7 entregables normales de sesión;
@@ -106,8 +203,19 @@ artefactos:
 | Infraestructura diagnóstica | Sí | 7 normales + diagnósticos explícitos | — |
 | Sesión mixta | Limitado | 7 normales + diagnóstico mayor | Declarar qué parte es cada cosa |
 | Sesión práctica/desarrollo | Sí | 7 normales | — |
-| Sesión teórica/analítica | No | 7 normales (si cambia memoria/procedencia) | — |
+| Sesión teórica/analítica | No | 7 normales | Ver descripción |
 | Híbrida/transicional | Según caso | 7 normales + justificación | Excepción temporal |
+
+#### Procedimiento para determinar entregables obligatorios
+
+1. ¿Es una sesión diagnóstica de ciclo (microciclo o mesociclo)?
+   → Sí: produce los 7 entregables normales **más** el diagnóstico de ciclo correspondiente.
+   → No: continuar.
+2. ¿Se solicitó explícitamente un diagnóstico de ciclo u otro diagnóstico especializado?
+   → Sí: añadirlo a los 7 entregables normales.
+   → No: continuar.
+3. Producir los 7 entregables normales de sesión. El diagnóstico de sesión (tipo
+   `sesion`) es siempre obligatorio.
 
 Descripción detallada de cada tipo:
 
@@ -135,11 +243,16 @@ Descripción detallada de cada tipo:
 5. **Sesión teórica/analítica**.
    Produce análisis, contratos, decisiones, hipótesis o diseño sin necesidad de
    tocar código.
-   Debe producir entregables normales cuando cambia memoria, procedencia o
-   dirección del proyecto.
+   Siempre produce los 7 entregables normales de sesión. El contenido sustantivo
+   (contratos, hipótesis, propuesta) es especialmente relevante cuando la sesión:
+   (a) añade o modifica algún tiddler en sessions/00–05, (b) cambia una entrada
+   de `source_fields` que afecta la procedencia, o (c) introduce una nueva
+   decisión arquitectónica documentada en `03_hipotesis` o `05_propuesta_de_sesion`.
 
 6. **Híbrida/transicional**.
-   Solo es aceptable mientras el flujo diagnóstico se está estabilizando.
+   Este tipo de sesión solo es válido si el operador lo declara explícitamente
+   en el prompt, indicando la razón por la que no puede separarse en diagnóstico
+   puro e infraestructura diagnóstica.
    Debe quedar marcada como excepción y explicar por qué no pudo separarse en
    diagnóstico puro e infraestructura diagnóstica.
 
@@ -207,17 +320,17 @@ Ruta oficial:
 data/out/local/sessions/06_diagnoses/micro-ciclo/
 ```
 
-Formato sugerido de archivo:
+Formato sugerido de archivo (números de sesión con 4 dígitos, sin prefijo `S`):
 
 ```txt
-m04-micro-ciclo-s085-s094-diagnostico.md.json
+m04-micro-ciclo-0085-0094-diagnostico.md.json
 ```
 
-Formato obligatorio de título:
+Formato obligatorio de título (4 dígitos, sin prefijo `S`):
 
 ```txt
-#### 🌀 Diagnóstico de microciclo = sesiones S85-S94
-#### 🌀 Diagnóstico de microciclo = sesiones S65-S74
+#### 🌀 Diagnóstico de microciclo = sesiones 0085-0094
+#### 🌀 Diagnóstico de microciclo = sesiones 0065-0074
 ```
 
 #### Diagnóstico de mesociclo
@@ -232,17 +345,17 @@ Ruta oficial:
 data/out/local/sessions/06_diagnoses/meso-ciclo/
 ```
 
-Formato sugerido de archivo:
+Formato sugerido de archivo (números de sesión con 4 dígitos, sin prefijo `S`):
 
 ```txt
-m04-meso-ciclo-s064-s094-diagnostico.md.json
+m04-meso-ciclo-0064-0094-diagnostico.md.json
 ```
 
-Formato obligatorio de título:
+Formato obligatorio de título (4 dígitos, sin prefijo `S`):
 
 ```txt
-#### 🌀 Diagnóstico de mesociclo = microciclos S64-S94
-#### 🌀 Diagnóstico de mesociclo = microciclos S65-S94
+#### 🌀 Diagnóstico de mesociclo = microciclos 0005-0034
+#### 🌀 Diagnóstico de mesociclo = microciclos 0065-0094
 ```
 
 Regla:
@@ -332,6 +445,11 @@ Usar claves no reservadas para trazabilidad de staging, por ejemplo:
 - `provenance_ref`
 - `canonical_status`
 
+Claves permitidas en `source_fields`: `session_origin`, `artifact_family`,
+`source_path`, `provenance_ref`, `canonical_status` y cualquier clave de
+seguimiento específica del proyecto con prefijo `x_`. Toda otra clave es
+forbidden.
+
 ## Formato obligatorio de tags
 
 Cuando una linea candidata llegue al reverse, `source_tags` sera proyectado a
@@ -354,6 +472,10 @@ exactamente con esa proyeccion; en general, evitarla.
 
 La sesion no queda bien cerrada solo por la conversacion.
 
+El flujo de cierre (pasos 1–6) produce el staging. La admisión local es un
+proceso separado, ejecutado posteriormente por el operador. El agente nunca
+ejecutará la admisión local de forma autónoma.
+
 ## Admision local
 
 La admision canonica ocurre fuera del staging:
@@ -368,6 +490,13 @@ La admision canonica ocurre fuera del staging:
 8. solo entonces aplicar al canon local si el proceso esta autorizado.
 
 Si cualquier compuerta falla, no modificar `data/out/local/tiddlers_*.jsonl`.
+
+### Conflictos entre candidatos
+
+Si dos sesiones producen candidatos con el mismo `id` o `key`, el proceso de
+admisión debe rechazar ambos y requerir resolución manual. El agente debe
+declarar el conflicto en `04_balance_de_sesion` cuando lo detecte durante la
+sesión actual.
 
 ## Comandos reales de validacion
 
@@ -419,18 +548,40 @@ via publicación puntual o, en mantenimiento controlado, via mirror completo.
 
 ### Familias válidas y nombres esperados
 
-| Familia | Subfolder | Patrón de nombre |
-|---|---|---|
-| `tema` | `06_diagnoses/tema/` | `diagnostico-tematico-NN-slug.md.json` |
-| `micro_ciclo` | `06_diagnoses/micro-ciclo/` | `mXX-micro-ciclo-sNNN-sNNN-diagnostico.md.json` |
-| `meso_ciclo` | `06_diagnoses/meso-ciclo/` | `mXX-meso-ciclo-sNNN-sNNN-diagnostico.md.json` |
-| `proyecto` | `06_diagnoses/proyecto/` | `diagnostico-proyecto-NN-slug.md.json` o `mXX-diagnostico-proyecto-slug.md.json` |
-| `sesion` | `06_diagnoses/sesion/` | `diagnostico-sesion-sNNN-slug.md.json` |
+Todos los números en nombres de archivo también usan 4 dígitos sin prefijo `S`.
+
+| Familia | Subfolder | Patrón de nombre | Ejemplo |
+|---|---|---|---|
+| `tema` | `06_diagnoses/tema/` | `diagnostico-tematico-XXXX-slug.md.json` | `diagnostico-tematico-0008-chunks-ai.md.json` |
+| `micro_ciclo` | `06_diagnoses/micro-ciclo/` | `mXX-micro-ciclo-XXXX-YYYY-diagnostico.md.json` | `m04-micro-ciclo-0085-0094-diagnostico.md.json` |
+| `meso_ciclo` | `06_diagnoses/meso-ciclo/` | `mXX-meso-ciclo-XXXX-YYYY-diagnostico.md.json` | `m04-meso-ciclo-0065-0094-diagnostico.md.json` |
+| `proyecto` | `06_diagnoses/proyecto/` | `diagnostico-proyecto-slug.md.json` o `mXX-diagnostico-proyecto-slug.md.json` | `m04-diagnostico-proyecto-estado-post-0097.md.json` |
+| `sesion` | `06_diagnoses/sesion/` | `diagnostico-sesion-NNNN-slug.md.json` | `diagnostico-sesion-0124-normalizacion-titulos.md.json` |
 
 Solo estas cinco familias son válidas. Cualquier otro subdirectorio bajo `06_diagnoses/`
 es inválido y debe rechazarse.
 
 La extensión obligatoria es `.md.json`. Archivos con extensión `.json`, `.md` o `.txt` son rechazados.
+
+### Títulos por familia de diagnóstico no sesional
+
+Formato canónico de título para cada familia. En todos los casos los números
+siguen la regla universal: 4 dígitos, sin prefijo `S`.
+
+| Familia | Patrón de título canónico |
+|---|---|
+| `tema` | `#### 🌀 Diagnóstico temático XXXX = <slug>` |
+| `micro_ciclo` | `#### 🌀 Diagnóstico de microciclo = sesiones XXXX-YYYY` |
+| `micro_ciclo` (parcial) | `#### 🌀 Diagnóstico de microciclo parcial = sesiones XXXX-YYYY` |
+| `meso_ciclo` | `#### 🌀 Diagnóstico de mesociclo = microciclos XXXX-YYYY` |
+| `proyecto` | `#### 🌀 Diagnóstico de proyecto = <slug>` |
+| `sesion` | `#### 🌀 Diagnóstico de sesión NNNN = <slug>` |
+
+Donde `XXXX` y `YYYY` son números de 4 dígitos obtenidos con `f'{int(n):04d}'`.
+
+**No agregar texto entre el número y el `=`** como `(siguiente tras ...)`,
+`(post-sesión ...)` u otras anotaciones. El campo `text` del tiddler es el
+lugar para esa información, no el `title`.
 
 ### Cómo llega un diagnóstico a OneDrive
 
@@ -495,8 +646,8 @@ Ejemplo dry-run:
 
 ```bash
 python_scripts/remote_publish_diagnostic.py \
-  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
-  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
+  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
+  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
   --dry-run
 ```
 
@@ -504,8 +655,8 @@ Ejemplo live:
 
 ```bash
 python_scripts/remote_publish_diagnostic.py \
-  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
-  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-08-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
+  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
+  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
 ```
 
 Este flujo usa Microsoft Graph, `ONEDRIVE_ROOT_MODE=approot`,
