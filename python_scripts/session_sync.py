@@ -30,6 +30,7 @@ from admit_session_candidates import (  # noqa: E402
     _project_candidate_record_as_admitted,
     _run_normalize,
     _safe_str,
+    _validated_source_type,
     _write_jsonl,
 )
 from path_governance import (  # noqa: E402
@@ -47,6 +48,7 @@ from session_artifact_governance import (  # noqa: E402
     build_session_tags,
 )
 from session_title_policy import needs_normalization  # noqa: E402
+from generate_session_deliverables import validate_deliverable_file  # noqa: E402
 
 
 DEFAULT_SESSION_SYNC_DIR = REPO_ROOT / "data" / "tmp" / "session_sync"
@@ -136,7 +138,7 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
 
     session_id = extract_session_id(path)
     artifact_family = family_spec.family
-    source_type = _safe_str(payload.get("type")) or "text/markdown"
+    source_type = _validated_source_type(_safe_str(payload.get("type")), path)
     text = _artifact_text(payload)
     created = _safe_str(payload.get("created")) or "19700101000000000"
     modified = _safe_str(payload.get("modified")) or created
@@ -279,6 +281,40 @@ def scan_session_sync(
     unsupported: list[dict[str, Any]] = []
 
     for path in md_paths:
+        # Step 1: JSON parse check — preserve "invalid" classification for
+        # unreadable/malformed files (preserves pre-S0128 contract).
+        try:
+            path.read_text(encoding="utf-8")
+            # validate_deliverable_file will re-parse; this is just for early detection
+            json.loads(path.read_bytes())
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            invalid.append(
+                {
+                    "path": as_display_path(path),
+                    "classification": "invalid",
+                    "message": str(exc),
+                }
+            )
+            continue
+
+        # Step 2: S0128 schema validation — fail-fast on authoring errors
+        # (wrong 'type', 'created_at', S-prefix titles, list-format root, etc.)
+        schema_errors = validate_deliverable_file(path)
+        if schema_errors:
+            invalid.append(
+                {
+                    "path": as_display_path(path),
+                    "classification": "schema_invalid",
+                    "message": "; ".join(str(e) for e in schema_errors),
+                    "schema_errors": [
+                        {"field": e.field, "message": e.message}
+                        for e in schema_errors
+                    ],
+                }
+            )
+            continue
+
+        # Step 3: build candidate (existing behavior)
         try:
             prepared.append(build_candidate_from_artifact(path, sessions_dir))
         except (OSError, ValueError, json.JSONDecodeError) as exc:

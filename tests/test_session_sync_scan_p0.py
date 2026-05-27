@@ -107,9 +107,11 @@ class TestS0117FixturesExist:
         assert VALID_CONTRATO.exists(), f"Fixture missing: {VALID_CONTRATO}"
 
     def test_valid_contrato_is_valid_json(self):
+        # S0128: fixture updated to canonical dict format (generator schema).
+        # Old TiddlyWiki list format [{"title": ...}] is no longer valid per schema.
         payload = json.loads(VALID_CONTRATO.read_text(encoding="utf-8"))
-        assert isinstance(payload, list) and len(payload) == 1
-        assert payload[0].get("title")
+        assert isinstance(payload, dict)
+        assert payload.get("title")
 
     def test_module_imports_cleanly(self):
         assert hasattr(ss, "scan_session_sync")
@@ -206,7 +208,9 @@ class TestB3MissingTitle:
         sess = tmp_path / "sessions" / "00_contratos"
         self._write_notitle(sess)
         inv = _run_scan(tmp_path / "sessions", tmp_path / "out")
-        assert inv["invalid"][0]["classification"] == "invalid"
+        # S0128: files with structural schema errors (list format, missing title)
+        # are now classified as "schema_invalid" by the pre-build schema gate.
+        assert inv["invalid"][0]["classification"] in ("invalid", "schema_invalid")
 
     def test_missing_title_does_not_appear_in_missing_by_id(self, tmp_path):
         sess = tmp_path / "sessions" / "00_contratos"

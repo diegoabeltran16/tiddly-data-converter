@@ -50,7 +50,7 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
         / "00_contratos"
         / "m03-s65-microsoft-copilot-execution-surface-and-readme-hardening-v0.md.json"
     )
-    CONTRACT_TITLE = "#### 🌀 Contrato de sesión 65 = microsoft-copilot-execution-surface-and-readme-hardening-v0"
+    CONTRACT_TITLE = "#### 🌀 Contrato de sesión 0065 = microsoft-copilot-execution-surface-and-readme-hardening-v0"
 
     # ── entrypoint and official path ─────────────────────────────────────────
 

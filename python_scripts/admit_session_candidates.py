@@ -155,6 +155,51 @@ def _safe_str(value: Any) -> str:
     return "" if value is None else str(value)
 
 
+# MIME types that session artifacts may legitimately carry.
+# All textual session deliverables (contrato, procedencia, detalles, etc.)
+# must use "text/markdown".  "application/json" is accepted for metadata-only
+# records.  Any other value in the "type" field of a .md.json source file is
+# almost certainly an authoring error (e.g. the artifact-family name written
+# into the wrong field).
+_VALID_SESSION_SOURCE_TYPES: frozenset[str] = frozenset({
+    "text/markdown",
+    "text/plain",
+    "text/vnd.tiddlywiki",
+    "text/csv",
+    "application/json",
+    # binary / asset types that may appear in non-textual canon records
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/svg+xml",
+    "application/pdf",
+})
+
+
+def _validated_source_type(raw: str, path: Path) -> str:
+    """Return a valid MIME source_type for a session artifact.
+
+    If *raw* is empty or None, defaults to ``text/markdown``.
+    If *raw* is present but not a syntactically valid MIME type (i.e. does not
+    contain ``/``), raises ``ValueError`` with a clear message so the admission
+    pipeline rejects the record instead of silently propagating the bad value
+    into the canon.
+
+    This prevents authoring errors like ``"type": "contrato"`` (artifact-family
+    name written into the content-type field) from reaching the canon and then
+    being silently dropped by ``reverse_tiddlers`` (S0128 post-mortem).
+    """
+    if not raw:
+        return "text/markdown"
+    if "/" not in raw:
+        raise ValueError(
+            f"source artifact {path} has invalid 'type' field: {raw!r} — "
+            f"expected a MIME type such as 'text/markdown', not an artifact-family name. "
+            f"Fix the 'type' field in the .md.json file before admitting."
+        )
+    return raw
+
+
 _MIGRATION_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
     ("data/sessions/", "data/out/local/sessions/"),
     ("data/out/sessions/", "data/out/local/sessions/"),
@@ -335,7 +380,7 @@ def _contract_candidate_from_artifact(path: Path, sessions_dir: Path) -> dict[st
     session_tag = f"session:{milestone}-s{number}" if number else f"session:{session_id}"
     title = _session_title_for_family(session_id, "contrato_de_sesion")
     source_path = as_display_path(path)
-    source_type = _safe_str(payload.get("type")) or "text/markdown"
+    source_type = _validated_source_type(_safe_str(payload.get("type")), path)
     text = _artifact_text(payload)
     created = _safe_str(payload.get("created")) or "19700101000000000"
     modified = _safe_str(payload.get("modified")) or created

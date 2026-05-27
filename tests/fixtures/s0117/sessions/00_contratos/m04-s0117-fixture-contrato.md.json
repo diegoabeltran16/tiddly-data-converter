@@ -1,13 +1,18 @@
-[
-  {
-    "created": "20260516000000000",
-    "modified": "20260516000000000",
-    "title": "#### 🌀 Contrato de sesión S0117 = fixture mínimo de prueba",
-    "type": "text/markdown",
-    "tags": "[[#### referencias especificas 🌀]] [[## 🧰🧱 Elementos específicos]]",
-    "tmap.id": "m04-s0117-fixture-contrato",
-    "session_id": "m04-s0117",
-    "session_date": "2026-05-16T00:00:00Z",
-    "text": "Contenido de prueba para el contrato de sesión S0117."
-  }
-]
+{
+  "title": "#### 🌀 Contrato de sesión 0117 = fixture mínimo de prueba",
+  "type": "text/markdown",
+  "created": "20260516000000000",
+  "modified": "20260516000000000",
+  "session_id": "m04-s0117",
+  "module": "m04",
+  "session": "S0117",
+  "status": "delivered",
+  "canonical_slug": "m04-s0117-contrato-fixture-minimo-de-prueba",
+  "tags": [
+    "sesion",
+    "contrato",
+    "m04",
+    "s0117"
+  ],
+  "text": "Contenido de prueba para el contrato de sesión 0117."
+}
