@@ -438,8 +438,9 @@ class TestIntegrationWithRealSessions:
     SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 
     @pytest.mark.skipif(
-        not (REPO_ROOT / "data" / "out" / "local" / "sessions" / "06_diagnoses" / "tema").exists(),
-        reason="Real sessions/tema folder not found",
+        not any((REPO_ROOT / "data" / "out" / "local" / "sessions" / "06_diagnoses" / "tema").glob("*.md.json")),
+        reason="Real sessions/tema folder not found or contains no .md.json artifacts "
+               "(S0126: thematic diagnostics live in canon, not yet staged as local session files)",
     )
     def test_real_thematic_diagnostic_is_canonizable(self):
         tema_dir = self.SESSIONS_DIR / "06_diagnoses" / "tema"
@@ -454,8 +455,9 @@ class TestIntegrationWithRealSessions:
         )
 
     @pytest.mark.skipif(
-        not (REPO_ROOT / "data" / "out" / "local" / "sessions" / "06_diagnoses" / "micro-ciclo").exists(),
-        reason="Real sessions/micro-ciclo folder not found",
+        not any((REPO_ROOT / "data" / "out" / "local" / "sessions" / "06_diagnoses" / "micro-ciclo").glob("*.md.json")),
+        reason="Real sessions/micro-ciclo folder not found or contains no .md.json artifacts "
+               "(S0126: micro-ciclo diagnostics live in canon, not yet staged as local session files)",
     )
     def test_real_micro_ciclo_diagnostic_is_canonizable(self):
         micro_dir = self.SESSIONS_DIR / "06_diagnoses" / "micro-ciclo"

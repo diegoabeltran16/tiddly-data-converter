@@ -95,6 +95,11 @@ Ejemplos:
 El prefijo `S` es **solo** para uso en código, rutas de archivo o texto libre
 de narrativa. **Nunca aparece dentro del campo `title` de un tiddler.**
 
+> **Aclaración de alcance**: esta prohibición aplica exclusivamente al contenido
+> del campo `title`. El campo JSON `session` de los artefactos `.md.json` **sí**
+> usa `"S0129"` como identificador de código (ej. `"session": "S0129"`); eso es
+> correcto y no viola esta regla.
+
 ### Títulos obligatorios por familia de sesión
 
 `<NNNN>` = número de sesión formateado como `f'{n:04d}'`.
@@ -113,7 +118,7 @@ de narrativa. **Nunca aparece dentro del campo `title` de un tiddler.**
 - diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NNNN> = <slug>`.
 
 `<slug>` es la parte restante del identificador tras eliminar el prefijo
-`mXX-sNN-` y, si está presente inmediatamente después, el prefijo `session-`.
+`mXX-sNNNN-` y, si está presente inmediatamente después, el prefijo `session-`.
 Si ninguno de estos prefijos está presente, el identificador se usa tal cual.
 No se elimina ningún otro prefijo.
 
@@ -461,18 +466,208 @@ Cuando una linea candidata llegue al reverse, `source_tags` sera proyectado a
 No escribir a mano una clave `tags` dentro de `source_fields` salvo que coincida
 exactamente con esa proyeccion; en general, evitarla.
 
+## Schema canónico de artefactos `.md.json`
+
+Todo archivo `.md.json` bajo `data/out/local/sessions/` debe seguir este schema estricto.
+
+### Herramienta oficial de autoría
+
+Usar **siempre** el generador canónico para producir los 7 entregables de sesión:
+
+```bash
+python3 python_scripts/generate_session_deliverables.py generate \
+  --session-id mXX-sNNNN \
+  --topic <slug-del-tema> \
+  --sessions-dir data/out/local/sessions/
+```
+
+No escribir los archivos a mano. El generador garantiza que todos los campos
+obligatorios existen, que los campos prohibidos están ausentes y que los
+timestamps están en el formato correcto.
+
+Si los archivos ya existen (p. ej. se regenera la sesión), añadir `--force`
+para sobreescribirlos:
+
+```bash
+python3 python_scripts/generate_session_deliverables.py generate \
+  --session-id mXX-sNNNN \
+  --topic <slug-del-tema> \
+  --sessions-dir data/out/local/sessions/ \
+  --force
+```
+
+Si el generador falla (directorio incorrecto, dependencia faltante, formato
+de `session-id` inválido): corregir el error reportado en stderr, no escribir
+los archivos a mano. Si el fallo es irrecuperable, registrarlo en el diagnóstico
+y detener el cierre.
+
+### Campos obligatorios
+
+| Campo | Formato | Ejemplo |
+|---|---|---|
+| `title` | `#### 🌀 [emoji] <Familia> de sesión <NNNN> = <slug>` | `#### 🌀 Contrato de sesión 0128 = normalizacion-titulos` |
+| `type` | Tipo MIME (debe contener `/`) | `"text/markdown"` |
+| `created` | 17 dígitos TiddlyWiki: `YYYYMMDDHHmmSSmmm` | `"20260516000000000"` |
+| `modified` | 17 dígitos TiddlyWiki: `YYYYMMDDHHmmSSmmm` | `"20260516000000000"` |
+| `session_id` | `mXX-sNNNN` | `"m04-s0128"` |
+| `module` | `mXX` | `"m04"` |
+| `session` | `SNNNN` (S mayúscula + 4 dígitos) — identificador de código, **no** es el campo `title` | `"S0128"` |
+| `status` | `"delivered"` | `"delivered"` |
+| `canonical_slug` | kebab-case | `"m04-s0128-contrato-normalizacion-titulos"` |
+| `tags` | array de strings | `["sesion", "contrato", "m04", "s0128"]` |
+| `text` | string de contenido | `"Contenido del artefacto..."` |
+
+### Campos prohibidos
+
+Los siguientes campos **nunca** deben aparecer en un artefacto `.md.json`:
+
+| Campo prohibido | Motivo | Campo correcto |
+|---|---|---|
+| `created_at` | Formato ISO, no TiddlyWiki | `created` (17 dígitos) |
+| `updated_at` | Formato ISO, no TiddlyWiki | `modified` (17 dígitos) |
+| `artifact_family` | Campo interno de candidatos canon, no de artefactos fuente | — |
+| `role_primary` | Campo derivado del canon | — |
+| `source_type` | Campo derivado de la admisión; no pertenece al artefacto fuente | — |
+
+### Reglas de formato
+
+- **`type`**: debe ser un tipo MIME válido (contiene `/`). Los valores `"contrato"`,
+  `"procedencia"`, `"detalles"`, `"hipotesis"`, `"balance"`, `"propuesta"`,
+  `"diagnostico"` son **inválidos** y causarán que `reverse_tiddlers` descarte
+  silenciosamente el artefacto del HTML generado.
+- **`created` / `modified`**: deben tener exactamente 17 dígitos en formato
+  TiddlyWiki `YYYYMMDDHHmmSSmmm`. El formato ISO `"2026-05-16T00:00:00Z"` es
+  **inválido** y será rechazado como `schema_invalid`.
+- **`title`**: el número de sesión no debe llevar prefijo `S`. `"sesión S0128"` es
+  inválido; `"sesión 0128"` es correcto.
+- **Formato raíz**: el archivo debe ser un objeto JSON `{...}`, **no** un array
+  `[{...}]`. El formato de array es el formato de exportación TiddlyWiki, no el
+  formato canónico de artefacto fuente.
+
+### Clasificación `schema_invalid`
+
+`session_sync scan` ejecuta validación de schema en cada archivo `.md.json` antes
+de construir el candidato. Un archivo con errores de schema recibe la clasificación
+`schema_invalid` y es excluido del candidato (no entra al canon). El mensaje de error
+enumera cada campo problemático. Esta es la compuerta que impide que artefactos
+malformados contaminen el canon.
+
+### Ejemplo de salida canónica
+
+Invocación para la sesión hipotética `m04-s0129`:
+
+```bash
+python3 python_scripts/generate_session_deliverables.py generate \
+  --session-id m04-s0129 \
+  --topic "ejemplo de entregables canónicos" \
+  --sessions-dir data/out/local/sessions/
+```
+
+Archivos producidos (uno por familia, orden de rutas):
+
+```
+data/out/local/sessions/
+├── 00_contratos/
+│   └── m04-s0129-contrato-ejemplo-de-entregables-canonicos.md.json
+├── 01_procedencia/
+│   └── m04-s0129-procedencia-ejemplo-de-entregables-canonicos.md.json
+├── 02_detalles_de_sesion/
+│   └── m04-s0129-ejemplo-de-entregables-canonicos.md.json
+├── 03_hipotesis/
+│   └── m04-s0129-hipotesis-ejemplo-de-entregables-canonicos.md.json
+├── 04_balance_de_sesion/
+│   └── m04-s0129-balance-ejemplo-de-entregables-canonicos.md.json
+├── 05_propuesta_de_sesion/
+│   └── m04-s0129-propuesta-ejemplo-de-entregables-canonicos.md.json
+└── 06_diagnoses/sesion/
+    └── diagnostico-sesion-s0129-ejemplo-de-entregables-canonicos.md.json
+```
+
+Contenido canónico del contrato (todos los demás son análogos):
+
+```json
+{
+  "title": "#### 🌀 Contrato de sesión 0129 = ejemplo de entregables canónicos",
+  "type": "text/markdown",
+  "created": "20260527141751601",
+  "modified": "20260527141751601",
+  "session_id": "m04-s0129",
+  "module": "m04",
+  "session": "S0129",
+  "status": "delivered",
+  "canonical_slug": "m04-s0129-contrato-ejemplo-de-entregables-canonicos",
+  "tags": ["sesion", "contrato", "m04", "s0129"],
+  "text": "<!-- el agente rellena solo este campo -->"
+}
+```
+
+Variaciones por familia:
+
+| Familia | `title` | nombre de archivo |
+|---|---|---|
+| contrato | `#### 🌀 Contrato de sesión 0129 = …` | `{sid}-contrato-{slug}.md.json` |
+| procedencia | `#### 🌀🧾 Procedencia de sesión 0129 = …` | `{sid}-procedencia-{slug}.md.json` |
+| detalles | `#### 🌀 Sesión 0129 = …` | `{sid}-{slug}.md.json` |
+| hipótesis | `#### 🌀🧪 Hipótesis de sesión 0129 = …` | `{sid}-hipotesis-{slug}.md.json` |
+| balance | `#### 🌀 Balance de sesión 0129 = …` | `{sid}-balance-{slug}.md.json` |
+| propuesta | `#### 🌀 Propuesta de sesión 0129 = …` | `{sid}-propuesta-{slug}.md.json` |
+| diagnóstico | `#### 🌀 Diagnóstico de sesión 0129 = …` | `diagnostico-sesion-s0129-{slug}.md.json` |
+
+Notas:
+- `detalles` no incluye "detalles" en el nombre del archivo.
+- `diagnostico` no lleva el módulo (`m04-`) en el nombre del archivo; sí en `session_id`.
+- `canonical_slug` coincide exactamente con el nombre del archivo **sin** `.md.json`.
+- El agente solo modifica el campo `"text"`. Todos los demás campos se dejan como los generó el script.
+
+### Validación obligatoria antes de `session_sync scan`
+
+Antes de ejecutar `session_sync scan`, validar todos los artefactos:
+
+```bash
+python3 python_scripts/generate_session_deliverables.py validate-dir \
+  data/out/local/sessions/
+```
+
+Si hay archivos con errores de schema, corregirlos antes de continuar. La herramienta
+lista cada error por campo y archivo.
+
+Ante errores `schema_invalid` en archivos existentes:
+- Si el archivo fue generado por el script → usar `--force` para regenerar.
+- Si fue editado manualmente → editar el campo incorrecto directamente.
+- Si el error es `forbidden field present` → eliminar el campo del JSON.
+- Si el error es `invalid TiddlyWiki timestamp` → convertir a 17 dígitos:
+  `"2026-05-27T14:00:00Z"` → `"20260527140000000"`.
+- Si el error es `not a MIME type` en `"type"` → cambiar a `"text/markdown"`.
+
+No continuar al paso de `session_sync scan` hasta que `validate-dir` reporte
+`✓ All N file(s) valid.`
+
+---
+
 ## Flujo de cierre por defecto
 
 1. Leer canon, derivados e instrucciones pertinentes.
 2. Analizar el cambio necesario.
-3. Emitir la familia minima bajo `data/out/local/sessions/`.
-4. Emitir lineas candidatas en formato canon si la sesion deja memoria que deba poder entrar al canon.
-5. Validar candidatos y/o copia temporal con comandos reales.
-6. Registrar en el diagnostico que paso, que no paso y que queda pendiente.
+3. Emitir la familia mínima usando el generador canónico:
+   ```bash
+   python3 python_scripts/generate_session_deliverables.py generate \
+     --session-id mXX-sNNNN \
+     --topic <slug-del-tema> \
+     --sessions-dir data/out/local/sessions/
+   ```
+4. Validar el schema de todos los artefactos emitidos:
+   ```bash
+   python3 python_scripts/generate_session_deliverables.py validate-dir \
+     data/out/local/sessions/
+   ```
+   Corregir cualquier error `schema_invalid` antes de continuar.
+5. Emitir lineas candidatas en formato canon si la sesion deja memoria que deba poder entrar al canon.
+6. Validar candidatos y/o copia temporal con comandos reales.
+7. Registrar en el diagnostico que paso, que no paso y que queda pendiente.
 
 La sesion no queda bien cerrada solo por la conversacion.
 
-El flujo de cierre (pasos 1–6) produce el staging. La admisión local es un
+El flujo de cierre (pasos 1–7) produce el staging. La admisión local es un
 proceso separado, ejecutado posteriormente por el operador. El agente nunca
 ejecutará la admisión local de forma autónoma.
 
@@ -539,7 +734,7 @@ para que un proceso local decida si puede absorberlos al canon.
 
 | Tipo | Patrón de nombre | Destino | Llega al canon |
 |---|---|---|---|
-| Sesión normal | `mXX-sNN-slug.md.json` | `data/out/local/sessions/00_contratos/` … `05_propuesta_de_sesion/` | Sí, via admission gate |
+| Sesión normal | `mXX-sNNNN-slug.md.json` | `data/out/local/sessions/00_contratos/` … `05_propuesta_de_sesion/` | Sí, via admission gate |
 | Diagnóstico no sesional | Ver patrones por familia | `data/out/local/sessions/06_diagnoses/<familia>/` | No directamente |
 
 Los diagnósticos no sesionales son artefactos de análisis del ciclo de trabajo.
@@ -556,7 +751,7 @@ Todos los números en nombres de archivo también usan 4 dígitos sin prefijo `S
 | `micro_ciclo` | `06_diagnoses/micro-ciclo/` | `mXX-micro-ciclo-XXXX-YYYY-diagnostico.md.json` | `m04-micro-ciclo-0085-0094-diagnostico.md.json` |
 | `meso_ciclo` | `06_diagnoses/meso-ciclo/` | `mXX-meso-ciclo-XXXX-YYYY-diagnostico.md.json` | `m04-meso-ciclo-0065-0094-diagnostico.md.json` |
 | `proyecto` | `06_diagnoses/proyecto/` | `diagnostico-proyecto-slug.md.json` o `mXX-diagnostico-proyecto-slug.md.json` | `m04-diagnostico-proyecto-estado-post-0097.md.json` |
-| `sesion` | `06_diagnoses/sesion/` | `diagnostico-sesion-NNNN-slug.md.json` | `diagnostico-sesion-0124-normalizacion-titulos.md.json` |
+| `sesion` | `06_diagnoses/sesion/` | `diagnostico-sesion-sNNNN-slug.md.json` | `diagnostico-sesion-s0124-normalizacion-titulos.md.json` |
 
 Solo estas cinco familias son válidas. Cualquier otro subdirectorio bajo `06_diagnoses/`
 es inválido y debe rechazarse.

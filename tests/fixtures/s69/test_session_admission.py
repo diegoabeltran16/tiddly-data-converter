@@ -20,13 +20,13 @@ if str(SCRIPT_DIR) not in sys.path:
 import admit_session_candidates as asc
 
 ADMIT_SCRIPT = REPO_ROOT / "python_scripts" / "admit_session_candidates.py"
-SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
+# S0126: fixture sessions moved to tests/fixtures/s69/sessions/ to avoid session_sync conflicts.
+# The real sessions/ dir (data/out/local/sessions/) is scanned by session_sync; test fixtures
+# must not live there to prevent ID collisions with existing canon records.
+FIXTURE_SESSIONS_DIR = REPO_ROOT / "tests" / "fixtures" / "s69" / "sessions"
+SESSIONS_DIR = FIXTURE_SESSIONS_DIR  # used as --sessions-dir for admit_session_candidates
 BASE_CONTRACT_SOURCE = (
-    REPO_ROOT
-    / "data"
-    / "out"
-    / "local"
-    / "sessions"
+    FIXTURE_SESSIONS_DIR
     / "00_contratos"
     / "m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
 )
@@ -36,7 +36,7 @@ REPORT_DIR = DATA_TMP / "admissions" / "s69_unittest"
 WORK_DIR = DATA_TMP / "session_admission_s69_unittest"
 BASE_SESSION_ORIGIN = "m04-s98-propagacion-relacional-chunks-ai-y-rule23"
 ALT_EXISTING_SOURCE = (
-    "data/out/local/sessions/01_procedencia/m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
+    "tests/fixtures/s69/sessions/01_procedencia/m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
 )
 
 

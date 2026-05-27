@@ -115,16 +115,18 @@ data/out/local/sessions/06_diagnoses/sesion/<session>.md.json
 Convencion de titulo:
 
 - todos los tiddlers producidos como resultado de sesion deben tener un `title` que empiece por `#### 🌀`;
-- contrato de sesion: `#### 🌀 Contrato de sesión <NN> = <slug>`;
-- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NN> = <slug>`;
-- detalles/sesion: `#### 🌀 Sesión <NN> = <slug>`;
-- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión <NN> = <slug>`;
-- balance de sesion: `#### 🌀 Balance de sesión <NN> = <slug>`;
-- propuesta de sesion: `#### 🌀 Propuesta de sesión <NN> = <slug>`;
-- diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NN> = <slug>`.
+- contrato de sesion: `#### 🌀 Contrato de sesión <NNNN> = <slug>`;
+- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NNNN> = <slug>`;
+- detalles/sesion: `#### 🌀 Sesión <NNNN> = <slug>`;
+- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión <NNNN> = <slug>`;
+- balance de sesion: `#### 🌀 Balance de sesión <NNNN> = <slug>`;
+- propuesta de sesion: `#### 🌀 Propuesta de sesión <NNNN> = <slug>`;
+- diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NNNN> = <slug>`.
 
-`<NN>` se extrae de `mXX-sNN-...`; `<slug>` es el resto del identificador sin
-el prefijo `mXX-sNN-` y sin `session-` cuando aparezca como prefijo operativo.
+`<NNNN>` = número de sesión formateado con 4 dígitos y ceros a la izquierda
+(`f'{int(n):04d}'`), **sin** prefijo `S`. Se extrae de `mXX-sNNNN-...`;
+`<slug>` es el resto del identificador sin el prefijo `mXX-sNNNN-` y sin
+`session-` cuando aparezca como prefijo operativo.
 
 Reglas:
 

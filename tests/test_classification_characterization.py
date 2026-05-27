@@ -1,8 +1,8 @@
 """
-Characterization tests for classify_role() and derive_taxonomy_and_section() — S0110, updated S0116.
+Characterization tests for classify_role() and derive_taxonomy_and_section() — S0110, updated S0116, reconciled S0126/S0127.
 
 Freezes:
-  - The role_primary distribution across 1090 AI records (read-only).
+  - The role_primary distribution across AI records (read-only).
   - The fast-path behavior for each role present in the distribution.
   - Representative heuristic paths triggered by title patterns.
   - Edge-case behavior (empty title, None fields, minimal records).
@@ -12,6 +12,10 @@ They must pass before AND after the extraction with zero behavioral change.
 
 Distribution updated from S0110 baseline (1014 records, 7 roles) to
 post-S0115 state (1090 records, 5 roles active in AI layer).
+S0126 reconciliation: canon grew 1090→1375 after S0121-S0125 saneamiento;
+roles 'policy' and 'procedure' now present. Constants updated to post-S0125 state (1375).
+S0127 reconciliation: 14 entregables de S0125/S0126 admitidos al canon → 1389 total.
+Distribución actualizada: log+6, procedure+4, evidence+2, policy+2.
 """
 import json
 import sys
@@ -29,15 +33,19 @@ AI_DIR = REPO_ROOT / "data" / "out" / "local" / "ai"
 
 # ── Distribution constants ─────────────────────────────────────────────────────
 
-# Distribution frozen at post-S0115 state. Update when AI layer is regenerated.
+# Distribution frozen at post-S0125/S0126 admission state (S0127 reconciliation).
+# Previous (post-S0125, S0126 reconciliation): 1375 records — {code:391, log:665, config:168, glossary:61, evidence:18, policy:2, procedure:70}
+# Post-admission (S0127): 1389 records — 14 entregables S0125+S0126 admitidos; log+6, procedure+4, evidence+2, policy+2.
 EXPECTED_ROLE_DISTRIBUTION = {
-    "code": 392,
-    "log": 453,
+    "code": 391,
+    "log": 671,
     "config": 168,
     "glossary": 61,
-    "evidence": 16,
+    "evidence": 20,
+    "policy": 4,
+    "procedure": 74,
 }
-EXPECTED_TOTAL = 1090
+EXPECTED_TOTAL = 1389
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
