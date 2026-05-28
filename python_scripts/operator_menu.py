@@ -68,6 +68,7 @@ from tdc_cat import (  # noqa: E402
     tdc_cat_success,
     tdc_cat_warning,
 )
+from relation_review_menu import option_relation_review_menu  # noqa: E402
 
 
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
@@ -2060,6 +2061,7 @@ def main_menu() -> None:
             "13) Auditar calidad canonica / nodos\n"
             "14) Configurar MCP / mirror remoto\n"
             "15) Saneamiento del canon\n"
+            "16) Revision relacional [EXPERIMENTAL]\n"
             "0) Salir"
         )
         choice = prompt("> ").strip()
@@ -2098,6 +2100,8 @@ def main_menu() -> None:
             option_mcp_manager()
         elif choice == "15":
             option_canon_sanitation()
+        elif choice == "16":
+            option_relation_review_menu()
         else:
             print("Opcion invalida.")
         pause()

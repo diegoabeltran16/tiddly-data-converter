@@ -15,7 +15,11 @@ post-S0115 state (1090 records, 5 roles active in AI layer).
 S0126 reconciliation: canon grew 1090→1375 after S0121-S0125 saneamiento;
 roles 'policy' and 'procedure' now present. Constants updated to post-S0125 state (1375).
 S0127 reconciliation: 14 entregables de S0125/S0126 admitidos al canon → 1389 total.
-Distribución actualizada: log+6, procedure+4, evidence+2, policy+2.
+S0129 pre-existing: canon grew to 1403 (nuevos tiddlers code/tools + normalización).
+Distribución actualizada: log=767, evidence=16; policy/procedure absorbidos en log.
+Para actualizar: python3 -c "import json; from collections import Counter; from pathlib import Path;
+records=[json.loads(l) for p in sorted(Path('data/out/local/ai').glob('tiddlers_ai_*.jsonl'))
+for l in p.read_text().splitlines() if l.strip()]; print(Counter(r['role_primary'] for r in records))"
 """
 import json
 import sys
@@ -33,19 +37,16 @@ AI_DIR = REPO_ROOT / "data" / "out" / "local" / "ai"
 
 # ── Distribution constants ─────────────────────────────────────────────────────
 
-# Distribution frozen at post-S0125/S0126 admission state (S0127 reconciliation).
-# Previous (post-S0125, S0126 reconciliation): 1375 records — {code:391, log:665, config:168, glossary:61, evidence:18, policy:2, procedure:70}
-# Post-admission (S0127): 1389 records — 14 entregables S0125+S0126 admitidos; log+6, procedure+4, evidence+2, policy+2.
+# Post-S0132 state: canon=1424 (21 nuevos tiddlers admitidos entre S0130–S0131).
+# 21 nuevos tiddlers son artefactos de sesión (log role).
 EXPECTED_ROLE_DISTRIBUTION = {
     "code": 391,
-    "log": 671,
+    "log": 788,
     "config": 168,
     "glossary": 61,
-    "evidence": 20,
-    "policy": 4,
-    "procedure": 74,
+    "evidence": 16,
 }
-EXPECTED_TOTAL = 1389
+EXPECTED_TOTAL = 1424
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
