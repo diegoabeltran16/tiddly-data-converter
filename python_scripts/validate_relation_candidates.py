@@ -1,62 +1,52 @@
 #!/usr/bin/env python3
 """
-validate_relation_candidates.py — S0125
+validate_relation_candidates.py — S0125, endurecido S0129
 Validador dry-run de candidatos relacionales contra el contrato DT031.
 
+Nuevas verificaciones añadidas en S0129:
+  8.  evidence.kind dentro del catálogo ALLOWED_EVIDENCE_KINDS
+  10. evidence.excerpt verificado contra texto fuente del tiddler cuando es posible
+  11. self-relation (source.tiddler_id == target.tiddler_id) rechazada
+  12. target.tiddler_id verificado contra el canon cuando resolution_status='resolved'
+  --output-dir: genera valid/invalid/unresolved/duplicate.jsonl separados
+
 Modo --dry-run obligatorio por defecto.
-La opción --apply está explícitamente bloqueada en esta sesión.
+La opción --apply está explícitamente bloqueada.
 
 Uso:
-    python3 python_scripts/validate_relation_candidates.py \
-      --input  data/out/local/pipeline/relations_candidates/relations_candidates.sample.jsonl \
-      --canon-root data/out/local \
-      --report data/out/local/pipeline/relations_candidates/relations_candidates.validation_report.json \
-      --human-review data/out/local/pipeline/relations_candidates/relations_candidates.human_review.md \
+    python3 python_scripts/validate_relation_candidates.py \\
+      --input  data/out/local/pipeline/relations_candidates/relations_candidates.sample.jsonl \\
+      --canon-root data/out/local \\
+      --report data/out/local/pipeline/relations_candidates/s0129/validation_report.json \\
+      --human-review data/out/local/pipeline/relations_candidates/s0129/human_review.md \\
+      --output-dir data/out/local/pipeline/relations_candidates/s0129 \\
       --dry-run
 """
 
 import argparse
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
+
+import sys as _sys
+import os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+
+from relation_candidate_contract import (
+    ALLOWED_RELATION_TYPES,
+    ALLOWED_EVIDENCE_KINDS,
+    ALLOWED_STATUSES,
+    ALLOWED_RESOLUTION_STATUSES,
+    WEAK_EVIDENCE_THRESHOLD,
+    CANDIDATE_ID_RE,
+    is_self_relation,
+    verify_excerpt_in_source,
+)
 
 # ---------------------------------------------------------------------------
-# Catálogo de tipos de relación permitidos (DT029 P0 + DT031)
-# ---------------------------------------------------------------------------
-ALLOWED_RELATION_TYPES: frozenset[str] = frozenset({
-    # DT029 P0 — generación automática segura en pipeline
-    "referencia_a",
-    "deriva_de",
-    "menciona_script",
-    "menciona_diagnostico",
-    "menciona_sesion",
-    "produce_artefacto",
-    "valida",
-    # DT031 schema — tipos del contrato de salida
-    "references",
-    "derived_from",
-    "validates",
-    "diagnoses",
-    "related_to",
-})
-
-# Umbral de confianza bajo la cual se considera evidencia débil
-WEAK_EVIDENCE_THRESHOLD: float = 0.50
-
-# Regex para candidate_id válido (DT031)
-CANDIDATE_ID_RE = re.compile(r"^rc1_[a-f0-9]{16,64}$")
-
-# Valores permitidos para resolution_status
-RESOLUTION_STATUS_VALUES = {"resolved", "resolved_id", "resolved_title_unique", "unresolved", "ambiguous"}
-
-# Valores permitidos para status
-ALLOWED_STATUSES = {"candidate", "needs_review", "rejected", "unresolved_target", "duplicate", "accepted_for_admission"}
-
-# ---------------------------------------------------------------------------
-# Carga del canon
+# Carga del canon — IDs y textos fuente
 # ---------------------------------------------------------------------------
 
 def load_canon_ids(canon_root: Path) -> set[str]:
@@ -75,6 +65,28 @@ def load_canon_ids(canon_root: Path) -> set[str]:
             except json.JSONDecodeError:
                 pass
     return ids
+
+
+def load_canon_texts(canon_root: Path) -> dict[str, str]:
+    """
+    Devuelve un dict {tiddler_id: text} para todos los tiddlers del canon
+    que tengan campo 'text' no vacío. Usado para verificar evidence.excerpt.
+    """
+    texts: dict[str, str] = {}
+    for shard in sorted(canon_root.glob("tiddlers_*.jsonl")):
+        for raw in shard.read_text(encoding="utf-8").splitlines():
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+                tid = obj.get("id", "")
+                text = obj.get("text", "") or ""
+                if tid and text.strip():
+                    texts[tid] = text
+            except json.JSONDecodeError:
+                pass
+    return texts
 
 
 # ---------------------------------------------------------------------------
@@ -96,6 +108,7 @@ def validate_candidate(
     line_number: int,
     canon_ids: set[str],
     seen_ids: dict[str, int],
+    canon_texts: Optional[dict[str, str]] = None,
 ) -> dict:
     """
     Valida una línea de candidato relacional.
@@ -131,59 +144,82 @@ def validate_candidate(
     warnings = result["warnings"]
     categories = result["categories"]
 
-    # 2. Campos obligatorios de primer nivel
-    required_top = ["candidate_id", "status", "source", "target", "relation", "evidence", "confidence", "provenance", "created_at"]
+    # 2. Campos obligatorios de primer nivel (DT031)
+    required_top = [
+        "candidate_id", "status", "source", "target",
+        "relation", "evidence", "confidence", "provenance", "created_at",
+    ]
     missing = [f for f in required_top if f not in obj or obj[f] is None]
     if missing:
         errors.append(f"Campos obligatorios ausentes: {missing}")
 
-    # 3. candidate_id — formato
+    # 3. candidate_id — formato y deduplicación
     cid = obj.get("candidate_id", "")
     if cid:
         if not CANDIDATE_ID_RE.match(cid):
-            warnings.append(f"candidate_id no cumple formato ^rc1_[a-f0-9]{{16,64}}$: {cid!r}")
-        # 3b. Duplicados
+            warnings.append(
+                f"candidate_id no cumple formato ^rc1_[a-f0-9]{{16,64}}$: {cid!r}"
+            )
+        # 3b. Duplicado por candidate_id
         if cid in seen_ids:
             categories.append("duplicate")
-            errors.append(f"candidate_id duplicado; visto en línea {seen_ids[cid]}: {cid!r}")
+            errors.append(
+                f"candidate_id duplicado; visto en línea {seen_ids[cid]}: {cid!r}"
+            )
         else:
             seen_ids[cid] = line_number
 
-    # 4. status
+    # 4. status — debe ser 'candidate' al ingresar al validador
     status = obj.get("status")
     if status is not None and status != "candidate":
         errors.append(f"status debe ser 'candidate'; encontrado: {status!r}")
 
     # 5. source.*
     source = obj.get("source") or {}
-    src_id = _get_nested(source, "tiddler_id") if isinstance(source, dict) else None
+    src_id: Optional[str] = None
     if isinstance(source, dict):
+        src_id = _get_nested(source, "tiddler_id")
         if not source.get("field_path"):
             errors.append("source.field_path ausente o vacío")
         if src_id:
             if src_id not in canon_ids:
-                errors.append(f"source.tiddler_id no existe en el canon: {src_id!r}")
+                errors.append(
+                    f"source.tiddler_id no existe en el canon: {src_id!r}"
+                )
         else:
             errors.append("source.tiddler_id ausente o vacío")
 
     # 6. target.*
     target = obj.get("target") or {}
+    tgt_id: Optional[str] = None
     if isinstance(target, dict):
+        tgt_id = target.get("tiddler_id")
         res_status = target.get("resolution_status")
-        if res_status not in RESOLUTION_STATUS_VALUES:
-            errors.append(f"target.resolution_status inválido: {res_status!r}. Permitidos: {sorted(RESOLUTION_STATUS_VALUES)}")
-        # Si no resuelto, validar marca
+        if res_status not in ALLOWED_RESOLUTION_STATUSES:
+            errors.append(
+                f"target.resolution_status inválido: {res_status!r}. "
+                f"Permitidos: {sorted(ALLOWED_RESOLUTION_STATUSES)}"
+            )
         if res_status in {"unresolved", "ambiguous"}:
             categories.append("unresolved_target")
-            # OK — permitido solo si está marcado explícitamente
-            if not target.get("tiddler_id") and not target.get("title"):
-                warnings.append("target sin tiddler_id ni title — muy difícil de revisar")
+            if not tgt_id and not target.get("title"):
+                warnings.append(
+                    "target sin tiddler_id ni title — muy difícil de revisar"
+                )
         else:
-            # Resuelto pero sin id
-            if not target.get("tiddler_id"):
-                errors.append("target.resolution_status='resolved' pero target.tiddler_id ausente")
+            # Resuelto pero sin id en el objeto
+            if not tgt_id:
+                errors.append(
+                    "target.resolution_status='resolved' pero target.tiddler_id ausente"
+                )
+            # S0129 — verificar que el target resuelto exista en el canon
+            elif tgt_id not in canon_ids:
+                errors.append(
+                    f"target.tiddler_id no existe en el canon: {tgt_id!r} "
+                    f"(resolution_status={res_status!r})"
+                )
 
-    # 7. relation.type
+    # 7. relation.type — catálogo DT029
     rel = obj.get("relation") or {}
     if isinstance(rel, dict):
         rel_type = rel.get("type")
@@ -202,7 +238,9 @@ def validate_candidate(
         if score is None:
             errors.append("confidence.score ausente")
         elif not isinstance(score, (int, float)):
-            errors.append(f"confidence.score debe ser numérico; encontrado: {type(score).__name__}")
+            errors.append(
+                f"confidence.score debe ser numérico; encontrado: {type(score).__name__}"
+            )
         elif not (0.0 <= float(score) <= 1.0):
             errors.append(f"confidence.score fuera de rango [0.0, 1.0]: {score}")
         else:
@@ -210,18 +248,61 @@ def validate_candidate(
                 categories.append("weak_evidence")
                 warnings.append(f"confidence.score bajo ({score}) — evidencia débil")
 
-    # 9. evidence.excerpt
+    # 9. evidence — campos obligatorios
     evidence = obj.get("evidence") or {}
+    excerpt: str = ""
+    ev_kind: Optional[str] = None
     if isinstance(evidence, dict):
-        excerpt = evidence.get("excerpt", "")
-        if not excerpt or not excerpt.strip():
+        excerpt = evidence.get("excerpt", "") or ""
+        ev_kind = evidence.get("kind")
+
+        # 9a. excerpt no vacío
+        if not excerpt.strip():
             errors.append("evidence.excerpt ausente o vacío")
-        if not evidence.get("kind"):
+
+        # 9b. S0129 — evidence.kind dentro del catálogo DT028/DT031
+        if not ev_kind:
             errors.append("evidence.kind ausente o vacío")
+        elif ev_kind not in ALLOWED_EVIDENCE_KINDS:
+            errors.append(
+                f"evidence.kind no permitido: {ev_kind!r}. "
+                f"Permitidos: {sorted(ALLOWED_EVIDENCE_KINDS)}"
+            )
+
         if not evidence.get("location"):
             warnings.append("evidence.location ausente — reduce auditabilidad")
 
-    # 10. provenance.*
+    # 10. S0129 — verificación de excerpt contra texto fuente del tiddler
+    if excerpt.strip() and src_id and canon_texts is not None:
+        source_text = canon_texts.get(src_id)
+        found = verify_excerpt_in_source(excerpt, source_text)
+        if found is None:
+            warnings.append(
+                "evidence.excerpt no verificable: tiddler fuente sin campo 'text' "
+                f"en el canon (src={src_id!r})"
+            )
+        elif not found:
+            if ev_kind == "ai_inference":
+                errors.append(
+                    "evidence.excerpt no encontrado en texto fuente "
+                    f"(kind=ai_inference — falso positivo probable, src={src_id!r})"
+                )
+                categories.append("unverifiable_excerpt")
+            else:
+                warnings.append(
+                    "evidence.excerpt no encontrado en texto fuente "
+                    f"(src={src_id!r}) — revisar manualmente"
+                )
+
+    # 11. S0129 — self-relation
+    if isinstance(source, dict) and isinstance(target, dict):
+        if is_self_relation(src_id, tgt_id):
+            errors.append(
+                f"Auto-relación no permitida: source.tiddler_id == target.tiddler_id "
+                f"({src_id!r})"
+            )
+
+    # 12. provenance.*
     prov = obj.get("provenance") or {}
     if isinstance(prov, dict):
         if not prov.get("generated_by"):
@@ -229,14 +310,14 @@ def validate_candidate(
         if not prov.get("generated_at"):
             errors.append("provenance.generated_at ausente")
 
-    # 11. created_at
+    # 13. created_at
     if not obj.get("created_at"):
         errors.append("created_at ausente")
 
     # Resultado final
     if errors:
         result["ok"] = False
-        if "invalid" not in categories:
+        if "duplicate" not in categories and "unresolved_target" not in categories and "invalid" not in categories:
             categories.append("invalid")
     else:
         if "unresolved_target" not in categories and "weak_evidence" not in categories:
@@ -252,25 +333,34 @@ def validate_candidate(
 def validate_file(
     input_path: Path,
     canon_ids: set[str],
+    canon_texts: Optional[dict[str, str]] = None,
 ) -> dict:
     """Valida todas las líneas del JSONL y devuelve un diccionario de resultados."""
     results: list[dict] = []
     seen_ids: dict[str, int] = {}
     total = 0
 
-    for ln, raw in enumerate(input_path.read_text(encoding="utf-8").splitlines(), start=1):
+    for ln, raw in enumerate(
+        input_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         raw = raw.strip()
         if not raw:
             continue
         total += 1
-        res = validate_candidate(raw, ln, canon_ids, seen_ids)
+        res = validate_candidate(raw, ln, canon_ids, seen_ids, canon_texts)
         results.append(res)
 
     # Clasificar
     valid = [r for r in results if "valid" in r["categories"]]
     invalid = [r for r in results if "invalid" in r["categories"]]
-    unresolved = [r for r in results if "unresolved_target" in r["categories"] and "invalid" not in r["categories"]]
-    weak = [r for r in results if "weak_evidence" in r["categories"] and "invalid" not in r["categories"]]
+    unresolved = [
+        r for r in results
+        if "unresolved_target" in r["categories"] and "invalid" not in r["categories"]
+    ]
+    weak = [
+        r for r in results
+        if "weak_evidence" in r["categories"] and "invalid" not in r["categories"]
+    ]
     duplicates = [r for r in results if "duplicate" in r["categories"]]
 
     return {
@@ -294,6 +384,7 @@ def build_json_report(
     canon_root: Path,
     run_at: str,
     dry_run: bool,
+    session_tag: str = "S0125",
 ) -> dict:
     def fmt(lst: list[dict]) -> list[dict]:
         out = []
@@ -310,7 +401,8 @@ def build_json_report(
         return out
 
     return {
-        "schema": "relations-candidate-validation-report/v1",
+        "schema": "relations-candidate-validation-report/v2",
+        "session": session_tag,
         "generated_at": run_at,
         "dry_run": dry_run,
         "input_file": str(input_path),
@@ -333,10 +425,21 @@ def build_json_report(
         "canon_sanity": {
             "note": "No se escribió en tiddlers_*.jsonl — modo dry-run"
         },
+        "hardening_checks": {
+            "evidence_kind_catalog": True,
+            "excerpt_verified_against_source": True,
+            "self_relation_check": True,
+            "target_id_in_canon_when_resolved": True,
+        },
     }
 
 
-def build_human_review(summary: dict, input_path: Path, run_at: str) -> str:
+def build_human_review(
+    summary: dict,
+    input_path: Path,
+    run_at: str,
+    session_tag: str = "S0125",
+) -> str:
     total = summary["total"]
     valid_n = len(summary["valid"])
     invalid_n = len(summary["invalid"])
@@ -345,18 +448,19 @@ def build_human_review(summary: dict, input_path: Path, run_at: str) -> str:
     dup_n = len(summary["duplicate"])
 
     lines = [
-        "# Reporte de revisión humana — Relaciones candidatas (S0125)",
+        f"# Reporte de revisión humana — Relaciones candidatas ({session_tag})",
         "",
         f"**Generado:** {run_at}",
         f"**Fuente:** `{input_path}`",
         f"**Modo:** dry-run (ningún candidato fue escrito en el canon)",
+        f"**Sesión:** {session_tag}",
         "",
         "---",
         "",
         "## Resumen",
         "",
-        f"| Categoría | Cantidad |",
-        f"|---|---|",
+        "| Categoría | Cantidad |",
+        "|---|---|",
         f"| Total evaluados | {total} |",
         f"| ✅ Válidos | {valid_n} |",
         f"| ❌ Inválidos | {invalid_n} |",
@@ -412,12 +516,50 @@ def build_human_review(summary: dict, input_path: Path, run_at: str) -> str:
         "",
         "> **Modo dry-run activo.** Ningún candidato fue escrito en el canon.",
         "> Los candidatos válidos con score ≥ 0.50 y target resuelto pueden ser",
-        "> considerados para admisión gobernada en una sesión futura (S0126+).",
+        "> considerados para admisión gobernada en una sesión futura.",
+        ">",
+        "> Antes de cualquier admisión:",
+        "> - Candidatos con `unresolved_target` requieren corrección de ID.",
+        "> - Candidatos con `ai_inference` y excerpt no verificable deben descartarse.",
+        "> - Candidatos con `weak_evidence` (score < 0.50) requieren revisión humana explícita.",
         "",
         "_Fin del reporte._",
     ]
 
     return "\n".join(lines) + "\n"
+
+
+def write_category_files(summary: dict, output_dir: Path) -> dict[str, int]:
+    """
+    Escribe archivos JSONL separados por categoría en output_dir.
+
+    Genera:
+      valid_candidates.jsonl
+      invalid_candidates.jsonl
+      unresolved_candidates.jsonl
+      duplicate_candidates.jsonl
+
+    Retorna un dict con la cantidad de registros escritos por archivo.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _write(name: str, items: list[dict]) -> int:
+        path = output_dir / name
+        lines = []
+        for r in items:
+            obj = r.get("obj")
+            if obj is not None:
+                lines.append(json.dumps(obj, ensure_ascii=False))
+        path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+        return len(lines)
+
+    counts = {
+        "valid_candidates.jsonl": _write("valid_candidates.jsonl", summary["valid"]),
+        "invalid_candidates.jsonl": _write("invalid_candidates.jsonl", summary["invalid"]),
+        "unresolved_candidates.jsonl": _write("unresolved_candidates.jsonl", summary["unresolved_target"]),
+        "duplicate_candidates.jsonl": _write("duplicate_candidates.jsonl", summary["duplicate"]),
+    }
+    return counts
 
 
 # ---------------------------------------------------------------------------
@@ -426,26 +568,60 @@ def build_human_review(summary: dict, input_path: Path, run_at: str) -> str:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Validador dry-run de candidatos relacionales (DT031) — S0125"
+        description="Validador dry-run de candidatos relacionales (DT031) — endurecido S0129"
     )
-    p.add_argument("--input", required=True, type=Path, help="JSONL de candidatos a validar")
-    p.add_argument("--canon-root", required=True, type=Path, help="Directorio raíz del canon (contiene tiddlers_*.jsonl)")
-    p.add_argument("--report", required=True, type=Path, help="Ruta de salida del reporte JSON")
-    p.add_argument("--human-review", required=True, type=Path, help="Ruta de salida del reporte Markdown")
-    p.add_argument("--dry-run", action="store_true", required=True,
-                   help="Modo dry-run — obligatorio. Sin esta flag, el script se niega a ejecutar.")
-    p.add_argument("--apply", action="store_true", default=False,
-                   help=argparse.SUPPRESS)  # opción bloqueada explícitamente
+    p.add_argument(
+        "--input", required=True, type=Path,
+        help="JSONL de candidatos a validar",
+    )
+    p.add_argument(
+        "--canon-root", required=True, type=Path,
+        help="Directorio raíz del canon (contiene tiddlers_*.jsonl)",
+    )
+    p.add_argument(
+        "--report", required=True, type=Path,
+        help="Ruta de salida del reporte JSON",
+    )
+    p.add_argument(
+        "--human-review", required=True, type=Path,
+        help="Ruta de salida del reporte Markdown",
+    )
+    p.add_argument(
+        "--dry-run", action="store_true", required=True,
+        help="Modo dry-run — obligatorio. Sin esta flag, el script se niega a ejecutar.",
+    )
+    p.add_argument(
+        "--output-dir", type=Path, default=None,
+        help=(
+            "Directorio de salida para archivos JSONL separados por categoría "
+            "(valid/invalid/unresolved/duplicate). Opcional."
+        ),
+    )
+    p.add_argument(
+        "--session-tag", type=str, default="S0129",
+        help="Etiqueta de sesión para los reportes (default: S0129)",
+    )
+    p.add_argument(
+        "--no-excerpt-check", action="store_true", default=False,
+        help="Deshabilitar la verificación de excerpt contra texto fuente (más rápido pero menos seguro)",
+    )
+    p.add_argument(
+        "--apply", action="store_true", default=False,
+        help=argparse.SUPPRESS,  # opción bloqueada explícitamente
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
 
-    # Bloqueo explícito de --apply (S0125)
+    # Bloqueo explícito de --apply
     if args.apply:
-        print("[ERROR] --apply está explícitamente bloqueada en S0125.", file=sys.stderr)
-        print("[ERROR] La admisión gobernada de relaciones al canon queda reservada para sesiones posteriores.", file=sys.stderr)
+        print(
+            "[ERROR] --apply está explícitamente bloqueada. "
+            "La admisión gobernada de relaciones al canon queda reservada para sesiones posteriores.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     # Validar entradas
@@ -461,46 +637,66 @@ def main() -> None:
     args.human_review.parent.mkdir(parents=True, exist_ok=True)
 
     run_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    tag = args.session_tag
 
-    print(f"[S0125] Cargando canon desde: {args.canon_root}")
+    print(f"[{tag}] Cargando canon desde: {args.canon_root}")
     canon_ids = load_canon_ids(args.canon_root)
-    print(f"[S0125] Canon cargado: {len(canon_ids)} tiddler IDs")
+    print(f"[{tag}] Canon cargado: {len(canon_ids)} tiddler IDs")
 
-    print(f"[S0125] Validando: {args.input}")
-    summary = validate_file(args.input, canon_ids)
+    # Cargar textos fuente solo si no se desactiva la verificación
+    canon_texts: Optional[dict[str, str]] = None
+    if not args.no_excerpt_check:
+        print(f"[{tag}] Cargando textos fuente para verificación de excerpts...")
+        canon_texts = load_canon_texts(args.canon_root)
+        print(f"[{tag}] Textos fuente cargados: {len(canon_texts)} tiddlers con texto")
+
+    print(f"[{tag}] Validando: {args.input}")
+    summary = validate_file(args.input, canon_ids, canon_texts)
     total = summary["total"]
-    print(f"[S0125] Total evaluados: {total}")
-    print(f"[S0125]   válidos:            {len(summary['valid'])}")
-    print(f"[S0125]   inválidos:          {len(summary['invalid'])}")
-    print(f"[S0125]   target no resuelto: {len(summary['unresolved_target'])}")
-    print(f"[S0125]   evidencia débil:    {len(summary['weak_evidence'])}")
-    print(f"[S0125]   duplicados:         {len(summary['duplicate'])}")
+    print(f"[{tag}] Total evaluados:       {total}")
+    print(f"[{tag}]   válidos:             {len(summary['valid'])}")
+    print(f"[{tag}]   inválidos:           {len(summary['invalid'])}")
+    print(f"[{tag}]   target no resuelto:  {len(summary['unresolved_target'])}")
+    print(f"[{tag}]   evidencia débil:     {len(summary['weak_evidence'])}")
+    print(f"[{tag}]   duplicados:          {len(summary['duplicate'])}")
 
     # Generar reporte JSON
-    report = build_json_report(summary, args.input, args.canon_root, run_at, dry_run=True)
-    args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[S0125] Reporte JSON:     {args.report}")
+    report = build_json_report(
+        summary, args.input, args.canon_root, run_at, dry_run=True, session_tag=tag
+    )
+    args.report.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"[{tag}] Reporte JSON:          {args.report}")
 
     # Generar reporte humano
-    human = build_human_review(summary, args.input, run_at)
+    human = build_human_review(summary, args.input, run_at, session_tag=tag)
     args.human_review.write_text(human, encoding="utf-8")
-    print(f"[S0125] Reporte humano:  {args.human_review}")
+    print(f"[{tag}] Reporte humano:        {args.human_review}")
+
+    # Generar archivos JSONL separados por categoría (si se solicitó)
+    if args.output_dir:
+        counts = write_category_files(summary, args.output_dir)
+        for fname, n in counts.items():
+            print(f"[{tag}] {fname}: {n} registros")
 
     # Garantía final — no se escribió en tiddlers_*.jsonl
-    modified = [
-        str(p) for p in args.canon_root.glob("tiddlers_*.jsonl")
-        if p == args.report or p == args.human_review
-    ]
-    if modified:
-        print(f"[ERROR] Colisión de rutas con tiddlers_*.jsonl — abortar revisión.", file=sys.stderr)
-        sys.exit(3)
-    print("[S0125] Garantía dry-run: ningún tiddlers_*.jsonl fue modificado.")
+    for p in args.canon_root.glob("tiddlers_*.jsonl"):
+        if p == args.report or p == args.human_review:
+            print(
+                f"[ERROR] Colisión de rutas con tiddlers_*.jsonl — abortar revisión.",
+                file=sys.stderr,
+            )
+            sys.exit(3)
+    print(f"[{tag}] Garantía dry-run: ningún tiddlers_*.jsonl fue modificado.")
 
     if summary["invalid"]:
-        print(f"[S0125] ⚠️  {len(summary['invalid'])} candidatos inválidos detectados — revisar reporte.")
+        print(
+            f"[{tag}] ⚠️  {len(summary['invalid'])} candidatos inválidos detectados — revisar reporte."
+        )
         sys.exit(0)  # No es error fatal en dry-run; el reporte lo documenta
     else:
-        print("[S0125] ✅ Todos los candidatos pasaron validación estructural.")
+        print(f"[{tag}] ✅ Todos los candidatos pasaron validación estructural.")
 
 
 if __name__ == "__main__":

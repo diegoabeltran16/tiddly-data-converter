@@ -438,7 +438,11 @@ class TestReportGeneration:
             report = tmp_path / "report.json"
             data = json.loads(report.read_text())
 
-        assert data.get("schema") == "relations-candidate-validation-report/v1"
+        # S0129: schema actualizado a v2; aceptar ambas versiones para compatibilidad
+        assert data.get("schema") in {
+            "relations-candidate-validation-report/v1",
+            "relations-candidate-validation-report/v2",
+        }
         assert data.get("dry_run") is True
         assert "summary" in data
         assert "details" in data

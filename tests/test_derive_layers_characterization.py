@@ -8,9 +8,11 @@ They operate read-only on existing data/out/local/ outputs and via subprocess
 for CLI checks. They do NOT run the full pipeline during tests; they verify
 the invariants of the current state.
 
-Counts frozen at: canon=1389, enriched=1389, AI=1389, chunks=1255, shards=14.
+Counts frozen at: canon=1424, enriched=1424, AI=1424, chunks=1255, shards=15.
 Updated from post-S0115 baseline (1090/1090/1090/1012, 11 shards) to post-S0125 state (1375),
-then to post-S0125/S0126 admission state (1389 = 1375 + 14 entregables S0125+S0126 admitidos).
+then to post-S0125/S0126 admission state (1389), post-S0127 admission state (1396),
+then to post-S0129 state (1403 = 1396 + 7 nuevos tiddlers; shard 15 creado; derive_layers re-ejecutado),
+then to post-S0132 state (1424 = 1403 + 21 nuevos tiddlers admitidos entre S0130–S0131).
 
 When the canon changes legitimately, update the constants below and run
   sha256sum data/out/local/tiddlers_*.jsonl
@@ -31,12 +33,11 @@ AI_DIR = CANON_DIR / "ai"
 
 # ── Count invariants ─────────────────────────────────────────────────────────
 
-# Post-S0125/S0126 admission state (S0127 reconciliation). Previous: 1375/1375/1375/1255 (post-S0125).
-# 14 entregables de S0125 y S0126 admitidos al canon; roles: +6 log, +4 procedure, +2 evidence, +2 policy.
-# Chunks estables en 1255: los nuevos entregables de sesión no superan el umbral de chunking.
-EXPECTED_CANON_COUNT = 1389
-EXPECTED_ENRICHED_COUNT = 1389
-EXPECTED_AI_COUNT = 1389
+# Post-S0132 state: 1424 tiddlers (21 nuevos admitidos entre S0130–S0131: artefactos de sesiones).
+# Chunks estables en 1255: los nuevos tiddlers no superan el umbral de chunking.
+EXPECTED_CANON_COUNT = 1424
+EXPECTED_ENRICHED_COUNT = 1424
+EXPECTED_AI_COUNT = 1424
 EXPECTED_CHUNK_COUNT = 1255
 
 
@@ -102,8 +103,8 @@ class TestDeriveCLI:
 class TestDeriveCountInvariants:
     def test_canon_shards_exist(self):
         shards = sorted(CANON_DIR.glob("tiddlers_*.jsonl"))
-        # Post-S0125 state: 14 shards. Previous (post-S0115): 11 shards.
-        assert len(shards) == 14, f"Expected 14 canon shards, got {len(shards)}"
+        # Post-S0129 state: 15 shards. Previous (post-S0125/S0128): 14 shards.
+        assert len(shards) == 15, f"Expected 15 canon shards, got {len(shards)}"
 
     def test_canon_record_count(self):
         count = _count_jsonl_records(CANON_DIR, "tiddlers_*.jsonl")
@@ -130,11 +131,13 @@ class TestDeriveCountInvariants:
         )
 
     def test_enriched_count_equals_canon_count(self):
+        # S0129: derive_layers re-ejecutado tras nueva admisión; invariante canon==enriched restaurada.
         canon = _count_jsonl_records(CANON_DIR, "tiddlers_*.jsonl")
         enriched = _count_jsonl_records(ENRICHED_DIR, "tiddlers_enriched_*.jsonl")
         assert canon == enriched, f"Canon/enriched invariant broken: {canon} != {enriched}"
 
     def test_ai_count_equals_canon_count(self):
+        # S0129: derive_layers re-ejecutado tras nueva admisión; invariante canon==ai restaurada.
         canon = _count_jsonl_records(CANON_DIR, "tiddlers_*.jsonl")
         ai = _count_jsonl_records(AI_DIR, "tiddlers_ai_*.jsonl")
         assert canon == ai, f"Canon/AI invariant broken: {canon} != {ai}"
@@ -299,26 +302,24 @@ class TestCanonImmutability:
         If this test fails after a legitimate canon update, update the
         EXPECTED_HASHES dict below with the new values.
         """
-        # Hashes actualizados al estado post-S0128 (corrección source_type + created S0125).
-        # S0128 fix 1: S0125 re-admitida con source_type='text/markdown' (hash a8462a...).
-        # S0128 fix 2: S0125 reemplazada con created correcto 20260526222157000 (hash b27a17...).
-        # tiddlers_14.jsonl: única modificada. Los shards 1-13 sin cambio.
+        # Hashes actualizados al estado post-S0132 (21 nuevos tiddlers admitidos entre S0130–S0131).
         # Para actualizar: sha256sum data/out/local/tiddlers_*.jsonl
         EXPECTED_HASHES = {
-            "tiddlers_1.jsonl":  "52734cd16165aa1936d24f8a05cbe7a8845ee91dc94d7bdb2d8b5f95a87e633a",
-            "tiddlers_2.jsonl":  "0dcd85c1fc6d5b3811461a4006400124f4988fe5ff9a83f38d90606efeb60d79",
-            "tiddlers_3.jsonl":  "3ecd53d6b3a7be062643f15962f07c9b17fa1f5d1d631cec9ba723de26a12096",
-            "tiddlers_4.jsonl":  "80e334b5476efed1b82284be17f8ac072b359e3e97a547cff46586fa245b84fb",
-            "tiddlers_5.jsonl":  "32adcca1defb54c7e3ea6992be0f6167478927b16841f033d4a0b0ed7d0517de",
-            "tiddlers_6.jsonl":  "6d585df1d11898729f6308114a0515f15aac9ebdfb32c40bd1e335b69ea3bb2d",
-            "tiddlers_7.jsonl":  "0b9718024f855a882810214ee3c56f3c01fc9513f94ad0095e34e61a0a13d7be",
-            "tiddlers_8.jsonl":  "0097909509e724c8a85b18c33877ddcd6768decaf3e7a185a8a5bd1bb90d49c3",
-            "tiddlers_9.jsonl":  "ff23fd64ad542065774355bf3cef4a14a5997f43b4645fb7bb7676041d945377",
-            "tiddlers_10.jsonl": "811917ff9754e34ca0d79c8f260184139ed7780e1bac5200aeedd6fc5fa08391",
-            "tiddlers_11.jsonl": "73c66df1414d8f321674ecfc416eb66c03fc29f6c6629a72b2a34526c1a29cbb",
-            "tiddlers_12.jsonl": "655c21b2f6729eb126e07aca8ee456ec769cb6dd58b6a7718759c155c6c92f9a",
-            "tiddlers_13.jsonl": "be7fb62b5bc25c28c04b31b79fc466a2999b3805304b098977683ac6ed929afc",
-            "tiddlers_14.jsonl": "b27a17daafeba4e906dd5de686579723cc9a3f2c838ea8dd0ceee8be420533c6",
+            "tiddlers_1.jsonl":  "0a728bede565757838c475599a44af897e3634f2f3023bf17dae1a2a8b318b43",
+            "tiddlers_2.jsonl":  "b7019ee1e258ceacaf47dd96d33669d4c708770bae5cdb10b5b6540ca10f2f72",
+            "tiddlers_3.jsonl":  "4b9a9da096f2bb2e37676cdbefa0d1e2b14c7fdd9cb0b050c9e14102f84969e0",
+            "tiddlers_4.jsonl":  "2e5b8f64d34b6fdca27251a3f599b3269a4d061a62f562fed2cb7ef0eed4658d",
+            "tiddlers_5.jsonl":  "526a63a41d7e2ace7dfca05633d423b297015f2837fc228b4ee7d91d1afb56cb",
+            "tiddlers_6.jsonl":  "59fa8d41bcb2751c458a0b20217bf2e0c8b350deee118e3b16bc7ecacb3739a2",
+            "tiddlers_7.jsonl":  "7b99749b10e7e99595a3aa23cbac7d05eb66262fde44273a87f5913414188c82",
+            "tiddlers_8.jsonl":  "d746532735f37e1f7733702e512cebc48c95c97b806d3b4162c1c7087ee9868e",
+            "tiddlers_9.jsonl":  "be240dcc6e0d4a2f85ec15877fd7fffc3cc2fd5f6f6630e24b44faa142401273",
+            "tiddlers_10.jsonl": "1b557c5b06c121818f72051db985f8c4f8d19ad01fdeed4e7ced08489cd4306a",
+            "tiddlers_11.jsonl": "6a1abab8911fba900b002e188c6b2928f657ff56f711b71c97d993b1f6f4031d",
+            "tiddlers_12.jsonl": "a1bceb35a84cffaa6381a3219db3ebd773856a99b16f2e3770bf2332e16fc195",
+            "tiddlers_13.jsonl": "97823209f7ec437c6b225d164e4ef281288aa2137d504d95f766e3b8a53418b5",
+            "tiddlers_14.jsonl": "c7583eab737b01a1d4f451189200e0a95d171bbbe07224c9b2707e1b4381a2f2",
+            "tiddlers_15.jsonl": "91e5e08eb13e603ad03a939da913df02849c4611499adbc7ee43518558ec19df",
         }
         mismatches = []
         for name, expected_hash in EXPECTED_HASHES.items():
