@@ -18,7 +18,3 @@ shell_scripts/tdc.sh
 ```
 
 Este comando invoca de forma guiada al orquestador de admisión, al canonizador, al reverse y los scripts existentes; muestra métricas y exige confirmaciones robustas antes de cualquier acción que pueda escribirse en el canon local.
-
-## Derivados
-
-Generación de derivados se ejecuta desde el canon local mediante `derive_layers.py`. Los derivados no son fuente de verdad; el canon local (`data/out/local/tiddlers_*.jsonl`) es la única fuente autoritativa. Los derivados pueden regenerarse en cualquier momento a partir del canon.
