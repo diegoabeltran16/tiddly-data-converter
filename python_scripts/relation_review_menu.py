@@ -233,14 +233,59 @@ _MENU_HEADER = """\
 
 1. Validar relaciones candidatas existentes (dry-run)
 2. Ver último reporte humano
+3. Generar plan dry-run de admisión relacional [NO ESCRIBE CANON]
 0. Volver"""
+
+# Ruta de salida del plan de admisión (S0135)
+_ADMISSION_PLAN_DIR: Path = (
+    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relations_admission" / "s0135"
+)
+_ADMISSION_PLAN_SCRIPT: Path = SCRIPT_DIR / "build_relation_admission_plan.py"
+
+
+def option_generate_admission_plan() -> None:
+    """Genera el plan dry-run de admisión relacional (S0135).
+
+    BLOQUEADO: S0135 solo genera plan dry-run. No escribe relaciones en el canon.
+    """
+    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("  Generar plan dry-run de admisión relacional (S0135)")
+    print("  BLOQUEADO: S0135 solo genera plan dry-run.")
+    print("  No escribe relaciones en el canon.")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+
+    if not _ADMISSION_PLAN_SCRIPT.exists():
+        print(f"[ERROR] Script no encontrado: {_ADMISSION_PLAN_SCRIPT}")
+        return
+
+    cmd = [
+        sys.executable,
+        str(_ADMISSION_PLAN_SCRIPT),
+        "--canon-glob", str(CANON_ROOT / "tiddlers_*.jsonl"),
+        "--candidates-dir", str(RELATIONS_DIR),
+        "--out-dir", str(_ADMISSION_PLAN_DIR),
+        "--dry-run",
+    ]
+    print(f"Ejecutando plan dry-run de admisión relacional...")
+    print(f"Salida: {_display(_ADMISSION_PLAN_DIR)}\n")
+
+    import subprocess
+    result = subprocess.run(cmd, capture_output=False)
+
+    if result.returncode == 0:
+        plan_path = _ADMISSION_PLAN_DIR / "s0135_relation_admission_plan.json"
+        print(f"\n✅ Plan generado. Ver: {_display(plan_path)}")
+    elif result.returncode == 1:
+        print("\n⚠️  Plan generado con advertencias (ver salida arriba).")
+    else:
+        print(f"\n[ERROR] Error al generar el plan (código {result.returncode}).")
 
 
 def option_relation_review_menu() -> None:
     """
     Submenú experimental de revisión relacional.
 
-    Contrato S0127:
+    Contrato S0127/S0135:
       - Generación: BLOQUEADA
       - Admisión canónica: BLOQUEADA
       - --apply: NUNCA ejecutado
@@ -257,6 +302,8 @@ def option_relation_review_menu() -> None:
             option_validate_candidates()
         elif choice == "2":
             option_view_human_report()
+        elif choice == "3":
+            option_generate_admission_plan()
         else:
             print("Opción inválida.")
 
