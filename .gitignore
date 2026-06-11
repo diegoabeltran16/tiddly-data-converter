@@ -24,10 +24,13 @@ data/in/*:Zone.Identifier
 # Cache local de Python
 __pycache__/
 *.pyc
+.pytest_cache/
+*.egg-info/
+python_scripts/rep_export_LINUXandMAC/tiddlers-export/
+python_scripts/rep_export_LINUXandMAC/.hashes.json
 
 /docs/tiddlers_esp
 
-/rep_export_LINUXandMAC
 /.vscode
 
 # ── Pipeline S12 — artefactos runtime ────────────────────────────────────────

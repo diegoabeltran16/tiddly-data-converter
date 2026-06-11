@@ -100,6 +100,13 @@ class TestMenuExitsCleanly:
             f"'Saneamiento del canon' not found in menu output:\n{result.stdout[:600]}"
         )
 
+    def test_menu_shows_repository_exporter(self):
+        """S0138: menu must show repository exporter option."""
+        result = _run_menu("0\n")
+        assert "Exportador de repositorio" in result.stdout, (
+            f"'Exportador de repositorio' not found in menu output:\n{result.stdout[:600]}"
+        )
+
     def test_menu_does_not_crash_on_invalid_option(self):
         # Feed an invalid option then exit
         result = _run_menu("999\n0\n")
