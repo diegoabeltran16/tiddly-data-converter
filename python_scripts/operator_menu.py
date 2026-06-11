@@ -644,7 +644,7 @@ def option_canon_status() -> None:
         print(f"  - {display(shard)}: {count_jsonl_lines(shard)} lineas")
 
     expected = {path.name for path in summary["shards"]}
-    allowed_dirs = {"enriched", "ai", "audit", "export", "microsoft_copilot", "reverse_html"}
+    allowed_dirs = {"enriched", "ai", "audit", "export", "microsoft_copilot", "reverse_html", "tiddlers-export"}
     unexpected: list[str] = []
     for child in DEFAULT_CANON_DIR.iterdir() if DEFAULT_CANON_DIR.exists() else []:
         if child.name in expected or child.name in allowed_dirs:
@@ -2040,6 +2040,34 @@ def option_canon_sanitation() -> None:
             print("Opción inválida.")
 
 
+def option_repository_exporter() -> None:
+    print("\nExportador de repositorio")
+    print("Exporta archivos del repositorio como tiddlers JSON. No modifica el canon local.")
+    runner = REPO_ROOT / "python_scripts" / "rep_export_LINUXandMAC" / "run_export_menu.py"
+    if not runner.exists():
+        tdc_cat_error(f"No se encontro el runner: {display(runner)}")
+        return
+
+    env = os.environ.copy()
+    python_scripts_root = REPO_ROOT / "python_scripts"
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_parts = [part for part in existing_pythonpath.split(os.pathsep) if part]
+    if str(python_scripts_root) not in pythonpath_parts:
+        pythonpath_parts.insert(0, str(python_scripts_root))
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
+
+    result = subprocess.run(
+        [sys.executable, str(runner)],
+        cwd=REPO_ROOT,
+        env=env,
+        check=False,
+    )
+    if result.returncode == 0:
+        tdc_cat_success("Exportador de repositorio finalizado.")
+    else:
+        tdc_cat_error(f"Exportador de repositorio termino con exit code {result.returncode}.")
+
+
 def main_menu() -> None:
     state = MenuState()
     while True:
@@ -2062,6 +2090,7 @@ def main_menu() -> None:
             "14) Configurar MCP / mirror remoto\n"
             "15) Saneamiento del canon\n"
             "16) Revision relacional [EXPERIMENTAL]\n"
+            "17) Exportador de repositorio\n"
             "0) Salir"
         )
         choice = prompt("> ").strip()
@@ -2102,6 +2131,8 @@ def main_menu() -> None:
             option_canon_sanitation()
         elif choice == "16":
             option_relation_review_menu()
+        elif choice == "17":
+            option_repository_exporter()
         else:
             print("Opcion invalida.")
         pause()

@@ -146,7 +146,7 @@ class TestMenuHeaderContent:
         assert "BLOQUEADA" in rrm._MENU_HEADER
 
     def test_menu_header_contains_dry_run(self):
-        assert "dry-run" in rrm._MENU_HEADER
+        assert "DRY-RUN" in rrm._MENU_HEADER or "dry-run" in rrm._MENU_HEADER
 
     def test_menu_header_contains_admision(self):
         assert "Admisión" in rrm._MENU_HEADER or "Admision" in rrm._MENU_HEADER
@@ -154,8 +154,11 @@ class TestMenuHeaderContent:
     def test_menu_header_contains_generacion(self):
         assert "Generación" in rrm._MENU_HEADER or "Generacion" in rrm._MENU_HEADER
 
-    def test_menu_header_contains_validate_option(self):
-        assert "Validar relaciones candidatas" in rrm._MENU_HEADER
+    def test_menu_header_contains_operator_batch_option(self):
+        assert "Revisar lote batch" in rrm._MENU_HEADER
+
+    def test_advanced_menu_header_contains_validate_option(self):
+        assert "Validar relaciones candidatas" in rrm._ADVANCED_MENU_HEADER
 
     def test_show_block_status_output(self, capsys):
         rrm.show_block_status()
