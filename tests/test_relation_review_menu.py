@@ -3,8 +3,8 @@ tests/test_relation_review_menu.py — S0127
 
 Tests del módulo auxiliar de revisión relacional experimental.
 
-Cobertura requerida por S0127:
-  1. La sección experimental aparece en el menú principal (opción 16).
+Cobertura requerida por S0127/S0150:
+  1. La revisión relacional aparece en admisión gobernada y alias 16 sigue funcionando.
   2. El texto del submenú incluye EXPERIMENTAL, dry-run,
      generación bloqueada y admisión bloqueada.
   3. La opción invoca el validador con --dry-run.
@@ -12,7 +12,7 @@ Cobertura requerida por S0127:
   5. La opción NO modifica data/out/local/tiddlers_*.jsonl.
   6. Si no hay candidatos, la salida es legible y no genera nuevos.
   7. El reporte humano puede mostrarse o referenciarse sin alterar archivos.
-  8. El submenú es accesible desde el menú principal como opción 16.
+  8. El submenú es accesible desde el alias histórico 16.
   9. El submenú cierra limpiamente con opción 0.
 """
 
@@ -417,21 +417,20 @@ class TestViewHumanReport:
 
 
 class TestMainMenuIntegration:
-    """Verifica que la opción 16 está integrada en el menú principal."""
+    """Verifica que la revisión relacional sigue integrada tras S0150."""
 
     def test_main_menu_shows_revision_relacional_experimental(self):
-        """El menú principal muestra la opción de revisión relacional experimental."""
+        """El menú principal muestra el punto central de admisión gobernada."""
         result = _run_menu("0\n")
         assert result.returncode == 0
-        assert (
-            "Revision relacional" in result.stdout
-            or "EXPERIMENTAL" in result.stdout
-        ), f"Opción experimental no encontrada:\n{result.stdout[:600]}"
+        assert "Revisión / admisión gobernada" in result.stdout, (
+            f"Admisión gobernada no encontrada:\n{result.stdout[:600]}"
+        )
 
-    def test_main_menu_shows_option_16(self):
-        result = _run_menu("0\n")
-        assert "16)" in result.stdout, (
-            f"Opción 16 no encontrada en el menú:\n{result.stdout[:600]}"
+    def test_alias_16_redirects_to_relation_review(self):
+        result = _run_menu("16\n0\n0\n", timeout=30)
+        assert "Revisión relacional ahora vive" in result.stdout, (
+            f"Alias 16 no redirigió correctamente:\n{result.stdout[:800]}"
         )
 
     def test_experimental_submenu_reachable_from_main(self):
