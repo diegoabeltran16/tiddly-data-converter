@@ -69,6 +69,8 @@ from tdc_cat import (  # noqa: E402
     tdc_cat_warning,
 )
 from relation_review_menu import option_relation_review_menu  # noqa: E402
+from repo_metadata_review_menu import option_repo_metadata_admission_menu  # noqa: E402
+from tdc_menu_registry import menu_text as registry_menu_text, resolve_choice as resolve_main_choice  # noqa: E402
 
 
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
@@ -2068,73 +2070,216 @@ def option_repository_exporter() -> None:
         tdc_cat_error(f"Exportador de repositorio termino con exit code {result.returncode}.")
 
 
+def option_build_or_import_canon(state: MenuState) -> None:
+    while True:
+        print(
+            "\nConstruir o importar canon\n"
+            "1) Construir canon desde HTML\n"
+            "2) Extraer HTML a JSONL temporal\n"
+            "3) Shardizar JSONL en canon local\n"
+            "4) Validar canon\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            option_build_from_html(state)
+        elif choice == "2":
+            option_extract_html(state)
+        elif choice == "3":
+            option_shard_jsonl(state)
+        elif choice == "4":
+            option_validate_canon()
+        else:
+            print("Opcion invalida.")
+
+
+def option_export_or_consult_canon(state: MenuState) -> None:
+    while True:
+        print(
+            "\nExportar / consultar canon\n"
+            "1) Estado / exportar del canon\n"
+            "2) Ejecutar reverse\n"
+            "3) Validar canon\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            option_canon_status()
+        elif choice == "2":
+            option_reverse(state)
+        elif choice == "3":
+            option_validate_canon()
+        else:
+            print("Opcion invalida.")
+
+
+def option_governed_admission(state: MenuState) -> None:
+    while True:
+        print(
+            "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "  Revisión / admisión gobernada\n"
+            "  Canon: PROTEGIDO\n"
+            "  Apply: requiere confirmación humana explícita\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "1) Metadata técnica\n"
+            "2) Relaciones candidatas\n"
+            "3) Sesiones al canon\n"
+            "4) Estado de compuertas\n"
+            "5) Ver reportes de admisión\n"
+            "9) Avanzado / mantenimiento\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            option_repo_metadata_admission_menu()
+        elif choice == "2":
+            option_relation_review_menu()
+        elif choice == "3":
+            option_session_sync(state)
+        elif choice == "4":
+            print("\nEstado de compuertas")
+            print(f"- Metadata S0149: {display(REPO_ROOT / 'data/out/local/pipeline/repo_metadata_admission/s0149/s0149_metadata_admission_dry_run_report.json')}")
+            print(f"- Relaciones: {display(REPO_ROOT / 'data/out/local/pipeline/relation_admission')}")
+            print(f"- Sesiones: {display(DEFAULT_ADMISSION_REPORT_DIR)}")
+        elif choice == "5":
+            option_reports()
+        elif choice == "9":
+            option_advanced_maintenance(state)
+        else:
+            print("Opcion invalida.")
+
+
+def option_reports_audit() -> None:
+    while True:
+        print(
+            "\nReportes / métricas / auditoría\n"
+            "1) Ver reportes / métricas\n"
+            "2) Auditar calidad canonica / nodos\n"
+            "3) Validar canon\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            option_reports()
+        elif choice == "2":
+            option_canon_quality()
+        elif choice == "3":
+            option_validate_canon()
+        else:
+            print("Opcion invalida.")
+
+
+def option_rollback_menu() -> None:
+    while True:
+        print(
+            "\nRollback\n"
+            "1) Rollback de admision\n"
+            "2) Rollback de reconstruccion\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            option_rollback()
+        elif choice == "2":
+            option_reconstruction_rollback()
+        else:
+            print("Opcion invalida.")
+
+
+def option_advanced_maintenance(state: MenuState) -> None:
+    while True:
+        print(
+            "\nAvanzado / mantenimiento\n"
+            "1) Preparacion técnica\n"
+            "2) Saneamiento del canon\n"
+            "3) Configurar MCP / mirror remoto\n"
+            "4) Revision relacional [alias histórico 16]\n"
+            "5) Metadata técnica [alias histórico 18]\n"
+            "6) Exportador de repositorio [alias histórico 17]\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            option_preparation()
+        elif choice == "2":
+            option_canon_sanitation()
+        elif choice == "3":
+            option_mcp_manager()
+        elif choice == "4":
+            option_relation_review_menu()
+        elif choice == "5":
+            option_repo_metadata_admission_menu()
+        elif choice == "6":
+            option_repository_exporter()
+        else:
+            print("Opcion invalida.")
+
+
+def dispatch_main_choice(choice: str, state: MenuState) -> bool:
+    resolved = resolve_main_choice(choice)
+    if resolved is None:
+        print("Opcion invalida.")
+        return False
+    message = resolved.get("message")
+    if message:
+        print(message)
+    action = resolved["action"]
+    if action == "preparation":
+        option_preparation()
+    elif action == "build_or_import_canon":
+        option_build_or_import_canon(state)
+    elif action == "export_or_consult_canon":
+        option_export_or_consult_canon(state)
+    elif action == "session_sync":
+        option_session_sync(state)
+    elif action == "derivatives":
+        option_derivatives(state)
+    elif action == "governed_admission":
+        option_governed_admission(state)
+    elif action == "reports_audit":
+        option_reports_audit()
+    elif action == "rollback":
+        option_rollback_menu()
+    elif action == "repository_exporter":
+        option_repository_exporter()
+    elif action == "mcp_remote_config":
+        option_mcp_manager()
+    elif action == "advanced_maintenance":
+        option_advanced_maintenance(state)
+    elif action == "relation_review":
+        option_relation_review_menu()
+    elif action == "metadata_admission":
+        option_repo_metadata_admission_menu()
+    else:
+        print(f"Accion no implementada: {action}")
+        return False
+    return True
+
+
 def main_menu() -> None:
     state = MenuState()
     while True:
         tdc_cat_open()
-        print(
-            "\nTiddly Data Converter - Operador local\n\n"
-            "1) Preparacion\n"
-            "2) Exportar del canon\n"
-            "3) Construir canon desde HTML\n"
-            "4) Extraer HTML a JSONL temporal\n"
-            "5) Shardizar JSONL en canon local\n"
-            "6) Validar canon\n"
-            "7) Sincronizar entregables de sesiones al canon\n"
-            "8) Generar derivados\n"
-            "9) Ejecutar reverse\n"
-            "10) Ver reportes / metricas\n"
-            "11) Rollback de admision\n"
-            "12) Rollback de reconstruccion\n"
-            "13) Auditar calidad canonica / nodos\n"
-            "14) Configurar MCP / mirror remoto\n"
-            "15) Saneamiento del canon\n"
-            "16) Revision relacional [EXPERIMENTAL]\n"
-            "17) Exportador de repositorio\n"
-            "0) Salir"
-        )
+        print("\n" + registry_menu_text())
         choice = prompt("> ").strip()
         if choice == "0" or (choice == "" and not sys.stdin.isatty()):
             print("Salida.")
             return
         if choice == "":
             continue
-        if choice == "1":
-            option_preparation()
-        elif choice == "2":
-            option_canon_status()
-        elif choice == "3":
-            option_build_from_html(state)
-        elif choice == "4":
-            option_extract_html(state)
-        elif choice == "5":
-            option_shard_jsonl(state)
-        elif choice == "6":
-            option_validate_canon()
-        elif choice == "7":
-            option_session_sync(state)
-        elif choice == "8":
-            option_derivatives(state)
-        elif choice == "9":
-            option_reverse(state)
-        elif choice == "10":
-            option_reports()
-        elif choice == "11":
-            option_rollback()
-        elif choice == "12":
-            option_reconstruction_rollback()
-        elif choice == "13":
-            option_canon_quality()
-        elif choice == "14":
-            option_mcp_manager()
-        elif choice == "15":
-            option_canon_sanitation()
-        elif choice == "16":
-            option_relation_review_menu()
-        elif choice == "17":
-            option_repository_exporter()
-        else:
-            print("Opcion invalida.")
+        dispatch_main_choice(choice, state)
         pause()
 
 

@@ -1,0 +1,33 @@
+ /\_/\
+( ^_^ )
+ > ^ <
+
+Estado: success
+<mensaje>
+
+ /\_/\
+( x_x )
+ > ^ <
+
+Estado: error
+Revisar stderr / salida anterior.
+
+
+ /\_/\
+( -_- )
+ > ^ <
+Estado: blink (loading)
+
+
+
+ /\_/\
+( o_o )
+ > ^ <
+
+Estado: awake
+
+
+ /\_/\
+( O_O )
+ > ^ <
+Estado: Alerta
