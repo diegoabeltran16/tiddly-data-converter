@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Refresh S0147 repo metadata patch preview against the current canon.
+"""Refresh repo metadata patch preview against the current canon.
 
-S0150 uses this script to resolve stale canon hashes without applying metadata.
-It reads the S0147 patch preview, verifies each target against the live canon,
+S0150 and S0151 use this script to resolve stale canon hashes without applying
+metadata. It reads a patch preview, verifies each target against the live canon,
 recomputes preview/batch hashes, and writes refreshed dry-run artifacts.
 """
 
@@ -15,14 +15,19 @@ import hashlib
 import json
 import re
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
+DEFAULT_ADMISSION_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission"
 DEFAULT_S0147_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0150"
+DEFAULT_S0150_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0150"
+DEFAULT_S0151_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0151"
+DEFAULT_OUT_DIR = DEFAULT_S0150_OUT_DIR
+DEFAULT_LATEST_MANIFEST = DEFAULT_ADMISSION_DIR / "latest_metadata_patch_manifest.json"
 DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
 SESSION_TITLE_RE = re.compile(
     r"^#### .*?(sesión|sesion|diagnóstico|diagnostico|hipótesis|hipotesis|procedencia|balance|propuesta|contrato)",
@@ -34,6 +39,10 @@ def stable_json(value: Any, *, indent: int | None = None) -> str:
     if indent is None:
         return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return json.dumps(value, ensure_ascii=False, sort_keys=True, indent=indent)
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -85,15 +94,16 @@ def subset_sha(rows: list[dict[str, Any]]) -> str:
     return hashlib.sha256("".join(stable_json(row) + "\n" for row in ordered).encode("utf-8")).hexdigest()
 
 
-def refreshed_paths(out_dir: Path = DEFAULT_OUT_DIR) -> dict[str, Path]:
+def refreshed_paths(out_dir: Path = DEFAULT_OUT_DIR, *, session: str = "S0150") -> dict[str, Path]:
+    prefix = session.lower()
     return {
-        "report": out_dir / "s0150_metadata_refresh_report.json",
-        "summary": out_dir / "s0150_metadata_refresh_summary.md",
-        "patch_preview": out_dir / "s0150_metadata_patch_preview_refreshed.jsonl",
-        "review_batches": out_dir / "s0150_metadata_review_batches_refreshed.json",
-        "patch_hashes": out_dir / "s0150_metadata_patch_hashes_refreshed.json",
-        "blocked": out_dir / "s0150_metadata_refresh_blocked.jsonl",
-        "review": out_dir / "s0150_metadata_refresh_review.csv",
+        "report": out_dir / f"{prefix}_metadata_refresh_report.json",
+        "summary": out_dir / f"{prefix}_metadata_refresh_summary.md",
+        "patch_preview": out_dir / f"{prefix}_metadata_patch_preview_refreshed.jsonl",
+        "review_batches": out_dir / f"{prefix}_metadata_review_batches_refreshed.json",
+        "patch_hashes": out_dir / f"{prefix}_metadata_patch_hashes_refreshed.json",
+        "blocked": out_dir / f"{prefix}_metadata_refresh_blocked.jsonl",
+        "review": out_dir / f"{prefix}_metadata_refresh_review.csv",
     }
 
 
@@ -151,10 +161,10 @@ def block_reasons_for_row(row: dict[str, Any], canon_index: dict[str, dict[str, 
     return sorted(set(reasons))
 
 
-def refreshed_row(row: dict[str, Any], *, session: str, canon_before_sha256: str) -> dict[str, Any]:
+def refreshed_row(row: dict[str, Any], *, session: str, canon_before_sha256: str, source_session: str) -> dict[str, Any]:
     payload = dict(row)
     payload["session"] = session
-    payload["source_session"] = "S0147"
+    payload["source_session"] = source_session
     payload["refresh_session"] = session
     payload["canon_before_sha256_refreshed"] = canon_before_sha256
     payload["dry_run"] = True
@@ -165,10 +175,10 @@ def refreshed_row(row: dict[str, Any], *, session: str, canon_before_sha256: str
     return payload
 
 
-def blocked_row(row: dict[str, Any], reasons: list[str], *, session: str) -> dict[str, Any]:
+def blocked_row(row: dict[str, Any], reasons: list[str], *, session: str, source_session: str) -> dict[str, Any]:
     return {
         "session": session,
-        "source_session": "S0147",
+        "source_session": source_session,
         "op_id": row.get("op_id", ""),
         "target_id": row.get("target_id", ""),
         "target_title": row.get("target_title", ""),
@@ -182,7 +192,14 @@ def blocked_row(row: dict[str, Any], reasons: list[str], *, session: str) -> dic
     }
 
 
-def build_refreshed_batches(original_batches: dict[str, Any], ready_rows: list[dict[str, Any]], *, canon_before_sha256: str, session: str) -> dict[str, Any]:
+def build_refreshed_batches(
+    original_batches: dict[str, Any],
+    ready_rows: list[dict[str, Any]],
+    *,
+    canon_before_sha256: str,
+    session: str,
+    source_session: str,
+) -> dict[str, Any]:
     rows_by_batch: dict[str, list[dict[str, Any]]] = {}
     for row in ready_rows:
         rows_by_batch.setdefault(str(row.get("batch_id") or ""), []).append(row)
@@ -196,7 +213,7 @@ def build_refreshed_batches(original_batches: dict[str, Any], ready_rows: list[d
         batch.update(
             {
                 "session": session,
-                "source_session": "S0147",
+                "source_session": source_session,
                 "batch_id": batch_id,
                 "record_count": len(rows),
                 "patch_sha256": subset_sha(rows),
@@ -211,7 +228,7 @@ def build_refreshed_batches(original_batches: dict[str, Any], ready_rows: list[d
     return {
         "schema": "repo-metadata-review-batches/v1",
         "session": session,
-        "source_session": "S0147",
+        "source_session": source_session,
         "dry_run": True,
         "applied_to_canon": False,
         "human_approved": False,
@@ -255,7 +272,7 @@ def write_review_csv(path: Path, ready_rows: list[dict[str, Any]], blocked_rows:
 
 def summary_md(report: dict[str, Any]) -> str:
     lines = [
-        "# S0150 metadata refresh summary",
+        f"# {report['session']} metadata refresh summary",
         "",
         f"- source_patch_operations: {report['source_patch_operations']}",
         f"- operations_preserved: {report['operations_preserved']}",
@@ -277,6 +294,138 @@ def summary_md(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def repo_relative(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def resolve_manifest_path(value: str, *, manifest_path: Path) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return (REPO_ROOT / path).resolve()
+
+
+def manifest_file_paths(manifest_path: Path) -> dict[str, Path]:
+    manifest = read_json(manifest_path)
+    if not isinstance(manifest, dict):
+        raise ValueError(f"manifest is not a JSON object: {manifest_path}")
+    if manifest.get("schema") != "latest-metadata-patch-manifest/v1":
+        raise ValueError(f"invalid manifest schema: {manifest_path}")
+    if manifest.get("status") != "ready_for_dry_run":
+        raise ValueError(f"manifest is not ready_for_dry_run: {manifest_path}")
+    return {
+        "patch_preview": resolve_manifest_path(str(manifest.get("patch_preview") or ""), manifest_path=manifest_path),
+        "review_batches": resolve_manifest_path(str(manifest.get("review_batches") or ""), manifest_path=manifest_path),
+        "patch_hashes": resolve_manifest_path(str(manifest.get("patch_hashes") or ""), manifest_path=manifest_path),
+        "refresh_report": resolve_manifest_path(str(manifest.get("refresh_report") or ""), manifest_path=manifest_path),
+    }
+
+
+def source_candidate_is_compatible(paths: dict[str, Path]) -> bool:
+    try:
+        rows = read_jsonl(paths["patch_preview"])
+        batches = read_json(paths["review_batches"])
+        hashes = read_json(paths["patch_hashes"])
+    except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):
+        return False
+    return isinstance(rows, list) and isinstance(batches.get("batches"), dict) and bool(hashes.get("canon_before_sha256"))
+
+
+def resolve_source_patch(
+    source_patch: str,
+    *,
+    patch_preview: Path,
+    review_batches: Path,
+    patch_hashes: Path,
+    latest_manifest: Path = DEFAULT_LATEST_MANIFEST,
+    s0150_dir: Path = DEFAULT_S0150_OUT_DIR,
+    s0147_dir: Path = DEFAULT_S0147_DIR,
+) -> dict[str, Any]:
+    if source_patch != "auto":
+        return {
+            "source_session": "S0147",
+            "source_kind": "explicit",
+            "patch_preview": patch_preview,
+            "review_batches": review_batches,
+            "patch_hashes": patch_hashes,
+        }
+
+    s0150_paths = refreshed_paths(s0150_dir, session="S0150")
+    candidates: list[dict[str, Any]] = [
+        {
+            "source_session": "S0150",
+            "source_kind": "s0150_refreshed",
+            "patch_preview": s0150_paths["patch_preview"],
+            "review_batches": s0150_paths["review_batches"],
+            "patch_hashes": s0150_paths["patch_hashes"],
+        },
+        {
+            "source_session": "S0147",
+            "source_kind": "s0147_original",
+            "patch_preview": s0147_dir / "s0147_repo_metadata_patch_preview.jsonl",
+            "review_batches": s0147_dir / "s0147_repo_metadata_review_batches.json",
+            "patch_hashes": s0147_dir / "s0147_repo_metadata_patch_hashes.json",
+        },
+    ]
+    if latest_manifest.exists():
+        try:
+            manifest_paths = manifest_file_paths(latest_manifest)
+            manifest = read_json(latest_manifest)
+            candidates.append(
+                {
+                    "source_session": str(manifest.get("session") or "latest"),
+                    "source_kind": "latest_manifest",
+                    "patch_preview": manifest_paths["patch_preview"],
+                    "review_batches": manifest_paths["review_batches"],
+                    "patch_hashes": manifest_paths["patch_hashes"],
+                }
+            )
+        except (FileNotFoundError, json.JSONDecodeError, ValueError):
+            pass
+
+    for candidate in candidates:
+        paths = {
+            "patch_preview": candidate["patch_preview"],
+            "review_batches": candidate["review_batches"],
+            "patch_hashes": candidate["patch_hashes"],
+        }
+        if source_candidate_is_compatible(paths):
+            return candidate
+
+    raise FileNotFoundError("no compatible metadata patch source found for --source-patch auto")
+
+
+def write_latest_manifest(
+    *,
+    manifest_path: Path,
+    session: str,
+    source_session: str,
+    canon_before_sha256: str,
+    paths: dict[str, Path],
+    created_at: str | None = None,
+) -> dict[str, Any]:
+    manifest = {
+        "schema": "latest-metadata-patch-manifest/v1",
+        "session": session,
+        "source_session": source_session,
+        "status": "ready_for_dry_run",
+        "canon_before_sha256": canon_before_sha256,
+        "patch_preview": repo_relative(paths["patch_preview"]),
+        "review_batches": repo_relative(paths["review_batches"]),
+        "patch_hashes": repo_relative(paths["patch_hashes"]),
+        "refresh_report": repo_relative(paths["report"]),
+        "created_at": created_at or utc_now(),
+        "dry_run": True,
+        "applied_to_canon": False,
+        "canon_modified": False,
+    }
+    write_json(manifest_path, manifest)
+    return manifest
+
+
 def refresh_metadata_patch(
     *,
     patch_preview: Path,
@@ -285,12 +434,14 @@ def refresh_metadata_patch(
     canon_glob: str,
     out_dir: Path,
     session: str = "S0150",
+    source_session: str = "S0147",
+    manifest_path: Path | None = None,
     dry_run: bool = True,
 ) -> dict[str, Any]:
     if not dry_run:
-        raise ValueError("S0150 metadata refresh is dry-run only")
+        raise ValueError("metadata refresh is dry-run only")
     out_dir.mkdir(parents=True, exist_ok=True)
-    paths = refreshed_paths(out_dir)
+    paths = refreshed_paths(out_dir, session=session)
     source_rows = read_jsonl(patch_preview)
     source_batches_doc = read_json(review_batches)
     source_hashes = read_json(patch_hashes)
@@ -303,17 +454,18 @@ def refresh_metadata_patch(
     for row in source_rows:
         reasons = block_reasons_for_row(row, canon_index)
         if reasons:
-            blocked = blocked_row(row, reasons, session=session)
+            blocked = blocked_row(row, reasons, session=session, source_session=source_session)
             blocked_rows.append(blocked)
             reason_counter.update(reasons)
         else:
-            ready_rows.append(refreshed_row(row, session=session, canon_before_sha256=current_canon_sha))
+            ready_rows.append(refreshed_row(row, session=session, canon_before_sha256=current_canon_sha, source_session=source_session))
 
     refreshed_batches = build_refreshed_batches(
         source_batches_doc.get("batches") or {},
         ready_rows,
         canon_before_sha256=current_canon_sha,
         session=session,
+        source_session=source_session,
     )
     write_jsonl(paths["patch_preview"], ready_rows)
     write_jsonl(paths["blocked"], blocked_rows)
@@ -323,7 +475,7 @@ def refresh_metadata_patch(
     refreshed_hashes = {
         "schema": "repo-metadata-patch-hashes/v1",
         "session": session,
-        "source_session": "S0147",
+        "source_session": source_session,
         "dry_run": True,
         "applied_to_canon": False,
         "canon_modified": False,
@@ -339,9 +491,9 @@ def refresh_metadata_patch(
     write_json(paths["patch_hashes"], refreshed_hashes)
 
     report = {
-        "schema": "repo-metadata-s0150-refresh-report/v1",
+        "schema": f"repo-metadata-{session.lower()}-refresh-report/v1",
         "session": session,
-        "source_session": "S0147",
+        "source_session": source_session,
         "dry_run": True,
         "applied_to_canon": False,
         "canon_modified": False,
@@ -362,30 +514,53 @@ def refresh_metadata_patch(
     }
     write_json(paths["report"], report)
     paths["summary"].write_text(summary_md(report), encoding="utf-8")
+    if manifest_path is not None:
+        write_latest_manifest(
+            manifest_path=manifest_path,
+            session=session,
+            source_session=source_session,
+            canon_before_sha256=current_canon_sha,
+            paths=paths,
+        )
     return report
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Refresh S0147 repo metadata patch against current canon")
+    parser.add_argument("--source-patch", choices=["explicit", "auto"], default="explicit")
     parser.add_argument("--patch-preview", default=str(DEFAULT_S0147_DIR / "s0147_repo_metadata_patch_preview.jsonl"))
     parser.add_argument("--review-batches", default=str(DEFAULT_S0147_DIR / "s0147_repo_metadata_review_batches.json"))
     parser.add_argument("--patch-hashes", default=str(DEFAULT_S0147_DIR / "s0147_repo_metadata_patch_hashes.json"))
     parser.add_argument("--canon-glob", default=DEFAULT_CANON_GLOB)
     parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     parser.add_argument("--session", default="S0150")
+    parser.add_argument("--latest-manifest", default=str(DEFAULT_LATEST_MANIFEST))
     parser.add_argument("--dry-run", action="store_true", required=True)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    report = refresh_metadata_patch(
+    session = str(args.session).upper()
+    out_dir = Path(args.out_dir)
+    if session == "S0151" and out_dir == DEFAULT_OUT_DIR:
+        out_dir = DEFAULT_S0151_OUT_DIR
+    source = resolve_source_patch(
+        args.source_patch,
         patch_preview=Path(args.patch_preview),
         review_batches=Path(args.review_batches),
         patch_hashes=Path(args.patch_hashes),
+        latest_manifest=Path(args.latest_manifest),
+    )
+    report = refresh_metadata_patch(
+        patch_preview=Path(source["patch_preview"]),
+        review_batches=Path(source["review_batches"]),
+        patch_hashes=Path(source["patch_hashes"]),
         canon_glob=args.canon_glob,
-        out_dir=Path(args.out_dir),
-        session=str(args.session).upper(),
+        out_dir=out_dir,
+        session=session,
+        source_session=str(source["source_session"]),
+        manifest_path=Path(args.latest_manifest) if session == "S0151" else None,
         dry_run=args.dry_run,
     )
     print(stable_json(report, indent=2))

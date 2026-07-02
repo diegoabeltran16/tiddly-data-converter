@@ -5,9 +5,9 @@
   <img src="./ux/assets/Open%20eyes.PNG" alt="Tiddly Data Converter icon" width="130">
 </p>
 
-# tiddly-data-converter
+# tiddly-data-converter (TDC)
 
-Aplicación de escritorio local‑first para convertir un corpus TiddlyWiki básico en un canon gestionado, mediante procesos de extracción, canonización, derivación, y auditoría, preservando trazabilidad y reversibilidad.
+TDC es una infraestructura de ingeniería del conocimiento, de escritorio local-first, que prepara una memoria semántica para sistemas RAG. Lo logra mediante la transformación y conversión de información fragmentada (TiddlyWiki) en un corpus canónico, organizado y consultable. Este proceso se basa en un pipeline de extracción, canonización, derivación y auditoría, diseñado para garantizar la máxima trazabilidad del linaje de los datos y la reversibilidad de sus estados.
 
 ## Ejecución
 
