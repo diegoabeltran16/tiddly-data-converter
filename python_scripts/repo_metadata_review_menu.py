@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import repo_metadata_admission_gate as gate
+import repo_metadata_refresh_patch as refresh
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -25,6 +26,10 @@ REPO_ROOT = SCRIPT_DIR.parent
 DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
 DEFAULT_S0148_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0148"
 DEFAULT_S0149_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0149"
+DEFAULT_S0151_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0151"
+DEFAULT_LATEST_METADATA_PATCH_MANIFEST = (
+    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "latest_metadata_patch_manifest.json"
+)
 DEFAULT_SEMANTIC_AUTHORITY_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "semantic_text_authority" / "s0149"
 
 APPROVAL_REQUIRES_TERMINAL_TOKEN = "approval_requires_terminal_token"
@@ -615,8 +620,466 @@ def interactive_s0149_menu(
         print()
 
 
+HUMAN_BATCH_LABELS = {
+    "batch_current_verified": "Código vigente verificado",
+    "batch_embedded_code": "Código embebido",
+    "batch_narrative_reference": "Narrativa técnica",
+    "batch_historical_review": "Histórico/divergente",
+    "batch_generated_derivative": "Generados",
+    "batch_excluded_review_required": "Excluidos / requieren revisión",
+}
+
+
+S0151_MENU_HEADER = """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Metadata técnica
+  Canon: PROTEGIDO
+  Modo normal: guiado
+  IDs y hashes: solo en avanzado
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1) Ver estado simple
+2) Usar selección recomendada
+3) Solo código vigente verificado
+4) Solo metadata auxiliar
+5) Selección personalizada guiada
+6) Refrescar patch contra canon actual
+7) Ejecutar dry-run
+8) Ver resultado dry-run
+9) Aplicar metadata al canon
+10) Rollback último apply
+11) Avanzado / IDs, hashes y reportes
+0) Volver
+"""
+
+
+S0151_ADVANCED_HEADER = """Avanzado / IDs, hashes y reportes
+1) Ver batch IDs
+2) Ver patch hashes
+3) Ver canon_before_sha256
+4) Ver op_ids
+5) Ver rutas de reportes JSON/CSV
+6) Validar JSON/JSONL
+7) Abrir resumen técnico
+0) Volver
+"""
+
+
+def _human_label(batch_id: str) -> str:
+    return HUMAN_BATCH_LABELS.get(batch_id, batch_id)
+
+
+def _batch_counts_from_selection(selected_doc: dict[str, Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in selected_doc.get("selected_batches") or []:
+        if isinstance(item, dict):
+            counts[str(item.get("batch_id") or "")] = int(item.get("record_count") or 0)
+    return counts
+
+
+def show_s0151_status(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+    canon_glob: str | None = None,
+) -> int:
+    print("Estado metadata técnica")
+    if not manifest.exists():
+        print("- patch vigente: no disponible")
+        print("- acción sugerida: refrescar patch contra canon actual")
+        return 1
+    try:
+        hash_doc = gate.s0151_hash_verification(
+            manifest=manifest,
+            canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        )
+    except Exception as exc:  # noqa: BLE001 - operator-facing menu
+        print(f"- patch vigente: inválido ({exc})")
+        return 1
+    print(f"- patch vigente: {'compatible' if hash_doc['all_hashes_match'] else 'requiere refresh'}")
+    selected_path = gate.s0151_paths(admission_dir)["selected_batches"]
+    if selected_path.exists():
+        selected = gate.read_json(selected_path)
+        counts = _batch_counts_from_selection(selected)
+        print("- selección actual:")
+        if counts:
+            for batch_id, count in counts.items():
+                print(f"  - {_human_label(batch_id)}: {count}")
+        else:
+            print("  - sin operaciones seleccionadas")
+        if selected.get("operator_warnings"):
+            print(f"- advertencias: {', '.join(selected['operator_warnings'])}")
+    else:
+        print("- selección actual: no definida")
+    dry_path = gate.s0151_paths(admission_dir)["dry_run_report"]
+    if dry_path.exists():
+        report = gate.read_json(dry_path)
+        print(f"- dry-run: {'bloqueado' if report.get('blocked') else 'listo'}")
+        print(f"- operaciones listas: {report.get('admission_ready', 0)}")
+        print(f"- operaciones bloqueadas: {report.get('blocked_records', 0)}")
+    else:
+        print("- dry-run: no ejecutado")
+    apply_path = gate.s0151_paths(admission_dir)["apply_report"]
+    if apply_path.exists():
+        apply_report = gate.read_json(apply_path)
+        print(f"- apply ejecutado: {'SÍ' if apply_report.get('apply_executed') else 'NO'}")
+        print(f"- canon modificado: {'SÍ' if apply_report.get('canon_modified') else 'NO'}")
+    else:
+        print("- apply ejecutado: NO")
+        print("- canon modificado: NO")
+    return 0
+
+
+def select_s0151_guided(
+    selection: str | list[str],
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+    selection_source: str = "guided_terminal",
+) -> int:
+    doc = gate.select_s0151_batches(
+        selection,
+        manifest=manifest,
+        out_dir=admission_dir,
+        selection_source=selection_source,
+    )
+    print("Selección guardada")
+    counts = _batch_counts_from_selection(doc)
+    for batch_id, count in counts.items():
+        print(f"- {_human_label(batch_id)}: {count}")
+    if doc.get("operator_warnings"):
+        print(f"Advertencias: {', '.join(doc['operator_warnings'])}")
+    if doc.get("blocked_batch_ids"):
+        print("Selección bloqueada: incluye excluidos / requieren revisión.")
+    if doc.get("invalid_batch_ids"):
+        print("Selección bloqueada: hay opciones no disponibles en el patch actual.")
+    print("Relaciones serán generadas: NO")
+    return 0 if doc.get("valid") is True else 2
+
+
+def select_s0151_recommended(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+) -> int:
+    print("Selección recomendada:")
+    print("- Código vigente verificado")
+    print("- Código embebido")
+    print("- Narrativa técnica")
+    print("No incluye histórico/divergente, excluidos ni relaciones.")
+    print("Esta selección agrega metadata técnica sin generar relaciones.")
+    return select_s0151_guided("recommended", manifest=manifest, admission_dir=admission_dir, selection_source="recommended_preset")
+
+
+def refresh_s0151_patch_from_menu(
+    *,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    canon_glob: str | None = None,
+) -> dict[str, Any]:
+    source = refresh.resolve_source_patch(
+        "auto",
+        patch_preview=DEFAULT_OUT_DIR / "s0147_repo_metadata_patch_preview.jsonl",
+        review_batches=DEFAULT_OUT_DIR / "s0147_repo_metadata_review_batches.json",
+        patch_hashes=DEFAULT_OUT_DIR / "s0147_repo_metadata_patch_hashes.json",
+        latest_manifest=manifest,
+    )
+    report = refresh.refresh_metadata_patch(
+        patch_preview=Path(source["patch_preview"]),
+        review_batches=Path(source["review_batches"]),
+        patch_hashes=Path(source["patch_hashes"]),
+        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        out_dir=admission_dir,
+        session="S0151",
+        source_session=str(source["source_session"]),
+        manifest_path=manifest,
+        dry_run=True,
+    )
+    print("Patch actualizado.")
+    print(f"- Operaciones preservadas: {report.get('operations_preserved')}")
+    print(f"- Operaciones bloqueadas: {report.get('operations_blocked')}")
+    print("- Manifest vigente actualizado.")
+    return report
+
+
+def _manifest_needs_refresh(manifest: Path, *, canon_glob: str | None = None) -> bool:
+    if not manifest.exists():
+        return True
+    try:
+        return not gate.s0151_hash_verification(
+            manifest=manifest,
+            canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        )["all_hashes_match"]
+    except Exception:  # noqa: BLE001 - operator-facing menu
+        return True
+
+
+def _offer_refresh_if_needed(
+    *,
+    manifest: Path,
+    admission_dir: Path,
+    canon_glob: str | None,
+) -> bool:
+    if not _manifest_needs_refresh(manifest, canon_glob=canon_glob):
+        return True
+    print("El canon cambió desde que se generó el patch.")
+    print("1) Refrescar patch contra canon actual")
+    print("2) Ver diferencias")
+    print("3) Cancelar")
+    print("0) Volver")
+    try:
+        choice = input("Selección: ").strip()
+    except EOFError:
+        return False
+    if choice == "1":
+        refresh_s0151_patch_from_menu(admission_dir=admission_dir, manifest=manifest, canon_glob=canon_glob)
+        return True
+    if choice == "2":
+        try:
+            hash_doc = gate.s0151_hash_verification(manifest=manifest, canon_glob=canon_glob or gate.DEFAULT_CANON_GLOB)
+            print("Diferencias detectadas:")
+            for check in hash_doc["checks"]:
+                if not check["match"]:
+                    print(f"- {check['name']}: no coincide")
+        except Exception as exc:  # noqa: BLE001
+            print(f"No fue posible calcular diferencias: {exc}")
+        return False
+    return False
+
+
+def run_s0151_gate_dry_run(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+    canon_glob: str | None = None,
+    require_token: bool = False,
+) -> int:
+    selected = gate.s0151_paths(admission_dir)["selected_batches"]
+    if not selected.exists():
+        print("No hay selección guiada todavía.")
+        return 2
+    if require_token:
+        selected_doc = gate.read_json(selected)
+        counts = _batch_counts_from_selection(selected_doc)
+        print("Vas a ejecutar dry-run de metadata.")
+        print("Selección:")
+        for batch_id, count in counts.items():
+            print(f"- {_human_label(batch_id)}: {count}")
+        print(f"Total operaciones: {selected_doc.get('selected_operation_count', 0)}")
+        print("Canon será modificado: NO")
+        print("Relaciones serán generadas: NO")
+        print("Semantic_text será modificado: NO")
+        print(f"Para continuar escribe:\n{gate.S0151_DRY_RUN_TOKEN}")
+        try:
+            token = input("Token: ").strip()
+        except EOFError:
+            token = ""
+        if token != gate.S0151_DRY_RUN_TOKEN:
+            print("Dry-run cancelado: token inválido.")
+            return 2
+    report = gate.run_s0151_dry_run(
+        manifest=manifest,
+        selected_batches=selected,
+        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        out_dir=admission_dir,
+    )
+    print("Dry-run ejecutado.")
+    print(f"- Estado: {'bloqueado' if report.get('blocked') else 'listo'}")
+    print(f"- Operaciones listas: {report.get('admission_ready')}")
+    print(f"- Operaciones bloqueadas: {report.get('blocked_records')}")
+    print("Relaciones generadas: NO")
+    return 0 if report.get("blocked") is False else 2
+
+
+def show_s0151_gate_report(admission_dir: Path = DEFAULT_S0151_OUT_DIR) -> int:
+    path = gate.s0151_paths(admission_dir)["dry_run_report"]
+    if not path.exists():
+        print("No existe reporte dry-run S0151 todavía.")
+        return 1
+    report = gate.read_json(path)
+    print("Resultado dry-run S0151")
+    print(f"- estado: {'bloqueado' if report.get('blocked') else 'listo'}")
+    print(f"- operaciones listas: {report.get('admission_ready')}")
+    print(f"- operaciones bloqueadas: {report.get('blocked_records')}")
+    print(f"- relaciones generadas: {'SÍ' if report.get('relations_generated') else 'NO'}")
+    return 0
+
+
+def apply_s0151_metadata_from_menu(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+    canon_glob: str | None = None,
+    apply_token: str | None = None,
+) -> int:
+    if apply_token is None:
+        print("Vas a MODIFICAR el canon JSONL.")
+        print("Esto actualizará líneas existentes dentro de data/out/local/tiddlers_*.jsonl")
+        print("No creará archivos JSON independientes por tiddler.")
+        print("No generará relaciones.")
+        print("No modificará semantic_text.")
+        print("Backup y rollback serán creados antes del cambio.")
+        print(f"Para confirmar escribe exactamente:\n{gate.S0151_APPLY_TOKEN}")
+        try:
+            apply_token = input("Token: ").strip()
+        except EOFError:
+            apply_token = ""
+    report = gate.apply_s0151_metadata(
+        manifest=manifest,
+        dry_run_report_path=gate.s0151_paths(admission_dir)["dry_run_report"],
+        selected_batches=gate.s0151_paths(admission_dir)["selected_batches"],
+        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        out_dir=admission_dir,
+        apply_token=apply_token,
+    )
+    print("Apply metadata S0151")
+    print(f"- apply ejecutado: {'SÍ' if report.get('apply_executed') else 'NO'}")
+    print(f"- canon modificado: {'SÍ' if report.get('canon_modified') else 'NO'}")
+    if report.get("block_reasons"):
+        print(f"- bloqueo: {', '.join(report['block_reasons'])}")
+    return 0 if report.get("apply_executed") is True else 2
+
+
+def rollback_s0151_metadata(admission_dir: Path = DEFAULT_S0151_OUT_DIR) -> int:
+    report = gate.rollback_s0151_metadata(out_dir=admission_dir)
+    print("Rollback metadata S0151")
+    print(f"- rollback ejecutado: {'SÍ' if report.get('rollback_executed') else 'NO'}")
+    return 0 if report.get("rollback_executed") is True else 2
+
+
+def validate_s0151_outputs(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+) -> int:
+    paths = gate.s0151_paths(admission_dir)
+    json_paths = [
+        manifest,
+        paths["selected_batches"],
+        paths["dry_run_report"],
+        paths["apply_report"],
+    ]
+    jsonl_paths = [paths["ready"], paths["blocked"], paths["patch_preview"]]
+    errors: list[str] = []
+    for path in json_paths:
+        if not path.exists():
+            errors.append(f"missing:{_display(path)}")
+            continue
+        try:
+            _load_json(path)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"invalid_json:{_display(path)}:{exc}")
+    for path in jsonl_paths:
+        if not path.exists():
+            errors.append(f"missing:{_display(path)}")
+            continue
+        try:
+            _load_jsonl(path)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"invalid_jsonl:{_display(path)}:{exc}")
+    if errors:
+        print("Validación con errores:")
+        for error in errors:
+            print(f"- {error}")
+        return 2
+    print("JSON/JSONL válidos.")
+    return 0
+
+
+def interactive_s0151_advanced(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+) -> int:
+    while True:
+        print(S0151_ADVANCED_HEADER)
+        try:
+            choice = input("Selección: ").strip()
+        except EOFError:
+            return 0
+        if choice == "0":
+            return 0
+        if choice == "1":
+            batches = gate.read_json(gate.s0151_manifest_paths(manifest)["review_batches"]).get("batches", {})
+            for batch_id, batch in sorted(batches.items()):
+                print(f"- {batch_id}: {batch.get('record_count')}")
+        elif choice == "2":
+            print(_stable_json(gate.read_json(gate.s0151_manifest_paths(manifest)["patch_hashes"])))
+        elif choice == "3":
+            print(gate.load_s0151_manifest(manifest).get("canon_before_sha256", ""))
+        elif choice == "4":
+            for row in gate.read_jsonl(gate.s0151_manifest_paths(manifest)["patch_preview"])[:100]:
+                print(f"- {row.get('op_id')} -> {row.get('target_id')}")
+        elif choice == "5":
+            for key, path in {**gate.s0151_paths(admission_dir), "latest_manifest": manifest}.items():
+                if key != "backups":
+                    print(f"- {key}: {_display(path)}")
+        elif choice == "6":
+            validate_s0151_outputs(manifest=manifest, admission_dir=admission_dir)
+        elif choice == "7":
+            path = gate.s0151_paths(admission_dir)["summary"]
+            if path.exists():
+                print(path.read_text(encoding="utf-8"))
+            else:
+                print("No existe resumen técnico todavía.")
+        else:
+            print("Opción no reconocida")
+        print()
+
+
+def interactive_s0151_menu(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    admission_dir: Path = DEFAULT_S0151_OUT_DIR,
+    canon_glob: str | None = None,
+) -> int:
+    while True:
+        print(S0151_MENU_HEADER)
+        try:
+            choice = input("Selección: ").strip()
+        except EOFError:
+            return 0
+        if choice == "0":
+            return 0
+        if choice == "1":
+            show_s0151_status(manifest=manifest, admission_dir=admission_dir, canon_glob=canon_glob)
+        elif choice == "2":
+            select_s0151_recommended(manifest=manifest, admission_dir=admission_dir)
+        elif choice == "3":
+            print("Solo metadata fuerte para artefactos actuales verificados del repositorio.")
+            select_s0151_guided("current_only", manifest=manifest, admission_dir=admission_dir, selection_source="current_only_preset")
+        elif choice == "4":
+            print("Metadata auxiliar para tiddlers que contienen código o mencionan referencias técnicas, sin convertirlos en artefactos de repositorio.")
+            select_s0151_guided("auxiliary_only", manifest=manifest, admission_dir=admission_dir, selection_source="auxiliary_only_preset")
+        elif choice == "5":
+            print("1) Código vigente verificado")
+            print("2) Código embebido")
+            print("3) Narrativa técnica")
+            print("4) Histórico/divergente")
+            print("5) Generados")
+            print("6) Excluidos / requieren revisión")
+            raw = input("Escribe números separados por coma: ").strip()
+            select_s0151_guided(raw, manifest=manifest, admission_dir=admission_dir, selection_source="guided_custom")
+        elif choice == "6":
+            refresh_s0151_patch_from_menu(admission_dir=admission_dir, manifest=manifest, canon_glob=canon_glob)
+        elif choice == "7":
+            if _offer_refresh_if_needed(manifest=manifest, admission_dir=admission_dir, canon_glob=canon_glob):
+                run_s0151_gate_dry_run(manifest=manifest, admission_dir=admission_dir, canon_glob=canon_glob, require_token=True)
+        elif choice == "8":
+            show_s0151_gate_report(admission_dir)
+        elif choice == "9":
+            if _offer_refresh_if_needed(manifest=manifest, admission_dir=admission_dir, canon_glob=canon_glob):
+                apply_s0151_metadata_from_menu(manifest=manifest, admission_dir=admission_dir, canon_glob=canon_glob)
+        elif choice == "10":
+            rollback_s0151_metadata(admission_dir)
+        elif choice == "11":
+            interactive_s0151_advanced(manifest=manifest, admission_dir=admission_dir)
+        else:
+            print("Opción no reconocida")
+        print()
+
+
 def option_repo_metadata_admission_menu() -> int:
-    return interactive_s0149_menu()
+    return interactive_s0151_menu()
 
 
 MENU_HEADER = """S0148 repo metadata review menu

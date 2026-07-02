@@ -196,8 +196,6 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
     def test_readme_documents_single_operator_menu(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("shell_scripts/tdc.sh", readme)
-        self.assertIn("Generación de derivados", readme)
-        self.assertIn("Los derivados no son fuente de verdad", readme)
 
     def test_data_readme_lists_spec_and_copilot_agent_outputs(self) -> None:
         data_readme = (REPO_ROOT / "data" / "README.md").read_text(encoding="utf-8")

@@ -1,4 +1,4 @@
-"""S0149/S0150 tests for metadata menu integration."""
+"""S0149/S0150/S0151 tests for metadata menu integration."""
 
 from __future__ import annotations
 
@@ -29,10 +29,10 @@ def test_tdc_menu_exposes_governed_admission_and_keeps_critical_access() -> None
     assert "10) Configurar MCP / mirror remoto" in result.stdout
 
 
-def test_metadata_submenu_header_declares_s0149_safety_policy() -> None:
+def test_metadata_submenu_header_declares_s0151_guided_policy() -> None:
     assert callable(metadata_menu.option_repo_metadata_admission_menu)
-    header = metadata_menu.S0149_MENU_HEADER
-    assert "Metadata técnica / admisión gobernada [EXPERIMENTAL]" in header
-    assert "Modo: DRY-RUN por defecto" in header
-    assert "Apply: requiere confirmación humana explícita" in header
-    assert "Relaciones: BLOQUEADAS" in header
+    header = metadata_menu.S0151_MENU_HEADER
+    assert "Metadata técnica" in header
+    assert "Canon: PROTEGIDO" in header
+    assert "Modo normal: guiado" in header
+    assert "IDs y hashes: solo en avanzado" in header

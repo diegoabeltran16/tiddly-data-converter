@@ -41,8 +41,12 @@ DEFAULT_CLASSIFICATION = (
 DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
 DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0148"
 DEFAULT_HUMAN_DECISIONS = DEFAULT_OUT_DIR / "s0148_repo_metadata_human_decisions.json"
-DEFAULT_S0149_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0149"
+DEFAULT_ADMISSION_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission"
+DEFAULT_S0149_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0149"
 DEFAULT_S0149_SELECTED_BATCHES = DEFAULT_S0149_OUT_DIR / "s0149_selected_batches.json"
+DEFAULT_S0151_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0151"
+DEFAULT_S0151_SELECTED_BATCHES = DEFAULT_S0151_OUT_DIR / "s0151_selected_batches.json"
+DEFAULT_LATEST_METADATA_PATCH_MANIFEST = DEFAULT_ADMISSION_DIR / "latest_metadata_patch_manifest.json"
 
 CURRENT_BATCH = "batch_current_verified"
 EXCLUDED_BATCH = "batch_excluded_review_required"
@@ -68,6 +72,8 @@ S0149_BATCH_CHOICES = {
 }
 S0149_DRY_RUN_TOKEN = "DRY RUN METADATA"
 S0149_APPLY_TOKEN = "APPLY METADATA S0149"
+S0151_DRY_RUN_TOKEN = "DRY RUN METADATA"
+S0151_APPLY_TOKEN = "APPLY METADATA S0151"
 ALLOWED_DECISIONS = {"approved", "rejected", "deferred"}
 SESSION_TITLE_RE = re.compile(
     r"^#### .*?(sesión|sesion|diagnóstico|diagnostico|hipótesis|hipotesis|procedencia|balance|propuesta|contrato)",
@@ -184,6 +190,28 @@ def s0149_paths(out_dir: Path = DEFAULT_S0149_OUT_DIR) -> dict[str, Path]:
         "apply_summary": out_dir / "s0149_metadata_apply_summary.md",
         "rollback_report": out_dir / "s0149_metadata_rollback_report.json",
         "rollback_log": out_dir / "s0149_metadata_rollback_log.jsonl",
+        "backups": out_dir / "backups",
+    }
+
+
+def s0151_paths(out_dir: Path = DEFAULT_S0151_OUT_DIR) -> dict[str, Path]:
+    return {
+        "selected_batches": out_dir / "s0151_selected_batches.json",
+        "dry_run_report": out_dir / "s0151_metadata_admission_dry_run_report.json",
+        "ready": out_dir / "s0151_metadata_admission_ready.jsonl",
+        "blocked": out_dir / "s0151_metadata_admission_blocked.jsonl",
+        "patch_preview": out_dir / "s0151_metadata_admission_patch_preview.jsonl",
+        "review": out_dir / "s0151_metadata_admission_review.csv",
+        "summary": out_dir / "s0151_metadata_admission_summary.md",
+        "audit": out_dir / "s0151_metadata_admission_audit_log.jsonl",
+        "operator_ux_report": out_dir / "s0151_metadata_operator_ux_report.md",
+        "apply_report": out_dir / "s0151_metadata_apply_report.json",
+        "apply_log": out_dir / "s0151_metadata_apply_log.jsonl",
+        "applied_records": out_dir / "s0151_metadata_applied_records.jsonl",
+        "before_after_hashes": out_dir / "s0151_metadata_before_after_hashes.json",
+        "apply_summary": out_dir / "s0151_metadata_apply_summary.md",
+        "rollback_report": out_dir / "s0151_metadata_rollback_report.json",
+        "rollback_log": out_dir / "s0151_metadata_rollback_log.jsonl",
         "backups": out_dir / "backups",
     }
 
@@ -1166,6 +1194,632 @@ def applyable_fields_for_row(row: dict[str, Any]) -> tuple[dict[str, Any], dict[
     return applied, skipped
 
 
+S0151_PRESET_SELECTIONS = {
+    "recommended": ["1", "2", "3"],
+    "current_only": ["1"],
+    "auxiliary_only": ["2", "3"],
+}
+
+
+def s0151_audit_event(
+    path: Path,
+    action: str,
+    *,
+    result: str,
+    details: dict[str, Any] | None = None,
+    timestamp: str | None = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "timestamp": timestamp or utc_now(),
+        "session": "S0151",
+        "action": action,
+        "result": result,
+        "dry_run_default": True,
+        "apply_requires_token": S0151_APPLY_TOKEN,
+        "applied_to_canon": False,
+        "details": details or {},
+    }
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(stable_json(payload) + "\n")
+
+
+def resolve_repo_relative_path(value: str) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return (REPO_ROOT / path).resolve()
+
+
+def load_s0151_manifest(manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST) -> dict[str, Any]:
+    doc = read_json(manifest)
+    if not isinstance(doc, dict):
+        raise ValueError(f"manifest must be JSON object: {manifest}")
+    if doc.get("schema") != "latest-metadata-patch-manifest/v1":
+        raise ValueError(f"invalid latest metadata manifest schema: {manifest}")
+    return doc
+
+
+def s0151_manifest_paths(manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST) -> dict[str, Path]:
+    doc = load_s0151_manifest(manifest)
+    required = ["patch_preview", "review_batches", "patch_hashes", "refresh_report"]
+    missing = [key for key in required if not doc.get(key)]
+    if missing:
+        raise ValueError(f"manifest missing required paths: {', '.join(missing)}")
+    return {
+        "patch_preview": resolve_repo_relative_path(str(doc["patch_preview"])),
+        "review_batches": resolve_repo_relative_path(str(doc["review_batches"])),
+        "patch_hashes": resolve_repo_relative_path(str(doc["patch_hashes"])),
+        "refresh_report": resolve_repo_relative_path(str(doc["refresh_report"])),
+    }
+
+
+def s0151_hash_verification(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    canon_glob: str = DEFAULT_CANON_GLOB,
+) -> dict[str, Any]:
+    doc = load_s0151_manifest(manifest)
+    paths = s0151_manifest_paths(manifest)
+    hashes = read_json(paths["patch_hashes"])
+    current_canon = tree_sha256(canon_glob)
+    checks = [
+        {
+            "name": "manifest_status",
+            "expected": "ready_for_dry_run",
+            "actual": str(doc.get("status") or ""),
+        },
+        {
+            "name": "patch_preview_sha256",
+            "expected": str(hashes.get("patch_preview_sha256") or ""),
+            "actual": file_sha256(paths["patch_preview"]),
+        },
+        {
+            "name": "review_batches_sha256",
+            "expected": str(hashes.get("review_batches_sha256") or ""),
+            "actual": file_sha256(paths["review_batches"]),
+        },
+        {
+            "name": "manifest_canon_before_sha256",
+            "expected": str(doc.get("canon_before_sha256") or ""),
+            "actual": current_canon,
+        },
+        {
+            "name": "patch_hashes_canon_before_sha256",
+            "expected": str(hashes.get("canon_before_sha256") or ""),
+            "actual": current_canon,
+        },
+    ]
+    for check in checks:
+        check["match"] = check["expected"] == check["actual"]
+    return {
+        "schema": "repo-metadata-s0151-hash-verification/v1",
+        "session": "S0151",
+        "manifest": str(manifest),
+        "all_hashes_match": all(check["match"] for check in checks),
+        "canon_actual_sha256": current_canon,
+        "canon_before_sha256": str(doc.get("canon_before_sha256") or ""),
+        "checks": checks,
+    }
+
+
+def s0151_batch_catalog(manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST) -> dict[str, dict[str, Any]]:
+    return s0149_batch_catalog(s0151_manifest_paths(manifest)["review_batches"])
+
+
+def parse_s0151_batch_selection(selection: str | list[str] | tuple[str, ...]) -> dict[str, Any]:
+    if isinstance(selection, str) and selection in S0151_PRESET_SELECTIONS:
+        selection = S0151_PRESET_SELECTIONS[selection]
+    return parse_s0149_batch_selection(selection)
+
+
+def select_s0151_batches(
+    selection: str | list[str] | tuple[str, ...],
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    out_dir: Path = DEFAULT_S0151_OUT_DIR,
+    selection_source: str = "guided_terminal_or_cli",
+    timestamp: str | None = None,
+) -> dict[str, Any]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    paths = s0151_paths(out_dir)
+    manifest_doc = load_s0151_manifest(manifest)
+    catalog = s0151_batch_catalog(manifest)
+    parsed = parse_s0151_batch_selection(selection)
+    selected_ids = parsed["selected_batch_ids"]
+    invalid = [batch_id for batch_id in selected_ids if batch_id not in catalog]
+    blocked = [batch_id for batch_id in selected_ids if batch_id in S0149_BLOCKED_BATCHES]
+    selected_batches = [catalog[batch_id] for batch_id in selected_ids if batch_id in catalog]
+    warnings: list[str] = []
+    if "batch_historical_review" in selected_ids:
+        warnings.append("historical_or_divergent_batch_selected")
+    if "batch_generated_derivative" in selected_ids:
+        warnings.append("generated_derivative_batch_selected")
+    valid = not parsed["empty_selection"] and not invalid and not blocked
+    doc = {
+        "schema": "repo-metadata-s0151-selected-batches/v1",
+        "session": "S0151",
+        "source_session": str(manifest_doc.get("session") or ""),
+        "manifest": str(manifest),
+        "created_at": timestamp or utc_now(),
+        "selection_source": selection_source,
+        "dry_run_token_required_for_interactive_menu": S0151_DRY_RUN_TOKEN,
+        "apply_token_required": S0151_APPLY_TOKEN,
+        "human_approval_simulated": False,
+        "dry_run": True,
+        "applied_to_canon": False,
+        "canon_modified": False,
+        "valid": valid,
+        "empty_selection": parsed["empty_selection"],
+        "selected_batch_ids": selected_ids,
+        "selected_batches": selected_batches,
+        "selected_operation_count": sum(int(item.get("record_count") or 0) for item in selected_batches),
+        "invalid_batch_ids": invalid,
+        "blocked_batch_ids": blocked,
+        "duplicate_batch_ids": parsed["duplicates"],
+        "operator_warnings": warnings,
+        "recommended_batch_ids": sorted(S0149_RECOMMENDED_BATCHES),
+        "not_recommended_by_default_batch_ids": sorted(S0149_NOT_RECOMMENDED_BATCHES),
+        "blocked_batch_policy": sorted(S0149_BLOCKED_BATCHES),
+        "available_batches": list(catalog.values()),
+        "relations_generated": False,
+        "formal_relation_candidates_generated": False,
+        "candidate_relations_generated": False,
+    }
+    write_json(paths["selected_batches"], doc)
+    s0151_audit_event(
+        paths["audit"],
+        "select_batches",
+        result="valid" if valid else "blocked",
+        details={
+            "selection_source": selection_source,
+            "selected_batch_ids": selected_ids,
+            "invalid_batch_ids": invalid,
+            "blocked_batch_ids": blocked,
+            "warnings": warnings,
+        },
+        timestamp=timestamp,
+    )
+    return doc
+
+
+def s0151_selected_batch_ids(selected_batches: Path) -> list[str]:
+    return s0149_selected_batch_ids(selected_batches)
+
+
+def s0151_ready_record(row: dict[str, Any]) -> dict[str, Any]:
+    payload = s0149_ready_record(row)
+    payload["session"] = "S0151"
+    payload["gate_status"] = "metadata_admission_ready_dry_run"
+    return payload
+
+
+def s0151_blocked_record(row: dict[str, Any], reason: str) -> dict[str, Any]:
+    payload = s0149_blocked_record(row, reason)
+    payload["session"] = "S0151"
+    return payload
+
+
+def s0151_preview_record(row: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(row)
+    payload["session"] = "S0151"
+    payload["selected_for_admission"] = True
+    payload["dry_run"] = True
+    payload["human_approved"] = False
+    payload["applied_to_canon"] = False
+    payload["canon_modified"] = False
+    return payload
+
+
+def s0151_summary_md(report: dict[str, Any]) -> str:
+    lines = [
+        "# S0151 metadata admission summary",
+        "",
+        f"- Selected batches: {report['selected_batch_ids']}",
+        f"- Selected operations: {report['selected_operation_count']}",
+        f"- Ready operations: {report['admission_ready']}",
+        f"- Blocked operations: {report['blocked_records']}",
+        f"- Gate blocked: {report['blocked']}",
+        f"- Block reasons: {report['block_reasons']}",
+        f"- Hashes match: {report['hash_verification']['all_hashes_match']}",
+        "- Apply executed: false",
+        "- Canon modified: false",
+        "- Relations generated: false",
+        "- Candidate relations generated: false",
+        "- Semantic_text modified in metadata step: false",
+        "",
+        "## Apply policy",
+        f"- Apply requires a successful dry-run and exact token `{S0151_APPLY_TOKEN}`.",
+        "- Apply is not executed by dry-run.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def s0151_operator_ux_md(report: dict[str, Any]) -> str:
+    lines = [
+        "# S0151 metadata operator UX report",
+        "",
+        "## Normal mode",
+        "- Normal flow uses presets and numbers.",
+        "- Batch IDs, op IDs, target IDs, patch hashes and canon hashes are reserved for advanced mode and reports.",
+        "- Recommended selection maps to current verified, embedded code and narrative reference batches.",
+        "",
+        "## State",
+        f"- selection: {report['selected_batch_ids']}",
+        f"- dry_run_status: {'blocked' if report['blocked'] else 'ready'}",
+        f"- admission_ready: {report['admission_ready']}",
+        f"- blocked_records: {report['blocked_records']}",
+        "- apply_status: not_executed",
+        "- canon_modified: false",
+        "",
+        "## Tokens",
+        f"- dry_run_menu_token: `{S0151_DRY_RUN_TOKEN}`",
+        f"- apply_token: `{S0151_APPLY_TOKEN}`",
+        "",
+        "## Separation",
+        "- This flow does not generate relations.",
+        "- This flow does not generate candidate_relations.",
+        "- semantic_text is not modified by this metadata admission step.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def s0151_apply_not_executed_report(reason: str, *, dry_run_report: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {
+        "schema": "repo-metadata-s0151-apply-report/v1",
+        "session": "S0151",
+        "apply_executed": False,
+        "apply_blocked": True,
+        "block_reasons": [reason],
+        "records_modified": 0,
+        "dry_run_report_ready": bool(dry_run_report and dry_run_report.get("blocked") is False),
+        "applied_to_canon": False,
+        "canon_modified": False,
+        "relations_generated": False,
+        "formal_relation_candidates_generated": False,
+        "candidate_relations_generated": False,
+        "semantic_text_modified": False,
+    }
+
+
+def run_s0151_dry_run(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    selected_batches: Path = DEFAULT_S0151_SELECTED_BATCHES,
+    canon_glob: str = DEFAULT_CANON_GLOB,
+    out_dir: Path = DEFAULT_S0151_OUT_DIR,
+) -> dict[str, Any]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    paths = s0151_paths(out_dir)
+    manifest_doc = load_s0151_manifest(manifest)
+    manifest_paths = s0151_manifest_paths(manifest)
+    patch_preview = manifest_paths["patch_preview"]
+    review_batches = manifest_paths["review_batches"]
+    patch_rows = read_jsonl(patch_preview)
+    batches_doc = read_json(review_batches)
+    batches = batches_doc.get("batches") or {}
+    selected_doc = read_json(selected_batches)
+    selected_ids = s0151_selected_batch_ids(selected_batches)
+    selected_set = set(selected_ids)
+    selected_rows = [row for row in patch_rows if row.get("batch_id") in selected_set]
+
+    hash_doc = s0151_hash_verification(manifest=manifest, canon_glob=canon_glob)
+    risk_doc = risk_verification_for_batches(selected_ids, patch_rows)
+    risk_doc["session"] = "S0151"
+
+    block_reasons: list[str] = []
+    if selected_doc.get("valid") is not True:
+        block_reasons.append("selected_batches_invalid")
+    if not selected_ids:
+        block_reasons.append("empty_selection")
+    missing = [batch_id for batch_id in selected_ids if batch_id not in batches]
+    block_reasons.extend(f"batch_not_found:{batch_id}" for batch_id in missing)
+    if EXCLUDED_BATCH in selected_set:
+        block_reasons.append("excluded_batch_not_approvable")
+    if selected_doc.get("blocked_batch_ids"):
+        block_reasons.extend(f"blocked_batch_selected:{batch_id}" for batch_id in selected_doc["blocked_batch_ids"])
+    if selected_doc.get("invalid_batch_ids"):
+        block_reasons.extend(f"invalid_batch_selected:{batch_id}" for batch_id in selected_doc["invalid_batch_ids"])
+    if not hash_doc["all_hashes_match"]:
+        block_reasons.extend(f"hash_mismatch:{check['name']}" for check in hash_doc["checks"] if not check["match"])
+    invariant_violations = verify_patch_invariants(selected_rows)
+    block_reasons.extend(violation["reason"] for violation in invariant_violations)
+    if risk_doc["critical_count"] > 0:
+        block_reasons.append("critical_risk_in_selected_batches")
+
+    for batch_id in selected_ids:
+        if batch_id not in batches:
+            continue
+        rows = batch_rows(patch_rows, batch_id)
+        computed_batch_sha = subset_sha(rows)
+        if batches[batch_id].get("patch_sha256") != computed_batch_sha:
+            block_reasons.append(f"computed_batch_sha_mismatch:{batch_id}")
+        if any(row.get("patch_lane") == "lane_f_excluded_review_required" for row in rows):
+            block_reasons.append(f"lane_f_in_selected_batch:{batch_id}")
+        if any(row.get("applied_to_canon") is not False for row in rows):
+            block_reasons.append(f"applied_record_in_selected_batch:{batch_id}")
+        if any(row.get("dry_run") is not True for row in rows):
+            block_reasons.append(f"non_dry_run_record_in_selected_batch:{batch_id}")
+        if any("relations" in row or "candidate_relations" in row for row in rows):
+            block_reasons.append(f"relation_field_in_selected_batch:{batch_id}")
+
+    block_reasons = sorted(set(block_reasons))
+    blocked = bool(block_reasons)
+    ready_rows = [s0151_ready_record(row) for row in selected_rows] if not blocked else []
+    blocked_rows = [s0151_blocked_record(row, ";".join(block_reasons)) for row in selected_rows] if blocked else []
+    preview_rows = [s0151_preview_record(row) for row in selected_rows]
+
+    report = {
+        "schema": "repo-metadata-s0151-admission-dry-run-report/v1",
+        "session": "S0151",
+        "source_session": str(manifest_doc.get("session") or ""),
+        "manifest": str(manifest),
+        "dry_run": True,
+        "applied_to_canon": False,
+        "canon_modified": False,
+        "selected_batches_path": str(selected_batches),
+        "selected_batch_ids": selected_ids,
+        "selected_operation_count": len(selected_rows),
+        "admission_ready": len(ready_rows),
+        "blocked_records": len(blocked_rows),
+        "blocked": blocked,
+        "block_reasons": block_reasons,
+        "hash_verification": hash_doc,
+        "risk_verification": risk_doc,
+        "invariant_violations": invariant_violations,
+        "relations_generated": False,
+        "formal_relation_candidates_generated": False,
+        "candidate_relations_generated": False,
+        "semantic_text_modified": False,
+        "apply_requires_human_token": S0151_APPLY_TOKEN,
+    }
+
+    write_json(paths["dry_run_report"], report)
+    write_jsonl(paths["ready"], ready_rows)
+    write_jsonl(paths["blocked"], blocked_rows)
+    write_jsonl(paths["patch_preview"], preview_rows)
+    write_s0149_review_csv(paths["review"], [*ready_rows, *blocked_rows])
+    paths["summary"].write_text(s0151_summary_md(report), encoding="utf-8")
+    paths["operator_ux_report"].write_text(s0151_operator_ux_md(report), encoding="utf-8")
+    write_json(paths["apply_report"], s0151_apply_not_executed_report("apply_not_requested", dry_run_report=report))
+    s0151_audit_event(
+        paths["audit"],
+        "run_dry_run",
+        result="blocked" if blocked else "ready",
+        details={
+            "selected_batch_ids": selected_ids,
+            "admission_ready": len(ready_rows),
+            "blocked_records": len(blocked_rows),
+            "block_reasons": block_reasons,
+        },
+    )
+    return report
+
+
+def backup_s0151_canon(canon_glob: str, out_dir: Path) -> Path:
+    paths = s0151_paths(out_dir)
+    backup_root = paths["backups"]
+    backup_dir = backup_root / "canon_before_apply"
+    if backup_dir.exists():
+        shutil.rmtree(backup_dir)
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    shards = [Path(path_str) for path_str in sorted(glob.glob(canon_glob))]
+    for shard in shards:
+        shutil.copy2(shard, backup_dir / shard.name)
+    (backup_root / "tiddlers_before_apply.sha256").write_text(canon_sha256_lines(canon_glob), encoding="utf-8")
+    manifest = {
+        "schema": "repo-metadata-s0151-rollback-manifest/v1",
+        "session": "S0151",
+        "created_at": utc_now(),
+        "backup_dir": str(backup_dir),
+        "shards": [
+            {
+                "source": str(shard),
+                "backup": str(backup_dir / shard.name),
+                "sha256": file_sha256(shard),
+            }
+            for shard in shards
+        ],
+    }
+    write_json(backup_root / "rollback_manifest.json", manifest)
+    return backup_dir
+
+
+def apply_s0151_metadata(
+    *,
+    manifest: Path = DEFAULT_LATEST_METADATA_PATCH_MANIFEST,
+    dry_run_report_path: Path | None = None,
+    selected_batches: Path = DEFAULT_S0151_SELECTED_BATCHES,
+    canon_glob: str = DEFAULT_CANON_GLOB,
+    out_dir: Path = DEFAULT_S0151_OUT_DIR,
+    apply_token: str | None = None,
+) -> dict[str, Any]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    paths = s0151_paths(out_dir)
+    dry_path = dry_run_report_path or paths["dry_run_report"]
+
+    def block(reason: str, *, dry_run_report: dict[str, Any] | None = None) -> dict[str, Any]:
+        report = s0151_apply_not_executed_report(reason, dry_run_report=dry_run_report)
+        write_json(paths["apply_report"], report)
+        s0151_audit_event(paths["apply_log"], "apply", result="blocked", details={"reason": reason})
+        return report
+
+    if apply_token != S0151_APPLY_TOKEN:
+        return block("invalid_or_missing_apply_token")
+    if not dry_path.exists():
+        return block("missing_successful_dry_run")
+    dry_report = read_json(dry_path)
+    if dry_report.get("session") != "S0151" or dry_report.get("blocked") is not False:
+        return block("dry_run_not_successful", dry_run_report=dry_report)
+    selected_ids = s0151_selected_batch_ids(selected_batches)
+    if selected_ids != dry_report.get("selected_batch_ids"):
+        return block("selected_batches_changed_since_dry_run", dry_run_report=dry_report)
+
+    hash_doc = s0151_hash_verification(manifest=manifest, canon_glob=canon_glob)
+    if not hash_doc["all_hashes_match"]:
+        write_json(paths["apply_report"], s0151_apply_not_executed_report("hash_mismatch_before_apply", dry_run_report=dry_report))
+        s0151_audit_event(paths["apply_log"], "apply", result="blocked", details={"reason": "hash_mismatch_before_apply", "hash_verification": hash_doc})
+        return read_json(paths["apply_report"])
+
+    patch_preview = s0151_manifest_paths(manifest)["patch_preview"]
+    patch_rows = read_jsonl(patch_preview)
+    selected_rows = [row for row in patch_rows if row.get("batch_id") in set(selected_ids)]
+    risk_doc = risk_verification_for_batches(selected_ids, patch_rows)
+    if risk_doc["critical_count"] > 0:
+        return block("critical_risk_in_selected_batches", dry_run_report=dry_report)
+    if EXCLUDED_BATCH in selected_ids:
+        return block("excluded_batch_not_approvable", dry_run_report=dry_report)
+    if verify_patch_invariants(selected_rows):
+        return block("patch_invariant_violation", dry_run_report=dry_report)
+
+    before_tree = tree_sha256(canon_glob)
+    backup_s0151_canon(canon_glob, out_dir)
+    operations_by_id: dict[str, list[dict[str, Any]]] = {}
+    for row in selected_rows:
+        operations_by_id.setdefault(str(row.get("target_id") or ""), []).append(row)
+
+    applied_records: list[dict[str, Any]] = []
+    modified_ids: set[str] = set()
+    for shard_str in sorted(glob.glob(canon_glob)):
+        shard = Path(shard_str)
+        new_lines: list[str] = []
+        changed = False
+        with shard.open(encoding="utf-8") as handle:
+            for raw in handle:
+                if not raw.strip():
+                    new_lines.append(raw)
+                    continue
+                record = json.loads(raw)
+                record_id = str(record.get("id") or "")
+                ops = operations_by_id.get(record_id, [])
+                if not ops:
+                    new_lines.append(raw if raw.endswith("\n") else raw + "\n")
+                    continue
+                original = stable_json(record)
+                source_fields = record.get("source_fields")
+                if not isinstance(source_fields, dict):
+                    source_fields = {}
+                    record["source_fields"] = source_fields
+                applied_fields: dict[str, Any] = {}
+                skipped_fields: dict[str, str] = {}
+                for op in ops:
+                    applyable, skipped = applyable_fields_for_row(op)
+                    source_fields.update(applyable)
+                    applied_fields.update(applyable)
+                    skipped_fields.update(skipped)
+                if stable_json(record) != original:
+                    changed = True
+                    modified_ids.add(record_id)
+                applied_records.append(
+                    {
+                        "target_id": record_id,
+                        "target_title": record.get("title", ""),
+                        "source_shard": str(shard),
+                        "operation_count": len(ops),
+                        "applied_fields": applied_fields,
+                        "skipped_fields": skipped_fields,
+                        "relations_generated": False,
+                        "candidate_relations_generated": False,
+                    }
+                )
+                new_lines.append(stable_json(record) + "\n")
+        if changed:
+            shard.write_text("".join(new_lines), encoding="utf-8")
+
+    after_tree = tree_sha256(canon_glob)
+    canon_modified = before_tree != after_tree
+    write_jsonl(paths["applied_records"], applied_records)
+    before_after = {
+        "schema": "repo-metadata-s0151-before-after-hashes/v1",
+        "session": "S0151",
+        "before_tree_sha256": before_tree,
+        "after_tree_sha256": after_tree,
+        "canon_modified": canon_modified,
+        "before_files": read_json(paths["backups"] / "rollback_manifest.json").get("shards", []),
+    }
+    write_json(paths["before_after_hashes"], before_after)
+    report = {
+        "schema": "repo-metadata-s0151-apply-report/v1",
+        "session": "S0151",
+        "apply_executed": True,
+        "apply_blocked": False,
+        "block_reasons": [],
+        "selected_batch_ids": selected_ids,
+        "records_modified": len(modified_ids),
+        "applied_records": len(applied_records),
+        "applied_to_canon": True,
+        "canon_modified": canon_modified,
+        "relations_generated": False,
+        "formal_relation_candidates_generated": False,
+        "candidate_relations_generated": False,
+        "semantic_text_modified": False,
+        "rollback_available": True,
+        "hashes": before_after,
+    }
+    write_json(paths["apply_report"], report)
+    paths["apply_summary"].write_text(
+        "\n".join(
+            [
+                "# S0151 metadata apply summary",
+                "",
+                f"- apply_executed: {str(report['apply_executed']).lower()}",
+                f"- records_modified: {report['records_modified']}",
+                f"- canon_modified: {str(canon_modified).lower()}",
+                "- relations_generated: false",
+                "- candidate_relations_generated: false",
+                f"- rollback_manifest: {paths['backups'] / 'rollback_manifest.json'}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    s0151_audit_event(
+        paths["apply_log"],
+        "apply",
+        result="applied",
+        details={"records_modified": len(modified_ids), "canon_modified": canon_modified},
+    )
+    return report
+
+
+def rollback_s0151_metadata(*, out_dir: Path = DEFAULT_S0151_OUT_DIR) -> dict[str, Any]:
+    paths = s0151_paths(out_dir)
+    manifest_path = paths["backups"] / "rollback_manifest.json"
+    if not manifest_path.exists():
+        report = {
+            "schema": "repo-metadata-s0151-rollback-report/v1",
+            "session": "S0151",
+            "rollback_executed": False,
+            "rollback_blocked": True,
+            "block_reasons": ["missing_rollback_manifest"],
+            "canon_modified": False,
+        }
+        write_json(paths["rollback_report"], report)
+        s0151_audit_event(paths["rollback_log"], "rollback", result="blocked", details={"reason": "missing_rollback_manifest"})
+        return report
+    manifest = read_json(manifest_path)
+    restored: list[str] = []
+    for item in manifest.get("shards") or []:
+        source = Path(str(item.get("source") or ""))
+        backup = Path(str(item.get("backup") or ""))
+        if not backup.exists() or not source.parent.exists():
+            continue
+        shutil.copy2(backup, source)
+        restored.append(str(source))
+    report = {
+        "schema": "repo-metadata-s0151-rollback-report/v1",
+        "session": "S0151",
+        "rollback_executed": bool(restored),
+        "rollback_blocked": not bool(restored),
+        "block_reasons": [] if restored else ["no_shards_restored"],
+        "restored_shards": restored,
+        "canon_modified": bool(restored),
+    }
+    write_json(paths["rollback_report"], report)
+    s0151_audit_event(paths["rollback_log"], "rollback", result="restored" if restored else "blocked", details={"restored_shards": restored})
+    return report
+
+
 def apply_s0149_metadata(
     *,
     patch_preview: Path = DEFAULT_PATCH_PREVIEW,
@@ -1380,6 +2034,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run-report", default=str(DEFAULT_DRY_RUN_REPORT))
     parser.add_argument("--human-decisions", default=str(DEFAULT_HUMAN_DECISIONS))
     parser.add_argument("--selected-batches", default=str(DEFAULT_S0149_SELECTED_BATCHES))
+    parser.add_argument("--manifest", default=str(DEFAULT_LATEST_METADATA_PATCH_MANIFEST))
     parser.add_argument("--canon-glob", default=DEFAULT_CANON_GLOB)
     parser.add_argument("--s0146-classification", default=str(DEFAULT_CLASSIFICATION))
     parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
@@ -1394,6 +2049,37 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     session = str(args.session).upper()
+    if session == "S0151":
+        modes = [args.dry_run, args.apply, args.rollback]
+        if sum(bool(item) for item in modes) != 1:
+            raise SystemExit("S0151 requires exactly one mode: --dry-run, --apply, or --rollback")
+        out_dir = Path(args.out_dir)
+        if out_dir == DEFAULT_OUT_DIR:
+            out_dir = DEFAULT_S0151_OUT_DIR
+        selected_batches = Path(args.selected_batches)
+        if selected_batches == DEFAULT_S0149_SELECTED_BATCHES:
+            selected_batches = DEFAULT_S0151_SELECTED_BATCHES
+        if args.rollback:
+            report = rollback_s0151_metadata(out_dir=out_dir)
+        elif args.apply:
+            report = apply_s0151_metadata(
+                manifest=Path(args.manifest),
+                dry_run_report_path=s0151_paths(out_dir)["dry_run_report"],
+                selected_batches=selected_batches,
+                canon_glob=args.canon_glob,
+                out_dir=out_dir,
+                apply_token=args.apply_token,
+            )
+        else:
+            report = run_s0151_dry_run(
+                manifest=Path(args.manifest),
+                selected_batches=selected_batches,
+                canon_glob=args.canon_glob,
+                out_dir=out_dir,
+            )
+        print(stable_json(report))
+        return 0
+
     if session == "S0149":
         modes = [args.dry_run, args.apply, args.rollback]
         if sum(bool(item) for item in modes) != 1:
