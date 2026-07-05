@@ -19,7 +19,7 @@ use tdc_doctor::{
 
 /// Ruta base a los fixtures compartidos del repositorio.
 fn fixtures_dir() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../tests/fixtures")
 }
 
 fn temp_repo_root(name: &str) -> PathBuf {

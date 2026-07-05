@@ -4,7 +4,7 @@ use tdc_extractor::{extract, ExtractionStatus, ExtractorError};
 /// Devuelve la ruta absoluta a un fixture bajo tests/fixtures/ en la raíz del proyecto.
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/fixtures")
+        .join("../../../tests/fixtures")
         .join(name)
 }
 
