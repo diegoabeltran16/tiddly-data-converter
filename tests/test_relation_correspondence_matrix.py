@@ -27,7 +27,7 @@ from typing import Any
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = REPO_ROOT / "python_scripts"
+SCRIPTS_DIR = REPO_ROOT / "src" / "python_scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import build_relation_correspondence_matrix as brcm
@@ -308,7 +308,7 @@ class TestMissingCandidatesDir:
             result = subprocess.run(
                 [
                     sys.executable,
-                    str(REPO_ROOT / "python_scripts" / "build_relation_correspondence_matrix.py"),
+                    str(REPO_ROOT / "src" / "python_scripts" / "build_relation_correspondence_matrix.py"),
                     "--canon-glob", str(tmp_p / "tiddlers_*.jsonl"),
                     "--candidates-root", str(tmp_p / "nonexistent"),
                     "--out-dir", str(out_dir),
@@ -337,7 +337,7 @@ class TestMissingCandidatesDir:
             subprocess.run(
                 [
                     sys.executable,
-                    str(REPO_ROOT / "python_scripts" / "build_relation_correspondence_matrix.py"),
+                    str(REPO_ROOT / "src" / "python_scripts" / "build_relation_correspondence_matrix.py"),
                     "--canon-glob", str(tmp_p / "tiddlers_*.jsonl"),
                     "--candidates-root", str(tmp_p / "nonexistent"),
                     "--out-dir", str(out_dir),
@@ -373,7 +373,7 @@ class TestDryRunGuarantee:
             subprocess.run(
                 [
                     sys.executable,
-                    str(REPO_ROOT / "python_scripts" / "build_relation_correspondence_matrix.py"),
+                    str(REPO_ROOT / "src" / "python_scripts" / "build_relation_correspondence_matrix.py"),
                     "--canon-glob", "data/out/local/tiddlers_*.jsonl",
                     "--candidates-root", "data/out/local/pipeline/relations_candidates",
                     "--out-dir", str(Path(tmp) / "out"),
@@ -393,7 +393,7 @@ class TestDryRunGuarantee:
         result = subprocess.run(
             [
                 sys.executable,
-                str(REPO_ROOT / "python_scripts" / "build_relation_correspondence_matrix.py"),
+                str(REPO_ROOT / "src" / "python_scripts" / "build_relation_correspondence_matrix.py"),
                 "--canon-glob", "data/out/local/tiddlers_*.jsonl",
                 "--candidates-root", "data/out/local/pipeline/relations_candidates",
                 "--out-dir", "/tmp/test_out",

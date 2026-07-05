@@ -50,7 +50,7 @@ LOCAL_SYNC_TARGET=data/out/local/ \
 PULL_CONFLICT_BEHAVIOR=replace \
 PULL_CREATE_MISSING_DIRS=true \
 PULL_DRY_RUN=false \
-python3 python_scripts/remote_pull_canon.py
+python3 src/python_scripts/remote_pull_canon.py
 ```
 
 **Regla:** Si el pull falla con HTTP 401, detener y reportar. No diagnosticar desde código fuente como sustituto del canon vivo.
@@ -61,9 +61,9 @@ python3 python_scripts/remote_pull_canon.py
 
 ```bash
 # Scripts de gobernanza requeridos
-test -f python_scripts/diagnostic_governance.py   || echo "BLOQUEO: falta diagnostic_governance.py"
-test -f python_scripts/remote_publish_diagnostic.py || echo "BLOQUEO: falta remote_publish_diagnostic.py"
-test -f python_scripts/remote_pull_canon.py         || echo "BLOQUEO: falta remote_pull_canon.py"
+test -f src/python_scripts/diagnostic_governance.py   || echo "BLOQUEO: falta diagnostic_governance.py"
+test -f src/python_scripts/remote_publish_diagnostic.py || echo "BLOQUEO: falta remote_publish_diagnostic.py"
+test -f src/python_scripts/remote_pull_canon.py         || echo "BLOQUEO: falta remote_pull_canon.py"
 
 # Credenciales — solo verificar presencia, nunca imprimir valores
 [ -n "$AZURE_CLIENT_ID" ]   && echo "AZURE_CLIENT_ID  : presente" || echo "AZURE_CLIENT_ID  : FALTA"
@@ -127,10 +127,10 @@ No leer el repo completo. Usar `grep` para ubicar antes de leer completo.
 
 ```bash
 # Ubicar función o módulo relevante antes de leer el archivo
-grep -rn "<función-o-concepto>" python_scripts/
+grep -rn "<función-o-concepto>" src/python_scripts/
 
 # Leer solo el script identificado
-cat python_scripts/<script-relevante>.py
+cat src/python_scripts/<script-relevante>.py
 ```
 
 ### 2e. Sesiones previas de contexto
@@ -228,7 +228,7 @@ python3 -m json.tool data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md
 
 # Verificar que el entregable puede convertirse en candidato canónico gobernado
 export RUN_ID="remote-diagnostic-preflight-$(date +%Y%m%d%H%M%S)"
-python3 python_scripts/session_sync.py scan --run-id "$RUN_ID"
+python3 src/python_scripts/session_sync.py scan --run-id "$RUN_ID"
 
 python3 - <<'PY'
 import json
@@ -263,12 +263,12 @@ inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inven
 print("--allow-replacements" if inventory.get("replaceable_same_id_different_content") else "")
 PY
 )"
-  python3 python_scripts/admit_session_candidates.py validate \
+  python3 src/python_scripts/admit_session_candidates.py validate \
     --candidate-file "$CANDIDATE_FILE" $EXTRA_ARGS
 fi
 
 # Dry-run de publicación
-python3 python_scripts/remote_publish_diagnostic.py \
+python3 src/python_scripts/remote_publish_diagnostic.py \
   --local-file  data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json \
   --remote-relative-path sessions/06_diagnoses/<familia>/<archivo>.md.json \
   --dry-run
@@ -282,7 +282,7 @@ python3 python_scripts/remote_publish_diagnostic.py \
 
 ```bash
 # Publicación live (requiere AZURE_CLIENT_ID y MSA_REFRESH_TOKEN en runtime)
-python3 python_scripts/remote_publish_diagnostic.py \
+python3 src/python_scripts/remote_publish_diagnostic.py \
   --local-file  data/out/local/sessions/06_diagnoses/<familia>/<archivo>.md.json \
   --remote-relative-path sessions/06_diagnoses/<familia>/<archivo>.md.json
 ```

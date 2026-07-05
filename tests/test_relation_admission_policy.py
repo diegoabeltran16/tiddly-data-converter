@@ -25,7 +25,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import relation_admission_policy as rap
 

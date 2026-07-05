@@ -8,7 +8,7 @@ updates:
 
   # ── Rust · extractor ─────────────────────────────────────
   - package-ecosystem: "cargo"
-    directory: "/rust/extractor"
+    directory: "/src/rust/extractor"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -21,7 +21,7 @@ updates:
 
   # ── Rust · doctor ────────────────────────────────────────
   - package-ecosystem: "cargo"
-    directory: "/rust/doctor"
+    directory: "/src/rust/doctor"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -34,7 +34,7 @@ updates:
 
   # ── Go · ingesta ─────────────────────────────────────────
   - package-ecosystem: "gomod"
-    directory: "/go/ingesta"
+    directory: "/src/go/ingesta"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -47,7 +47,7 @@ updates:
 
   # ── Go · canon ───────────────────────────────────────────
   - package-ecosystem: "gomod"
-    directory: "/go/canon"
+    directory: "/src/go/canon"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -60,7 +60,7 @@ updates:
 
   # ── Go · bridge ──────────────────────────────────────────
   - package-ecosystem: "gomod"
-    directory: "/go/bridge"
+    directory: "/src/go/bridge"
     schedule:
       interval: "weekly"
       day: "tuesday"

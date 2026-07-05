@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import operator_menu  # noqa: E402
 import tdc_menu_registry as registry  # noqa: E402

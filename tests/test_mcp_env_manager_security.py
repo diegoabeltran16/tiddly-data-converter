@@ -27,7 +27,7 @@ from unittest.mock import patch
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPT_DIR = REPO_ROOT / "python_scripts"
+SCRIPT_DIR = REPO_ROOT / "src" / "python_scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 

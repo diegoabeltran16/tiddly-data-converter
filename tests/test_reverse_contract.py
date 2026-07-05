@@ -25,7 +25,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BRIDGE_DIR = REPO_ROOT / "go" / "bridge"
+BRIDGE_DIR = REPO_ROOT / "src" / "go" / "bridge"
 FIXTURES_S42 = REPO_ROOT / "tests" / "fixtures" / "s42"
 
 BASE_HTML = FIXTURES_S42 / "base.html"

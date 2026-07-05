@@ -1,6 +1,6 @@
 import json, sys
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/'python_scripts'))
+ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/'src'/'python_scripts'))
 from audit_artifact_family_coverage import audit, render_human
 
 def test_lifecycle_not_applicable_outside_repo_artifact(tmp_path):

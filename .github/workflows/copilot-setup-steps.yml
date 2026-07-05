@@ -89,10 +89,10 @@ jobs:
       - name: Compile remote OneDrive scripts
         shell: bash
         run: |
-          python3 -m py_compile python_scripts/remote_pull_canon.py
-          python3 -m py_compile python_scripts/remote_publish_diagnostic.py
-          python3 -m py_compile python_scripts/diagnostic_governance.py
-          python3 -m py_compile python_scripts/path_governance.py
+          python3 -m py_compile src/python_scripts/remote_pull_canon.py
+          python3 -m py_compile src/python_scripts/remote_publish_diagnostic.py
+          python3 -m py_compile src/python_scripts/diagnostic_governance.py
+          python3 -m py_compile src/python_scripts/path_governance.py
 
       - name: Hydrate workspace from OneDrive into data/out/local
         shell: bash
@@ -109,7 +109,7 @@ jobs:
           AZURE_CLIENT_ID:   ${{ secrets.AZURE_CLIENT_ID }}
           MSA_REFRESH_TOKEN: ${{ secrets.MSA_REFRESH_TOKEN }}
         run: |
-          python3 python_scripts/remote_pull_canon.py
+          python3 src/python_scripts/remote_pull_canon.py
 
       - name: Confirm hydrated workspace
         shell: bash
@@ -162,7 +162,7 @@ jobs:
 
           Remote diagnostic publication must use:
 
-          python3 python_scripts/remote_publish_diagnostic.py \
+          python3 src/python_scripts/remote_publish_diagnostic.py \
             --local-file <diagnostic-file> \
             --remote-relative-path <sessions/06_diagnoses/...>
 

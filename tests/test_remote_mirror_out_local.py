@@ -23,7 +23,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPT_DIR = REPO_ROOT / "python_scripts"
+SCRIPT_DIR = REPO_ROOT / "src" / "python_scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -397,8 +397,8 @@ class TestSecretsNotLeaked(unittest.TestCase):
 
     def test_no_legacy_data_sessions_path(self):
         """Verify that neither script references data/sessions/ as an output path."""
-        mirror_src = (REPO_ROOT / "python_scripts" / "remote_mirror_out_local.py").read_text()
-        pull_src = (REPO_ROOT / "python_scripts" / "remote_pull_sessions.py").read_text()
+        mirror_src = (REPO_ROOT / "src" / "python_scripts" / "remote_mirror_out_local.py").read_text()
+        pull_src = (REPO_ROOT / "src" / "python_scripts" / "remote_pull_sessions.py").read_text()
         # The path data/sessions/ must not appear as a write target — only data/out/local/sessions/
         # Allow it in migration_equivalent checks (path_governance references are OK)
         for line in mirror_src.splitlines():

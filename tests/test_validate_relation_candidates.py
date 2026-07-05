@@ -123,7 +123,7 @@ def _run_validator(
 # Import directo del módulo para tests de unidad
 # ---------------------------------------------------------------------------
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "python_scripts"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "python_scripts"))
 from validate_relation_candidates import (  # noqa: E402
     ALLOWED_RELATION_TYPES,
     WEAK_EVIDENCE_THRESHOLD,

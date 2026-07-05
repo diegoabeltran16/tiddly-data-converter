@@ -54,7 +54,7 @@ def _count_jsonl_records(directory: Path, glob: str) -> int:
 class TestDeriveCLI:
     def test_help_exits_zero(self):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "python_scripts" / "derive_layers.py"), "--help"],
+            [sys.executable, str(REPO_ROOT / "src" / "python_scripts" / "derive_layers.py"), "--help"],
             capture_output=True,
             text=True,
             cwd=str(REPO_ROOT),
@@ -63,7 +63,7 @@ class TestDeriveCLI:
 
     def test_help_contains_input_dir(self):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "python_scripts" / "derive_layers.py"), "--help"],
+            [sys.executable, str(REPO_ROOT / "src" / "python_scripts" / "derive_layers.py"), "--help"],
             capture_output=True,
             text=True,
             cwd=str(REPO_ROOT),
@@ -72,7 +72,7 @@ class TestDeriveCLI:
 
     def test_help_contains_enriched_dir(self):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "python_scripts" / "derive_layers.py"), "--help"],
+            [sys.executable, str(REPO_ROOT / "src" / "python_scripts" / "derive_layers.py"), "--help"],
             capture_output=True,
             text=True,
             cwd=str(REPO_ROOT),
@@ -81,7 +81,7 @@ class TestDeriveCLI:
 
     def test_help_contains_ai_dir(self):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "python_scripts" / "derive_layers.py"), "--help"],
+            [sys.executable, str(REPO_ROOT / "src" / "python_scripts" / "derive_layers.py"), "--help"],
             capture_output=True,
             text=True,
             cwd=str(REPO_ROOT),
@@ -90,7 +90,7 @@ class TestDeriveCLI:
 
     def test_help_contains_strict_flag(self):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "python_scripts" / "derive_layers.py"), "--help"],
+            [sys.executable, str(REPO_ROOT / "src" / "python_scripts" / "derive_layers.py"), "--help"],
             capture_output=True,
             text=True,
             cwd=str(REPO_ROOT),

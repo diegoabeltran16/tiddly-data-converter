@@ -24,8 +24,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MENU_SCRIPT = REPO_ROOT / "python_scripts" / "operator_menu.py"
-TDC_SH = REPO_ROOT / "shell_scripts" / "tdc.sh"
+MENU_SCRIPT = REPO_ROOT / "src" / "python_scripts" / "operator_menu.py"
+TDC_SH = REPO_ROOT / "src" / "shell_scripts" / "tdc.sh"
 CANON_DIR = REPO_ROOT / "data" / "out" / "local"
 
 

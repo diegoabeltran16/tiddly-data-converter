@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import derive_layers  # noqa: E402
 

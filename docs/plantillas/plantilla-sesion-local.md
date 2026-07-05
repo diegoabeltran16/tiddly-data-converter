@@ -32,8 +32,8 @@ Verificar que existen:
 
 ```bash
 ls data/out/local/tiddlers_*.jsonl    # canon requerido
-ls python_scripts/diagnostic_governance.py
-ls python_scripts/admit_session_candidates.py
+ls src/python_scripts/diagnostic_governance.py
+ls src/python_scripts/admit_session_candidates.py
 ```
 
 **Detener si:** falta el canon o un script crítico para el objetivo de la sesión. Reportar el bloqueo.
@@ -78,17 +78,17 @@ Si la sesión requiere corregir el canon:
 python3 -c "..." > /tmp/s104-canon-corrected.jsonl
 
 # 2. Normalizar (regenera id, version_id, canonical_slug)
-go run ./go/canon/cmd/canon_preflight --mode normalize \
+go run ./src/go/canon/cmd/canon_preflight --mode normalize \
   --input /tmp/s104-canon-corrected.jsonl \
   --output /tmp/s104-canon-normalized.jsonl
 
 # 3. Validar strict
-go run ./go/canon/cmd/canon_preflight --mode strict \
+go run ./src/go/canon/cmd/canon_preflight --mode strict \
   --input /tmp/s104-canon-normalized.jsonl
 # Exigir: "STRICT PASSED"
 
 # 4. Validar reverse-preflight
-go run ./go/canon/cmd/canon_preflight --mode reverse-preflight \
+go run ./src/go/canon/cmd/canon_preflight --mode reverse-preflight \
   --input /tmp/s104-canon-normalized.jsonl
 # Exigir: "REVERSE-PREFLIGHT PASSED"
 
@@ -132,7 +132,7 @@ Patrón por familia:
 
 ```bash
 python3 -m pytest -q                    # suite completa
-python3 -m py_compile python_scripts/*.py  # compilación Python
+python3 -m py_compile src/python_scripts/*.py  # compilación Python
 ```
 
 Documentar salvedades si algún test falla por razón pre-existente (ver `project_preexisting_test_failures.md`).
@@ -153,7 +153,7 @@ Validar que los entregables pasan por la puerta canónica:
 
 ```bash
 export RUN_ID="session-preflight-$(date +%Y%m%d%H%M%S)"
-python3 python_scripts/session_sync.py scan --run-id "$RUN_ID"
+python3 src/python_scripts/session_sync.py scan --run-id "$RUN_ID"
 
 python3 - <<'PY'
 import json
@@ -188,7 +188,7 @@ inventory = json.loads(Path(f"data/tmp/session_sync/{os.environ['RUN_ID']}/inven
 print("--allow-replacements" if inventory.get("replaceable_same_id_different_content") else "")
 PY
 )"
-  python3 python_scripts/admit_session_candidates.py validate \
+  python3 src/python_scripts/admit_session_candidates.py validate \
     --candidate-file "$CANDIDATE_FILE" $EXTRA_ARGS
 fi
 ```

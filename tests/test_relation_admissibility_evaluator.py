@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import evaluate_relation_admissibility as era
 
@@ -533,7 +533,7 @@ class TestEvaluatorDoesNotModifyCanon:
         result = subprocess.run(
             [
                 sys.executable,
-                str(REPO_ROOT / "python_scripts" / "evaluate_relation_admissibility.py"),
+                str(REPO_ROOT / "src" / "python_scripts" / "evaluate_relation_admissibility.py"),
                 "--canon-glob", "data/out/local/tiddlers_*.jsonl",
                 "--candidates-root", "data/out/local/pipeline/relations_candidates",
                 "--out-dir", "data/out/local/pipeline/relation_admissibility",
@@ -572,7 +572,7 @@ class TestRealStagingIntegration:
         if not self.STAGING_ROOT.exists():
             pytest.skip("staging no disponible")
         import sys as _sys
-        _sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+        _sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
         import build_relation_correspondence_matrix as brcm
         canon = brcm.load_canon("data/out/local/tiddlers_*.jsonl")
         candidates, _ = era.load_candidates_from_dir(self.STAGING_ROOT)
@@ -588,7 +588,7 @@ class TestRealStagingIntegration:
         if not self.STAGING_ROOT.exists():
             pytest.skip("staging no disponible")
         import sys as _sys
-        _sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+        _sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
         import build_relation_correspondence_matrix as brcm
         canon = brcm.load_canon("data/out/local/tiddlers_*.jsonl")
         candidates, _ = era.load_candidates_from_dir(self.STAGING_ROOT)
@@ -602,7 +602,7 @@ class TestRealStagingIntegration:
         if not self.STAGING_ROOT.exists():
             pytest.skip("staging no disponible")
         import sys as _sys
-        _sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+        _sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
         import build_relation_correspondence_matrix as brcm
         canon = brcm.load_canon("data/out/local/tiddlers_*.jsonl")
         candidates, _ = era.load_candidates_from_dir(self.STAGING_ROOT)

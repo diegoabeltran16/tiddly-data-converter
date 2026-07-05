@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: rust/extractor
+        working-directory: src/rust/extractor
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: rust/doctor
+        working-directory: src/rust/doctor
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: go/ingesta
+        working-directory: src/go/ingesta
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -45,7 +45,7 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             go.work
-            go/ingesta/go.mod
+            src/go/ingesta/go.mod
       - run: go test ./... -v -count=1
 
   go-canon:
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: go/canon
+        working-directory: src/go/canon
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -61,7 +61,7 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             go.work
-            go/canon/go.sum
+            src/go/canon/go.sum
       - run: go test ./... -v -count=1
         env:
           CANON_POLICY_BUNDLE_PATH: ${{ github.workspace }}/tests/fixtures/canon_policy_bundle.json
@@ -72,7 +72,7 @@ jobs:
     needs: [go-ingesta, go-canon]
     defaults:
       run:
-        working-directory: go/bridge
+        working-directory: src/go/bridge
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -80,7 +80,7 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             go.work
-            go/bridge/go.sum
+            src/go/bridge/go.sum
       - run: go test ./... -v -count=1
         env:
           CANON_POLICY_BUNDLE_PATH: ${{ github.workspace }}/tests/fixtures/canon_policy_bundle.json
@@ -98,23 +98,23 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             go.work
-            go/canon/go.sum
+            src/go/canon/go.sum
       - name: Build accumulate CLI
-        working-directory: go/canon
+        working-directory: src/go/canon
         run: go build -o accumulate ./cmd/accumulate
       - name: Generate baseline snapshot
-        working-directory: go/canon
+        working-directory: src/go/canon
         run: |
           ./accumulate \
-            --input ../../tests/fixtures/runs_for_accumulation \
+            --input ../../../tests/fixtures/runs_for_accumulation \
             --out /tmp/baseline_snapshot.json
       - name: Verify baseline snapshot by replay
-        working-directory: go/canon
+        working-directory: src/go/canon
         run: |
           ./accumulate \
             --verify \
             --snapshot /tmp/baseline_snapshot.json \
-            --input ../../tests/fixtures/runs_for_accumulation
+            --input ../../../tests/fixtures/runs_for_accumulation
 
   baseline-oracle:
     name: "Go · baseline-oracle (S32)"
@@ -127,9 +127,9 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             go.work
-            go/canon/go.sum
+            src/go/canon/go.sum
       - name: Verify baseline golden files by strict diff
-        run: bash shell_scripts/baseline_verify.sh
+        run: bash src/shell_scripts/baseline_verify.sh
 
   pipeline-smoke:
     name: "Pipeline · smoke (Extractor → Doctor → Ingesta → Canon → JSONL)"
@@ -145,21 +145,21 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: |
             go.work
-            go/ingesta/go.mod
-            go/canon/go.mod
-            go/bridge/go.mod
+            src/go/ingesta/go.mod
+            src/go/canon/go.mod
+            src/go/bridge/go.mod
       - name: Cache Rust build
         uses: actions/cache@v6
         with:
           path: |
-            rust/extractor/target
-            rust/doctor/target
-          key: ${{ runner.os }}-rust-pipeline-${{ hashFiles('rust/extractor/Cargo.lock', 'rust/doctor/Cargo.lock') }}
+            src/rust/extractor/target
+            src/rust/doctor/target
+          key: ${{ runner.os }}-rust-pipeline-${{ hashFiles('src/rust/extractor/Cargo.lock', 'src/rust/doctor/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-pipeline-
       - name: Build Rust binaries (extract + audit)
         run: |
-          cargo build --manifest-path rust/extractor/Cargo.toml --bin extract
-          cargo build --manifest-path rust/doctor/Cargo.toml --bin audit
+          cargo build --manifest-path src/rust/extractor/Cargo.toml --bin extract
+          cargo build --manifest-path src/rust/doctor/Cargo.toml --bin audit
       - name: Run pipeline smoke test
         run: bash tests/smoke/test_pipeline_smoke.sh

@@ -5,10 +5,10 @@ Docs/translate.ps1
 
 # ── Extractor HTML (tdc-extractor) ──────────────────────────────────────────
 # Build artifacts del crate Rust (nunca versionar)
-rust/extractor/target/
+src/rust/extractor/target/
 
 # ── Doctor (tdc-doctor) ──────────────────────────────────────────────────────
-rust/doctor/target/
+src/rust/doctor/target/
 
 # Artefactos de extracción generados en runtime (se regeneran desde el fuente)
 data/raw/
@@ -26,8 +26,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
-python_scripts/rep_export_LINUXandMAC/tiddlers-export/
-python_scripts/rep_export_LINUXandMAC/.hashes.json
+src/python_scripts/rep_export_LINUXandMAC/tiddlers-export/
+src/python_scripts/rep_export_LINUXandMAC/.hashes.json
 
 /docs/tiddlers_esp
 
@@ -37,9 +37,9 @@ python_scripts/rep_export_LINUXandMAC/.hashes.json
 # Artefactos intermedios y finales del pipeline generados en runtime
 /tmp/tdc-pipeline-run/
 # Binario Go compilado manualmente (se reconstruye con go build)
-go/ingesta/ingest
-go/canon/emit
-go/canon/canon_preflight
+src/go/ingesta/ingest
+src/go/canon/emit
+src/go/canon/canon_preflight
 /.codex
 
 /data/in/empty-store.html

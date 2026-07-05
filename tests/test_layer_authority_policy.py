@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "python_scripts"))
+sys.path.insert(0, str(ROOT / "src" / "python_scripts"))
 
 from layer_authority_policy import coverage_state, final_evidence_allowed, observed_metadata, relation_status
 from validate_layer_authority import render_human, validate_layers
