@@ -31,8 +31,8 @@ import pytest
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MENU_SCRIPT = REPO_ROOT / "python_scripts" / "operator_menu.py"
-REVIEW_MODULE = REPO_ROOT / "python_scripts" / "relation_review_menu.py"
+MENU_SCRIPT = REPO_ROOT / "src" / "python_scripts" / "operator_menu.py"
+REVIEW_MODULE = REPO_ROOT / "src" / "python_scripts" / "relation_review_menu.py"
 CANON_DIR = REPO_ROOT / "data" / "out" / "local"
 RELATIONS_DIR = CANON_DIR / "pipeline" / "relations_candidates"
 DEFAULT_CANDIDATES_INPUT = RELATIONS_DIR / "relations_candidates.sample.jsonl"
@@ -67,7 +67,7 @@ def _canon_shard_hashes() -> dict[str, str]:
 # Importar el módulo bajo test
 # ---------------------------------------------------------------------------
 
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 import relation_review_menu as rrm  # noqa: E402
 
 

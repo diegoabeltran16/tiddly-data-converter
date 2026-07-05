@@ -268,23 +268,23 @@ Ninguna linea candidata debe considerarse admitida al canon hasta pasar, como mi
 Comandos reales disponibles:
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/canon
+cd /repositorios/tiddly-data-converter/src/go/canon
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode strict \
   --input <canon-temporal-o-jsonl>
 ```
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/canon
+cd /repositorios/tiddly-data-converter/src/go/canon
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode reverse-preflight \
   --input <canon-temporal-o-jsonl>
 ```
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/bridge
+cd /repositorios/tiddly-data-converter/src/go/bridge
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
-  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --html ../../../data/in/'tiddly-data-converter (Saved).html' \
   --canon <canon-temporal> \
   --out-html /tmp/<session>.reverse.html \
   --report /tmp/<session>.reverse-report.json \
@@ -296,17 +296,17 @@ Si `reverse_tiddlers` reporta `Rejected: 0`, la compuerta de reversibilidad pasa
 Tests utiles segun alcance:
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/canon
+cd /repositorios/tiddly-data-converter/src/go/canon
 env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
 ```
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/bridge
+cd /repositorios/tiddly-data-converter/src/go/bridge
 env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
 ```
 
 ```bash
-python3 python_scripts/validate_corpus_governance.py \
+python3 src/python_scripts/validate_corpus_governance.py \
   --canon-dir data/out/local \
   --ai-dir data/out/local/ai
 ```

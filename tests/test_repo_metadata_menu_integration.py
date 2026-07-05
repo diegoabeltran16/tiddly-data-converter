@@ -8,14 +8,14 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import repo_metadata_review_menu as metadata_menu  # noqa: E402
 
 
 def test_tdc_menu_exposes_governed_admission_and_keeps_critical_access() -> None:
     result = subprocess.run(
-        [str(REPO_ROOT / "shell_scripts" / "tdc.sh")],
+        [str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh")],
         cwd=REPO_ROOT,
         input="0\n",
         check=False,

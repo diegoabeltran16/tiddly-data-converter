@@ -475,7 +475,7 @@ Todo archivo `.md.json` bajo `data/out/local/sessions/` debe seguir este schema 
 Usar **siempre** el generador canónico para producir los 7 entregables de sesión:
 
 ```bash
-python3 python_scripts/generate_session_deliverables.py generate \
+python3 src/python_scripts/generate_session_deliverables.py generate \
   --session-id mXX-sNNNN \
   --topic <slug-del-tema> \
   --sessions-dir data/out/local/sessions/
@@ -489,7 +489,7 @@ Si los archivos ya existen (p. ej. se regenera la sesión), añadir `--force`
 para sobreescribirlos:
 
 ```bash
-python3 python_scripts/generate_session_deliverables.py generate \
+python3 src/python_scripts/generate_session_deliverables.py generate \
   --session-id mXX-sNNNN \
   --topic <slug-del-tema> \
   --sessions-dir data/out/local/sessions/ \
@@ -557,7 +557,7 @@ malformados contaminen el canon.
 Invocación para la sesión hipotética `m04-s0129`:
 
 ```bash
-python3 python_scripts/generate_session_deliverables.py generate \
+python3 src/python_scripts/generate_session_deliverables.py generate \
   --session-id m04-s0129 \
   --topic "ejemplo de entregables canónicos" \
   --sessions-dir data/out/local/sessions/
@@ -624,7 +624,7 @@ Notas:
 Antes de ejecutar `session_sync scan`, validar todos los artefactos:
 
 ```bash
-python3 python_scripts/generate_session_deliverables.py validate-dir \
+python3 src/python_scripts/generate_session_deliverables.py validate-dir \
   data/out/local/sessions/
 ```
 
@@ -650,14 +650,14 @@ No continuar al paso de `session_sync scan` hasta que `validate-dir` reporte
 2. Analizar el cambio necesario.
 3. Emitir la familia mínima usando el generador canónico:
    ```bash
-   python3 python_scripts/generate_session_deliverables.py generate \
+   python3 src/python_scripts/generate_session_deliverables.py generate \
      --session-id mXX-sNNNN \
      --topic <slug-del-tema> \
      --sessions-dir data/out/local/sessions/
    ```
 4. Validar el schema de todos los artefactos emitidos:
    ```bash
-   python3 python_scripts/generate_session_deliverables.py validate-dir \
+   python3 src/python_scripts/generate_session_deliverables.py validate-dir \
      data/out/local/sessions/
    ```
    Corregir cualquier error `schema_invalid` antes de continuar.
@@ -696,23 +696,23 @@ sesión actual.
 ## Comandos reales de validacion
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/canon
+cd /repositorios/tiddly-data-converter/src/go/canon
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode strict \
   --input <canon-temporal-o-jsonl>
 ```
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/canon
+cd /repositorios/tiddly-data-converter/src/go/canon
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
   --mode reverse-preflight \
   --input <canon-temporal-o-jsonl>
 ```
 
 ```bash
-cd /repositorios/tiddly-data-converter/go/bridge
+cd /repositorios/tiddly-data-converter/src/go/bridge
 env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
-  --html ../../data/in/'tiddly-data-converter (Saved).html' \
+  --html ../../../data/in/'tiddly-data-converter (Saved).html' \
   --canon <canon-temporal> \
   --out-html /tmp/<session>.reverse.html \
   --report /tmp/<session>.reverse-report.json \
@@ -840,7 +840,7 @@ ls data/tmp/remote_inbox/
 Ejemplo dry-run:
 
 ```bash
-python_scripts/remote_publish_diagnostic.py \
+src/python_scripts/remote_publish_diagnostic.py \
   --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
   --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
   --dry-run
@@ -849,7 +849,7 @@ python_scripts/remote_publish_diagnostic.py \
 Ejemplo live:
 
 ```bash
-python_scripts/remote_publish_diagnostic.py \
+src/python_scripts/remote_publish_diagnostic.py \
   --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
   --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
 ```
@@ -867,5 +867,5 @@ cuando `REMOTE_CREATE_MISSING_DIRS=true`, respeta
 - **Rechazada:** ruta con `..` (path traversal)
 - **Rechazada:** ruta absoluta
 
-La lógica centralizada está en `python_scripts/diagnostic_governance.py`.
-El allowlist del pull está en `python_scripts/remote_pull_sessions.py::_is_allowed_outbox_file`.
+La lógica centralizada está en `src/python_scripts/diagnostic_governance.py`.
+El allowlist del pull está en `src/python_scripts/remote_pull_sessions.py::_is_allowed_outbox_file`.

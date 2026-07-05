@@ -14,7 +14,7 @@ TDC es una infraestructura de ingeniería del conocimiento, de escritorio local-
 Desde la raíz del repositorio, usar ejecutable:
 
 ```bash
-shell_scripts/tdc.sh
+src/shell_scripts/tdc.sh
 ```
 
 Este comando invoca de forma guiada al orquestador de admisión, al canonizador, al reverse y los scripts existentes; muestra métricas y exige confirmaciones robustas antes de cualquier acción que pueda escribirse en el canon local.

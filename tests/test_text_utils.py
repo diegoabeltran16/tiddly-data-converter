@@ -8,8 +8,8 @@ after the extraction, serving as the equivalence guard.
 import sys
 import os
 
-# Allow importing from python_scripts/ without installing the package
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python_scripts"))
+# Allow importing from src/python_scripts/ without installing the package
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "python_scripts"))
 
 import pytest
 from text_utils import (

@@ -1,0 +1,14 @@
+D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\deps\serde-760d47826c5df71e.d: C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\build\serde-9b433fed0ae7d3d6\out/private.rs
+
+D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\deps\libserde-760d47826c5df71e.rlib: C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\build\serde-9b433fed0ae7d3d6\out/private.rs
+
+D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\deps\libserde-760d47826c5df71e.rmeta: C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\build\serde-9b433fed0ae7d3d6\out/private.rs
+
+C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs:
+C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs:
+C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs:
+C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs:
+C:\Users\Ohana\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs:
+D:\Repositorios\tiddly-data-converter\rust\extractor\target\debug\build\serde-9b433fed0ae7d3d6\out/private.rs:
+
+# env-dep:OUT_DIR=D:\\Repositorios\\tiddly-data-converter\\rust\\extractor\\target\\debug\\build\\serde-9b433fed0ae7d3d6\\out

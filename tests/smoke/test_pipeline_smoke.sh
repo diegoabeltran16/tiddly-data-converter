@@ -55,7 +55,7 @@ echo "--- Paso 1: Extractor ---"
 EXTRACT_LOG="${OUT_DIR}/extract.log"
 cargo run \
     --quiet \
-    --manifest-path "${REPO_ROOT}/rust/extractor/Cargo.toml" \
+    --manifest-path "${REPO_ROOT}/src/rust/extractor/Cargo.toml" \
     --bin extract \
     -- "${FIXTURE_HTML}" "${RAW_JSON}" \
     2> "${EXTRACT_LOG}" \
@@ -75,7 +75,7 @@ AUDIT_LOG="${OUT_DIR}/audit.log"
 DOCTOR_EXIT=0
 cargo run \
     --quiet \
-    --manifest-path "${REPO_ROOT}/rust/doctor/Cargo.toml" \
+    --manifest-path "${REPO_ROOT}/src/rust/doctor/Cargo.toml" \
     --bin audit \
     -- "${RAW_JSON}" \
     2> "${AUDIT_LOG}" \
@@ -91,7 +91,7 @@ check "doctor log menciona veredicto" "$(grep -qE 'verdict=(ok|warning)' "${AUDI
 echo ""
 echo "--- Paso 3: Ingesta ---"
 INGEST_LOG="${OUT_DIR}/ingest.log"
-cd "${REPO_ROOT}/go/ingesta"
+cd "${REPO_ROOT}/src/go/ingesta"
 go run ./cmd/ingest "${RAW_JSON}" > "${INGESTA_JSON}" 2> "${INGEST_LOG}" \
     || { echo "FALLO: Ingesta terminó con código de error"; cat "${INGEST_LOG}"; exit 1; }
 
@@ -107,7 +107,7 @@ check "conteo raw == conteo ingesta (${RAW_COUNT} == ${INGESTA_COUNT})" "$([ "${
 echo ""
 echo "--- Paso 4: Bridge → Canon ---"
 BRIDGE_LOG="${OUT_DIR}/bridge.log"
-cd "${REPO_ROOT}/go/bridge"
+cd "${REPO_ROOT}/src/go/bridge"
 go run ./cmd/admit "${INGESTA_JSON}" > "${CANON_JSON}" 2> "${BRIDGE_LOG}" \
     || { echo "FALLO: Bridge terminó con código de error"; cat "${BRIDGE_LOG}"; exit 1; }
 
@@ -123,7 +123,7 @@ check "conteo ingesta == conteo canon (${INGESTA_COUNT} == ${CANON_COUNT})" "$([
 echo ""
 echo "--- Paso 5: Canon JSONL (emisión mínima S16) ---"
 EMIT_LOG="${OUT_DIR}/emit.log"
-cd "${REPO_ROOT}/go/canon"
+cd "${REPO_ROOT}/src/go/canon"
 go run ./cmd/emit "${CANON_JSON}" "${CANON_JSONL}" 2> "${EMIT_LOG}" \
     || { echo "FALLO: Canon JSONL emisión terminó con código de error"; cat "${EMIT_LOG}"; exit 1; }
 

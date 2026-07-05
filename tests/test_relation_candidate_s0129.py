@@ -34,7 +34,7 @@ import pytest
 # Setup de path para imports locales
 # ---------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = REPO_ROOT / "python_scripts"
+SCRIPTS_DIR = REPO_ROOT / "src" / "python_scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import validate_relation_candidates as vcr

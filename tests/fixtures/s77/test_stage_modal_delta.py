@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from python_scripts.stage_modal_delta import compare_and_stage
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
+
+from stage_modal_delta import compare_and_stage
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:

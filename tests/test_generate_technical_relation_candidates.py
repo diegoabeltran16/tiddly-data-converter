@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 from generate_technical_relation_candidates import (  # noqa: E402
     BLOCKED_DUPLICATE,
@@ -48,12 +48,12 @@ def _write_canon(canon_root: Path, records: list[dict]) -> None:
 
 
 def test_generates_ready_test_import_candidate(tmp_path: Path) -> None:
-    _write(tmp_path / "python_scripts" / "subject.py", "VALUE = 1\n")
-    _write(tmp_path / "tests" / "test_subject.py", "from python_scripts import subject\n")
+    _write(tmp_path / "src" / "python_scripts" / "subject.py", "VALUE = 1\n")
+    _write(tmp_path / "tests" / "test_subject.py", "import subject\n")
     canon_root = tmp_path / "data" / "out" / "local"
     _write_canon(canon_root, [
         _canon_record("src-test", "tests/test_subject.py"),
-        _canon_record("target-script", "python_scripts/subject.py"),
+        _canon_record("target-script", "src/python_scripts/subject.py"),
     ])
 
     candidates = build_candidates(tmp_path, canon_root)
@@ -71,12 +71,12 @@ def test_generates_ready_test_import_candidate(tmp_path: Path) -> None:
 
 
 def test_marks_existing_canonical_relation_as_possible_duplicate(tmp_path: Path) -> None:
-    _write(tmp_path / "python_scripts" / "subject.py", "VALUE = 1\n")
-    _write(tmp_path / "tests" / "test_subject.py", "from python_scripts import subject\n")
+    _write(tmp_path / "src" / "python_scripts" / "subject.py", "VALUE = 1\n")
+    _write(tmp_path / "tests" / "test_subject.py", "import subject\n")
     canon_root = tmp_path / "data" / "out" / "local"
     _write_canon(canon_root, [
         _canon_record("src-test", "tests/test_subject.py", [{"type": "valida", "target_id": "target-script"}]),
-        _canon_record("target-script", "python_scripts/subject.py"),
+        _canon_record("target-script", "src/python_scripts/subject.py"),
     ])
 
     candidates = build_candidates(tmp_path, canon_root)
@@ -86,10 +86,10 @@ def test_marks_existing_canonical_relation_as_possible_duplicate(tmp_path: Path)
 
 
 def test_blocks_path_literal_when_target_has_no_canonical_mapping(tmp_path: Path) -> None:
-    _write(tmp_path / "python_scripts" / "reader.py", "PATH = 'README.md'\n")
+    _write(tmp_path / "src" / "python_scripts" / "reader.py", "PATH = 'README.md'\n")
     _write(tmp_path / "README.md", "# readme\n")
     canon_root = tmp_path / "data" / "out" / "local"
-    _write_canon(canon_root, [_canon_record("src-reader", "python_scripts/reader.py")])
+    _write_canon(canon_root, [_canon_record("src-reader", "src/python_scripts/reader.py")])
 
     candidates = build_candidates(tmp_path, canon_root)
 
@@ -100,12 +100,12 @@ def test_blocks_path_literal_when_target_has_no_canonical_mapping(tmp_path: Path
 
 
 def test_writes_required_review_outputs(tmp_path: Path) -> None:
-    _write(tmp_path / "python_scripts" / "subject.py", "VALUE = 1\n")
-    _write(tmp_path / "tests" / "test_subject.py", "from python_scripts import subject\n")
+    _write(tmp_path / "src" / "python_scripts" / "subject.py", "VALUE = 1\n")
+    _write(tmp_path / "tests" / "test_subject.py", "import subject\n")
     canon_root = tmp_path / "data" / "out" / "local"
     _write_canon(canon_root, [
         _canon_record("src-test", "tests/test_subject.py"),
-        _canon_record("target-script", "python_scripts/subject.py"),
+        _canon_record("target-script", "src/python_scripts/subject.py"),
     ])
     candidates = build_candidates(tmp_path, canon_root)
     out_dir = tmp_path / "out"

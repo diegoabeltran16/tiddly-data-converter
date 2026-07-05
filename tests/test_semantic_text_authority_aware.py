@@ -10,7 +10,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import build_semantic_text_authority_aware as authority_builder  # noqa: E402
 

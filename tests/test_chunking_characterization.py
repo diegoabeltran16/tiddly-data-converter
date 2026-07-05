@@ -11,7 +11,7 @@ but target the new isolated chunking module.
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python_scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "python_scripts"))
 
 import pytest
 from chunking import (

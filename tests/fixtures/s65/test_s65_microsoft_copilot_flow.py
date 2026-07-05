@@ -22,7 +22,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT / "python_scripts"))
+sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 
 def load_canon_records() -> list[dict]:
@@ -56,7 +56,7 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
 
     def test_official_entrypoint_exists(self) -> None:
         """derive_layers.py must exist as the official entrypoint."""
-        entrypoint = REPO_ROOT / "python_scripts" / "derive_layers.py"
+        entrypoint = REPO_ROOT / "src" / "python_scripts" / "derive_layers.py"
         self.assertTrue(entrypoint.exists(), "derive_layers.py entrypoint missing")
 
     def test_no_legacy_copilot_agent_root_path(self) -> None:
@@ -195,7 +195,7 @@ class S65MicrosoftCopilotFlowTests(unittest.TestCase):
 
     def test_readme_documents_single_operator_menu(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("shell_scripts/tdc.sh", readme)
+        self.assertIn("src/shell_scripts/tdc.sh", readme)
 
     def test_data_readme_lists_spec_and_copilot_agent_outputs(self) -> None:
         data_readme = (REPO_ROOT / "data" / "README.md").read_text(encoding="utf-8")

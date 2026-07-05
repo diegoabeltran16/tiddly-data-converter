@@ -13,13 +13,13 @@ import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_DIR = REPO_ROOT / "python_scripts"
+SCRIPT_DIR = REPO_ROOT / "src" / "python_scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import admit_session_candidates as asc
 
-ADMIT_SCRIPT = REPO_ROOT / "python_scripts" / "admit_session_candidates.py"
+ADMIT_SCRIPT = REPO_ROOT / "src" / "python_scripts" / "admit_session_candidates.py"
 # S0126: fixture sessions moved to tests/fixtures/s69/sessions/ to avoid session_sync conflicts.
 # The real sessions/ dir (data/out/local/sessions/) is scanned by session_sync; test fixtures
 # must not live there to prevent ID collisions with existing canon records.
@@ -112,7 +112,7 @@ def normalize_records(records: list[dict], tmp_dir: Path) -> list[dict]:
             "--output",
             str(out_path),
         ],
-        cwd=REPO_ROOT / "go" / "canon",
+        cwd=REPO_ROOT / "src" / "go" / "canon",
     )
     if result.returncode != 0:
         raise AssertionError(result.stderr or result.stdout)
