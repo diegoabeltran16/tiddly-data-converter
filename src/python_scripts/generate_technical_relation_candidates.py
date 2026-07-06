@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Generate technical relation candidates from repository evidence.
 
-S0157 dry-run generator. It reads repository files and local canon shards,
-emits reviewable candidates, and never writes canonical relations or derived
-layers.
+Dry-run generator. It reads repository files and local canon shards, emits
+reviewable candidates, and never writes canonical relations or derived layers.
 """
 
 from __future__ import annotations
@@ -21,10 +20,11 @@ from typing import Any, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CANON_ROOT = REPO_ROOT / "data" / "out" / "local"
-DEFAULT_OUT_DIR = DEFAULT_CANON_ROOT / "pipeline" / "relation_candidates" / "s0157"
+DEFAULT_SESSION = "S0161"
+DEFAULT_OUT_DIR = DEFAULT_CANON_ROOT / "pipeline" / "relation_candidates" / "s0161"
 
 SCHEMA = "technical-relation-candidates/v1"
-SESSION = "S0157"
+SESSION = DEFAULT_SESSION
 
 READY = "candidate_ready_for_review"
 BLOCKED_UNRESOLVED = "blocked_unresolved_target"
@@ -315,6 +315,7 @@ def build_candidate(
     canonical_relations: set[tuple[str, str, str]],
     prior_signatures: dict[tuple[str | None, str | None, str | None], str],
     root: Path,
+    session: str = SESSION,
 ) -> dict[str, Any]:
     source_artifact = artifacts.get(observation.source_repo_path)
     target_artifact = artifacts.get(observation.target_repo_path or "")
@@ -353,11 +354,12 @@ def build_candidate(
         "line": observation.line,
         "raw": observation.raw_observation,
     }, sort_keys=True, ensure_ascii=False)
-    candidate_id = "rc_s0157_" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
+    session_prefix = session.lower()
+    candidate_id = f"rc_{session_prefix}_" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
 
     candidate = {
         "candidate_id": candidate_id,
-        "session_origin": SESSION,
+        "session_origin": session,
         "candidate_schema_version": SCHEMA,
         "status": status,
         "relation_type": relation_type,
@@ -384,7 +386,7 @@ def build_candidate(
     return candidate
 
 
-def build_candidates(root: Path, canon_root: Path) -> list[dict[str, Any]]:
+def build_candidates(root: Path, canon_root: Path, session: str = SESSION) -> list[dict[str, Any]]:
     artifacts, canonical_relations = load_canon_artifacts(canon_root)
     observations = discover_observations(root, set(artifacts))
     prior = load_prior_signatures(canon_root / "pipeline")
@@ -395,21 +397,21 @@ def build_candidates(root: Path, canon_root: Path) -> list[dict[str, Any]]:
         if key in seen_observations:
             continue
         seen_observations.add(key)
-        candidates.append(build_candidate(obs, artifacts, canonical_relations, prior, root))
+        candidates.append(build_candidate(obs, artifacts, canonical_relations, prior, root, session=session))
     return sorted(candidates, key=lambda c: c["candidate_id"])
 
 
-def validate_candidates(candidates: Iterable[dict[str, Any]]) -> list[str]:
+def validate_candidates(candidates: Iterable[dict[str, Any]], session: str = SESSION) -> list[str]:
     errors: list[str] = []
     seen: set[str] = set()
     for idx, candidate in enumerate(candidates, start=1):
         cid = candidate.get("candidate_id")
-        if not isinstance(cid, str) or not cid.startswith("rc_s0157_"):
+        if not isinstance(cid, str) or not cid.startswith(f"rc_{session.lower()}_"):
             errors.append(f"line {idx}: invalid candidate_id")
         if cid in seen:
             errors.append(f"line {idx}: duplicate candidate_id {cid}")
         seen.add(cid)
-        if candidate.get("session_origin") != SESSION:
+        if candidate.get("session_origin") != session:
             errors.append(f"line {idx}: wrong session_origin")
         if candidate.get("policy", {}).get("canonical_admission_allowed") is not False:
             errors.append(f"line {idx}: canonical_admission_allowed must be false")
@@ -432,7 +434,13 @@ def write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> int:
     return len(rows)
 
 
-def write_outputs(candidates: list[dict[str, Any]], out_dir: Path, canon_root: Path) -> dict[str, Any]:
+def write_outputs(
+    candidates: list[dict[str, Any]],
+    out_dir: Path,
+    canon_root: Path,
+    session: str = SESSION,
+    run_id: str | None = None,
+) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     status_counts = Counter(c["status"] for c in candidates)
@@ -457,7 +465,8 @@ def write_outputs(candidates: list[dict[str, Any]], out_dir: Path, canon_root: P
 
     report = {
         "schema": "technical-relation-candidates-report/v1",
-        "session": SESSION,
+        "session": session,
+        "run_id": run_id,
         "generated_at": now,
         "dry_run": True,
         "canon_root": str(canon_root),
@@ -472,12 +481,12 @@ def write_outputs(candidates: list[dict[str, Any]], out_dir: Path, canon_root: P
             "derivation_allowed": False,
             "human_review_required": True,
         },
-        "validation_errors": validate_candidates(candidates),
+        "validation_errors": validate_candidates(candidates, session=session),
     }
     paths["report"].write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     summary = [
-        "# S0157 relation candidates dry-run",
+        f"# {session} relation candidates dry-run",
         "",
         f"Generated: `{now}`",
         f"Candidates: `{len(candidates)}`",
@@ -532,7 +541,7 @@ def write_outputs(candidates: list[dict[str, Any]], out_dir: Path, canon_root: P
             })
 
     audit_rows = [
-        {"event": "candidate_emitted", "session": SESSION, "candidate_id": c["candidate_id"], "status": c["status"]}
+        {"event": "candidate_emitted", "session": session, "run_id": run_id, "candidate_id": c["candidate_id"], "status": c["status"]}
         for c in candidates
     ]
     write_jsonl(paths["audit"], audit_rows)
@@ -540,10 +549,18 @@ def write_outputs(candidates: list[dict[str, Any]], out_dir: Path, canon_root: P
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate S0157 technical relation candidates in dry-run mode.")
+    parser = argparse.ArgumentParser(description="Generate technical relation candidates in dry-run mode.")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--canon-root", type=Path, default=DEFAULT_CANON_ROOT)
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help="Optional canon input path. If a directory is provided, it is used as canon-root; if a shard is provided, its parent is used.",
+    )
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
+    parser.add_argument("--session", default=DEFAULT_SESSION)
+    parser.add_argument("--run-id", default=None)
     parser.add_argument("--dry-run", action="store_true", required=True)
     parser.add_argument("--apply", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args()
@@ -552,14 +569,19 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.apply:
-        raise SystemExit("--apply is forbidden for S0157; this generator is dry-run only")
-    candidates = build_candidates(args.repo_root.resolve(), args.canon_root)
-    report = write_outputs(candidates, args.out_dir, args.canon_root)
+        raise SystemExit("--apply is forbidden; this generator is dry-run only")
+    canon_root = args.canon_root
+    if args.input:
+        canon_root = args.input if args.input.is_dir() else args.input.parent
+    session = str(args.session).upper()
+    candidates = build_candidates(args.repo_root.resolve(), canon_root, session=session)
+    report = write_outputs(candidates, args.out_dir, canon_root, session=session, run_id=args.run_id)
     if report["validation_errors"]:
         print(json.dumps(report["validation_errors"], ensure_ascii=False, indent=2))
         return 1
     print(json.dumps({
-        "session": SESSION,
+        "session": session,
+        "run_id": args.run_id,
         "candidate_count": report["candidate_count"],
         "ready_for_review_count": report["ready_for_review_count"],
         "blocked_count": report["blocked_count"],

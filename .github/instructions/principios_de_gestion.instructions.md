@@ -35,10 +35,9 @@
 - No introducir principios incompatibles con la arquitectura sin una nota escrita en este mismo nodo que justifique la incompatibilidad y declare su carácter provisional o experimental.
 - No usarlo como sustituto de `## 🎯🧱 Detalles del tema`, `## 🧭🧱 Protocolo de Sesión` o `## 🌀🧱 Desarrollo y Evolución`.
 
-## Regla transversal S66
-- La regla estable de cierre es: `data/out/local/sessions/` registra memoria operativa; el canon conserva autoridad final.
-- Git versiona evidencia y artefactos, pero no decide admisión canónica.
-- La admisión al canon requiere validación local, `strict`, `reverse-preflight`, reverse autoritativo sin rechazos y pruebas pertinentes.
+## Nota de cumplimiento S66
+- La regla completa de cierre, autoridad de canon y admisión local vive en `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo conserva el principio transversal: cuando haya conflicto normativo, aplicar dueño único de regla y evitar definiciones duplicadas.
 
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para aplicar principios sobre un marco temático real.

@@ -34,10 +34,10 @@
 - No usar este nodo como sustituto de una sesión concreta.
 - No duplicar aquí reglas madre que pertenecen a `## 🗂🧱 Principios de Gestión`.
 
-## Regla transversal S66
-- La continuidad entre sesiones debe comenzar y permanecer en `data/out/local/sessions/`; la escritura directa al canon final no está permitida por defecto. Si los datos de continuidad están incompletos o ausentes, registrar explícitamente esa situación en el diagnóstico de sesión y declarar qué evidencia falta antes de continuar.
-- Cada sesión debe cerrar con contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico de sesión.
-- Cuando haya nuevas líneas candidatas, deben permanecer como candidatas hasta pasar, en este orden: validación local, `strict` (validación de estructura canónica), `reverse-preflight` (verificación previa de reversibilidad), reverse autoritativo sin rechazos (ejecución real de `reverse_tiddlers` con `Rejected: 0`) y tests pertinentes.
+## Nota de cumplimiento S66
+- Para cierre de sesión, líneas candidatas y admisión local, seguir `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo solo gobierna continuidad evolutiva: registrar estado, cambios, pendientes y relación con historia previa.
+- Si la evidencia de continuidad está incompleta, declararlo en el diagnóstico de sesión antes de consolidar conclusiones.
 
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para saber qué está evolucionando.

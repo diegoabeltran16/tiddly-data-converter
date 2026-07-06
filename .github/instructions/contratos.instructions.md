@@ -7,6 +7,11 @@ Para toda propuesta técnica, cambio estructural, ajuste de implementación, cor
 3. Serializa el resultado como al menos un `.md.json` importable, no solo markdown libre.
 4. Verifica trazabilidad: sesión, milestone, componente, alcance, límites, pendientes y riesgos deben quedar explícitos.
 
+Nota de cumplimiento S66: la familia completa de sesión, rutas oficiales,
+títulos, líneas candidatas y admisión local se definen en
+`.github/instructions/canonical_session_family.instructions.md`. Este archivo
+solo gobierna el contrato y sus familias contractuales.
+
 Actúa como asistente contractual de desarrollo para `tiddly-data-converter`.
 
 No operes como conversación libre cuando el objetivo esté explícitamente definido en términos de alcance, límites y resultados esperados. Opera como sesión dirigida por objetivo, con lectura situada, expansión contextual guiada, inferencia conservadora y cierre en artefactos estructurados compatibles con la arquitectura, el vocabulario y el Canon. Los contratos históricos compartidos muestran familias documentales distintas, pero todos conservan estructura técnica trazable y serialización compatible con TiddlyWiki.
@@ -155,48 +160,54 @@ El cierre mínimo de toda sesión que respalde cambios sustantivos de un pull re
 No basta con entregar solo markdown plano, solo análisis conversacional o solo una propuesta de contrato en texto libre.
 
 El archivo `.md.json` debe seguir la misma lógica estructural observable en los contratos versionados del repositorio:
-- wrapper JSON importable;
+- un artefacto JSON fuente importable/compatible;
 - un objeto tiddler principal;
 - un campo `text` que contenga el contrato completo en markdown estructurado;
 - metadata mínima coherente con la línea documental activa del sistema.
 
 ### Regla adicional de staging canonico
 
-Cuando una sesión cree o actualice su contrato `.md.json`, ese artefacto debe quedar en `data/out/local/sessions/00_contratos/`.
+Cuando una sesión cree o actualice su contrato `.md.json`, ese artefacto debe
+quedar en la ruta de contratos definida por
+`.github/instructions/canonical_session_family.instructions.md`.
 
-Si el contrato debe poder ingresar al canon, el agente debe producir una línea candidata en formato canon bajo `data/out/local/sessions/`. Esa línea debe apuntar al archivo fuente mediante `source_path` o campo equivalente no reservado, declarar la sesión de origen, declarar la familia `contrato_de_sesion` y conservar estado de candidato hasta que un proceso local la valide y la absorba.
-
-El agente no debe escribir directamente el contrato en `data/out/local/tiddlers_*.jsonl` por defecto. La absorción canónica ocurre solo tras validación local, `strict`, `reverse-preflight`, reverse autoritativo con `Rejected: 0` y tests pertinentes.
-
-Los contratos reales compartidos ya muestran la lógica de wrapper JSON con metadata de tiddler y contenido contractual dentro de `text`, lo que permite importarlos directamente a TiddlyWiki. S66 agrega que ese wrapper vive bajo `data/out/local/sessions/` y que su representación canónica comienza como candidata, no como autoridad final.
+Si el contrato debe poder ingresar al canon, conservarlo como candidato no
+admitido hasta que el proceso local autorizado aplique las compuertas de S66.
+Los contratos reales compartidos muestran la lógica de artefacto JSON fuente con
+metadata de tiddler y contenido contractual dentro de `text`, lo que permite
+importarlos directamente a TiddlyWiki.
 
 ### Forma mínima obligatoria del `.md.json`
 
-Cuando se produzca un contrato nuevo, debe serializarse como artefacto importable con una forma mínima equivalente a esta:
+Cuando se produzca un contrato nuevo, debe serializarse como artefacto fuente
+`.md.json` compatible con el schema vigente de
+`.github/instructions/tiddlers_sesiones.instructions.md`. La forma mínima es un
+objeto JSON, no un array de exportación TiddlyWiki:
 
 ```json
-[
-  {
-    "created": "YYYYMMDDHHmmssSSS",
-    "text": "# ... contrato de sesión en markdown ...",
-    "type": "text/markdown",
-    "title": "mXX-sNN-<slug>.md",
-    "modified": "YYYYMMDDHHmmssSSS",
-    "tags": "[[#### referencias especificas 🌀]] [[## 🧰🧱 Elementos específicos]] [[#### 🌀 Sesión NN = <slug>]]",
-    "tmap.id": "<uuid>"
-  }
-]
+{
+  "title": "#### 🌀 Contrato de sesión <NNNN> = <slug>",
+  "type": "text/markdown",
+  "created": "YYYYMMDDHHmmssSSS",
+  "modified": "YYYYMMDDHHmmssSSS",
+  "session_id": "mXX-sNNNN",
+  "module": "mXX",
+  "session": "SNNNN",
+  "status": "delivered",
+  "canonical_slug": "mXX-sNNNN-contrato-<slug>",
+  "tags": ["sesion", "contrato", "mXX", "sNNNN"],
+  "text": "# ... contrato de sesión en markdown ..."
+}
 ```
+
+No usar aquí `title: "mXX-sNN-<slug>.md"`, `tags` como string TiddlyWiki,
+`tmap.id` ni array `[{...}]`; esas formas pertenecen a exportación o a
+formatos históricos y producen fricción con la validación actual.
 
 ### Familia minima asociada al contrato
 
-El contrato no cierra por si solo una sesion sustantiva. Debe existir tambien:
-
-- procedencia de sesion en `data/out/local/sessions/01_procedencia/`;
-- detalles de sesion en `data/out/local/sessions/02_detalles_de_sesion/`;
-- hipotesis de sesion en `data/out/local/sessions/03_hipotesis/`;
-- balance de sesion en `data/out/local/sessions/04_balance_de_sesion/`;
-- propuesta de sesion en `data/out/local/sessions/05_propuesta_de_sesion/`;
-- diagnostico de sesion en `data/out/local/sessions/06_diagnoses/sesion/`.
+El contrato no cierra por sí solo una sesión sustantiva. La familia completa y
+sus rutas oficiales se definen en
+`.github/instructions/canonical_session_family.instructions.md`.
 
 No crear archivo acumulativo global de contratos ni de sesiones.

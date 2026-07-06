@@ -35,11 +35,10 @@
 - No presentar como observación directa lo que en realidad es inferencia o síntesis.
 - No ocultar contribuciones mixtas humano-IA cuando afectan el contenido.
 
-## Regla transversal S66
-- Toda sesión debe producir procedencia de sesión en `data/out/local/sessions/01_procedencia/<session>.md.json`.
-- El `title` de procedencia de sesión debe usar `#### 🌀🧾 Procedencia de sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión con cero a la izquierda por nivel (4 dígitos: 0001–0999), por ejemplo `#### 🌀🧾 Procedencia de sesión 0069 = canon-admission-hardening-and-docs-v0`.
-- Las líneas candidatas deben declarar procedencia suficiente y apuntar al archivo fuente bajo `data/out/local/sessions/`.
-- No admitir al canon líneas cuya procedencia, sesión de origen o familia de artefacto no sean verificables localmente mediante revisión manual del archivo fuente bajo `data/out/local/sessions/` o mediante validación automática (`strict`, `reverse-preflight`) según corresponda.
+## Nota de cumplimiento S66
+- La familia, ruta, título y admisión de la procedencia de sesión se gobiernan en `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo solo define qué cuenta como procedencia suficiente: origen, actor, método, fuente, inferencia y verificabilidad.
+- No admitir candidatos cuya procedencia, sesión de origen o fuente local no sean verificables.
 
 ## Gobernanza de procedencia diagnóstica
 

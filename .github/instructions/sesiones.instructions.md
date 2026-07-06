@@ -47,6 +47,7 @@ Antes de ejecutar cambios, leer integramente, respetar y usar como normativa act
 
 - `.github/instructions/contratos.instructions.md`
 - `.github/instructions/PRcommits.instructions.md`, si la sesion toca commits o PR
+- `.github/instructions/canonical_session_family.instructions.md`
 - `.github/instructions/tiddlers_sesiones.instructions.md`
 - `esquemas/canon/canon_guarded_session_rules.md`
 - `esquemas/canon/derived_field_rules.md`
@@ -88,54 +89,15 @@ Excepcion:
 
 ---
 
-## 4. Familia minima obligatoria de cierre de sesion
+## 4. Nota de cumplimiento S66
 
-Toda sesion debe cerrar con un archivo propio por sesion y por familia de artefacto:
+La familia mínima, rutas oficiales, convención `#### 🌀`, numeración de 4 dígitos,
+líneas candidatas y compuertas de admisión se definen en
+`.github/instructions/canonical_session_family.instructions.md`.
 
-1. contrato de sesion;
-2. procedencia de sesion;
-3. detalles de sesion;
-4. hipotesis de sesion;
-5. balance de sesion;
-6. propuesta de sesion;
-7. diagnostico de sesion.
-
-Rutas preferidas:
-
-```text
-data/out/local/sessions/00_contratos/<session>.md.json
-data/out/local/sessions/01_procedencia/<session>.md.json
-data/out/local/sessions/02_detalles_de_sesion/<session>.md.json
-data/out/local/sessions/03_hipotesis/<session>.md.json
-data/out/local/sessions/04_balance_de_sesion/<session>.md.json
-data/out/local/sessions/05_propuesta_de_sesion/<session>.md.json
-data/out/local/sessions/06_diagnoses/sesion/<session>.md.json
-```
-
-Convencion de titulo:
-
-- todos los tiddlers producidos como resultado de sesion deben tener un `title` que empiece por `#### 🌀`;
-- contrato de sesion: `#### 🌀 Contrato de sesión <NNNN> = <slug>`;
-- procedencia de sesion: `#### 🌀🧾 Procedencia de sesión <NNNN> = <slug>`;
-- detalles/sesion: `#### 🌀 Sesión <NNNN> = <slug>`;
-- hipotesis de sesion: `#### 🌀🧪 Hipótesis de sesión <NNNN> = <slug>`;
-- balance de sesion: `#### 🌀 Balance de sesión <NNNN> = <slug>`;
-- propuesta de sesion: `#### 🌀 Propuesta de sesión <NNNN> = <slug>`;
-- diagnostico de sesion: `#### 🌀 Diagnóstico de sesión <NNNN> = <slug>`.
-
-`<NNNN>` = número de sesión formateado con 4 dígitos y ceros a la izquierda
-(`f'{int(n):04d}'`), **sin** prefijo `S`. Se extrae de `mXX-sNNNN-...`;
-`<slug>` es el resto del identificador sin el prefijo `mXX-sNNNN-` y sin
-`session-` cuando aparezca como prefijo operativo.
-
-Reglas:
-
-- no crear archivo acumulativo global de sesiones;
-- no usar un archivo por cada linea individual salvo convencion explicita;
-- no mover ni renombrar carpetas existentes sin justificacion explicita;
-- respetar el orden logico: contrato -> procedencia -> detalles -> hipotesis -> balance -> propuesta -> diagnostico.
-
-En el estado actual del repositorio pueden existir subcarpetas historicas en ingles bajo `data/out/local/sessions/06_diagnoses/` (`project`, `module`). No crear variantes nuevas si la ruta real ya existe; documentar la ruta real usada.
+Este archivo solo gobierna cómo conducir la sesión: leer lo necesario, actuar
+sobre el objetivo local, registrar evidencia y cerrar sin inventar familias,
+rutas, numeración ni formatos alternos.
 
 ---
 
@@ -192,126 +154,25 @@ No inflar el cierre con diagnosticos especializados si no aportan al objetivo de
 
 ## 7. Lineas candidatas en formato canon
 
-Cuando la sesion produzca memoria que deba poder entrar al canon, el agente debe dejar lineas candidatas en formato canon bajo `data/out/local/sessions/`.
-
-Las lineas candidatas deben:
-
-- ser JSONL valido;
-- respetar la estructura interna exigida por el canon;
-- tener identificacion estable;
-- tener `title` o `key` coherente con la convencion del proyecto;
-- declarar sesion de origen;
-- declarar familia de artefacto;
-- declarar procedencia;
-- apuntar al archivo fuente bajo `data/out/local/sessions/`;
-- poder pasar `strict`;
-- poder pasar `reverse-preflight`;
-- poder ser procesadas por reverse autoritativo sin rechazo;
-- no reclamar autoridad final si aun no fueron absorbidas al canon.
-
-No inventar campos nuevos si el canon ya tiene campos equivalentes. Si se agregan campos de trazabilidad en `source_fields`, deben ser no reservados por reverse y quedar justificados en el informe tecnico o en el diagnostico de sesion.
+Usar la definición completa de `.github/instructions/canonical_session_family.instructions.md`.
+Durante la conducción de sesión, registrar si se produjeron candidatas, dónde
+quedaron y qué validación se ejecutó o quedó pendiente.
 
 ---
 
 ## 8. Admision local al canon
 
-La admision al canon debe ocurrir localmente porque el canon bajo `data/out/` es salida local ignorada por Git.
-
-Flujo recomendado:
-
-**Fase 1 — Produccion de artefactos** (solo escritura en sessions):
-
-1. El agente produce artefactos de sesion en `data/out/local/sessions/`.
-2. El agente produce lineas candidatas en formato canon bajo `data/out/local/sessions/`.
-
-> Punto de control 1: verificar que los artefactos existen y son JSONL valido antes de continuar.
-
-**Fase 2 — Preparacion de copia temporal** (nunca toca el canon real):
-
-3. Un proceso local o manual toma esas lineas candidatas.
-4. El proceso copia el canon actual a una zona temporal.
-5. Inserta las lineas candidatas en esa copia temporal.
-
-> Punto de control 2: verificar que la copia temporal es legible y contiene las lineas esperadas antes de continuar.
-
-**Fase 3 — Validacion** (sobre la copia temporal, no sobre el canon real):
-
-6. Ejecuta las compuertas de validacion definidas en la seccion 9.
-7. Ejecuta verificacion de reversibilidad.
-
-> Punto de control 3: si cualquier validacion falla, registrar el error en el diagnostico y detener el proceso. No continuar a la Fase 4.
-
-**Fase 4 — Aplicacion** (solo si las tres fases anteriores pasaron):
-
-8. Si todo pasa, aplica los cambios al canon local.
-9. Si algo falla en este paso, revertir a la copia temporal y no modificar el canon.
-
-No crear automatizaciones complejas salvo que la sesion lo pida o exista un script equivalente que solo requiera ajuste menor.
+La admisión local se define en `.github/instructions/canonical_session_family.instructions.md`.
+En esta plantilla, el agente solo debe dejar evidencia de si la sesión quedó en
+staging, si hubo candidatos y si la admisión fue explícitamente autorizada o no.
 
 ---
 
-## 9. Compuertas minimas antes de admitir lineas
+## 9. Validacion
 
-Ninguna linea candidata debe considerarse admitida al canon hasta pasar, como minimo:
-
-1. validacion JSONL;
-2. validacion de estructura canonica;
-3. validacion de campos obligatorios;
-4. validacion de identificadores;
-5. validacion de procedencia;
-6. validacion de relaciones si aplica;
-7. canon strict;
-8. reverse-preflight;
-9. reverse autoritativo sin `rejected`;
-10. tests existentes relacionados con canon, reverse y derivados.
-
-Comandos reales disponibles:
-
-```bash
-cd /repositorios/tiddly-data-converter/src/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
-  --mode strict \
-  --input <canon-temporal-o-jsonl>
-```
-
-```bash
-cd /repositorios/tiddly-data-converter/src/go/canon
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/canon_preflight \
-  --mode reverse-preflight \
-  --input <canon-temporal-o-jsonl>
-```
-
-```bash
-cd /repositorios/tiddly-data-converter/src/go/bridge
-env GOCACHE=/tmp/tdc-go-build go run ./cmd/reverse_tiddlers \
-  --html ../../../data/in/'tiddly-data-converter (Saved).html' \
-  --canon <canon-temporal> \
-  --out-html /tmp/<session>.reverse.html \
-  --report /tmp/<session>.reverse-report.json \
-  --mode authoritative-upsert
-```
-
-Si `reverse_tiddlers` reporta `Rejected: 0`, la compuerta de reversibilidad pasa para esa copia temporal. Si reporta `rejected > 0` o termina con error, la linea candidata no esta admitida.
-
-Tests utiles segun alcance:
-
-```bash
-cd /repositorios/tiddly-data-converter/src/go/canon
-env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
-```
-
-```bash
-cd /repositorios/tiddly-data-converter/src/go/bridge
-env GOCACHE=/tmp/tdc-go-build go test ./... -count=1
-```
-
-```bash
-python3 src/python_scripts/validate_corpus_governance.py \
-  --canon-dir data/out/local \
-  --ai-dir data/out/local/ai
-```
-
-Si un comando real no existe o no puede ejecutarse, no inventarlo. Registrar en el diagnostico: que no se ejecuto, por que, que falta y que debe hacer la siguiente sesion.
+Las compuertas de admisión pertenecen a `.github/instructions/canonical_session_family.instructions.md`.
+Aquí solo aplica la regla operativa: ejecutar comandos reales cuando existan y
+registrar en el diagnóstico qué pasó, qué no se ejecutó, por qué y qué falta.
 
 ---
 

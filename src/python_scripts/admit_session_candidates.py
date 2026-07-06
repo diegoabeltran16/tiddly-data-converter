@@ -32,7 +32,7 @@ CANON_STATUS_ADMITTED = "local_admitted"
 
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp" / "session_admission"
-DEFAULT_REPORT_DIR = REPO_ROOT / "data" / "tmp" / "admissions"
+DEFAULT_REPORT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "admissions"
 SESSION_ID_RE = re.compile(r"^(m\d+)-s([0-9]+[a-z]?)-(.+)$")
 
 REQUIRED_CANON_FIELDS = (
@@ -1979,7 +1979,7 @@ def _shared_mode_arguments(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument(
         "--report-dir",
         default=as_display_path(DEFAULT_REPORT_DIR),
-        help="Admission report output dir (default: data/tmp/admissions)",
+        help="Persistent admission report output dir (default: data/out/local/audit/admissions)",
     )
     subparser.add_argument(
         "--input-html",
@@ -2045,7 +2045,7 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_parser.add_argument(
         "--admission-report",
         required=True,
-        help="Path to a previous apply report under data/tmp/admissions",
+        help="Path to a previous apply report under data/out/local/audit/admissions",
     )
     rollback_parser.add_argument(
         "--canon-dir",
@@ -2060,7 +2060,7 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_parser.add_argument(
         "--report-dir",
         default=as_display_path(DEFAULT_REPORT_DIR),
-        help="Rollback report output dir (default: data/tmp/admissions)",
+        help="Persistent rollback report output dir (default: data/out/local/audit/admissions)",
     )
     rollback_parser.add_argument(
         "--input-html",

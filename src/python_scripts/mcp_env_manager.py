@@ -657,14 +657,14 @@ def action_pull_and_admit() -> None:
 
 
 def action_show_last_sync() -> None:
-    """Show the last sync/pull summary from data/tmp/ if available."""
+    """Show the last sync/pull summary from persistent audit if available."""
     import glob as _glob
-    reports_dir = REPO_ROOT / "data" / "tmp" / "admissions"
+    reports_dir = REPO_ROOT / "data" / "out" / "local" / "audit" / "admissions"
     pattern = str(reports_dir / "*.json")
     matches = sorted(_glob.glob(pattern), reverse=True)
     if not matches:
-        print("  No hay reportes de admision en data/tmp/admissions/.")
-        print("  Los reportes de sync de mirror no se persisten localmente por defecto.")
+        print("  No hay reportes de admision en data/out/local/audit/admissions/.")
+        print("  data/tmp/remote_inbox/ es staging temporal; promover antes de cierre o admision.")
         inbox = REPO_ROOT / "data" / "tmp" / "remote_inbox"
         if inbox.exists():
             candidates = list(inbox.glob("*.md.json"))
