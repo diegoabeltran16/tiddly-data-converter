@@ -35,10 +35,9 @@
 - No inflar esta capa con ocurrencias sin función operativa.
 - No usar este nodo como sustituto del desarrollo temático o de la procedencia.
 
-## Regla transversal S66
-- Toda sesión debe producir hipótesis de sesión en `data/out/local/sessions/03_hipotesis/<session>.md.json`, aunque sea para declarar que no se abrieron hipótesis nuevas.
-- El `title` de hipótesis de sesión debe usar `#### 🌀🧪 Hipótesis de sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión con cero a la izquierda por nivel (4 dígitos: 0001–0999), por ejemplo `#### 🌀🧪 Hipótesis de sesión 0069 = canon-admission-hardening-and-docs-v0`.
-- Una hipótesis de sesión candidata al canon debe conservar su estatuto tentativo y no reclamar autoridad final antes de validación local y reversibilidad.
+## Nota de cumplimiento S66
+- La ruta, título y estado candidato de la hipótesis de sesión se gobiernan en `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo solo define la obligación epistemológica: una hipótesis conserva estatuto tentativo hasta validación suficiente.
 - El diagnóstico de sesión debe registrar si las hipótesis quedaron validadas, abiertas, descartadas o pendientes.
 
 ## Interacción con otros nodos

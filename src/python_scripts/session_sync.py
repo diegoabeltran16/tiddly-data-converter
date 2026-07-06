@@ -52,6 +52,7 @@ from generate_session_deliverables import validate_deliverable_file  # noqa: E40
 
 
 DEFAULT_SESSION_SYNC_DIR = REPO_ROOT / "data" / "tmp" / "session_sync"
+DEFAULT_SESSION_SYNC_EVIDENCE_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "session_sync"
 
 
 @dataclass
@@ -75,6 +76,50 @@ def _write_json(path: Path, payload: Any) -> None:
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+
+
+def _write_persistent_summary(inventory: dict[str, Any], evidence_dir: Path) -> Path:
+    summary_dir = evidence_dir.resolve() / inventory["run_id"]
+    summary_path = summary_dir / "summary.json"
+    generated_files = [
+        value
+        for value in (
+            inventory.get("generated_missing_candidate_file"),
+            inventory.get("generated_replacement_candidate_file"),
+            inventory.get("generated_candidate_file"),
+        )
+        if value
+    ]
+    summary = {
+        "schema": "session-sync-persistent-summary/v1",
+        "run_id": inventory["run_id"],
+        "timestamp": inventory["timestamp"],
+        "tmp_inventory_path": inventory["inventory_path"],
+        "canon_dir": inventory["canon_dir"],
+        "sessions_dir": inventory["sessions_dir"],
+        "counts": {
+            "total_files_scanned": inventory["total_files_scanned"],
+            "total_session_records": inventory["total_session_records"],
+            "existing_by_id": len(inventory["existing_by_id"]),
+            "missing_by_id": len(inventory["missing_by_id"]),
+            "replaceable_same_id_different_content": len(inventory["replaceable_same_id_different_content"]),
+            "blocked_same_id_different_content": len(inventory["blocked_same_id_different_content"]),
+            "invalid": len(inventory["invalid"]),
+            "unsupported": len(inventory["unsupported"]),
+        },
+        "generated_candidate_files": generated_files,
+        "policy": {
+            "data_tmp_role": "temporary_cleanable_workspace",
+            "persistent_summary": True,
+            "candidate_files_remain_temporary": bool(generated_files),
+            "required_action_before_closure_or_admission": (
+                "Promote candidate files or cite this persistent summary plus validation evidence "
+                "under data/out/local/ before using session_sync output as closure evidence."
+            ),
+        },
+    }
+    _write_json(summary_path, summary)
+    return summary_path
 
 
 def _load_session_tiddler(path: Path) -> dict[str, Any]:
@@ -261,6 +306,7 @@ def scan_session_sync(
     canon_dir: Path = DEFAULT_CANON_DIR,
     out_dir: Path = DEFAULT_SESSION_SYNC_DIR,
     run_id: str | None = None,
+    evidence_dir: Path | None = None,
 ) -> dict[str, Any]:
     sessions_dir = sessions_dir.resolve()
     canon_dir = canon_dir.resolve()
@@ -473,8 +519,13 @@ def scan_session_sync(
         ),
         "generated_candidate_file": as_display_path(generated_candidate_file) if generated_candidate_file else None,
         "inventory_path": as_display_path(inventory_path),
+        "persistent_summary_path": None,
     }
     _write_json(inventory_path, inventory)
+    if evidence_dir is not None:
+        summary_path = _write_persistent_summary(inventory, evidence_dir)
+        inventory["persistent_summary_path"] = as_display_path(summary_path)
+        _write_json(inventory_path, inventory)
     return inventory
 
 
@@ -489,6 +540,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sessions-dir", default=as_display_path(DEFAULT_SESSIONS_DIR))  # default: data/out/local/sessions
     parser.add_argument("--canon-dir", default=as_display_path(DEFAULT_CANON_DIR))
     parser.add_argument("--out-dir", default=as_display_path(DEFAULT_SESSION_SYNC_DIR))
+    parser.add_argument(
+        "--evidence-dir",
+        default=as_display_path(DEFAULT_SESSION_SYNC_EVIDENCE_DIR),
+        help="Persistent session_sync evidence summary dir (default: data/out/local/audit/session_sync)",
+    )
     parser.add_argument("--run-id", default=None)
     return parser
 
@@ -501,6 +557,7 @@ def main() -> int:
             sessions_dir=resolve_repo_path(args.sessions_dir, DEFAULT_SESSIONS_DIR),
             canon_dir=resolve_repo_path(args.canon_dir, DEFAULT_CANON_DIR),
             out_dir=resolve_repo_path(args.out_dir, DEFAULT_SESSION_SYNC_DIR),
+            evidence_dir=resolve_repo_path(args.evidence_dir, DEFAULT_SESSION_SYNC_EVIDENCE_DIR),
             run_id=args.run_id,
         )
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
@@ -516,6 +573,7 @@ def main() -> int:
                 "generated_candidate_file": inventory["generated_candidate_file"],
                 "generated_missing_candidate_file": inventory["generated_missing_candidate_file"],
                 "generated_replacement_candidate_file": inventory["generated_replacement_candidate_file"],
+                "persistent_summary_path": inventory["persistent_summary_path"],
                 "total_session_records": inventory["total_session_records"],
                 "existing_by_id": len(inventory["existing_by_id"]),
                 "missing_by_id": len(inventory["missing_by_id"]),

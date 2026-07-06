@@ -165,7 +165,10 @@ if inventory.get("invalid"):
     raise SystemExit(f"session_sync invalid={len(inventory['invalid'])}")
 if inventory.get("blocked_same_id_different_content"):
     raise SystemExit(f"session_sync blocked={len(inventory['blocked_same_id_different_content'])}")
+if not inventory.get("persistent_summary_path"):
+    raise SystemExit("session_sync missing persistent_summary_path under data/out/local/audit/session_sync")
 print("session_sync: OK")
+print(f"session_sync persistent summary: {inventory['persistent_summary_path']}")
 PY
 
 CANDIDATE_FILE="$(python3 - <<'PY'
@@ -192,6 +195,8 @@ PY
     --candidate-file "$CANDIDATE_FILE" $EXTRA_ARGS
 fi
 ```
+
+Si se cita un archivo de `data/tmp/` como evidencia, debe promoverse, copiarse o resumirse en `data/out/local/...` antes del cierre. El inventario y los candidatos generados por `session_sync` bajo `data/tmp/session_sync/` son salida temporal; para cierre se debe citar `persistent_summary_path` o una copia gobernada equivalente, y todo candidato usado para admisión futura debe promoverse antes de la decisión humana.
 
 **Detener si:** hay inválidos, conflictos bloqueantes o `validate` rechaza candidatos. Corregir títulos, rutas, familia diagnóstica o campos derivados antes de cerrar.
 

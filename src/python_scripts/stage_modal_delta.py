@@ -34,6 +34,7 @@ from path_governance import (
 SESSION_ID = "m04-s77-canonical-staging-and-controlled-modal-admission-v0"
 DEFAULT_NORMALIZED_JSONL = REPO_ROOT / "data" / "tmp" / "s76-modal-export" / "local-normalized-modal.jsonl"
 DEFAULT_REPORT_ROOT = REPO_ROOT / "data" / "tmp" / "s77-modal-admission"
+DEFAULT_PERSISTENT_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "modal_delta"
 
 
 @dataclass
@@ -87,6 +88,33 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
         for record in records:
             handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")))
             handle.write("\n")
+
+
+def persist_evidence(report: dict[str, Any], report_path: Path) -> Path:
+    run_name = Path(report["outputs"]["out_dir"]).name
+    audit_dir = DEFAULT_PERSISTENT_AUDIT_ROOT / run_name
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    persistent_report = audit_dir / report_path.name
+    shutil.copy2(report_path, persistent_report)
+
+    patch_value = report.get("outputs", {}).get("patch_jsonl")
+    if patch_value:
+        patch_path = resolve_repo_path(patch_value, report_path.parent / "modal-assets.patch.jsonl")
+        if patch_path.exists():
+            shutil.copy2(patch_path, audit_dir / patch_path.name)
+
+    reverse_report_value = report.get("gates", {}).get("reverse_report")
+    if reverse_report_value:
+        reverse_report = Path(reverse_report_value)
+        if reverse_report.exists():
+            persistent_reverse = audit_dir / reverse_report.name
+            shutil.copy2(reverse_report, persistent_reverse)
+            report["gates"]["persistent_reverse_report"] = as_display_path(persistent_reverse)
+
+    report["outputs"]["persistent_audit_dir"] = as_display_path(audit_dir)
+    report["outputs"]["persistent_comparison_report"] = as_display_path(persistent_report)
+    write_json(persistent_report, report)
+    return audit_dir
 
 
 def file_hash(path: Path) -> str:
@@ -434,9 +462,12 @@ def main(argv: list[str] | None = None) -> int:
         run_gates(report, html_path)
     report_path = out_dir / "comparison-report.json"
     write_json(report_path, report)
+    persistent_audit_dir = persist_evidence(report, report_path)
+    write_json(report_path, report)
     summary = {
         "status": "ok",
         "report": as_display_path(report_path),
+        "persistent_audit_dir": as_display_path(persistent_audit_dir),
         "patch_jsonl": report["outputs"]["patch_jsonl"],
         "staged_canon_dir": report["outputs"]["staged_canon_dir"],
         "changed_line_count": report["comparison"]["changed_line_count"],

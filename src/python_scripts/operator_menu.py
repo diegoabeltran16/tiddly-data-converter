@@ -32,7 +32,7 @@ from path_governance import (  # noqa: E402
     as_display_path,
     sorted_canon_shards,
 )
-from session_sync import DEFAULT_SESSION_SYNC_DIR, scan_session_sync  # noqa: E402
+from session_sync import DEFAULT_SESSION_SYNC_DIR, DEFAULT_SESSION_SYNC_EVIDENCE_DIR, scan_session_sync  # noqa: E402
 from canon_sanitation import (  # noqa: E402
     DEFAULT_SANITATION_DIR,
     NonConformingLine,
@@ -76,7 +76,7 @@ from tdc_menu_registry import menu_text as registry_menu_text, resolve_choice as
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp"
 DEFAULT_ADMISSION_TMP_DIR = DEFAULT_TMP_DIR / "session_admission"
-DEFAULT_ADMISSION_REPORT_DIR = DEFAULT_TMP_DIR / "admissions"
+DEFAULT_ADMISSION_REPORT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "admissions"
 HTML_EXPORT_DIR = DEFAULT_TMP_DIR / "html_export"
 RECONSTRUCTION_DIR = DEFAULT_TMP_DIR / "reconstruction"
 QUALITY_REPORT_DIR = DEFAULT_TMP_DIR / "canonical_quality"
@@ -1144,6 +1144,8 @@ def print_inventory_summary(inventory: dict[str, Any]) -> None:
     print(f"- invalidos: {len(inventory['invalid'])}")
     print(f"- unsupported: {len(inventory['unsupported'])}")
     print(f"- inventario: {inventory['inventory_path']}")
+    if inventory.get("persistent_summary_path"):
+        print(f"- resumen persistente: {inventory['persistent_summary_path']}")
     if inventory.get("generated_missing_candidate_file"):
         print(f"- candidatos faltantes: {inventory['generated_missing_candidate_file']}")
     if inventory.get("generated_replacement_candidate_file"):
@@ -1218,6 +1220,7 @@ def option_session_sync(state: MenuState) -> None:
             sessions_dir=DEFAULT_SESSIONS_DIR,
             canon_dir=DEFAULT_CANON_DIR,
             out_dir=DEFAULT_SESSION_SYNC_DIR,
+            evidence_dir=DEFAULT_SESSION_SYNC_EVIDENCE_DIR,
         )
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         print(f"No se pudo generar inventario: {exc}")

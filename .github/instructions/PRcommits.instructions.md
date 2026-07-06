@@ -31,7 +31,7 @@ Si existe divergencia entre este archivo y el contrato JSON activo, el JSON prev
 ## Instrucción crítica
 
 **Lectura previa obligatoria:**
-- Leer `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON` antes de responder.
+- Leer `data/out/local/sessions/00_contratos/policy/estructura_de_commits_tiddly-data-converter.JSON` antes de responder.
 - Leer `.github/instructions/contratos.instructions.md` antes de responder.
 
 **Clasificación y taxonomía:**
@@ -68,7 +68,7 @@ No debes devolver solo YAML, solo metadatos, solo un resumen, solo observaciones
 
 Cada propuesta generada por el agente debe quedar documentada en la descripción del pull request siguiendo la estructura del contrato definido en:
 
-`data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`
+`data/out/local/sessions/00_contratos/policy/estructura_de_commits_tiddly-data-converter.JSON`
 
 No debes producir descripciones libres, resúmenes informales ni formatos improvisados. La descripción del pull request debe responder a la estructura oficial del repositorio.
 
@@ -385,7 +385,7 @@ Ejemplo aceptable:
   - Replica la anatomía crítica del `prDescriptionMarkdown` para evitar salidas incompletas.
   - Aclara cómo manejar PRs normativos sobre estructura de commits y pull requests.
 
-- `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`
+- `data/out/local/sessions/00_contratos/policy/estructura_de_commits_tiddly-data-converter.JSON`
   - No modificado en este PR.
   - Se mantiene como fuente de verdad contractual.
 ```
@@ -477,7 +477,7 @@ Solo usar `ContextoCambio = transversal` si el cambio modifica también validado
 Un PR normativo sobre estructura de commits puede modificar uno o varios de estos artefactos:
 
 - `.github/instructions/PRcommits.instructions.md`
-- `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`
+- `data/out/local/sessions/00_contratos/policy/estructura_de_commits_tiddly-data-converter.JSON`
 - `data/out/local/sessions/00_contratos/<sesion>.md.json`
 
 Si el cambio solo aclara cómo debe comportarse el agente al entregar commits y PRs, basta con modificar `PRcommits.instructions.md`.
@@ -516,6 +516,11 @@ Si además se requiere cambiar tooling o validadores, esos cambios deben declara
 
 ## Acople obligatorio con contratos de sesión
 
+Nota de cumplimiento S66: la familia mínima, rutas oficiales, líneas candidatas
+y compuertas de admisión se definen en
+`.github/instructions/canonical_session_family.instructions.md`. Este archivo
+solo gobierna commits, pull requests y el contrato JSON de PR.
+
 Si la propuesta de pull request describe un cambio sustantivo, estructural, operativo, semántico o documental relevante, no basta con generar:
 
 1. `commitName`
@@ -532,14 +537,11 @@ El contrato de sesión conserva la trazabilidad técnica estructurada.
 
 Si falta ese artefacto `.md.json` cuando la sesión respalda cambios sustantivos, la propuesta debe considerarse documentalmente incompleta.
 
-Git no decide la admisión canónica. Antes de recomendar commit o push de una sesión que afecte canon o produzca líneas candidatas, debe existir evidencia de:
-
-- familia mínima producida bajo `data/out/local/sessions/`;
-- diagnóstico de sesión obligatorio;
-- líneas candidatas en formato canon, si existen;
-- validación local pasada o documentada como pendiente;
-- reverse autoritativo con `Rejected: 0` si se ejecutó admisión temporal o canónica;
-- tests requeridos pasados o documentados como no ejecutados.
+Git no decide la admisión canónica. Antes de recomendar commit o push de una
+sesión que afecte canon o produzca líneas candidatas, exigir la evidencia S66
+sin redefinirla aquí: cierre de sesión, diagnóstico, candidatas si existen,
+validación local, reverse autoritativo si se ejecutó admisión y tests
+pertinentes.
 
 ---
 
@@ -568,26 +570,27 @@ Git no decide la admisión canónica. Antes de recomendar commit o push de una s
 
 ## Proceso obligatorio
 
-1. Leer `data/out/local/sessions/00_contratos/estructura_de_commits_tiddly-data-converter.JSON`.
+1. Leer `data/out/local/sessions/00_contratos/policy/estructura_de_commits_tiddly-data-converter.JSON`.
 2. Leer `.github/instructions/contratos.instructions.md`.
-3. Identificar el tipo de cambio descrito por el usuario.
-4. Identificar si el cambio es documental, runtime o transversal usando esta guía:
+3. Leer `.github/instructions/canonical_session_family.instructions.md` si el PR toca cierre de sesión, candidatos o admisión.
+4. Identificar el tipo de cambio descrito por el usuario.
+5. Identificar si el cambio es documental, runtime o transversal usando esta guía:
    - **Documental**: solo modifica instrucciones, contratos `.md.json`, `README`, `.instructions.md` u otros artefactos que no afectan ejecución; usar `ContextoCambio = documental`.
    - **Runtime**: modifica código, scripts, tests, CI, validadores o cualquier artefacto que cambia el comportamiento en ejecución; usar `ContextoCambio = runtime`.
    - **Transversal**: el cambio afecta a la vez zonas documentales y zonas de ejecución (por ejemplo, una nueva regla del contrato JSON que también requiere actualizar un validador); usar `ContextoCambio = transversal`.
-5. Identificar si el cambio es normativo sobre estructura de commits y pull requests.
-6. Clasificar el cambio según enums, reglas y criterios del contrato.
-7. Construir `commitName`.
-8. Construir `prTitle`.
-9. Construir `prDescriptionMarkdown` usando el template completo del contrato.
-10. Verificar que existen las líneas `Commit`, `Meta` y `Arch`.
-11. Verificar que existen las tablas de `Metadatos` y `Tablero y Arquitectura`.
-12. Verificar que `Acciones realizadas` contiene cambios concretos y no frases vagas.
-13. Verificar que `Archivos modificados / añadidos` contiene rutas concretas.
-14. Verificar que `Comprobaciones sugeridas` permite revisión real.
-15. Verificar si el cambio exige contrato de sesión.
-16. Si lo exige, asegurar que exista al menos 1 artefacto `.md.json` compatible con TiddlyWiki bajo `data/out/local/sessions/00_contratos/`.
-17. Entregar la salida final en el orden exacto definido por `outputFormat.order`.
+6. Identificar si el cambio es normativo sobre estructura de commits y pull requests.
+7. Clasificar el cambio según enums, reglas y criterios del contrato.
+8. Construir `commitName`.
+9. Construir `prTitle`.
+10. Construir `prDescriptionMarkdown` usando el template completo del contrato.
+11. Verificar que existen las líneas `Commit`, `Meta` y `Arch`.
+12. Verificar que existen las tablas de `Metadatos` y `Tablero y Arquitectura`.
+13. Verificar que `Acciones realizadas` contiene cambios concretos y no frases vagas.
+14. Verificar que `Archivos modificados / añadidos` contiene rutas concretas.
+15. Verificar que `Comprobaciones sugeridas` permite revisión real.
+16. Verificar si el cambio exige contrato de sesión.
+17. Si lo exige, asegurar que exista al menos 1 artefacto `.md.json` compatible con TiddlyWiki bajo `data/out/local/sessions/00_contratos/`.
+18. Entregar la salida final en el orden exacto definido por `outputFormat.order`.
 
 ---
 
@@ -602,7 +605,7 @@ El commit o PR debe mencionar claramente, cuando aplique:
 - si hubo o no absorción local al canon;
 - si hubo o no cambios en el contrato JSON;
 - si hubo o no cambios en instrucciones `.github/instructions/`;
-- estado de validación: `strict`, `reverse-preflight`, reverse autoritativo y tests pertinentes;
+- estado de validación S66 cuando aplique;
 - si el cambio es únicamente documental o si afecta runtime;
 - si el cambio gobierna PRs futuros.
 

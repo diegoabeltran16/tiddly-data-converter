@@ -34,11 +34,9 @@
 - No esconder hipótesis abiertas dentro de afirmaciones que parecen finalizadas pero carecen de evidencia o validación suficiente; toda formulación no validada debe ir explícitamente a `## 🧪🧱 Hipótesis`.
 - No usar este nodo para explicar el flujo de trabajo de sesión o la política de memoria.
 
-## Regla transversal S66
-- La producción situada de sesión se escribe bajo `data/out/local/sessions/` y no como archivo acumulativo global.
-- El detalle de sesión propio de cada cierre vive en `data/out/local/sessions/02_detalles_de_sesion/<session>.md.json`.
-- El `title` del detalle/sesión debe usar `#### 🌀 Sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión con cero a la izquierda por nivel de magnitud (4 dígitos en la era actual: 0001–0999), por ejemplo `#### 🌀 Sesión 0069 = canon-admission-hardening-and-docs-v0`.
-- Si un detalle debe poder entrar al canon, se representa como línea candidata y no como autoridad canónica final hasta completar validación local y reverse sin rechazo.
+## Nota de cumplimiento S66
+- Para detalles de sesión, ruta, título y posible candidatura canónica, seguir `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo solo gobierna el despliegue temático: identidad, alcance, orientación y distribución del contenido sustantivo.
 
 ## Interacción con otros nodos
 - Recibe base desde `# 2_🧾 Procedencia inicial` y `# 3_🧪 Hipótesis inicial`.

@@ -62,10 +62,10 @@ Aplicar en este orden de prioridad:
 - No aplicar acciones irreversibles sin trazabilidad y revisión suficiente.
 - No usar esta política como sustituto del registro explícito en hipótesis, procedencia, glosario o desarrollo.
 
-## Regla transversal S66
-- La memoria operativa de cada sesión se registra en la familia mínima de `data/out/local/sessions/`.
-- El balance de sesión es memoria de aprendizaje y debe incluir aciertos, errores, decisiones_a_conservar, riesgos_detectados, ajustes_sugeridos e impacto_en_proxima_sesion.
-- La recuperabilidad futura no equivale a admisión canónica: una línea candidata sigue siendo candidata hasta pasar validación local y reverse sin rechazo.
+## Nota de cumplimiento S66
+- La familia de cierre, candidaturas y admisión local se gobiernan en `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo solo define memoria activa, TTL, relevancia, recencia, recuperabilidad y señales de reentrada.
+- La recuperabilidad futura no equivale a admisión canónica.
 
 ## Interacción con otros nodos
 - `## 🧭🧱 Protocolo de Sesión` permite declarar preferencias de memoria y define la apertura informada de cada sesión.

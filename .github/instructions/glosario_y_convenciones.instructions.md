@@ -32,11 +32,9 @@
 - No confundir capas, roles, tags, estados y funciones.
 - No usar este nodo como lugar para tomar decisiones técnicas que pertenecen a `## 🗂🧱 Principios de Gestión` o a un bloque temático específico.
 
-## Regla transversal S66
-- Usar `data/out/local/sessions/` para nombrar artefactos de cierre de sesión: contrato, procedencia, detalles, hipótesis, balance, propuesta y diagnóstico.
-- Nombrar todo tiddler resultado de sesión con `title` iniciado por `#### 🌀` y forma `#### 🌀 <familia> de sesión <NNNN> = <slug>`, donde `<NNNN>` es el número de sesión cero-rellenado a 4 dígitos (un cero a la izquierda por nivel de magnitud; en la era actual de 3 cifras, siempre 4 dígitos: `0001`–`0999`). Ejemplos: `#### 🌀 Sesión 0069 = canon-admission-hardening-and-docs-v0`, `#### 🌀🧾 Procedencia de sesión 0069 = canon-admission-hardening-and-docs-v0` y `#### 🌀🧪 Hipótesis de sesión 0069 = canon-admission-hardening-and-docs-v0`.
-- Distinguir siempre `línea candidata` (artefacto JSONL producido en sesión que todavía no fue admitido al canon), `canon local` (`data/out/local/tiddlers_*.jsonl`, fuente de verdad local validada) y `derivado` (capa computada a partir del canon, como `enriched/`, `ai/` o `audit/`); `data/out/local/sessions/` no es canon paralelo.
-- No crear nombres alternos para carpetas de sesión si ya existe una ruta real en el repositorio.
+## Nota de cumplimiento S66
+- Las definiciones completas de títulos de sesión, numeración, línea candidata, canon local y derivado viven en `.github/instructions/canonical_session_family.instructions.md`.
+- Este archivo solo estabiliza vocabulario y alias; no debe crear rutas, familias ni formatos alternos.
 
 ## Interacción con otros nodos
 - Requiere `## 🎯🧱 Detalles del tema` para situar el vocabulario dentro del contenido sustantivo.
