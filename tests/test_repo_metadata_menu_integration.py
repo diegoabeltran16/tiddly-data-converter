@@ -24,9 +24,12 @@ def test_tdc_menu_exposes_governed_admission_and_keeps_critical_access() -> None
     )
 
     assert result.returncode == 0
-    assert "6) Revisión / admisión gobernada" in result.stdout
-    assert "9) Exportador de repositorio" in result.stdout
-    assert "10) Configurar MCP / mirror remoto" in result.stdout
+    assert "Tiddly Data Converter - Operador local" in result.stdout
+    assert "TDC · Tiddly Data Converter" not in result.stdout
+    assert "6) Relaciones canónicas" in result.stdout
+    assert "7) Revisión / admisión gobernada" in result.stdout
+    assert "10) Exportador de repositorio" in result.stdout
+    assert "11) Configurar MCP / mirror remoto" in result.stdout
 
 
 def test_metadata_submenu_header_declares_s0151_guided_policy() -> None:

@@ -46,6 +46,48 @@ ALLOWED_RELATION_TYPES: frozenset[str] = frozenset({
     "afecta_pipeline",
 })
 
+RELATION_CANDIDATE_SCHEMAS: frozenset[str] = frozenset({
+    "relations-candidate/v1",
+    "technical-relation-candidates/v1",
+})
+
+VALID_HUMAN_REVIEW_DECISIONS: frozenset[str] = frozenset({
+    "approved_for_admission",
+    "rejected",
+    "deferred",
+})
+
+ADMISSION_HUMAN_REVIEW_DECISION = "approved_for_admission"
+
+CURRENT_REPO_LIFECYCLE_STATES: frozenset[str] = frozenset({
+    "current_repo_artifact",
+})
+
+HISTORICAL_REPO_LIFECYCLE_STATES: frozenset[str] = frozenset({
+    "historical_snapshot",
+    "deleted_historical",
+    "moved_candidate",
+})
+
+BUILD_ARTIFACT_PATH_PARTS: frozenset[str] = frozenset({
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "node_modules",
+    "dist",
+    "build",
+    "target",
+})
+
+BUILD_ARTIFACT_PREFIXES: tuple[str, ...] = (
+    "data/tmp/",
+    "data/out/local/enriched/",
+    "data/out/local/ai/",
+    "data/out/local/microsoft_copilot/",
+    "data/out/local/reverse_html/",
+)
+
 # ---------------------------------------------------------------------------
 # Catálogos — tipos de evidencia permitidos (DT028 + DT031)
 # ---------------------------------------------------------------------------

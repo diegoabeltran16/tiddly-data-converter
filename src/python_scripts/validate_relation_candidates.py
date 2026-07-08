@@ -39,8 +39,11 @@ from relation_candidate_contract import (
     ALLOWED_EVIDENCE_KINDS,
     ALLOWED_STATUSES,
     ALLOWED_RESOLUTION_STATUSES,
+    ADMISSION_HUMAN_REVIEW_DECISION,
     WEAK_EVIDENCE_THRESHOLD,
     CANDIDATE_ID_RE,
+    RELATION_CANDIDATE_SCHEMAS,
+    VALID_HUMAN_REVIEW_DECISIONS,
     is_self_relation,
     verify_excerpt_in_source,
 )
@@ -103,6 +106,17 @@ def _get_nested(obj: dict, *keys: str) -> Any:
     return cur
 
 
+def _is_technical_candidate(obj: dict) -> bool:
+    return (
+        obj.get("candidate_schema_version") == "technical-relation-candidates/v1"
+        or "relation_type" in obj
+    )
+
+
+def _endpoint_value(endpoint: dict, canonical_key: str, legacy_key: str) -> Any:
+    return endpoint.get(canonical_key) or endpoint.get(legacy_key)
+
+
 def validate_candidate(
     raw_line: str,
     line_number: int,
@@ -145,13 +159,28 @@ def validate_candidate(
     categories = result["categories"]
 
     # 2. Campos obligatorios de primer nivel (DT031)
-    required_top = [
-        "candidate_id", "status", "source", "target",
-        "relation", "evidence", "confidence", "provenance", "created_at",
-    ]
+    technical_candidate = _is_technical_candidate(obj)
+    if technical_candidate:
+        required_top = [
+            "candidate_id", "candidate_schema_version", "relation_type", "source",
+            "target", "evidence", "policy", "session_resolution",
+            "human_review_decision",
+        ]
+    else:
+        required_top = [
+            "candidate_id", "status", "source", "target",
+            "relation", "evidence", "confidence", "provenance", "created_at",
+        ]
     missing = [f for f in required_top if f not in obj or obj[f] is None]
     if missing:
         errors.append(f"Campos obligatorios ausentes: {missing}")
+
+    schema_version = obj.get("candidate_schema_version") or obj.get("schema_version")
+    if schema_version and schema_version not in RELATION_CANDIDATE_SCHEMAS:
+        errors.append(
+            f"candidate_schema_version/schema_version inválido: {schema_version!r}. "
+            f"Permitidos: {sorted(RELATION_CANDIDATE_SCHEMAS)}"
+        )
 
     # 3. candidate_id — formato y deduplicación
     cid = obj.get("candidate_id", "")
@@ -171,16 +200,43 @@ def validate_candidate(
 
     # 4. status — debe ser 'candidate' al ingresar al validador
     status = obj.get("status")
-    if status is not None and status != "candidate":
+    if not technical_candidate and status is not None and status != "candidate":
         errors.append(f"status debe ser 'candidate'; encontrado: {status!r}")
+
+    if technical_candidate:
+        human_review_decision = obj.get("human_review_decision")
+        if human_review_decision not in VALID_HUMAN_REVIEW_DECISIONS:
+            errors.append(
+                "human_review_decision inválido o ausente: "
+                f"{human_review_decision!r}. Permitidos: {sorted(VALID_HUMAN_REVIEW_DECISIONS)}"
+            )
+        policy = obj.get("policy") or {}
+        if not isinstance(policy, dict):
+            errors.append("policy debe ser objeto")
+        elif policy.get("human_review_required") is not True:
+            errors.append("policy.human_review_required debe ser true para cola de revisión")
+        resolution = obj.get("session_resolution") or {}
+        if not isinstance(resolution, dict):
+            errors.append("session_resolution debe ser objeto")
+        elif not resolution.get("classification"):
+            errors.append("session_resolution.classification ausente o vacío")
+        if human_review_decision != ADMISSION_HUMAN_REVIEW_DECISION:
+            categories.append("needs_human_review")
 
     # 5. source.*
     source = obj.get("source") or {}
     src_id: Optional[str] = None
     if isinstance(source, dict):
-        src_id = _get_nested(source, "tiddler_id")
-        if not source.get("field_path"):
+        src_id = _endpoint_value(source, "canonical_id", "tiddler_id")
+        if not technical_candidate and not source.get("field_path"):
             errors.append("source.field_path ausente o vacío")
+        if technical_candidate:
+            if not source.get("canonical_title"):
+                errors.append("source.canonical_title ausente o vacío")
+            if not source.get("repo_path"):
+                errors.append("source.repo_path ausente o vacío")
+            if not (source.get("lifecycle_state") or source.get("repo_lifecycle_state")):
+                errors.append("source.lifecycle_state ausente o vacío")
         if src_id:
             if src_id not in canon_ids:
                 errors.append(
@@ -193,14 +249,21 @@ def validate_candidate(
     target = obj.get("target") or {}
     tgt_id: Optional[str] = None
     if isinstance(target, dict):
-        tgt_id = target.get("tiddler_id")
+        tgt_id = _endpoint_value(target, "canonical_id", "tiddler_id")
         res_status = target.get("resolution_status")
-        if res_status not in ALLOWED_RESOLUTION_STATUSES:
+        if technical_candidate:
+            if not target.get("canonical_title"):
+                errors.append("target.canonical_title ausente o vacío")
+            if not target.get("repo_path"):
+                errors.append("target.repo_path ausente o vacío")
+            if not (target.get("lifecycle_state") or target.get("repo_lifecycle_state")):
+                errors.append("target.lifecycle_state ausente o vacío")
+        if not technical_candidate and res_status not in ALLOWED_RESOLUTION_STATUSES:
             errors.append(
                 f"target.resolution_status inválido: {res_status!r}. "
                 f"Permitidos: {sorted(ALLOWED_RESOLUTION_STATUSES)}"
             )
-        if res_status in {"unresolved", "ambiguous"}:
+        if not technical_candidate and res_status in {"unresolved", "ambiguous"}:
             categories.append("unresolved_target")
             if not tgt_id and not target.get("title"):
                 warnings.append(
@@ -221,7 +284,14 @@ def validate_candidate(
 
     # 7. relation.type — catálogo DT029
     rel = obj.get("relation") or {}
-    if isinstance(rel, dict):
+    if technical_candidate:
+        rel_type = obj.get("relation_type")
+        if rel_type not in ALLOWED_RELATION_TYPES:
+            errors.append(
+                f"relation_type no permitido: {rel_type!r}. "
+                f"Tipos permitidos: {sorted(ALLOWED_RELATION_TYPES)}"
+            )
+    elif isinstance(rel, dict):
         rel_type = rel.get("type")
         if rel_type not in ALLOWED_RELATION_TYPES:
             errors.append(
@@ -233,7 +303,11 @@ def validate_candidate(
 
     # 8. confidence.score
     conf = obj.get("confidence") or {}
-    if isinstance(conf, dict):
+    if technical_candidate:
+        confidence_label = (obj.get("evidence") or {}).get("confidence")
+        if not confidence_label:
+            errors.append("evidence.confidence ausente o vacío")
+    elif isinstance(conf, dict):
         score = conf.get("score")
         if score is None:
             errors.append("confidence.score ausente")
@@ -255,10 +329,13 @@ def validate_candidate(
     if isinstance(evidence, dict):
         excerpt = evidence.get("excerpt", "") or ""
         ev_kind = evidence.get("kind")
+        if technical_candidate:
+            ev_kind = evidence.get("evidence_kind")
+            excerpt = evidence.get("raw_observation") or evidence.get("excerpt") or ""
 
         # 9a. excerpt no vacío
         if not excerpt.strip():
-            errors.append("evidence.excerpt ausente o vacío")
+            errors.append("evidence.excerpt/raw_observation ausente o vacío")
 
         # 9b. S0129 — evidence.kind dentro del catálogo DT028/DT031
         if not ev_kind:
@@ -304,14 +381,14 @@ def validate_candidate(
 
     # 12. provenance.*
     prov = obj.get("provenance") or {}
-    if isinstance(prov, dict):
+    if not technical_candidate and isinstance(prov, dict):
         if not prov.get("generated_by"):
             errors.append("provenance.generated_by ausente")
         if not prov.get("generated_at"):
             errors.append("provenance.generated_at ausente")
 
     # 13. created_at
-    if not obj.get("created_at"):
+    if not technical_candidate and not obj.get("created_at"):
         errors.append("created_at ausente")
 
     # Resultado final
@@ -571,19 +648,23 @@ def parse_args() -> argparse.Namespace:
         description="Validador dry-run de candidatos relacionales (DT031) — endurecido S0129"
     )
     p.add_argument(
-        "--input", required=True, type=Path,
+        "--input", "--candidate-file", dest="input", required=True, type=Path,
         help="JSONL de candidatos a validar",
     )
     p.add_argument(
-        "--canon-root", required=True, type=Path,
+        "--canon-root", required=False, type=Path,
         help="Directorio raíz del canon (contiene tiddlers_*.jsonl)",
     )
     p.add_argument(
-        "--report", required=True, type=Path,
+        "--canon-glob", default=None,
+        help="Glob de shards canónicos; se deriva canon-root desde su carpeta padre",
+    )
+    p.add_argument(
+        "--report", required=False, type=Path,
         help="Ruta de salida del reporte JSON",
     )
     p.add_argument(
-        "--human-review", required=True, type=Path,
+        "--human-review", required=False, type=Path,
         help="Ruta de salida del reporte Markdown",
     )
     p.add_argument(
@@ -609,7 +690,17 @@ def parse_args() -> argparse.Namespace:
         "--apply", action="store_true", default=False,
         help=argparse.SUPPRESS,  # opción bloqueada explícitamente
     )
-    return p.parse_args()
+    args = p.parse_args()
+    if args.canon_root is None:
+        if args.canon_glob:
+            args.canon_root = Path(str(args.canon_glob).split("tiddlers_")[0] or ".")
+        else:
+            p.error("--canon-root or --canon-glob is required")
+    if args.report is None:
+        args.report = Path("data/out/local/pipeline/relation_candidates/s0164/validation_report.json")
+    if args.human_review is None:
+        args.human_review = Path("data/out/local/pipeline/relation_candidates/s0164/human_review.md")
+    return args
 
 
 def main() -> None:
