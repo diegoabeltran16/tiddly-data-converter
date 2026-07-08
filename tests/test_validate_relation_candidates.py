@@ -81,6 +81,36 @@ VALID_CANDIDATE: dict = {
     "created_at": "2026-05-26T10:00:00Z",
 }
 
+TECHNICAL_CANDIDATE: dict = {
+    "candidate_id": "rc1_aaaabbbbccccdddd",
+    "candidate_schema_version": "technical-relation-candidates/v1",
+    "status": "resolved_for_human_review",
+    "relation_type": "references",
+    "human_review_decision": "deferred",
+    "source": {
+        "canonical_id": REAL_SOURCE_ID,
+        "canonical_title": "DT031 contrato de salida",
+        "repo_path": "src/python_scripts/validate_relation_candidates.py",
+        "lifecycle_state": "current_repo_artifact",
+    },
+    "target": {
+        "canonical_id": REAL_TARGET_ID,
+        "canonical_title": "DT029 tipología mínima",
+        "repo_path": "src/python_scripts/relation_candidate_contract.py",
+        "lifecycle_state": "current_repo_artifact",
+    },
+    "evidence": {
+        "evidence_kind": "path_literal",
+        "confidence": "high",
+        "raw_observation": "technical fixture observation",
+    },
+    "policy": {
+        "human_review_required": True,
+        "canonical_admission_allowed": False,
+    },
+    "session_resolution": {"classification": "resolved_for_human_review"},
+}
+
 
 def _write_jsonl(tmp_dir: Path, candidates: list[dict | str]) -> Path:
     """Escribe una lista de candidatos (dicts o strings) en un JSONL temporal."""
@@ -105,7 +135,7 @@ def _run_validator(
     review = tmp_dir / "review.md"
     cmd = [
         sys.executable,
-        "python_scripts/validate_relation_candidates.py",
+        "src/python_scripts/validate_relation_candidates.py",
         "--input", str(input_path),
         "--canon-root", str(CANON_ROOT),
         "--report", str(report),
@@ -231,6 +261,24 @@ class TestMissingRequiredFields:
         result = validate_candidate(raw, 1, {REAL_SOURCE_ID}, {})
         assert result["ok"] is False
         assert any("excerpt" in e for e in result["errors"])
+
+    def test_validate_candidate_requires_human_review_decision(self):
+        import copy
+        cand = copy.deepcopy(TECHNICAL_CANDIDATE)
+        del cand["human_review_decision"]
+        raw = json.dumps(cand, ensure_ascii=False)
+        result = validate_candidate(raw, 1, {REAL_SOURCE_ID, REAL_TARGET_ID}, {})
+        assert result["ok"] is False
+        assert any("human_review_decision" in e for e in result["errors"])
+
+    def test_technical_candidate_requires_lifecycle_state(self):
+        import copy
+        cand = copy.deepcopy(TECHNICAL_CANDIDATE)
+        cand["target"]["lifecycle_state"] = ""
+        raw = json.dumps(cand, ensure_ascii=False)
+        result = validate_candidate(raw, 1, {REAL_SOURCE_ID, REAL_TARGET_ID}, {})
+        assert result["ok"] is False
+        assert any("target.lifecycle_state" in e for e in result["errors"])
 
 
 # ---------------------------------------------------------------------------
@@ -400,7 +448,7 @@ class TestDryRunIsolation:
             review = tmp_path / "r.md"
             cmd = [
                 sys.executable,
-                "python_scripts/validate_relation_candidates.py",
+                "src/python_scripts/validate_relation_candidates.py",
                 "--input", str(input_path),
                 "--canon-root", str(CANON_ROOT),
                 "--report", str(report),

@@ -195,8 +195,8 @@ class TestMenuCanonSanitation:
     """S0121: verify the Saneamiento del canon submenu is reachable and safe."""
 
     def test_sanitation_submenu_shows_options(self):
-        # Open Avanzado (11), Saneamiento (2), exit sanitation, exit advanced, exit main.
-        result = _run_menu("11\n2\n0\n0\n0\n", timeout=30)
+        # Open Avanzado (12), Saneamiento (2), exit sanitation, exit advanced, exit main.
+        result = _run_menu("12\n2\n0\n0\n0\n", timeout=30)
         assert result.returncode == 0, (
             f"Menu exited with code {result.returncode}\nstdout: {result.stdout[:400]}\nstderr: {result.stderr[:300]}"
         )
@@ -205,14 +205,14 @@ class TestMenuCanonSanitation:
         )
 
     def test_sanitation_submenu_shows_scan_option(self):
-        result = _run_menu("11\n2\n0\n0\n0\n", timeout=30)
+        result = _run_menu("12\n2\n0\n0\n0\n", timeout=30)
         assert "Escanear" in result.stdout, (
             f"'Escanear' option not found:\n{result.stdout[:400]}"
         )
 
     def test_sanitation_submenu_does_not_modify_canon(self):
         hashes_before = _canon_shard_hashes()
-        _run_menu("11\n2\n0\n0\n0\n", timeout=30)
+        _run_menu("12\n2\n0\n0\n0\n", timeout=30)
         hashes_after = _canon_shard_hashes()
         assert hashes_before == hashes_after, (
             "Canon shards were modified by opening the Saneamiento submenu"

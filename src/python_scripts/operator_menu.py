@@ -68,7 +68,6 @@ from tdc_cat import (  # noqa: E402
     tdc_cat_success,
     tdc_cat_warning,
 )
-from relation_review_menu import option_relation_review_menu  # noqa: E402
 from repo_metadata_review_menu import option_repo_metadata_admission_menu  # noqa: E402
 from tdc_menu_registry import menu_text as registry_menu_text, resolve_choice as resolve_main_choice  # noqa: E402
 
@@ -2129,7 +2128,7 @@ def option_governed_admission(state: MenuState) -> None:
             "  Apply: requiere confirmación humana explícita\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "1) Metadata técnica\n"
-            "2) Relaciones candidatas\n"
+            "2) Relaciones canónicas\n"
             "3) Sesiones al canon\n"
             "4) Estado de compuertas\n"
             "5) Ver reportes de admisión\n"
@@ -2142,7 +2141,7 @@ def option_governed_admission(state: MenuState) -> None:
         if choice == "1":
             option_repo_metadata_admission_menu()
         elif choice == "2":
-            option_relation_review_menu()
+            option_canonical_relations_menu()
         elif choice == "3":
             option_session_sync(state)
         elif choice == "4":
@@ -2156,6 +2155,16 @@ def option_governed_admission(state: MenuState) -> None:
             option_advanced_maintenance(state)
         else:
             print("Opcion invalida.")
+
+
+def option_canonical_relations_menu() -> None:
+    """Open the single terminal route for canonical relation operations."""
+    subprocess.run(
+        ["bash", str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh"), "relations"],
+        cwd=REPO_ROOT,
+        env=command_env(),
+        check=False,
+    )
 
 
 def option_reports_audit() -> None:
@@ -2206,7 +2215,7 @@ def option_advanced_maintenance(state: MenuState) -> None:
             "1) Preparacion técnica\n"
             "2) Saneamiento del canon\n"
             "3) Configurar MCP / mirror remoto\n"
-            "4) Revision relacional [alias histórico 16]\n"
+            "4) Relaciones canónicas [alias histórico 16]\n"
             "5) Metadata técnica [alias histórico 18]\n"
             "6) Exportador de repositorio [alias histórico 17]\n"
             "0) Volver"
@@ -2221,7 +2230,7 @@ def option_advanced_maintenance(state: MenuState) -> None:
         elif choice == "3":
             option_mcp_manager()
         elif choice == "4":
-            option_relation_review_menu()
+            option_canonical_relations_menu()
         elif choice == "5":
             option_repo_metadata_admission_menu()
         elif choice == "6":
@@ -2249,6 +2258,8 @@ def dispatch_main_choice(choice: str, state: MenuState) -> bool:
         option_session_sync(state)
     elif action == "derivatives":
         option_derivatives(state)
+    elif action == "canonical_relations":
+        option_canonical_relations_menu()
     elif action == "governed_admission":
         option_governed_admission(state)
     elif action == "reports_audit":
@@ -2261,8 +2272,6 @@ def dispatch_main_choice(choice: str, state: MenuState) -> bool:
         option_mcp_manager()
     elif action == "advanced_maintenance":
         option_advanced_maintenance(state)
-    elif action == "relation_review":
-        option_relation_review_menu()
     elif action == "metadata_admission":
         option_repo_metadata_admission_menu()
     else:

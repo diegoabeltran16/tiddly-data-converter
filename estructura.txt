@@ -30,10 +30,24 @@
 │   │   │   │   └── reports
 │   │   │   ├── audit
 │   │   │   │   ├── admissions
-│   │   │   │   │   └── backups
-│   │   │   │   │       └── admit-20260706220323-multi-session
+│   │   │   │   │   ├── backups
+│   │   │   │   │   │   ├── admit-20260706220323-multi-session
+│   │   │   │   │   │   └── admit-20260708001525-multi-session
+│   │   │   │   │   ├── s0164-microajuste-terminal-final
+│   │   │   │   │   └── s0164-microajuste-terminal-final2
 │   │   │   │   ├── compliance_summary.md
+│   │   │   │   ├── relation_admission
+│   │   │   │   │   ├── current
+│   │   │   │   │   └── s0164
 │   │   │   │   └── session_sync
+│   │   │   │       ├── local-dt055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica-20260707184932
+│   │   │   │       ├── local-dt056-preparacion-human-review-relacional-s0164-20260707190701
+│   │   │   │       ├── local-dt057-higiene-repo-artifact-canon-exclusion-build-artifacts-20260707192407
+│   │   │   │       ├── local-dt057-higiene-repo-artifact-canon-exclusion-build-artifacts-v2-20260707192514
+│   │   │   │       ├── local-dt058-frontera-canon-codigo-fuente-rutas-post-src-20260707193322
+│   │   │   │       ├── local-dt059-contrato-schema-relacional-review-queue-admission-gate-20260707200553
+│   │   │   │       ├── local-dt060-tests-stale-post-src-frontera-relacional-20260707202205
+│   │   │   │       ├── local-dt061-cobertura-rag-premium-canon-derivados-relaciones-20260707204354
 │   │   │   │       ├── s0159-close-202607061035
 │   │   │   │       ├── s0159-close-final-202607061037
 │   │   │   │       ├── s0160-close-202607061620
@@ -43,7 +57,14 @@
 │   │   │   │       ├── s0162-session-sync-final
 │   │   │   │       ├── s0163-microajuste-instrucciones
 │   │   │   │       ├── s0163-refactor-instrucciones
-│   │   │   │       └── sync-20260706220253
+│   │   │   │       ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica
+│   │   │   │       ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica-final
+│   │   │   │       ├── s0164-microajuste-terminal-final
+│   │   │   │       ├── s0164-microajuste-terminal-final2
+│   │   │   │       ├── s0164-terminal-relations-microadjustment
+│   │   │   │       ├── sync-20260706220253
+│   │   │   │       ├── sync-20260706222042
+│   │   │   │       └── sync-20260708000029
 │   │   │   ├── backups
 │   │   │   │   ├── titlenorm-20260523-diag-4digit
 │   │   │   │   ├── titlenorm-20260523-diag-tematico
@@ -134,6 +155,10 @@
 │   │   │   │   │       └── review
 │   │   │   │   │           └── relation-review-matrix.csv
 │   │   │   │   ├── relation_candidates
+│   │   │   │   │   ├── current
+│   │   │   │   │   │   ├── human_review.md
+│   │   │   │   │   │   ├── relation_candidates_review.csv
+│   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── s0157
 │   │   │   │   │   │   ├── relation_candidates_review.csv
 │   │   │   │   │   │   └── relation_candidates_summary.md
@@ -141,7 +166,9 @@
 │   │   │   │   │   │   ├── admission_gate_validation
 │   │   │   │   │   │   ├── relation_candidates_review.csv
 │   │   │   │   │   │   └── relation_candidates_summary.md
-│   │   │   │   │   └── s0162
+│   │   │   │   │   ├── s0162
+│   │   │   │   │   └── s0164
+│   │   │   │   │       └── human_review.md
 │   │   │   │   ├── relation_correspondence
 │   │   │   │   │   └── s0130
 │   │   │   │   │       ├── s0130_relation_correspondence_review.csv
@@ -252,7 +279,6 @@
 │   │   │   │           ├── s0145_unknown_review.csv
 │   │   │   │           └── s0145_unknown_samples.md
 │   │   │   ├── reverse_html
-│   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
 │   │   │   │   │   ├── policy
@@ -275,304 +301,43 @@
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
-│       ├── admissions
-│       │   ├── backups
-│       │   │   ├── admit-20260622155907-multi-session
-│       │   │   ├── admit-20260702223641-multi-session
-│       │   │   └── admit-20260705185853-multi-session
-│       │   └── s69_unittest
-│       │       └── backups
-│       │           ├── admit-20260622163104-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260622163215-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260622163257-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260622163335-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260622191813-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260622195855-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260629161547-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── admit-20260706153329-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │           ├── rollback-20260622163112-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │           ├── rollback-20260622163227-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │           ├── rollback-20260622163313-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │           ├── rollback-20260622163344-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │           ├── rollback-20260622195906-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │           ├── rollback-20260629161557-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │           └── rollback-20260706153340-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       ├── canonical_quality
-│       │   └── quality-20260622160619
-│       ├── html_export
-│       │   ├── export-20260622155755
-│       │   │   └── tiddlers.export.log
-│       │   ├── export-20260622160301
-│       │   │   └── tiddlers.export.log
-│       │   ├── export-20260702224004
-│       │   │   └── tiddlers.export.log
-│       │   └── export-20260705223556
-│       │       └── tiddlers.export.log
-│       ├── reconstruction
-│       │   ├── diagnostic-20260622155752
-│       │   ├── diagnostic-20260622160258
-│       │   ├── diagnostic-20260702223959
-│       │   ├── diagnostic-20260705223553
-│       │   ├── export-20260622155755
-│       │   ├── export-20260622160301
-│       │   ├── export-20260702224004
-│       │   ├── export-20260705223556
-│       │   ├── reconstruction-20260622155801
-│       │   │   ├── canon_after
-│       │   │   └── canon_before
-│       │   ├── reconstruction-20260622160325
-│       │   │   ├── canon_after
-│       │   │   └── canon_before
-│       │   ├── reconstruction-20260702224015
-│       │   │   ├── canon_after
-│       │   │   └── canon_before
-│       │   ├── reconstruction-20260705223604
-│       │   │   ├── canon_after
-│       │   │   └── canon_before
-│       │   ├── reverse-20260622155939
-│       │   ├── reverse-20260702223710
-│       │   ├── reverse-20260705222759
-│       │   └── reverse-20260706220408
-│       ├── s0155-semantic-text-dry-run
-│       │   ├── s0155_semantic_text_coverage_summary.md
-│       │   └── s0155_semantic_text_review.csv
-│       ├── s0156-baseline-global-post-contratos
-│       │   ├── pytest-canon-misc-junit.xml
-│       │   ├── pytest-fixtures-junit.xml
-│       │   ├── pytest-relations-junit.xml
-│       │   ├── pytest-repo-menu-reverse-junit.xml
-│       │   ├── pytest-semantic-derivation-junit.xml
-│       │   └── pytest-sessions-governance-junit.xml
-│       ├── s0157-automatizacion-de-candidatas-relacionales-tecnicas
-│       ├── s69_admission_1vdaw6zd
-│       │   ├── candidates
-│       │   └── canon
-│       ├── sanitation
-│       │   ├── backup-20260622163120
-│       │   ├── backup-20260622163237
-│       │   ├── backup-20260622163324
-│       │   ├── backup-20260622163352
-│       │   ├── backup-20260622195914
-│       │   └── backup-20260629161728
 │       ├── session_admission
-│       │   ├── admit-20260622155850-multi-session
+│       │   ├── admit-20260708000035-multi-session
 │       │   │   ├── canon
 │       │   │   └── reverse_html
-│       │   │       └── admit-20260622155850-multi-session.derived.html
-│       │   ├── admit-20260622155907-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622155907-multi-session.derived.html
-│       │   ├── admit-20260702223616-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260702223616-multi-session.derived.html
-│       │   ├── admit-20260702223641-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260702223641-multi-session.derived.html
-│       │   ├── admit-20260705185731-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260705185731-multi-session.derived.html
-│       │   ├── admit-20260705185853-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260705185853-multi-session.derived.html
-│       │   ├── admit-20260706220300-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260706220300-multi-session.derived.html
-│       │   └── admit-20260706220323-multi-session
+│       │   └── admit-20260708001525-multi-session
 │       │       ├── canon
 │       │       └── reverse_html
-│       │           └── admit-20260706220323-multi-session.derived.html
-│       ├── session_admission_s69_unittest
-│       │   ├── admit-20260622163046-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163046-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163055-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163055-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163104-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163104-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163156-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163156-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163206-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163206-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163215-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163215-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163230-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163230-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163243-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163243-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163257-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163257-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163311-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163311-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163326-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163326-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622163335-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622163335-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622191742-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622191742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622191759-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622191759-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622191800-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622191800-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622191813-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622191813-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622195833-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622195833-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622195844-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622195844-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260622195855-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260622195855-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260629161524-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260629161524-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260629161537-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260629161537-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260629161547-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260629161547-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260706153301-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260706153301-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260706153317-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260706153317-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── admit-20260706153329-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260706153329-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── rollback-20260622163112-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── rollback-20260622163112-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── rollback-20260622163227-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── rollback-20260622163227-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── rollback-20260622163313-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── rollback-20260622163313-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── rollback-20260622163344-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── rollback-20260622163344-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── rollback-20260622191826-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   ├── rollback-20260622195906-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── rollback-20260622195906-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   ├── rollback-20260629161557-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── rollback-20260629161557-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   └── rollback-20260706153340-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       ├── canon
-│       │       └── reverse_html
-│       │           └── rollback-20260706153340-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
 │       └── session_sync
-│           ├── dt054-uso-data-tmp-202607060925
+│           ├── local-dt055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica-20260707184932
 │           │   └── normalize
-│           ├── s0154-close
+│           ├── local-dt056-preparacion-human-review-relacional-s0164-20260707190701
 │           │   └── normalize
-│           ├── s0155-close
+│           ├── local-dt057-higiene-repo-artifact-canon-exclusion-build-artifacts-20260707192407
 │           │   └── normalize
-│           ├── s0156-close-20260629111930
+│           ├── local-dt057-higiene-repo-artifact-canon-exclusion-build-artifacts-v2-20260707192514
 │           │   └── normalize
-│           ├── s0156-close-final-20260629112200
+│           ├── local-dt058-frontera-canon-codigo-fuente-rutas-post-src-20260707193322
 │           │   └── normalize
-│           ├── s0156-preflight-s0155-20260629111230
+│           ├── local-dt059-contrato-schema-relacional-review-queue-admission-gate-20260707200553
 │           │   └── normalize
-│           ├── s0156-reverse-doc-amendment-20260629115130
+│           ├── local-dt060-tests-stale-post-src-frontera-relacional-20260707202205
 │           │   └── normalize
-│           ├── s0157-close-20260630150000
+│           ├── local-dt061-cobertura-rag-premium-canon-derivados-relaciones-20260707204354
 │           │   └── normalize
-│           ├── s0157-type-wording-amendment-20260630
+│           ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica
 │           │   └── normalize
-│           ├── s0158-close-20260705114523
+│           ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica-final
 │           │   └── normalize
-│           ├── s0158-close-20260705121335
+│           ├── s0164-microajuste-terminal-final
 │           │   └── normalize
-│           ├── s0158-close-20260705121624
+│           ├── s0164-microajuste-terminal-final2
 │           │   └── normalize
-│           ├── s0158-post-pr-202607051300
+│           ├── s0164-terminal-relations-microadjustment
 │           │   └── normalize
-│           ├── s0158-post-pr-202607051305
+│           ├── sync-20260706222042
 │           │   └── normalize
-│           ├── s0159-close-202607061035
-│           │   └── normalize
-│           ├── s0159-close-final-202607061037
-│           │   └── normalize
-│           ├── s0160-close-202607061620
-│           │   └── normalize
-│           ├── s0161-close-202607061705
-│           │   └── normalize
-│           ├── s0162-micro-review-final
-│           │   └── normalize
-│           ├── s0162-session-sync
-│           │   └── normalize
-│           ├── s0162-session-sync-final
-│           │   └── normalize
-│           ├── s0163-microajuste-instrucciones
-│           │   └── normalize
-│           ├── s0163-refactor-instrucciones
-│           │   └── normalize
-│           ├── sync-20260622155841
-│           │   └── normalize
-│           ├── sync-20260702223603
-│           │   └── normalize
-│           ├── sync-20260705185723
-│           │   └── normalize
-│           └── sync-20260706220253
+│           └── sync-20260708000029
 │               └── normalize
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
@@ -975,6 +740,7 @@
 │   ├── test_source_fields_contract.py
 │   ├── test_tdc_menu_compatibility_aliases.py
 │   ├── test_tdc_menu_governed_admission.py
+│   ├── test_tdc_relations_shell.py
 │   ├── test_text_utils.py
 │   ├── test_unknown_artifact_family_characterization.py
 │   ├── test_validate_relation_candidates.py

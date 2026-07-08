@@ -58,8 +58,13 @@ DEFAULT_OUT_DIR = (
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from relation_candidate_contract import (  # noqa: E402
+    ADMISSION_HUMAN_REVIEW_DECISION,
     ALLOWED_RELATION_TYPES,
+    BUILD_ARTIFACT_PATH_PARTS,
+    BUILD_ARTIFACT_PREFIXES,
     CANDIDATE_ID_RE,
+    HISTORICAL_REPO_LIFECYCLE_STATES,
+    VALID_HUMAN_REVIEW_DECISIONS,
     verify_excerpt_in_source,
 )
 from relation_admission_policy import EVIDENCE_POLICY, GLOBAL_MIN_CONFIDENCE  # noqa: E402
@@ -92,7 +97,9 @@ BLOCKED = "blocked"
 
 VALID_HUMAN_DECISIONS: frozenset[str] = frozenset({
     "approved_for_dry_run",
+    "approved_for_admission",
     "rejected_by_human",
+    "rejected",
     "needs_changes",
     "deferred",
 })
@@ -101,6 +108,16 @@ RESOLVED_TARGET_STATUSES: frozenset[str] = frozenset({
     "resolved",
     "resolved_id",
     "resolved_title_unique",
+})
+
+REVIEW_QUEUE_FAMILIES: frozenset[str] = frozenset({
+    "review_queue",
+    "relation_review_queue",
+})
+
+ADMITTED_RELATION_FAMILIES: frozenset[str] = frozenset({
+    "admitted_relation",
+    "canonical_relation",
 })
 
 S0140_REVIEW_DIR = (
@@ -168,6 +185,108 @@ def canonical_relations_set(canon: dict[str, dict[str, Any]]) -> set[tuple[str, 
             if rel_type and target_id:
                 edges.add((src_id, target_id, rel_type))
     return edges
+
+
+def is_technical_candidate(candidate: dict[str, Any]) -> bool:
+    return (
+        candidate.get("candidate_schema_version") == "technical-relation-candidates/v1"
+        or "relation_type" in candidate
+    )
+
+
+def endpoint_id(endpoint: dict[str, Any]) -> str:
+    return str(endpoint.get("canonical_id") or endpoint.get("tiddler_id") or "")
+
+
+def endpoint_title(endpoint: dict[str, Any], canon_record: dict[str, Any] | None = None) -> str:
+    return str(
+        endpoint.get("canonical_title")
+        or endpoint.get("title")
+        or (canon_record or {}).get("title")
+        or ""
+    )
+
+
+def endpoint_lifecycle(endpoint: dict[str, Any], canon_record: dict[str, Any] | None = None) -> str:
+    canon_record = canon_record or {}
+    source_fields = canon_record.get("source_fields") or {}
+    return str(
+        endpoint.get("lifecycle_state")
+        or endpoint.get("repo_lifecycle_state")
+        or canon_record.get("lifecycle_state")
+        or canon_record.get("repo_lifecycle_state")
+        or source_fields.get("lifecycle_state")
+        or source_fields.get("repo_lifecycle_state")
+        or ""
+    )
+
+
+def endpoint_repo_path(endpoint: dict[str, Any], canon_record: dict[str, Any] | None = None) -> str:
+    canon_record = canon_record or {}
+    source_fields = canon_record.get("source_fields") or {}
+    return str(
+        endpoint.get("repo_path")
+        or endpoint.get("normalized_repo_path")
+        or endpoint.get("observed_repo_path")
+        or canon_record.get("repo_path")
+        or source_fields.get("repo_path")
+        or source_fields.get("source_path")
+        or ""
+    )
+
+
+def relation_type_for(candidate: dict[str, Any]) -> str:
+    relation = candidate.get("relation") or {}
+    return str(candidate.get("relation_type") or relation.get("type") or "")
+
+
+def evidence_kind_for(candidate: dict[str, Any]) -> str:
+    evidence = candidate.get("evidence") or {}
+    return str(evidence.get("evidence_kind") or evidence.get("kind") or "")
+
+
+def evidence_excerpt_for(candidate: dict[str, Any]) -> str:
+    evidence = candidate.get("evidence") or {}
+    return str(evidence.get("excerpt") or evidence.get("raw_observation") or "")
+
+
+def confidence_score_for(candidate: dict[str, Any]) -> float:
+    confidence = candidate.get("confidence") or {}
+    if "score" in confidence:
+        return float(confidence.get("score") or 0.0)
+    evidence_confidence = str((candidate.get("evidence") or {}).get("confidence") or "").lower()
+    return {
+        "high": 0.90,
+        "medium": 0.70,
+        "low": 0.50,
+    }.get(evidence_confidence, 0.0)
+
+
+def is_build_artifact_path(repo_path: str) -> bool:
+    normalized = repo_path.replace("\\", "/").lstrip("./")
+    if not normalized:
+        return False
+    if normalized.startswith(BUILD_ARTIFACT_PREFIXES):
+        return True
+    return any(part in BUILD_ARTIFACT_PATH_PARTS for part in normalized.split("/"))
+
+
+def repo_path_status(repo_path: str, lifecycle: str) -> str:
+    normalized = repo_path.replace("\\", "/").lstrip("./")
+    if not normalized:
+        return "not_applicable"
+    if is_build_artifact_path(normalized):
+        return "build_artifact"
+    if lifecycle in HISTORICAL_REPO_LIFECYCLE_STATES:
+        return "historical"
+    if Path(normalized).exists():
+        return "current"
+    return "stale"
+
+
+def candidate_artifact_family(candidate: dict[str, Any]) -> str:
+    source_fields = candidate.get("source_fields") or {}
+    return str(candidate.get("artifact_family") or source_fields.get("artifact_family") or "")
 
 
 def relation_policy_block_reason(rel_type: str, type_policy: dict[str, dict[str, Any]]) -> str | None:
@@ -265,7 +384,7 @@ def validate_human_review_decisions_doc(
         checks = decision.get("checks")
         if not isinstance(checks, dict):
             errors.append(f"{prefix}.checks must be object")
-        elif value == "approved_for_dry_run":
+        elif value in {"approved_for_dry_run", "approved_for_admission"}:
             missing = sorted(required_checks - set(checks))
             if missing:
                 errors.append(f"{prefix}.checks missing: {missing}")
@@ -287,7 +406,7 @@ def human_review_block(candidate_id: str, decisions_doc: dict[str, Any] | None) 
         return None, ["blocked_missing_human_review: no persisted human_review decision for candidate."]
 
     value = decision.get("decision")
-    if value == "rejected_by_human":
+    if value in {"rejected_by_human", "rejected"}:
         return {
             "status": value,
             "reviewer": ((decisions_doc or {}).get("reviewer") or {}).get("reviewer_id", ""),
@@ -297,7 +416,7 @@ def human_review_block(candidate_id: str, decisions_doc: dict[str, Any] | None) 
             "checks": decision.get("checks") or {},
         }, [f"rejected_by_human: human_review.decision='{value}'."]
 
-    if value != "approved_for_dry_run":
+    if value not in {"approved_for_dry_run", "approved_for_admission"}:
         return {
             "status": value or "(absent)",
             "reviewer": ((decisions_doc or {}).get("reviewer") or {}).get("reviewer_id", ""),
@@ -428,6 +547,27 @@ def validate_human_review(hr: Any) -> list[str]:
     return reasons
 
 
+def validate_candidate_human_review_decision(candidate: dict[str, Any], hr: Any) -> list[str]:
+    """S0164 admission decision gate; legacy approvals are not canon admission."""
+    reasons: list[str] = []
+    direct = candidate.get("human_review_decision")
+
+    if is_technical_candidate(candidate):
+        if direct not in VALID_HUMAN_REVIEW_DECISIONS:
+            reasons.append(
+                "GATE-015: human_review_decision ausente o inválido; "
+                f"permitidos={sorted(VALID_HUMAN_REVIEW_DECISIONS)}."
+            )
+        if direct != ADMISSION_HUMAN_REVIEW_DECISION:
+            reasons.append(
+                "GATE-016: human_review_decision != approved_for_admission; "
+                f"encontrado={direct!r}."
+            )
+        return reasons
+
+    return reasons
+
+
 # ── Gate evaluator ────────────────────────────────────────────────────────────
 
 def evaluate_gate(
@@ -444,18 +584,18 @@ def evaluate_gate(
     cid = candidate.get("candidate_id", "")
     source = candidate.get("source") or {}
     target = candidate.get("target") or {}
-    relation = candidate.get("relation") or {}
     evidence = candidate.get("evidence") or {}
     human_review = candidate.get("human_review")
-    provenance = candidate.get("provenance") or {}
 
-    src_id = source.get("tiddler_id", "")
-    tgt_id = target.get("tiddler_id", "")
-    rel_type = relation.get("type", "")
-    ev_kind = evidence.get("kind", "")
-    excerpt = evidence.get("excerpt", "")
+    src_id = endpoint_id(source)
+    tgt_id = endpoint_id(target)
+    rel_type = relation_type_for(candidate)
+    ev_kind = evidence_kind_for(candidate)
+    excerpt = evidence_excerpt_for(candidate)
     resolution_status = target.get("resolution_status", "")
-    score = float((candidate.get("confidence") or {}).get("score") or 0.0)
+    score = confidence_score_for(candidate)
+    technical_candidate = is_technical_candidate(candidate)
+    candidate_family = candidate_artifact_family(candidate)
 
     # ── Criterio 1: candidato_id válido ───────────────────────────────────────
     if not cid or not CANDIDATE_ID_RE.match(cid):
@@ -463,17 +603,42 @@ def evaluate_gate(
     else:
         reasons_ok.append("candidate_id válido.")
 
+    # ── Criterio 1B: separación candidate/review_queue/admitted_relation ─────
+    if candidate_family in ADMITTED_RELATION_FAMILIES:
+        reasons_blocked.append(
+            f"GATE-017: artifact_family='{candidate_family}' no puede ingresar por cola candidata."
+        )
+    if candidate_family in REVIEW_QUEUE_FAMILIES:
+        reasons_blocked.append(
+            f"GATE-018: review_queue no es admitted_relation ni relación canónica admitida."
+        )
+    if str(candidate.get("status") or "") in {"admitted", "admitted_relation"}:
+        reasons_blocked.append(
+            "GATE-019: candidate.status declara admisión; el gate solo acepta candidatas dry-run."
+        )
+
     # ── Criterio 2: human_review ──────────────────────────────────────────────
     if human_review_notes:
         reasons_blocked.extend(f"GATE-001B: {note}" for note in human_review_notes)
-    hr_issues = validate_human_review(human_review)
+    hr_issues = [] if technical_candidate else validate_human_review(human_review)
+    decision_issues = validate_candidate_human_review_decision(candidate, human_review)
+    if technical_candidate:
+        reasons_blocked.extend(decision_issues)
+        if decision_issues:
+            hr_issues = []
+    elif decision_issues:
+        reasons_blocked.extend(decision_issues)
+
     if hr_issues:
         reasons_blocked.extend(hr_issues)
     else:
-        reasons_ok.append(
-            f"human_review aprobado por '{(human_review or {}).get('reviewer', '')}' "
-            f"en {(human_review or {}).get('reviewed_at', '')}."
-        )
+        if technical_candidate:
+            reasons_ok.append("human_review_decision aprobada para admisión dry-run.")
+        else:
+            reasons_ok.append(
+                f"human_review aprobado por '{(human_review or {}).get('reviewer', '')}' "
+                f"en {(human_review or {}).get('reviewed_at', '')}."
+            )
 
     # ── Criterio 3: tipo relacional no histórico bloqueado ────────────────────
     s0139_block = relation_policy_block_reason(rel_type, type_policy or {})
@@ -496,29 +661,57 @@ def evaluate_gate(
     src_tiddler = canon.get(src_id)
     if not src_tiddler:
         reasons_blocked.append(
-            f"GATE-008: source.tiddler_id='{src_id}' no encontrado en el canon."
+            f"GATE-008: source.canonical_id/tiddler_id='{src_id}' no encontrado en el canon vigente."
         )
     else:
-        reasons_ok.append(f"Fuente en canon: '{src_tiddler.get('title','')[:60]}'.")
+        reasons_ok.append(f"Fuente en canon: '{endpoint_title(source, src_tiddler)[:60]}'.")
 
     # ── Criterio 5: target resuelto en canon ──────────────────────────────────
     tgt_tiddler = canon.get(tgt_id)
-    if resolution_status and resolution_status not in RESOLVED_TARGET_STATUSES:
+    if not technical_candidate and resolution_status and resolution_status not in RESOLVED_TARGET_STATUSES:
         reasons_blocked.append(
             f"GATE-009A: target.resolution_status='{resolution_status}' no es resoluble."
         )
     if not tgt_tiddler:
         reasons_blocked.append(
-            f"GATE-009: target.tiddler_id='{tgt_id}' no encontrado en el canon "
+            f"GATE-009: target.canonical_id/tiddler_id='{tgt_id}' no encontrado en el canon vigente "
             f"(resolution_status='{resolution_status}')."
         )
     else:
-        reasons_ok.append(f"Destino en canon: '{tgt_tiddler.get('title','')[:60]}'.")
+        reasons_ok.append(f"Destino en canon: '{endpoint_title(target, tgt_tiddler)[:60]}'.")
+
+    # ── Criterio 5B: lifecycle + staleness + build artifacts ─────────────────
+    for role, endpoint, canon_record in (
+        ("source", source, src_tiddler),
+        ("target", target, tgt_tiddler),
+    ):
+        lifecycle = endpoint_lifecycle(endpoint, canon_record)
+        repo_path = endpoint_repo_path(endpoint, canon_record)
+        path_status = repo_path_status(repo_path, lifecycle)
+        if technical_candidate and not lifecycle:
+            reasons_blocked.append(f"GATE-020: {role}.lifecycle_state ausente.")
+        elif lifecycle:
+            reasons_ok.append(f"{role}.lifecycle_state='{lifecycle}'.")
+        if path_status == "build_artifact":
+            reasons_blocked.append(
+                f"GATE-021: {role}.repo_path apunta a build artifact: {repo_path!r}."
+            )
+        elif path_status == "stale" and lifecycle not in HISTORICAL_REPO_LIFECYCLE_STATES:
+            reasons_blocked.append(
+                f"GATE-022: {role}.repo_path stale sin lifecycle histórico explícito: {repo_path!r}."
+            )
+        elif path_status in {"current", "historical", "not_applicable"}:
+            reasons_ok.append(f"{role}.repo_path_status='{path_status}'.")
 
     # ── Criterio 6: excerpt verificable ───────────────────────────────────────
     src_text = (src_tiddler or {}).get("text", "") if src_tiddler else ""
     excerpt_ok = verify_excerpt_in_source(excerpt, src_text)
-    if excerpt_ok is False:
+    if technical_candidate:
+        if not ev_kind or not excerpt:
+            reasons_blocked.append("GATE-023: evidencia verificable ausente en candidato técnico.")
+        else:
+            reasons_ok.append("Evidencia técnica presente para revisión humana.")
+    elif excerpt_ok is False:
         reasons_blocked.append(
             f"GATE-010: excerpt '{excerpt[:60]}...' no verificado en texto fuente."
         )
@@ -551,6 +744,8 @@ def evaluate_gate(
     # ── Determinar estado final ───────────────────────────────────────────────
     status = BLOCKED if reasons_blocked else ADMISSION_READY
     decision = classify_gate_decision(status, reasons_blocked)
+    primary_block_reason = reasons_blocked[0] if reasons_blocked else ""
+    blocking_stage = blocking_stage_for(decision, reasons_blocked)
 
     # ── Hash de evidencia ─────────────────────────────────────────────────────
     evidence_str = json.dumps(evidence, sort_keys=True, ensure_ascii=False)
@@ -571,9 +766,15 @@ def evaluate_gate(
         "confidence_score": score,
         "evidence_kind": ev_kind,
         "blocking_reasons": reasons_blocked,
+        "primary_block_reason": primary_block_reason,
+        "all_block_reasons": reasons_blocked,
+        "blocking_stage": blocking_stage,
         "ok_reasons": reasons_ok,
         "human_review_status": hr.get("status", "(absent)"),
-        "human_review_decision": hr.get("decision", hr.get("status", "(absent)")),
+        "human_review_decision": candidate.get(
+            "human_review_decision",
+            hr.get("decision", hr.get("status", "(absent)")),
+        ),
         "reviewer": hr.get("reviewer", ""),
         "reviewed_at": hr.get("reviewed_at", ""),
         "decision_reason": hr.get("decision_reason", ""),
@@ -602,6 +803,12 @@ def classify_gate_decision(status: str, blocking_reasons: list[str]) -> str:
         return "blocked_s0139_type_policy"
     if "blocked_missing_human_review" in joined or "human_review" in joined or "GATE-001" in joined:
         return "blocked_missing_human_review"
+    if "GATE-021" in joined or "build artifact" in joined:
+        return "blocked_build_artifact"
+    if "GATE-020" in joined or "GATE-022" in joined or "repo_path stale" in joined:
+        return "blocked_repo_path_stale_or_lifecycle"
+    if "GATE-017" in joined or "GATE-018" in joined or "GATE-019" in joined:
+        return "blocked_candidate_admitted_separation"
     if "resolution_status" in joined or "GATE-009" in joined:
         return "blocked_unresolved_target"
     if "excerpt" in joined or "no verificable" in joined:
@@ -611,6 +818,27 @@ def classify_gate_decision(status: str, blocking_reasons: list[str]) -> str:
     if "confidence.score" in joined or "candidate_id" in joined:
         return "blocked_contract_or_policy"
     return BLOCKED
+
+
+def blocking_stage_for(decision: str, blocking_reasons: list[str]) -> str:
+    if decision == ADMISSION_READY:
+        return "ready_dry_run"
+    joined = "\n".join(blocking_reasons)
+    if "GATE-015" in joined or "GATE-016" in joined or "human_review" in joined:
+        return "human_review"
+    if "GATE-008" in joined or "GATE-009" in joined:
+        return "canon_resolution"
+    if "GATE-020" in joined or "GATE-021" in joined or "GATE-022" in joined:
+        return "repo_path_lifecycle"
+    if "GATE-013" in joined:
+        return "duplicate_detection"
+    if "GATE-006" in joined or "GATE-007" in joined:
+        return "relation_type_policy"
+    if "GATE-010" in joined or "GATE-011" in joined or "GATE-023" in joined:
+        return "evidence"
+    if "GATE-017" in joined or "GATE-018" in joined or "GATE-019" in joined:
+        return "artifact_separation"
+    return "contract_or_policy"
 
 
 # ── Log writer (append-only) ──────────────────────────────────────────────────
@@ -724,6 +952,9 @@ def build_dry_run_report(
                 "decision": r.get("decision", r["gate_status"]),
                 "relation_type": r["relation_type"],
                 "blocking_reasons": r["blocking_reasons"],
+                "primary_block_reason": r.get("primary_block_reason", ""),
+                "all_block_reasons": r.get("all_block_reasons", r["blocking_reasons"]),
+                "blocking_stage": r.get("blocking_stage", ""),
                 "ok_reasons": r["ok_reasons"],
                 "human_review_status": r["human_review_status"],
                 "human_review_decision": r.get("human_review_decision", r["human_review_status"]),
@@ -1094,7 +1325,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Modo dry-run obligatorio. NO escribe al canon."
         )
     )
-    p.add_argument("--candidates-file", type=Path, default=DEFAULT_CANDIDATES_FILE)
+    p.add_argument("--candidates-file", "--candidate-file", dest="candidates_file", type=Path, default=DEFAULT_CANDIDATES_FILE)
     p.add_argument("--canon-glob", default=DEFAULT_CANON_GLOB)
     p.add_argument("--human-review", type=Path, default=None)
     p.add_argument("--human-review-batch", type=Path, default=None)
@@ -1102,6 +1333,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--review-dir", type=Path, default=S0140_REVIEW_DIR)
     p.add_argument("--admissibility-report", type=Path, default=S0140_ADMISSIBILITY_REPORT)
     p.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
+    p.add_argument("--output", type=Path, default=None)
     p.add_argument("--session", default="s0137")
     p.add_argument("--dry-run", action="store_true", default=False)
     p.add_argument("--verbose", "-v", action="store_true", default=False)
@@ -1126,7 +1358,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     session_tag = infer_session_tag(args)
     session_label = session_tag.upper()
-    out = args.out_dir
+    out = args.output.parent if args.output else args.out_dir
 
     # Forbid any apply-like flags
     raw = argv if argv is not None else sys.argv[1:]
@@ -1245,7 +1477,7 @@ def main(argv: list[str] | None = None) -> int:
         candidates_file=args.candidates_file,
         canon_glob=args.canon_glob,
     )
-    report_path = out / f"{session_tag}_relation_admission_dry_run_report.json"
+    report_path = args.output or (out / f"{session_tag}_relation_admission_dry_run_report.json")
     out.mkdir(parents=True, exist_ok=True)
     with report_path.open("w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, ensure_ascii=False)

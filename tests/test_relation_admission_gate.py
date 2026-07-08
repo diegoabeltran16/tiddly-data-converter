@@ -76,6 +76,45 @@ def _candidate(
     }
 
 
+def _technical_candidate(**overrides) -> dict:
+    cand = {
+        "candidate_id": "rc1_c1c2c3c4c5c6c7c8",
+        "candidate_schema_version": "technical-relation-candidates/v1",
+        "status": "resolved_for_human_review",
+        "artifact_family": "relation_candidate",
+        "relation_type": "references",
+        "human_review_decision": "approved_for_admission",
+        "source": {
+            "canonical_id": "src-001",
+            "canonical_title": "Source",
+            "repo_path": "tests/test_relation_admission_gate.py",
+            "lifecycle_state": "current_repo_artifact",
+        },
+        "target": {
+            "canonical_id": "tgt-002",
+            "canonical_title": "Target",
+            "repo_path": "src/python_scripts/relation_admission_gate.py",
+            "lifecycle_state": "current_repo_artifact",
+        },
+        "evidence": {
+            "evidence_kind": "path_literal",
+            "confidence": "high",
+            "raw_observation": "technical fixture observation",
+        },
+        "policy": {
+            "human_review_required": True,
+            "canonical_admission_allowed": False,
+        },
+        "session_resolution": {"classification": "resolved_for_human_review"},
+    }
+    for key, value in overrides.items():
+        if key in {"source", "target", "evidence", "policy", "session_resolution"}:
+            cand[key].update(value)
+        else:
+            cand[key] = value
+    return cand
+
+
 # ── Caso 1: Sin human_review → bloqueado ──────────────────────────────────────
 
 class TestCase01_NoHumanReview:
@@ -332,3 +371,51 @@ class TestAdditional:
         assert report["schema"] == "relation-admission-dry-run-report/v1"
         assert report["mode"] == "dry-run"
         assert "summary" in report
+        item = report["items"][0]
+        assert {"primary_block_reason", "all_block_reasons", "blocking_stage"}.issubset(item)
+
+
+class TestS0164Hardening:
+    def test_admission_gate_blocks_stale_source(self):
+        cand = _technical_candidate(source={"repo_path": "missing/source.py"})
+        result = evaluate_gate(cand, _canon())
+        assert result["gate_status"] == BLOCKED
+        assert result["decision"] == "blocked_repo_path_stale_or_lifecycle"
+
+    def test_admission_gate_blocks_stale_target(self):
+        cand = _technical_candidate(target={"repo_path": "missing/target.py"})
+        result = evaluate_gate(cand, _canon())
+        assert result["gate_status"] == BLOCKED
+        assert result["decision"] == "blocked_repo_path_stale_or_lifecycle"
+
+    def test_admission_gate_requires_lifecycle_state(self):
+        cand = _technical_candidate(source={"lifecycle_state": ""})
+        result = evaluate_gate(cand, _canon())
+        assert result["gate_status"] == BLOCKED
+        assert any("GATE-020" in r for r in result["blocking_reasons"])
+
+    def test_review_queue_enforces_human_review_required(self):
+        cand = _technical_candidate(human_review_decision="deferred")
+        result = evaluate_gate(cand, _canon())
+        assert result["gate_status"] == BLOCKED
+        assert result["decision"] == "blocked_missing_human_review"
+
+    def test_admission_gate_blocks_build_artifacts(self):
+        cand = _technical_candidate(target={"repo_path": "build/generated.json"})
+        result = evaluate_gate(cand, _canon())
+        assert result["gate_status"] == BLOCKED
+        assert result["decision"] == "blocked_build_artifact"
+
+    def test_candidate_vs_admitted_relation_separation(self):
+        cand = _technical_candidate(artifact_family="admitted_relation")
+        result = evaluate_gate(cand, _canon())
+        assert result["gate_status"] == BLOCKED
+        assert result["decision"] == "blocked_candidate_admitted_separation"
+
+    def test_duplicate_detection_against_canonical_relations(self):
+        canon = _canon()
+        canon["src-001"]["relations"] = [{"type": "references", "target_id": "tgt-002"}]
+        cand = _technical_candidate()
+        result = evaluate_gate(cand, canon)
+        assert result["gate_status"] == BLOCKED
+        assert result["decision"] == "blocked_duplicate_existing"

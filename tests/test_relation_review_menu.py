@@ -427,60 +427,59 @@ class TestMainMenuIntegration:
             f"Admisión gobernada no encontrada:\n{result.stdout[:600]}"
         )
 
-    def test_alias_16_redirects_to_relation_review(self):
+    def test_alias_16_redirects_to_canonical_relations(self):
         result = _run_menu("16\n0\n0\n", timeout=30)
         assert "Revisión relacional ahora vive" in result.stdout, (
             f"Alias 16 no redirigió correctamente:\n{result.stdout[:800]}"
         )
+        assert "Relaciones canónicas" in result.stdout
 
-    def test_experimental_submenu_reachable_from_main(self):
-        """La opción 16 abre el submenú experimental y permite volver con 0."""
+    def test_canonical_relations_submenu_reachable_from_alias_16(self):
+        """La opción 16 abre la ruta oficial de Relaciones canónicas y permite volver con 0."""
         result = _run_menu("16\n0\n0\n", timeout=30)
         assert result.returncode == 0, (
             f"returncode={result.returncode}\nstderr:{result.stderr[:300]}"
         )
 
-    def test_experimental_submenu_shows_experimental_text(self):
-        """Al abrir el submenú (opción 16), el output contiene 'EXPERIMENTAL'."""
+    def test_canonical_relations_submenu_shows_governed_header(self):
+        """Al abrir el submenú (opción 16), el output declara protección de canon."""
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "EXPERIMENTAL" in result.stdout, (
-            f"'EXPERIMENTAL' no encontrado:\n{result.stdout[:800]}"
+        assert "Canon: PROTEGIDO" in result.stdout, (
+            f"'Canon: PROTEGIDO' no encontrado:\n{result.stdout[:800]}"
         )
 
-    def test_experimental_submenu_shows_bloqueada(self):
-        """Al abrir el submenú (opción 16), el output contiene 'BLOQUEADA'."""
+    def test_canonical_relations_submenu_shows_apply_confirmation_boundary(self):
+        """Al abrir el submenú (opción 16), el output muestra la frontera APPLY."""
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "BLOQUEADA" in result.stdout, (
-            f"'BLOQUEADA' no encontrado:\n{result.stdout[:800]}"
+        assert "APPLY RELATIONS al canon" in result.stdout, (
+            f"'APPLY RELATIONS al canon' no encontrado:\n{result.stdout[:800]}"
         )
 
-    def test_experimental_submenu_shows_dry_run(self):
+    def test_canonical_relations_submenu_shows_dry_run(self):
         """Al abrir el submenú (opción 16), el output contiene 'dry-run'."""
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "dry-run" in result.stdout, (
+        assert "Dry-run admission gate" in result.stdout, (
             f"'dry-run' no encontrado:\n{result.stdout[:800]}"
         )
 
-    def test_experimental_submenu_does_not_modify_canon(self):
-        """Abrir y cerrar el submenú experimental no modifica el canon."""
+    def test_canonical_relations_submenu_does_not_modify_canon(self):
+        """Abrir y cerrar el submenú oficial no modifica el canon."""
         hashes_before = _canon_shard_hashes()
         _run_menu("16\n0\n0\n", timeout=30)
         hashes_after = _canon_shard_hashes()
         assert hashes_before == hashes_after, (
-            "Canon modificado al abrir/cerrar el submenú experimental S0127"
+            "Canon modificado al abrir/cerrar el submenú de Relaciones canónicas"
         )
 
-    def test_experimental_option_1_with_existing_candidates_does_not_modify_canon(self):
+    def test_canonical_relations_option_4_summary_does_not_modify_canon(self):
         """
-        Ejecutar la opción 1 del submenú con candidatos reales no modifica el canon.
+        Ver el resumen relacional no modifica el canon.
         """
-        if not DEFAULT_CANDIDATES_INPUT.exists():
-            pytest.skip("No hay archivo de candidatos; test no aplica")
         hashes_before = _canon_shard_hashes()
-        _run_menu("16\n1\n0\n0\n", timeout=60)
+        _run_menu("16\n4\n0\n0\n", timeout=30)
         hashes_after = _canon_shard_hashes()
         assert hashes_before == hashes_after, (
-            "Canon modificado por la validación dry-run experimental S0127\n"
+            "Canon modificado por el resumen de Relaciones canónicas\n"
             + "\n".join(
                 f"  {k}: CAMBIÓ"
                 for k in hashes_before
@@ -488,31 +487,32 @@ class TestMainMenuIntegration:
             )
         )
 
-    def test_experimental_option_1_output_does_not_contain_apply(self):
+    def test_canonical_relations_alias_open_does_not_modify_canon(self):
         """
-        La salida de la opción 1 NO debe contener '--apply'.
+        El alias 16 solo abre la ruta oficial; la cancelación APPLY se prueba
+        desde tdc.sh relations, donde el stdin no queda prebufferizado por Python.
         """
-        if not DEFAULT_CANDIDATES_INPUT.exists():
-            pytest.skip("No hay archivo de candidatos; test no aplica")
-        result = _run_menu("16\n1\n0\n0\n", timeout=60)
-        assert "--apply" not in result.stdout, (
-            f"'--apply' encontrado en el output — PROHIBIDO en S0127:\n{result.stdout[:800]}"
+        hashes_before = _canon_shard_hashes()
+        result = _run_menu("16\n0\n0\n", timeout=30)
+        hashes_after = _canon_shard_hashes()
+        assert "Relaciones canónicas" in result.stdout
+        assert hashes_before == hashes_after, (
+            "Canon modificado al abrir la ruta oficial de Relaciones canónicas"
         )
 
-    def test_experimental_invalid_choice_no_crash(self):
+    def test_canonical_relations_invalid_choice_no_crash(self):
         """Elegir una opción inválida dentro del submenú no crashea el menú."""
         result = _run_menu("16\n99\n0\n0\n", timeout=30)
         assert result.returncode == 0, (
             f"returncode={result.returncode}"
         )
 
-    def test_experimental_option_2_no_report_is_graceful(self):
+    def test_canonical_relations_option_4_no_report_is_graceful(self):
         """
-        La opción 2 del submenú (ver reporte humano) maneja graciosamente
+        La opción 4 del submenú (ver resumen) maneja graciosamente
         la ausencia del reporte.
         """
-        result = _run_menu("16\n2\n0\n0\n", timeout=30)
+        result = _run_menu("16\n4\n0\n0\n", timeout=30)
         assert result.returncode == 0
-        # Si no existe el reporte, debe haber un mensaje claro
-        if "No hay reporte" in result.stdout:
-            assert "dry-run" in result.stdout or "Ejecute" in result.stdout
+        if "No existe todavía un dry-run relacional persistente." in result.stdout:
+            assert "Ejecute primero la opción 3." in result.stdout
