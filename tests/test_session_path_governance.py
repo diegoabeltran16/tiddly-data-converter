@@ -24,6 +24,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import admit_session_candidates as asc
+import generate_session_deliverables as deliverables
 import mcp_env_manager as mgr
 
 
@@ -52,6 +53,12 @@ class TestDefaultSessionsDir:
         assert "data/out/local/sessions" in display.replace("\\", "/"), (
             f"Display path {display!r} must contain data/out/local/sessions"
         )
+
+    def test_session_deliverable_generator_uses_repo_root_not_src(self):
+        expected = REPO_ROOT / "data" / "out" / "local" / "sessions"
+        assert deliverables.REPO_ROOT == REPO_ROOT
+        assert deliverables.DEFAULT_SESSIONS_DIR == expected
+        assert "/src/data/out/local/sessions" not in str(deliverables.DEFAULT_SESSIONS_DIR)
 
 
 # ---------------------------------------------------------------------------

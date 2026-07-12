@@ -119,6 +119,97 @@ def display(path: Path | str | None) -> str:
         return str(path)
 
 
+def load_json_if_exists(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    value = json.loads(path.read_text(encoding="utf-8"))
+    return value if isinstance(value, dict) else {}
+
+
+def count_jsonl_records(path: Path) -> int:
+    if not path.exists():
+        return 0
+    with path.open(encoding="utf-8") as handle:
+        return sum(1 for line in handle if line.strip())
+
+
+def print_governed_gate_status() -> None:
+    metadata_manifest = (
+        REPO_ROOT
+        / "data"
+        / "out"
+        / "local"
+        / "pipeline"
+        / "repo_metadata_admission"
+        / "latest_metadata_patch_manifest.json"
+    )
+    metadata_dry_run = (
+        REPO_ROOT
+        / "data"
+        / "out"
+        / "local"
+        / "pipeline"
+        / "repo_metadata_admission"
+        / "s0151"
+        / "s0151_metadata_admission_dry_run_report.json"
+    )
+    current_relation_report = (
+        REPO_ROOT
+        / "data"
+        / "out"
+        / "local"
+        / "pipeline"
+        / "relation_candidates"
+        / "current"
+        / "relation_candidates_report.json"
+    )
+    s0167_dir = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_candidates" / "s0167"
+    s0167_ready = s0167_dir / "relation_candidates_ready_for_review.jsonl"
+    s0167_repair = load_json_if_exists(s0167_dir / "repair_report.json")
+    s0167_decisions = s0167_dir / "human_review_decisions.jsonl"
+
+    print("\nEstado de compuertas")
+    print("- Superficies: metadata técnica, relaciones canónicas y sesiones al canon")
+    print("- Contratos: separados; coordinación operativa en este menú")
+    if metadata_manifest.exists():
+        print("- Metadata técnica: patch vigente disponible")
+    else:
+        print("- Metadata técnica: sin patch vigente")
+        print("  acción sugerida: refrescar patch contra canon actual")
+    if metadata_dry_run.exists():
+        report = load_json_if_exists(metadata_dry_run)
+        print(f"- Metadata dry-run: {'bloqueado' if report.get('blocked') else 'listo'}")
+    else:
+        print("- Metadata dry-run: no ejecutado")
+
+    relation_current = load_json_if_exists(current_relation_report)
+    if relation_current:
+        print(
+            "- Relaciones current: "
+            f"{relation_current.get('candidate_count', 0)} candidatas generadas, "
+            f"{relation_current.get('ready_for_review_count', 0)} ready directas, "
+            f"{relation_current.get('blocked_count', 0)} bloqueadas"
+        )
+    else:
+        print("- Relaciones current: no hay reporte de generación")
+    ready_count = count_jsonl_records(s0167_ready)
+    if ready_count:
+        residual = s0167_repair.get("residual_breakdown_for_s0168") or {}
+        print(f"- Relaciones S0167: {ready_count} candidatas válidas para revisión humana")
+        print(
+            "  bloqueos restantes: "
+            f"mapping={residual.get('blocked_mapping_remaining', 0)}, "
+            f"target={residual.get('blocked_target_remaining', 0)}, "
+            f"contrato={residual.get('invalid_contract_remaining', 0)}, "
+            f"duplicados excluidos={residual.get('duplicate_excluded', 0)}"
+        )
+        print(f"  decisiones humanas persistentes: {count_jsonl_records(s0167_decisions)}")
+        print("  estado: no admitidas; apply bloqueado")
+    else:
+        print("- Relaciones S0167: cola reparada no disponible")
+    print(f"- Sesiones al canon: {display(DEFAULT_ADMISSION_REPORT_DIR)}")
+
+
 def prompt(message: str) -> str:
     try:
         return input(message)
@@ -2126,6 +2217,7 @@ def option_governed_admission(state: MenuState) -> None:
             "  Revisión / admisión gobernada\n"
             "  Canon: PROTEGIDO\n"
             "  Apply: requiere confirmación humana explícita\n"
+            "  Metadata, relaciones y sesiones: coordinadas; contratos separados\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "1) Metadata técnica\n"
             "2) Relaciones canónicas\n"
@@ -2145,10 +2237,7 @@ def option_governed_admission(state: MenuState) -> None:
         elif choice == "3":
             option_session_sync(state)
         elif choice == "4":
-            print("\nEstado de compuertas")
-            print(f"- Metadata S0149: {display(REPO_ROOT / 'data/out/local/pipeline/repo_metadata_admission/s0149/s0149_metadata_admission_dry_run_report.json')}")
-            print(f"- Relaciones: {display(REPO_ROOT / 'data/out/local/pipeline/relation_admission')}")
-            print(f"- Sesiones: {display(DEFAULT_ADMISSION_REPORT_DIR)}")
+            print_governed_gate_status()
         elif choice == "5":
             option_reports()
         elif choice == "9":

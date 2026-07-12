@@ -7,6 +7,7 @@ cd "$ROOT"
 CANON_DIR="${CANON_DIR:-data/out/local}"
 RELATION_OUT_DIR="${RELATION_OUT_DIR:-data/out/local/pipeline/relation_candidates/current}"
 AUDIT_DIR="${AUDIT_DIR:-data/out/local/audit/relation_admission/current}"
+RELATION_HUMAN_REVIEW_DECISIONS="${RELATION_HUMAN_REVIEW_DECISIONS:-$RELATION_OUT_DIR/human_review_decisions.jsonl}"
 RELATION_SESSION="${RELATION_SESSION:-current}"
 RELATION_RUN_ID="${RELATION_RUN_ID:-current}"
 
@@ -102,11 +103,6 @@ tdc_relations_dry_run_gate() {
 
 tdc_relations_show_summary() {
     local report="$AUDIT_DIR/admission_gate_dry_run.json"
-    if [[ ! -f "$report" ]]; then
-        echo "No existe todavía un dry-run relacional persistente."
-        echo "Ejecute primero la opción 3."
-        return 0
-    fi
     python3 - "$report" <<'PY'
 import json
 import sys
@@ -114,26 +110,130 @@ from collections import Counter
 from pathlib import Path
 
 path = Path(sys.argv[1])
-data = json.loads(path.read_text(encoding="utf-8"))
-summary = data.get("summary") or {}
-items = data.get("items") or []
-decisions = Counter(item.get("decision") for item in items)
-all_reasons = Counter()
-for item in items:
-    for reason in item.get("all_block_reasons") or item.get("blocking_reasons") or []:
-        all_reasons[reason.split(":", 1)[0]] += 1
+repo_root = Path.cwd()
+current_dir = repo_root / "data/out/local/pipeline/relation_candidates/current"
+s0167_dir = repo_root / "data/out/local/pipeline/relation_candidates/s0167"
+s0167_audit = repo_root / "data/out/local/audit/relation_admission/s0167/s0167_admission_gate_dry_run.json"
+
+
+def load_json(json_path):
+    if not json_path.exists():
+        return {}
+    return json.loads(json_path.read_text(encoding="utf-8"))
+
+
+def count_jsonl(jsonl_path):
+    if not jsonl_path.exists():
+        return 0
+    with jsonl_path.open(encoding="utf-8") as handle:
+        return sum(1 for line in handle if line.strip())
+
+
+def count_human_decisions(jsonl_path):
+    counts = Counter()
+    if not jsonl_path.exists():
+        return counts
+    with jsonl_path.open(encoding="utf-8") as handle:
+        for raw in handle:
+            if not raw.strip():
+                continue
+            row = json.loads(raw)
+            counts[row.get("human_review_decision") or row.get("decision") or "(unknown)"] += 1
+    return counts
 
 print("Resumen relacional")
-print(f"- candidate_count: {summary.get('total_evaluated', len(items))}")
-print(f"- review_queue_count: {summary.get('total_evaluated', len(items))}")
-print(f"- admission_ready_dry_run_count: {summary.get('admission_ready_dry_run', 0)}")
-print(f"- blocked_count: {summary.get('blocked', 0)}")
-print(f"- missing_human_review_count: {decisions.get('blocked_missing_human_review', 0)}")
-print(f"- stale_path_count: {decisions.get('blocked_repo_path_stale_or_lifecycle', 0)}")
-print(f"- missing_lifecycle_state_count: {all_reasons.get('GATE-020', 0)}")
-print(f"- build_artifact_blocked_count: {decisions.get('blocked_build_artifact', 0)}")
-print(f"- duplicate_count: {decisions.get('blocked_duplicate_existing', 0)}")
-print(f"- último reporte generado: {path}")
+
+current_report = load_json(current_dir / "relation_candidates_report.json")
+current_validation = load_json(current_dir / "validation_report.json")
+current_candidate_count = 0
+if current_report:
+    current_candidate_count = int(current_report.get("candidate_count") or 0)
+    print("Current generation:")
+    print(f"- candidatas generadas: {current_candidate_count}")
+    print(f"- listas directas para review: {current_report.get('ready_for_review_count', 0)}")
+    print(f"- bloqueadas: {current_report.get('blocked_count', 0)}")
+    status_counts = current_report.get("status_counts") or {}
+    if status_counts:
+        print("- bloqueos:")
+        for status, count in sorted(status_counts.items()):
+            print(f"  - {status}: {count}")
+elif (current_dir / "relation_candidates.jsonl").exists():
+    print("Current generation:")
+    print(f"- candidatas generadas: {count_jsonl(current_dir / 'relation_candidates.jsonl')}")
+    print("- listas directas para review: no calculado")
+    print("- bloqueadas: no calculado")
+else:
+    print("Current generation:")
+    print("- no hay candidatas current generadas")
+
+validation_summary = current_validation.get("summary") or {}
+if validation_summary:
+    validation_total = int(validation_summary.get("total") or 0)
+    validation_label = "validación current"
+    if current_candidate_count and validation_total != current_candidate_count:
+        validation_label += " (desfasada frente a la generación actual)"
+    print(
+        f"- {validation_label}: total={validation_total} "
+        f"valid={validation_summary.get('valid', 0)} invalid={validation_summary.get('invalid', 0)}"
+    )
+
+repair_report = load_json(s0167_dir / "repair_report.json")
+ready_path = s0167_dir / "relation_candidates_ready_for_review.jsonl"
+ready_count = count_jsonl(ready_path)
+if repair_report or ready_path.exists():
+    residual = repair_report.get("residual_breakdown_for_s0168") or {}
+    summary = repair_report.get("summary") or {}
+    decisions = count_human_decisions(s0167_dir / "human_review_decisions.jsonl")
+    approved = decisions.get("approved_for_admission", 0)
+    print("S0167 repaired queue:")
+    print(f"- cola S0167: {ready_count} candidatas válidas para revisión humana")
+    print("- estado: no admitidas")
+    print(f"- decisiones humanas persistentes: {sum(decisions.values())}")
+    print(f"- aprobadas para admisión: {approved}")
+    print(f"- bloqueadas por mapping restantes: {residual.get('blocked_mapping_remaining', summary.get('blocked_mapping_remaining', 0))}")
+    print(f"- bloqueadas por target restantes: {residual.get('blocked_target_remaining', summary.get('blocked_target_remaining', 0))}")
+    print(f"- inválidas por contrato restantes: {residual.get('invalid_contract_remaining', summary.get('invalid_contract_remaining', 0))}")
+    print(f"- duplicados excluidos: {residual.get('duplicate_excluded', summary.get('duplicate_excluded', 0))}")
+    print("- siguiente paso: revisión humana persistente")
+else:
+    print("S0167 repaired queue:")
+    print("- no disponible")
+
+print("Apply:")
+print("- protegido: requiere human_review_decisions persistente y confirmación explícita")
+
+if path.exists():
+    data = json.loads(path.read_text(encoding="utf-8"))
+    summary = data.get("summary") or {}
+    items = data.get("items") or []
+    decisions = Counter(item.get("decision") for item in items)
+    all_reasons = Counter()
+    for item in items:
+        for reason in item.get("all_block_reasons") or item.get("blocking_reasons") or []:
+            all_reasons[reason.split(":", 1)[0]] += 1
+    print("Último dry-run current:")
+    print(f"- evaluadas: {summary.get('total_evaluated', len(items))}")
+    print(f"- admission_ready_dry_run: {summary.get('admission_ready_dry_run', 0)}")
+    print(f"- bloqueadas: {summary.get('blocked', 0)}")
+    print(f"- missing_human_review: {decisions.get('blocked_missing_human_review', 0)}")
+    print(f"- stale_path: {decisions.get('blocked_repo_path_stale_or_lifecycle', 0)}")
+    print(f"- missing_lifecycle_state: {all_reasons.get('GATE-020', 0)}")
+    print(f"- build_artifact_blocked: {decisions.get('blocked_build_artifact', 0)}")
+    print(f"- duplicate_existing: {decisions.get('blocked_duplicate_existing', 0)}")
+    print(f"- reporte: {path}")
+elif s0167_audit.exists():
+    gate = load_json(s0167_audit)
+    gate_summary = gate.get("summary") or {}
+    print("Último dry-run S0167:")
+    print(f"- evaluadas: {gate_summary.get('total_evaluated', 0)}")
+    print(f"- admission_ready_dry_run: {gate_summary.get('admission_ready_dry_run', 0)}")
+    print(f"- bloqueadas: {gate_summary.get('blocked', 0)}")
+    print("- estado: bloqueado correctamente hasta decisiones humanas persistentes")
+    print(f"- reporte: {s0167_audit}")
+else:
+    print("Último dry-run:")
+    print("- no existe todavía un dry-run relacional persistente")
+    print("- ejecute primero la opción 3")
 PY
 }
 
@@ -160,54 +260,18 @@ EOF
     fi
 
     local report="$AUDIT_DIR/admission_gate_dry_run.json"
-    if [[ ! -f "$report" ]]; then
-        echo "APPLY RELATIONS bloqueado."
-        echo "Motivo: no existe dry-run relacional persistente en $report."
-        echo "No se modificó el canon."
-        return 1
-    fi
-
-    local apply_block_reason
-    if ! apply_block_reason="$(python3 - "$report" 2>&1 <<'PY'
-import json
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-data = json.loads(path.read_text(encoding="utf-8"))
-summary = data.get("summary") or {}
-items = data.get("items") or []
-ready = int(summary.get("admission_ready_dry_run") or 0)
-blocked = int(summary.get("blocked") or 0)
-if ready <= 0:
-    raise SystemExit("Motivo: admission_ready_dry_run_count es 0.")
-if blocked:
-    raise SystemExit(f"Motivo: existen {blocked} candidatas bloqueadas.")
-for item in items:
-    if item.get("gate_status") != "admission_ready_dry_run":
-        continue
-    if item.get("human_review_decision") != "approved_for_admission":
-        raise SystemExit("Motivo: una candidata lista no tiene human_review_decision=approved_for_admission.")
-    reasons = "\n".join(item.get("all_block_reasons") or item.get("blocking_reasons") or [])
-    if "GATE-021" in reasons:
-        raise SystemExit("Motivo: existe build artifact bloqueado.")
-    if "GATE-008" in reasons or "GATE-009" in reasons:
-        raise SystemExit("Motivo: existe source/target inexistente.")
-    if "GATE-022" in reasons:
-        raise SystemExit("Motivo: existe path stale sin lifecycle histórico explícito.")
-PY
-    )"; then
-        echo "APPLY RELATIONS bloqueado."
-        echo "$apply_block_reason"
-        echo "No se modificó el canon."
-        return 1
-    fi
-
-    echo "APPLY RELATIONS no disponible todavía."
-    echo "Motivo: no existe motor apply seguro validado."
-    echo "Siguiente paso: implementar admisión canónica gobernada en S0165."
-    echo "No se modificó el canon."
-    return 1
+    local candidate_file
+    candidate_file="$(tdc_relation_candidate_file)"
+    mkdir -p "$AUDIT_DIR"
+    python3 src/python_scripts/relation_admission_gate.py \
+        --candidate-file "$candidate_file" \
+        --canon-glob "$CANON_DIR/tiddlers_*.jsonl" \
+        --human-review-decisions "$RELATION_HUMAN_REVIEW_DECISIONS" \
+        --dry-run-report "$report" \
+        --out-dir "$AUDIT_DIR" \
+        --session "$RELATION_SESSION" \
+        --terminal-confirmation "$confirmation" \
+        --apply 2>&1
 }
 
 tdc_relations_menu() {
@@ -222,7 +286,7 @@ tdc_relations_menu() {
 1) Generar candidatas desde canon vigente
 2) Validar candidatas / review queue
 3) Dry-run admission gate
-4) Ver último resumen relacional
+4) Ver estado relacional y cola S0167
 5) APPLY RELATIONS al canon
 0) Volver
 EOF

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""relation_admission_gate.py — S0137
+"""relation_admission_gate.py — S0137 / S0165
 
-Compuerta humana mínima de admisión relacional (modo dry-run).
+Compuerta humana mínima de admisión relacional y motor apply protegido.
 
 Evalúa relaciones candidatas y determina si podrían avanzar a admisión real,
 exigiendo aprobación humana explícita + compatibilidad de tipo relacional.
 
-NUNCA modifica tiddlers_*.jsonl.
-NUNCA admite relaciones al canon.
-Solo marca candidatos como admission_ready_dry_run o blocked.
+Por defecto opera en dry-run y no modifica tiddlers_*.jsonl. El modo --apply
+existe como capacidad técnica protegida: requiere revisión humana persistente,
+dry-run reciente, plan previo, ausencia de bloqueos P0 y confirmación externa
+exacta. El operador humano, no el agente, decide ejecutarlo.
 
 Uso
 ---
@@ -26,8 +27,6 @@ Uso
 Estados de salida de un candidato:
   admission_ready_dry_run — pasa todos los controles; listo para compuerta real
   blocked                 — no pasa uno o más controles
-
-NO existe modo --apply. Esta compuerta solo genera log y reporte.
 """
 
 from __future__ import annotations
@@ -45,7 +44,7 @@ from pathlib import Path
 from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
 DEFAULT_CANDIDATES_FILE = (
     REPO_ROOT / "data" / "out" / "local" / "pipeline"
@@ -80,8 +79,12 @@ from relation_batch_review import (  # noqa: E402
 SCHEMA_LOG = "relation-admission-log/v1"
 SCHEMA_REPORT = "relation-admission-dry-run-report/v1"
 SCHEMA_HUMAN_DECISIONS = "relation-human-review-decisions/v1"
+SCHEMA_HUMAN_DECISION_LINE = "relation-human-review-decision/v1"
 SCHEMA_HUMAN_QUEUE = "relation-human-review-queue/v1"
 SCHEMA_PATCH_PREVIEW = "relation-admission-patch-preview/v1"
+SCHEMA_APPLY_PLAN = "relation-admission-apply-plan/v1"
+SCHEMA_APPLY_REPORT = "relation-admission-apply-report/v1"
+SCHEMA_CANONICAL_RELATION = "canonical-relation/v1"
 
 # Types blocked for new candidates (historical types from S0136/S0137 analysis)
 HISTORICAL_BLOCKED_TYPES: frozenset[str] = frozenset({
@@ -103,6 +106,14 @@ VALID_HUMAN_DECISIONS: frozenset[str] = frozenset({
     "needs_changes",
     "deferred",
 })
+
+S0165_APPLY_HUMAN_DECISIONS: frozenset[str] = frozenset({
+    "approved_for_admission",
+    "rejected",
+    "deferred",
+})
+
+APPLY_CONFIRMATION = "APPLY RELATIONS"
 
 RESOLVED_TARGET_STATUSES: frozenset[str] = frozenset({
     "resolved",
@@ -165,6 +176,141 @@ def load_json(path: Path, default: Any = None) -> Any:
     if not path.exists():
         return default
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def utc_now() -> str:
+    return datetime.now(tz=timezone.utc).isoformat()
+
+
+def count_canon_records(canon_glob: str) -> int:
+    total = 0
+    for fpath in sorted(glob.glob(canon_glob)):
+        with open(fpath, encoding="utf-8") as fh:
+            total += sum(1 for line in fh if line.strip())
+    return total
+
+
+def validate_human_review_decision_record(record: Any) -> list[str]:
+    """Validate one S0165 persistent human-review JSONL record."""
+    errors: list[str] = []
+    if not isinstance(record, dict):
+        return ["record must be object"]
+    cid = str(record.get("candidate_id") or "")
+    if not cid:
+        errors.append("candidate_id required")
+    elif not CANDIDATE_ID_RE.match(cid):
+        errors.append(f"candidate_id invalid: {cid!r}")
+    decision = record.get("human_review_decision")
+    if decision not in S0165_APPLY_HUMAN_DECISIONS:
+        errors.append(
+            "human_review_decision invalid: "
+            f"{decision!r}; allowed={sorted(S0165_APPLY_HUMAN_DECISIONS)}"
+        )
+    if not str(record.get("human_review_actor") or "").strip():
+        errors.append("human_review_actor required")
+    if not str(record.get("human_review_timestamp") or "").strip():
+        errors.append("human_review_timestamp required")
+    if decision == ADMISSION_HUMAN_REVIEW_DECISION:
+        if not str(record.get("human_review_rationale") or "").strip():
+            errors.append("human_review_rationale required for approval")
+        if record.get("approval_scope") != "canonical_admission":
+            errors.append("approval_scope must be canonical_admission for approval")
+    evidence_paths = record.get("reviewed_evidence_paths")
+    if evidence_paths is not None and not isinstance(evidence_paths, list):
+        errors.append("reviewed_evidence_paths must be list")
+    session_id = str(record.get("session_id") or "")
+    if session_id and not re.fullmatch(r"S\d{4}", session_id):
+        errors.append("session_id must match SNNNN")
+    return errors
+
+
+def load_human_review_decisions_jsonl(path: Path) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Load S0165 JSONL decisions keyed by candidate_id."""
+    decisions: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    if not path.exists():
+        return decisions, [f"human_review_decisions file does not exist: {path}"]
+    with path.open(encoding="utf-8") as fh:
+        for line_no, line in enumerate(fh, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                errors.append(f"line {line_no}: invalid JSON: {exc}")
+                continue
+            record_errors = validate_human_review_decision_record(record)
+            if record_errors:
+                errors.extend(f"line {line_no}: {err}" for err in record_errors)
+                continue
+            decisions[str(record["candidate_id"])] = record
+    return decisions, errors
+
+
+def human_review_decision_lines_from_legacy_doc(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Translate older review docs to S0165 line-shaped records where possible."""
+    reviewer = doc.get("reviewer") or {}
+    out: dict[str, dict[str, Any]] = {}
+    for decision in doc.get("decisions") or []:
+        cid = str(decision.get("candidate_id") or "")
+        if not cid:
+            continue
+        value = decision.get("decision")
+        if value == "rejected_by_human":
+            value = "rejected"
+        record = {
+            "candidate_id": cid,
+            "human_review_decision": value,
+            "human_review_actor": reviewer.get("reviewer_id") or "operator",
+            "human_review_timestamp": decision.get("reviewed_at") or "",
+            "human_review_rationale": decision.get("rationale") or "",
+            "approval_scope": "canonical_admission"
+            if value == ADMISSION_HUMAN_REVIEW_DECISION
+            else "review_queue",
+            "reviewed_evidence_paths": decision.get("reviewed_evidence_paths") or [],
+            "session_id": doc.get("session") or "",
+        }
+        out[cid] = record
+    return out
+
+
+def load_persistent_human_review_decisions(path: Path | None) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Load persistent human review from S0165 JSONL or legacy JSON docs."""
+    if path is None:
+        return {}, ["human_review_decisions file is required"]
+    if not path.exists():
+        return {}, [f"human_review_decisions file does not exist: {path}"]
+    if path.suffix == ".jsonl":
+        return load_human_review_decisions_jsonl(path)
+    doc = load_json(path, default={}) or {}
+    translated = human_review_decision_lines_from_legacy_doc(doc)
+    errors: list[str] = []
+    for cid, record in translated.items():
+        record_errors = validate_human_review_decision_record(record)
+        if record_errors:
+            errors.extend(f"{cid}: {err}" for err in record_errors)
+    return translated, errors
+
+
+def apply_persistent_review_decisions_to_candidates(
+    candidates: list[dict[str, Any]],
+    decisions: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Overlay S0165 persistent decisions onto candidates without mutating inputs."""
+    updated: list[dict[str, Any]] = []
+    for candidate in candidates:
+        merged = json.loads(json.dumps(candidate))
+        decision = decisions.get(str(merged.get("candidate_id") or ""))
+        if decision:
+            merged["human_review_decision"] = decision.get("human_review_decision")
+            merged["human_review_actor"] = decision.get("human_review_actor")
+            merged["human_review_timestamp"] = decision.get("human_review_timestamp")
+            merged["human_review_rationale"] = decision.get("human_review_rationale")
+            merged["approval_scope"] = decision.get("approval_scope")
+            merged["reviewed_evidence_paths"] = decision.get("reviewed_evidence_paths") or []
+        updated.append(merged)
+    return updated
 
 
 def load_s0139_type_policy(type_policy_dir: Path) -> dict[str, dict[str, Any]]:
@@ -563,6 +709,14 @@ def validate_candidate_human_review_decision(candidate: dict[str, Any], hr: Any)
                 "GATE-016: human_review_decision != approved_for_admission; "
                 f"encontrado={direct!r}."
             )
+        if direct == ADMISSION_HUMAN_REVIEW_DECISION:
+            if not str(candidate.get("human_review_rationale") or "").strip():
+                reasons.append("GATE-024: human_review_rationale ausente o vacío.")
+            if candidate.get("approval_scope") != "canonical_admission":
+                reasons.append(
+                    "GATE-025: approval_scope != canonical_admission; "
+                    f"encontrado={candidate.get('approval_scope')!r}."
+                )
         return reasons
 
     return reasons
@@ -948,6 +1102,7 @@ def build_dry_run_report(
         "items": [
             {
                 "candidate_id": r["candidate_id"],
+                "admission_ready_dry_run": r["gate_status"] == ADMISSION_READY,
                 "gate_status": r["gate_status"],
                 "decision": r.get("decision", r["gate_status"]),
                 "relation_type": r["relation_type"],
@@ -965,6 +1120,320 @@ def build_dry_run_report(
             for r in results
         ],
     }
+
+
+def dry_run_report_is_recent(path: Path, *, max_age_minutes: int = 1440) -> tuple[bool, str]:
+    if not path.exists():
+        return False, f"missing_dry_run_report: {path}"
+    age_seconds = datetime.now(tz=timezone.utc).timestamp() - path.stat().st_mtime
+    max_age_seconds = max_age_minutes * 60
+    if age_seconds > max_age_seconds:
+        return False, (
+            f"stale_dry_run_report: age_seconds={int(age_seconds)} "
+            f"> max_age_seconds={max_age_seconds}"
+        )
+    return True, ""
+
+
+def load_dry_run_report(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def dry_run_p0_block_reasons(report: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    for item in report.get("items") or []:
+        for reason in item.get("all_block_reasons") or item.get("blocking_reasons") or []:
+            reasons.append(str(reason))
+    return reasons
+
+
+def build_admitted_relation(candidate: dict[str, Any], review: dict[str, Any]) -> dict[str, Any]:
+    source = candidate.get("source") or {}
+    target = candidate.get("target") or {}
+    src_id = endpoint_id(source)
+    tgt_id = endpoint_id(target)
+    rel_type = relation_type_for(candidate)
+    cid = str(candidate.get("candidate_id") or "")
+    payload = f"{cid}|{src_id}|{tgt_id}|{rel_type}"
+    relation_id = "cr1_" + hashlib.sha256(payload.encode()).hexdigest()[:24]
+    return {
+        "type": "application/json",
+        "artifact_family": "canonical_relation",
+        "relation_schema_version": SCHEMA_CANONICAL_RELATION,
+        "relation_id": relation_id,
+        "relation_type": rel_type,
+        "source_id": src_id,
+        "target_id": tgt_id,
+        "evidence": {
+            "candidate_id": cid,
+            "reviewed_evidence_paths": review.get("reviewed_evidence_paths") or [],
+        },
+        "authority": {
+            "admitted_by": review.get("human_review_actor") or "operator",
+            "admission_session": review.get("session_id") or "",
+            "human_review_decision": review.get("human_review_decision"),
+            "human_review_rationale": review.get("human_review_rationale") or "",
+        },
+        "lifecycle_state": "admitted_to_canon",
+    }
+
+
+def validate_admitted_relation_schema(record: Any) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(record, dict):
+        return ["record must be object"]
+    required = {
+        "type",
+        "artifact_family",
+        "relation_schema_version",
+        "relation_id",
+        "relation_type",
+        "source_id",
+        "target_id",
+        "evidence",
+        "authority",
+        "lifecycle_state",
+    }
+    missing = sorted(k for k in required if k not in record)
+    if missing:
+        errors.append(f"missing required fields: {missing}")
+    if record.get("artifact_family") != "canonical_relation":
+        errors.append("artifact_family must be canonical_relation")
+    if record.get("relation_schema_version") != SCHEMA_CANONICAL_RELATION:
+        errors.append(f"relation_schema_version must be {SCHEMA_CANONICAL_RELATION}")
+    if record.get("lifecycle_state") != "admitted_to_canon":
+        errors.append("lifecycle_state must be admitted_to_canon")
+    evidence = record.get("evidence") or {}
+    if not isinstance(evidence, dict) or not evidence.get("candidate_id"):
+        errors.append("evidence.candidate_id required")
+    authority = record.get("authority") or {}
+    if not isinstance(authority, dict):
+        errors.append("authority must be object")
+    else:
+        if authority.get("human_review_decision") != ADMISSION_HUMAN_REVIEW_DECISION:
+            errors.append("authority.human_review_decision must be approved_for_admission")
+        if not str(authority.get("human_review_rationale") or "").strip():
+            errors.append("authority.human_review_rationale required")
+    return errors
+
+
+def build_apply_plan(
+    *,
+    candidates: list[dict[str, Any]],
+    canon_glob: str,
+    human_review_decisions: dict[str, dict[str, Any]],
+    dry_run_report: dict[str, Any],
+    dry_run_report_path: Path,
+    dry_run_recent: bool,
+    dry_run_recent_reason: str = "",
+) -> dict[str, Any]:
+    approved_ids = {
+        cid for cid, decision in human_review_decisions.items()
+        if decision.get("human_review_decision") == ADMISSION_HUMAN_REVIEW_DECISION
+        and decision.get("approval_scope") == "canonical_admission"
+        and str(decision.get("human_review_rationale") or "").strip()
+    }
+    dry_run_items = dry_run_report.get("items") or []
+    ready_ids = {
+        str(item.get("candidate_id"))
+        for item in dry_run_items
+        if item.get("gate_status") == ADMISSION_READY
+        or item.get("admission_ready_dry_run") is True
+    }
+    p0_reasons = dry_run_p0_block_reasons(dry_run_report)
+    would_apply_ids = sorted(approved_ids & ready_ids) if dry_run_recent and not p0_reasons else []
+    block_reasons: list[str] = []
+    if not human_review_decisions:
+        block_reasons.append("missing_human_review")
+    if not approved_ids:
+        block_reasons.append("no_approved_for_admission_decisions")
+    if not dry_run_recent:
+        block_reasons.append(dry_run_recent_reason or "missing_or_stale_dry_run")
+    if p0_reasons:
+        block_reasons.append("p0_block_reasons_present")
+    if not would_apply_ids and approved_ids and ready_ids and not block_reasons:
+        block_reasons.append("no_candidates_selected_for_apply")
+    canon_before_count = count_canon_records(canon_glob)
+    apply_plan_id = "apply_" + hashlib.sha256(
+        json.dumps({
+            "approved_ids": sorted(approved_ids),
+            "ready_ids": sorted(ready_ids),
+            "canon_before_count": canon_before_count,
+            "dry_run_report": str(dry_run_report_path),
+        }, sort_keys=True).encode()
+    ).hexdigest()[:16]
+    return {
+        "schema": SCHEMA_APPLY_PLAN,
+        "apply_plan_id": apply_plan_id,
+        "generated_at": utc_now(),
+        "canon_before_count": canon_before_count,
+        "candidate_count": len(candidates),
+        "approved_count": len(approved_ids),
+        "blocked_count": len(candidates) - len(would_apply_ids),
+        "would_apply_count": len(would_apply_ids),
+        "would_apply_candidate_ids": would_apply_ids,
+        "block_reasons": block_reasons,
+        "dry_run_report": str(dry_run_report_path),
+        "dry_run_recent": dry_run_recent,
+        "p0_block_reason_count": len(p0_reasons),
+        "canon_modified": False,
+    }
+
+
+def write_apply_plan(plan: dict[str, Any], out_dir: Path) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "relation_apply_plan.json"
+    path.write_text(json.dumps(plan, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
+def guarded_apply_relations(
+    *,
+    candidates_file: Path,
+    canon_glob: str,
+    human_review_decisions_file: Path | None,
+    dry_run_report_path: Path,
+    out_dir: Path,
+    terminal_confirmation: str,
+    max_dry_run_age_minutes: int = 1440,
+    perform_write: bool = False,
+    target_scope: str = "unspecified",
+) -> tuple[int, dict[str, Any]]:
+    """Build an apply plan and optionally mutate canon only after all guards pass."""
+    candidates = load_jsonl(candidates_file) if candidates_file.exists() else []
+    decisions, decision_errors = load_persistent_human_review_decisions(human_review_decisions_file)
+    dry_run_report = load_dry_run_report(dry_run_report_path)
+    dry_run_recent, dry_run_recent_reason = dry_run_report_is_recent(
+        dry_run_report_path,
+        max_age_minutes=max_dry_run_age_minutes,
+    )
+    plan = build_apply_plan(
+        candidates=candidates,
+        canon_glob=canon_glob,
+        human_review_decisions=decisions,
+        dry_run_report=dry_run_report,
+        dry_run_report_path=dry_run_report_path,
+        dry_run_recent=dry_run_recent,
+        dry_run_recent_reason=dry_run_recent_reason,
+    )
+    if decision_errors:
+        plan["block_reasons"].extend(f"invalid_human_review: {err}" for err in decision_errors)
+        plan["would_apply_count"] = 0
+        plan["would_apply_candidate_ids"] = []
+        plan["blocked_count"] = len(candidates)
+    if terminal_confirmation != APPLY_CONFIRMATION:
+        plan["block_reasons"].append("missing_exact_terminal_confirmation")
+        plan["would_apply_count"] = 0
+        plan["would_apply_candidate_ids"] = []
+        plan["blocked_count"] = len(candidates)
+    plan_path = write_apply_plan(plan, out_dir)
+
+    report = {
+        "schema": SCHEMA_APPLY_REPORT,
+        "generated_at": utc_now(),
+        "report_kind": "blocked_apply_report",
+        "target_scope": target_scope,
+        "apply_executed": False,
+        "apply_plan_path": str(plan_path),
+        "apply_plan": plan,
+        "would_apply_count": plan["would_apply_count"],
+        "blocked_count": plan["blocked_count"],
+        "applied_count": 0,
+        "canon_before_count": plan["canon_before_count"],
+        "canon_after_count": plan["canon_before_count"],
+        "canon_modified": False,
+        "status": "blocked",
+    }
+    if plan["block_reasons"]:
+        (out_dir / "relation_apply_report.json").write_text(
+            json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        return 1, report
+
+    if not perform_write:
+        report["status"] = "planned_not_applied"
+        report["report_kind"] = "apply_plan_report"
+        (out_dir / "relation_apply_report.json").write_text(
+            json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        return 1, report
+
+    # The write path is intentionally narrow: add relation objects to source records.
+    candidates_by_id = {str(c.get("candidate_id") or ""): c for c in candidates}
+    selected = [candidates_by_id[cid] for cid in plan["would_apply_candidate_ids"] if cid in candidates_by_id]
+    selected_by_source: dict[str, list[dict[str, Any]]] = {}
+    for candidate in selected:
+        review = decisions[str(candidate.get("candidate_id"))]
+        relation = build_admitted_relation(candidate, review)
+        schema_errors = validate_admitted_relation_schema(relation)
+        if schema_errors:
+            report["status"] = "blocked"
+            plan["block_reasons"].append(f"invalid_admitted_relation_schema: {schema_errors}")
+            (out_dir / "relation_apply_report.json").write_text(
+                json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            return 1, report
+        selected_by_source.setdefault(relation["source_id"], []).append(relation)
+
+    applied_count = 0
+    for fpath in sorted(glob.glob(canon_glob)):
+        path = Path(fpath)
+        lines: list[str] = []
+        changed = False
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            relations = selected_by_source.get(str(rec.get("id") or ""))
+            if relations:
+                current = rec.get("relations")
+                if not isinstance(current, list):
+                    current = []
+                existing = {
+                    (
+                        str(r.get("source_id") or rec.get("id") or ""),
+                        str(r.get("target_id") or ""),
+                        str(r.get("relation_type") or r.get("type") or ""),
+                    )
+                    for r in current
+                    if isinstance(r, dict)
+                }
+                for relation in relations:
+                    key = (relation["source_id"], relation["target_id"], relation["relation_type"])
+                    if key not in existing:
+                        current.append(relation)
+                        existing.add(key)
+                        applied_count += 1
+                        changed = True
+                rec["relations"] = current
+            lines.append(json.dumps(rec, ensure_ascii=False))
+        if changed:
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    canon_after_count = count_canon_records(canon_glob)
+    report.update({
+        "status": "applied",
+        "report_kind": (
+            "fixture_positive_apply_report"
+            if target_scope == "tmp_path" and applied_count > 0
+            else "applied_apply_report"
+        ),
+        "apply_executed": applied_count > 0,
+        "applied_count": applied_count,
+        "canon_after_count": canon_after_count,
+        "canon_modified": applied_count > 0,
+    })
+    report["apply_plan"]["canon_modified"] = applied_count > 0
+    (out_dir / "relation_apply_report.json").write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return 0, report
 
 
 def build_review_queue(
@@ -1322,13 +1791,17 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description=(
             "Compuerta humana mínima de admisión relacional (S0137). "
-            "Modo dry-run obligatorio. NO escribe al canon."
+            "Dry-run por defecto; --apply exige revisión humana persistente y confirmación exacta."
         )
     )
     p.add_argument("--candidates-file", "--candidate-file", dest="candidates_file", type=Path, default=DEFAULT_CANDIDATES_FILE)
     p.add_argument("--canon-glob", default=DEFAULT_CANON_GLOB)
     p.add_argument("--human-review", type=Path, default=None)
+    p.add_argument("--human-review-decisions", type=Path, default=None)
     p.add_argument("--human-review-batch", type=Path, default=None)
+    p.add_argument("--dry-run-report", type=Path, default=None)
+    p.add_argument("--terminal-confirmation", default="")
+    p.add_argument("--max-dry-run-age-minutes", type=int, default=1440)
     p.add_argument("--type-policy-dir", type=Path, default=S0140_TYPE_POLICY_DIR)
     p.add_argument("--review-dir", type=Path, default=S0140_REVIEW_DIR)
     p.add_argument("--admissibility-report", type=Path, default=S0140_ADMISSIBILITY_REPORT)
@@ -1336,6 +1809,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", type=Path, default=None)
     p.add_argument("--session", default="s0137")
     p.add_argument("--dry-run", action="store_true", default=False)
+    p.add_argument("--apply", action="store_true", default=False)
     p.add_argument("--verbose", "-v", action="store_true", default=False)
     return p
 
@@ -1360,16 +1834,48 @@ def main(argv: list[str] | None = None) -> int:
     session_label = session_tag.upper()
     out = args.output.parent if args.output else args.out_dir
 
-    # Forbid any apply-like flags
+    # Forbid ambiguous apply-like flags. The single supported mutating flag is
+    # --apply, guarded below by persistent review + dry-run + terminal confirmation.
     raw = argv if argv is not None else sys.argv[1:]
     for arg in raw:
-        if any(arg.lower().startswith(f) for f in ("--apply", "--write", "--admit", "--force")):
+        if any(arg.lower().startswith(f) for f in ("--write", "--admit", "--force")):
             print(
-                f"\nBLOQUEADO: relation_admission_gate.py solo opera en dry-run. "
+                f"\nBLOQUEADO: flag mutante no soportado. "
                 f"El flag '{arg}' está prohibido.\n",
                 file=sys.stderr,
             )
             return 1
+
+    if args.apply:
+        dry_run_report = args.dry_run_report or args.output or (out / "admission_gate_dry_run.json")
+        code, report = guarded_apply_relations(
+            candidates_file=args.candidates_file,
+            canon_glob=args.canon_glob,
+            human_review_decisions_file=args.human_review_decisions,
+            dry_run_report_path=dry_run_report,
+            out_dir=out,
+            terminal_confirmation=args.terminal_confirmation,
+            max_dry_run_age_minutes=args.max_dry_run_age_minutes,
+            perform_write=True,
+        )
+        plan = report["apply_plan"]
+        if code != 0:
+            print("APPLY RELATIONS bloqueado.", file=sys.stderr)
+            if "missing_human_review" in plan.get("block_reasons", []):
+                print(
+                    "Motivo: no existe human_review_decision=approved_for_admission.",
+                    file=sys.stderr,
+                )
+            elif "p0_block_reasons_present" in plan.get("block_reasons", []):
+                print("Motivo: existen bloqueos P0 en admission gate.", file=sys.stderr)
+            else:
+                print(f"Motivo: {', '.join(plan.get('block_reasons') or ['blocked'])}.", file=sys.stderr)
+            print("No se modificó el canon.", file=sys.stderr)
+            print(f"[OK] Apply plan → {out / 'relation_apply_plan.json'}", file=sys.stderr)
+            print(f"[OK] Apply report → {out / 'relation_apply_report.json'}", file=sys.stderr)
+            return code
+        print(f"[OK] Apply report → {out / 'relation_apply_report.json'}", file=sys.stderr)
+        return 0
 
     # Load canon
     canon = load_canon_index(args.canon_glob)
@@ -1395,6 +1901,14 @@ def main(argv: list[str] | None = None) -> int:
         for item in admissibility.get("results") or []
         if item.get("candidate_id")
     }
+
+    persistent_decisions: dict[str, dict[str, Any]] = {}
+    if args.human_review_decisions:
+        persistent_decisions, decision_errors = load_persistent_human_review_decisions(args.human_review_decisions)
+        if decision_errors:
+            print(f"[ERROR] human_review_decisions inválido: {decision_errors}", file=sys.stderr)
+            return 3
+        candidates = apply_persistent_review_decisions_to_candidates(candidates, persistent_decisions)
 
     if session_tag in {"s0140", "s0141"} or args.human_review:
         # Build review queue artifacts if the admissibility report is available.

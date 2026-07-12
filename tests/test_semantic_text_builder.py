@@ -125,11 +125,70 @@ def test_build_is_deterministic_for_same_inputs(tmp_path: Path) -> None:
 
 
 def test_tags_are_classification_not_relations(tmp_path: Path) -> None:
-    result = _run_build(tmp_path, [_record("src", tags=["zeta", "alpha"])])
+    result = _run_build(tmp_path, [_record("src", tags=["topic:zeta", "topic:alpha"])])
     text = _semantic_text(result, "src")
 
-    assert "Tags (clasificacion solamente; tag != relation): alpha, zeta" in text
+    assert "Tags RAG permitidos (clasificacion solamente; tag != relation): (sin tags declarados)" in text
+    record = _records_from_output(result)[0]
+    assert record["metadata_only_tag_count"] == 2
     assert "# Relaciones canonicas\n- alpha" not in text
+
+
+def test_semantic_text_blocks_p0_tags_from_classification_section(tmp_path: Path) -> None:
+    result = _run_build(tmp_path, [_record("src", tags=["topic:alpha", "--- Codigo", "src/python_scripts/example.py"])])
+    record = _records_from_output(result)[0]
+    text = record["semantic_text"]
+
+    assert "Tags RAG permitidos (clasificacion solamente; tag != relation): (sin tags declarados)" in text
+    assert "--- Codigo" not in text
+    assert "src/python_scripts/example.py" not in text
+    assert record["audit_only_blocked_tags_count"] == 2
+    assert "p0_tags_blocked_from_semantic_text" in record["warnings"]
+
+
+def test_semantic_text_builder_excludes_unknown_tags_by_default(tmp_path: Path) -> None:
+    result = _run_build(tmp_path, [_record("src", tags=["needs-review-token"])])
+    record = _records_from_output(result)[0]
+
+    assert "needs-review-token" not in record["semantic_text"]
+    assert record["audit_only_unknown_tags_count"] == 1
+    assert "unknown_tags_blocked_from_rag" in record["warnings"]
+
+
+def test_semantic_text_builder_preserves_human_navigation_when_allowed(tmp_path: Path) -> None:
+    result = _run_build(tmp_path, [_record("src", tags=["## 🧪🧱 Hipótesis"])])
+    record = _records_from_output(result)[0]
+
+    assert "## 🧪🧱 Hipótesis" not in record["semantic_text"]
+    assert record["human_navigation_tag_count"] == 1
+    assert record["embedding_metadata"]["human_navigation_tag_count"] == 1
+
+
+def test_semantic_text_builder_does_not_emit_source_tags_raw(tmp_path: Path) -> None:
+    result = _run_build(tmp_path, [_record("src", tags=["--- Codigo", "src/python_scripts/example.py"])])
+    record = _records_from_output(result)[0]
+
+    assert "rag_blocked_tags" not in record
+    assert "--- Codigo" not in json.dumps(record, ensure_ascii=False)
+    assert "src/python_scripts/example.py" not in json.dumps(record, ensure_ascii=False)
+
+
+def test_embedding_metadata_excludes_p0_tags(tmp_path: Path) -> None:
+    result = _run_build(tmp_path, [_record("src", tags=["--- Codigo", "status:local_admitted"])])
+    record = _records_from_output(result)[0]
+
+    metadata_text = json.dumps(record["embedding_metadata"], ensure_ascii=False)
+    assert "--- Codigo" not in metadata_text
+    assert "status:local_admitted" in record["embedding_metadata"]["metadata_only_tags"]
+    assert record["embedding_metadata"]["audit_only_blocked_tags_count"] == 1
+
+
+def test_retrieval_hints_exclude_p0_tags(tmp_path: Path) -> None:
+    result = _run_build(tmp_path, [_record("src", tags=["--- Codigo", "topic:canon"])])
+    record = _records_from_output(result)[0]
+
+    assert "--- Codigo" not in record["retrieval_hints"]
+    assert "topic:canon" in record["retrieval_hints"]
 
 
 def test_canonical_relations_are_in_canonical_section(tmp_path: Path) -> None:

@@ -43,6 +43,24 @@ def test_tdc_shows_simplified_menu() -> None:
     assert "Avanzado / mantenimiento" in result.stdout
 
 
+def test_governed_admission_status_is_operator_facing() -> None:
+    result = subprocess.run(
+        [str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh")],
+        cwd=REPO_ROOT,
+        input="7\n4\n0\n0\n",
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "Estado de compuertas" in result.stdout
+    assert "Contratos: separados" in result.stdout
+    assert "Relaciones current:" in result.stdout
+    assert "Relaciones S0167:" in result.stdout
+    assert "apply bloqueado" in result.stdout
+
+
 def test_menu_mapping_declares_metadata_and_relation_access() -> None:
     mapping = registry.menu_mapping()
 

@@ -21,7 +21,7 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
 S0147_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
 DEFAULT_PATCH_PREVIEW = S0147_DIR / "s0147_repo_metadata_patch_preview.jsonl"
