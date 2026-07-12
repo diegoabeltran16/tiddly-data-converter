@@ -22,7 +22,7 @@ import repo_metadata_refresh_patch as refresh
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
 DEFAULT_S0148_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0148"
 DEFAULT_S0149_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0149"
@@ -81,6 +81,14 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
                     raise ValueError(f"expected JSON object line in {path}")
                 rows.append(value)
     return rows
+
+
+def _print_missing_manifest_guidance(manifest: Path) -> None:
+    print("No hay patch vigente.")
+    print("- patch vigente: no disponible")
+    print("- acción sugerida: refrescar patch contra canon actual")
+    print("Ejecuta opción 6: Refrescar patch contra canon actual.")
+    print(f"- manifest esperado: {_display(manifest)}")
 
 
 def _stable_json(value: Any) -> str:
@@ -684,8 +692,7 @@ def show_s0151_status(
 ) -> int:
     print("Estado metadata técnica")
     if not manifest.exists():
-        print("- patch vigente: no disponible")
-        print("- acción sugerida: refrescar patch contra canon actual")
+        _print_missing_manifest_guidance(manifest)
         return 1
     try:
         hash_doc = gate.s0151_hash_verification(
@@ -736,6 +743,9 @@ def select_s0151_guided(
     admission_dir: Path = DEFAULT_S0151_OUT_DIR,
     selection_source: str = "guided_terminal",
 ) -> int:
+    if not manifest.exists():
+        _print_missing_manifest_guidance(manifest)
+        return 2
     doc = gate.select_s0151_batches(
         selection,
         manifest=manifest,
@@ -853,6 +863,9 @@ def run_s0151_gate_dry_run(
     canon_glob: str | None = None,
     require_token: bool = False,
 ) -> int:
+    if not manifest.exists():
+        _print_missing_manifest_guidance(manifest)
+        return 2
     selected = gate.s0151_paths(admission_dir)["selected_batches"]
     if not selected.exists():
         print("No hay selección guiada todavía.")
@@ -911,6 +924,9 @@ def apply_s0151_metadata_from_menu(
     canon_glob: str | None = None,
     apply_token: str | None = None,
 ) -> int:
+    if not manifest.exists():
+        _print_missing_manifest_guidance(manifest)
+        return 2
     if apply_token is None:
         print("Vas a MODIFICAR el canon JSONL.")
         print("Esto actualizará líneas existentes dentro de data/out/local/tiddlers_*.jsonl")
@@ -998,6 +1014,10 @@ def interactive_s0151_advanced(
             return 0
         if choice == "0":
             return 0
+        if choice in {"1", "2", "3", "4"} and not manifest.exists():
+            _print_missing_manifest_guidance(manifest)
+            print()
+            continue
         if choice == "1":
             batches = gate.read_json(gate.s0151_manifest_paths(manifest)["review_batches"]).get("batches", {})
             for batch_id, batch in sorted(batches.items()):

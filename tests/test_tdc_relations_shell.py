@@ -65,6 +65,7 @@ def test_tdc_main_option_6_opens_canonical_relations() -> None:
     assert "Relaciones canónicas" in result.stdout
     assert "Generar candidatas desde canon vigente" in result.stdout
     assert "Dry-run admission gate" in result.stdout
+    assert "Ver estado relacional y cola S0167" in result.stdout
     assert "APPLY RELATIONS al canon" in result.stdout
 
 
@@ -76,6 +77,19 @@ def test_tdc_governed_admission_bridges_to_canonical_relations_without_duplicate
     assert "Relaciones canónicas" in result.stdout
     assert "Relaciones candidatas" not in result.stdout
     assert "Generar candidatas desde canon vigente" in result.stdout
+
+
+def test_tdc_relations_summary_separates_current_and_s0167_queue() -> None:
+    result = _run_tdc("4\n0\n", "relations")
+
+    assert result.returncode == 0
+    assert "Resumen relacional" in result.stdout
+    assert "Current generation:" in result.stdout
+    assert "S0167 repaired queue:" in result.stdout
+    assert "cola S0167:" in result.stdout
+    assert "candidatas válidas para revisión humana" in result.stdout
+    assert "decisiones humanas persistentes:" in result.stdout
+    assert "Apply:" in result.stdout
 
 
 def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
@@ -95,6 +109,8 @@ def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
 def test_tdc_relations_apply_exact_confirmation_blocks_without_ready_candidates(tmp_path: Path) -> None:
     audit_dir = tmp_path / "audit"
     audit_dir.mkdir()
+    candidate_file = tmp_path / "candidates.jsonl"
+    candidate_file.write_text("", encoding="utf-8")
     (audit_dir / "admission_gate_dry_run.json").write_text(
         json.dumps({
             "summary": {
@@ -110,19 +126,26 @@ def test_tdc_relations_apply_exact_confirmation_blocks_without_ready_candidates(
 
     result = _run_tdc_with_env(
         "5\nAPPLY RELATIONS\n0\n",
-        {"AUDIT_DIR": str(audit_dir), "PATH": "/usr/bin:/bin"},
+        {
+            "AUDIT_DIR": str(audit_dir),
+            "RELATION_CANDIDATE_FILE": str(candidate_file),
+            "RELATION_HUMAN_REVIEW_DECISIONS": str(tmp_path / "missing-review.jsonl"),
+            "PATH": "/usr/bin:/bin",
+        },
         "relations",
     )
 
     assert result.returncode == 1
     assert "APPLY RELATIONS bloqueado." in result.stdout
-    assert "Motivo: admission_ready_dry_run_count es 0." in result.stdout
+    assert "Motivo: no existe human_review_decision=approved_for_admission." in result.stdout
     assert "No se modificó el canon." in result.stdout
 
 
-def test_tdc_relations_apply_exact_confirmation_reports_missing_apply_engine(tmp_path: Path) -> None:
+def test_tdc_relations_apply_routes_to_safe_engine_and_blocks_missing_review(tmp_path: Path) -> None:
     audit_dir = tmp_path / "audit"
     audit_dir.mkdir()
+    candidate_file = tmp_path / "candidates.jsonl"
+    candidate_file.write_text("", encoding="utf-8")
     (audit_dir / "admission_gate_dry_run.json").write_text(
         json.dumps({
             "summary": {
@@ -144,11 +167,16 @@ def test_tdc_relations_apply_exact_confirmation_reports_missing_apply_engine(tmp
 
     result = _run_tdc_with_env(
         "5\nAPPLY RELATIONS\n0\n",
-        {"AUDIT_DIR": str(audit_dir), "PATH": "/usr/bin:/bin"},
+        {
+            "AUDIT_DIR": str(audit_dir),
+            "RELATION_CANDIDATE_FILE": str(candidate_file),
+            "RELATION_HUMAN_REVIEW_DECISIONS": str(tmp_path / "missing-review.jsonl"),
+            "PATH": "/usr/bin:/bin",
+        },
         "relations",
     )
 
     assert result.returncode == 1
-    assert "APPLY RELATIONS no disponible todavía." in result.stdout
-    assert "Motivo: no existe motor apply seguro validado." in result.stdout
-    assert "Siguiente paso: implementar admisión canónica gobernada en S0165." in result.stdout
+    assert "APPLY RELATIONS bloqueado." in result.stdout
+    assert "Motivo: no existe human_review_decision=approved_for_admission." in result.stdout
+    assert (audit_dir / "relation_apply_plan.json").exists()

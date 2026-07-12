@@ -32,13 +32,28 @@
 │   │   │   │   ├── admissions
 │   │   │   │   │   ├── backups
 │   │   │   │   │   │   ├── admit-20260706220323-multi-session
-│   │   │   │   │   │   └── admit-20260708001525-multi-session
+│   │   │   │   │   │   ├── admit-20260708001525-multi-session
+│   │   │   │   │   │   ├── admit-20260708154009-multi-session
+│   │   │   │   │   │   └── admit-20260712205311-multi-session
+│   │   │   │   │   ├── s0164-menu-navigation-final
 │   │   │   │   │   ├── s0164-microajuste-terminal-final
-│   │   │   │   │   └── s0164-microajuste-terminal-final2
+│   │   │   │   │   ├── s0164-microajuste-terminal-final2
+│   │   │   │   │   ├── s0166-inventario-relacional
+│   │   │   │   │   ├── s0166-inventario-relacional-final
+│   │   │   │   │   ├── s0167-aclaraciones-post-review
+│   │   │   │   │   └── s0167-alineacion-motor-relacional
 │   │   │   │   ├── compliance_summary.md
+│   │   │   │   ├── rag_tag_gate
+│   │   │   │   │   └── s0170
+│   │   │   │   │       ├── after
+│   │   │   │   │       │   └── rag_tag_gate_report.md
+│   │   │   │   │       └── before
+│   │   │   │   │           └── rag_tag_gate_report.md
 │   │   │   │   ├── relation_admission
 │   │   │   │   │   ├── current
-│   │   │   │   │   └── s0164
+│   │   │   │   │   ├── s0164
+│   │   │   │   │   ├── s0165
+│   │   │   │   │   └── s0167
 │   │   │   │   └── session_sync
 │   │   │   │       ├── local-dt055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica-20260707184932
 │   │   │   │       ├── local-dt056-preparacion-human-review-relacional-s0164-20260707190701
@@ -48,6 +63,11 @@
 │   │   │   │       ├── local-dt059-contrato-schema-relacional-review-queue-admission-gate-20260707200553
 │   │   │   │       ├── local-dt060-tests-stale-post-src-frontera-relacional-20260707202205
 │   │   │   │       ├── local-dt061-cobertura-rag-premium-canon-derivados-relaciones-20260707204354
+│   │   │   │       ├── local-dt062-arqueologia-relacional-20260708181031
+│   │   │   │       ├── local-dt062-microajustes-20260708185604
+│   │   │   │       ├── local-dt062-schema-fix-20260708190352
+│   │   │   │       ├── local-dt063-ajuste-20260709112533
+│   │   │   │       ├── local-dt063-taxonomia-tags-metadata-relaciones-tiddlers-base-20260709102301
 │   │   │   │       ├── s0159-close-202607061035
 │   │   │   │       ├── s0159-close-final-202607061037
 │   │   │   │       ├── s0160-close-202607061620
@@ -59,12 +79,45 @@
 │   │   │   │       ├── s0163-refactor-instrucciones
 │   │   │   │       ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica
 │   │   │   │       ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica-final
+│   │   │   │       ├── s0164-menu-navigation-final
 │   │   │   │       ├── s0164-microajuste-terminal-final
 │   │   │   │       ├── s0164-microajuste-terminal-final2
 │   │   │   │       ├── s0164-terminal-relations-microadjustment
+│   │   │   │       ├── s0165-motor-apply-relacional
+│   │   │   │       ├── s0165-simetria-experimental-final
+│   │   │   │       ├── s0166-inventario-relacional
+│   │   │   │       ├── s0166-inventario-relacional-final
+│   │   │   │       ├── s0167-aclaraciones-post-review
+│   │   │   │       ├── s0167-alineacion-motor-relacional
+│   │   │   │       ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root
+│   │   │   │       ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root-final
+│   │   │   │       ├── s0169-sanitation-tags-p0-gate-antirruido-rag
+│   │   │   │       ├── s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder
 │   │   │   │       ├── sync-20260706220253
 │   │   │   │       ├── sync-20260706222042
-│   │   │   │       └── sync-20260708000029
+│   │   │   │       ├── sync-20260708000029
+│   │   │   │       ├── sync-20260708153921
+│   │   │   │       ├── sync-20260708161738
+│   │   │   │       ├── sync-20260708161741
+│   │   │   │       ├── sync-20260708161829
+│   │   │   │       ├── sync-20260708161832
+│   │   │   │       ├── sync-20260708161856
+│   │   │   │       ├── sync-20260708161859
+│   │   │   │       ├── sync-20260708212231
+│   │   │   │       ├── sync-20260708212233
+│   │   │   │       ├── sync-20260708215356
+│   │   │   │       ├── sync-20260709000048
+│   │   │   │       ├── sync-20260709000440
+│   │   │   │       ├── sync-20260709004216
+│   │   │   │       ├── sync-20260709004221
+│   │   │   │       ├── sync-20260709140143
+│   │   │   │       ├── sync-20260709140155
+│   │   │   │       ├── sync-20260709144439
+│   │   │   │       ├── sync-20260709144443
+│   │   │   │       ├── sync-20260709145022
+│   │   │   │       ├── sync-20260709145025
+│   │   │   │       ├── sync-20260709164658
+│   │   │   │       └── sync-20260712205227
 │   │   │   ├── backups
 │   │   │   │   ├── titlenorm-20260523-diag-4digit
 │   │   │   │   ├── titlenorm-20260523-diag-tematico
@@ -119,6 +172,11 @@
 │   │   │   │   │       ├── s0150_menu_before.txt
 │   │   │   │   │       ├── s0150_menu_compatibility_report.md
 │   │   │   │   │       └── s0150_menu_operator_guide.md
+│   │   │   │   ├── rag_sanitation
+│   │   │   │   │   └── s0170
+│   │   │   │   │       └── preview
+│   │   │   │   │           ├── s0170-rag-safe-preview_semantic_text_coverage_summary.md
+│   │   │   │   │           └── s0170-rag-safe-preview_semantic_text_review.csv
 │   │   │   │   ├── relation_admissibility
 │   │   │   │   │   └── s0132
 │   │   │   │   │       ├── s0132_relation_admissibility_review.csv
@@ -167,27 +225,46 @@
 │   │   │   │   │   │   ├── relation_candidates_review.csv
 │   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── s0162
-│   │   │   │   │   └── s0164
-│   │   │   │   │       └── human_review.md
+│   │   │   │   │   ├── s0164
+│   │   │   │   │   │   └── human_review.md
+│   │   │   │   │   ├── s0165
+│   │   │   │   │   │   └── human_review.md
+│   │   │   │   │   └── s0167
+│   │   │   │   │       ├── human_review.md
+│   │   │   │   │       ├── relation_candidates.reconciliation_matrix.csv
+│   │   │   │   │       ├── relation_candidates_review.csv
+│   │   │   │   │       ├── relation_candidates_summary.md
+│   │   │   │   │       └── validation_buckets
 │   │   │   │   ├── relation_correspondence
 │   │   │   │   │   └── s0130
 │   │   │   │   │       ├── s0130_relation_correspondence_review.csv
 │   │   │   │   │       └── s0130_relation_correspondence_summary.md
 │   │   │   │   ├── relation_inventory
-│   │   │   │   │   └── s0136
-│   │   │   │   │       ├── s0136_relation_inventory_review.csv
-│   │   │   │   │       └── s0136_relation_inventory_summary.md
+│   │   │   │   │   ├── s0136
+│   │   │   │   │   │   ├── s0136_relation_inventory_review.csv
+│   │   │   │   │   │   └── s0136_relation_inventory_summary.md
+│   │   │   │   │   ├── s0166
+│   │   │   │   │   │   ├── current_human_review.md
+│   │   │   │   │   │   ├── current_validation_buckets
+│   │   │   │   │   │   ├── s0166_candidate_reconciliation.csv
+│   │   │   │   │   │   ├── s0166_relation_inventory_review.csv
+│   │   │   │   │   │   ├── s0166_relation_inventory_summary.md
+│   │   │   │   │   │   └── s0166_relation_reconciliation_summary.md
+│   │   │   │   │   └── s0167
+│   │   │   │   │       ├── s0167_relation_inventory_review.csv
+│   │   │   │   │       └── s0167_relation_inventory_summary.md
 │   │   │   │   ├── relation_menu
 │   │   │   │   │   └── s0143
 │   │   │   │   │       ├── s0143_advanced_menu_snapshot.txt
 │   │   │   │   │       ├── s0143_menu_flow_summary.md
 │   │   │   │   │       └── s0143_operator_menu_snapshot.txt
 │   │   │   │   ├── relation_resolution
-│   │   │   │   │   └── s0162
-│   │   │   │   │       ├── admission_gate_validation
-│   │   │   │   │       ├── admission_gate_validation_projection
-│   │   │   │   │       ├── admission_gate_validation_projection_clean
-│   │   │   │   │       └── admission_gate_validation_projection_final
+│   │   │   │   │   ├── s0162
+│   │   │   │   │   │   ├── admission_gate_validation
+│   │   │   │   │   │   ├── admission_gate_validation_projection
+│   │   │   │   │   │   ├── admission_gate_validation_projection_clean
+│   │   │   │   │   │   └── admission_gate_validation_projection_final
+│   │   │   │   │   └── s0167
 │   │   │   │   ├── relation_review
 │   │   │   │   │   ├── s0140
 │   │   │   │   │   │   └── human_review_summary.md
@@ -267,6 +344,11 @@
 │   │   │   │   │   └── s0133
 │   │   │   │   │       ├── s0133_source_fields_review.csv
 │   │   │   │   │       └── s0133_source_fields_summary.md
+│   │   │   │   ├── tag_sanitation
+│   │   │   │   │   └── s0169
+│   │   │   │   │       ├── rag_tag_gate_report.md
+│   │   │   │   │       ├── tag_inventory.csv
+│   │   │   │   │       └── tag_inventory_summary.md
 │   │   │   │   ├── test_saneamiento
 │   │   │   │   │   └── s0150
 │   │   │   │   │       ├── s0150_legacy_test_classification.md
@@ -279,6 +361,7 @@
 │   │   │   │           ├── s0145_unknown_review.csv
 │   │   │   │           └── s0145_unknown_samples.md
 │   │   │   ├── reverse_html
+│   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
 │   │   │   │   │   ├── policy
@@ -301,11 +384,40 @@
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
+│       ├── html_export
+│       │   └── export-20260708154306
+│       │       └── tiddlers.export.log
+│       ├── reconstruction
+│       │   ├── diagnostic-20260708154303
+│       │   ├── export-20260708154306
+│       │   ├── reconstruction-20260708154312
+│       │   │   ├── canon_after
+│       │   │   └── canon_before
+│       │   ├── reverse-20260708154044
+│       │   └── reverse-20260712205346
+│       ├── sanitation
+│       │   └── backup-20260709172739
 │       ├── session_admission
 │       │   ├── admit-20260708000035-multi-session
 │       │   │   ├── canon
 │       │   │   └── reverse_html
-│       │   └── admit-20260708001525-multi-session
+│       │   │       └── admit-20260708000035-multi-session.derived.html
+│       │   ├── admit-20260708001525-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260708001525-multi-session.derived.html
+│       │   ├── admit-20260708153946-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260708153946-multi-session.derived.html
+│       │   ├── admit-20260708154009-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260708154009-multi-session.derived.html
+│       │   ├── admit-20260712205246-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   └── admit-20260712205311-multi-session
 │       │       ├── canon
 │       │       └── reverse_html
 │       └── session_sync
@@ -325,9 +437,21 @@
 │           │   └── normalize
 │           ├── local-dt061-cobertura-rag-premium-canon-derivados-relaciones-20260707204354
 │           │   └── normalize
+│           ├── local-dt062-arqueologia-relacional-20260708181031
+│           │   └── normalize
+│           ├── local-dt062-microajustes-20260708185604
+│           │   └── normalize
+│           ├── local-dt062-schema-fix-20260708190352
+│           │   └── normalize
+│           ├── local-dt063-ajuste-20260709112533
+│           │   └── normalize
+│           ├── local-dt063-taxonomia-tags-metadata-relaciones-tiddlers-base-20260709102301
+│           │   └── normalize
 │           ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica
 │           │   └── normalize
 │           ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica-final
+│           │   └── normalize
+│           ├── s0164-menu-navigation-final
 │           │   └── normalize
 │           ├── s0164-microajuste-terminal-final
 │           │   └── normalize
@@ -335,9 +459,77 @@
 │           │   └── normalize
 │           ├── s0164-terminal-relations-microadjustment
 │           │   └── normalize
+│           ├── s0165-motor-apply-relacional
+│           │   └── normalize
+│           ├── s0165-simetria-experimental-final
+│           │   └── normalize
+│           ├── s0166-inventario-relacional
+│           │   └── s0166-inventario-relacional
+│           │       └── normalize
+│           ├── s0166-inventario-relacional-final
+│           │   └── s0166-inventario-relacional-final
+│           │       └── normalize
+│           ├── s0167-aclaraciones-post-review
+│           │   └── s0167-aclaraciones-post-review
+│           │       └── normalize
+│           ├── s0167-alineacion-motor-relacional
+│           │   └── s0167-alineacion-motor-relacional
+│           │       └── normalize
+│           ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root
+│           │   └── normalize
+│           ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root-final
+│           │   └── normalize
+│           ├── s0169-sanitation-tags-p0-gate-antirruido-rag
+│           │   └── normalize
+│           ├── s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder
+│           │   └── normalize
 │           ├── sync-20260706222042
 │           │   └── normalize
-│           └── sync-20260708000029
+│           ├── sync-20260708000029
+│           │   └── normalize
+│           ├── sync-20260708153921
+│           │   └── normalize
+│           ├── sync-20260708161738
+│           │   └── normalize
+│           ├── sync-20260708161741
+│           │   └── normalize
+│           ├── sync-20260708161829
+│           │   └── normalize
+│           ├── sync-20260708161832
+│           │   └── normalize
+│           ├── sync-20260708161856
+│           │   └── normalize
+│           ├── sync-20260708161859
+│           │   └── normalize
+│           ├── sync-20260708212231
+│           │   └── normalize
+│           ├── sync-20260708212233
+│           │   └── normalize
+│           ├── sync-20260708215356
+│           │   └── normalize
+│           ├── sync-20260709000048
+│           │   └── normalize
+│           ├── sync-20260709000440
+│           │   └── normalize
+│           ├── sync-20260709004216
+│           │   └── normalize
+│           ├── sync-20260709004221
+│           │   └── normalize
+│           ├── sync-20260709140143
+│           │   └── normalize
+│           ├── sync-20260709140155
+│           │   └── normalize
+│           ├── sync-20260709144439
+│           │   └── normalize
+│           ├── sync-20260709144443
+│           │   └── normalize
+│           ├── sync-20260709145022
+│           │   └── normalize
+│           ├── sync-20260709145025
+│           │   └── normalize
+│           ├── sync-20260709164658
+│           │   └── normalize
+│           └── sync-20260712205227
 │               └── normalize
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
@@ -383,6 +575,21 @@
 ├── runtime
 │   └── runtime.txt
 ├── src
+│   ├── data
+│   │   └── out
+│   │       └── local
+│   │           ├── pipeline
+│   │           │   └── repo_metadata_admission
+│   │           │       └── s0151
+│   │           └── sessions
+│   │               ├── 00_contratos
+│   │               ├── 01_procedencia
+│   │               ├── 02_detalles_de_sesion
+│   │               ├── 03_hipotesis
+│   │               ├── 04_balance_de_sesion
+│   │               ├── 05_propuesta_de_sesion
+│   │               └── 06_diagnoses
+│   │                   └── sesion
 │   ├── go
 │   │   ├── bridge
 │   │   │   ├── adapter_real_html.go
@@ -498,14 +705,17 @@
 │   │   ├── audit_artifact_family_coverage.py
 │   │   ├── audit_normative_projection.py
 │   │   ├── audit_relation_inventory.py
+│   │   ├── audit_tags_inventory.py
 │   │   ├── build_historical_relation_type_decision_matrix.py
 │   │   ├── build_minimal_reversible_metadata.py
+│   │   ├── build_rag_safe_semantic_preview.py
 │   │   ├── build_relation_admission_plan.py
 │   │   ├── build_relation_correspondence_matrix.py
 │   │   ├── build_repo_metadata_patch_preview.py
 │   │   ├── build_reversible_metadata_normalization.py
 │   │   ├── build_semantic_text.py
 │   │   ├── build_semantic_text_authority_aware.py
+│   │   ├── build_tag_sanitation_plan.py
 │   │   ├── canon_proposal.py
 │   │   ├── canon_sanitation.py
 │   │   ├── characterize_repo_artifacts.py
@@ -564,12 +774,14 @@
 │   │   ├── session_title_policy.py
 │   │   ├── source_fields_contract.py
 │   │   ├── stage_modal_delta.py
+│   │   ├── tag_sanitation_policy.py
 │   │   ├── tdc_cat.py
 │   │   ├── tdc_menu_registry.py
 │   │   ├── text_utils.py
 │   │   ├── tiddlers_to_jsonl.py
 │   │   ├── validate_corpus_governance.py
 │   │   ├── validate_layer_authority.py
+│   │   ├── validate_rag_tag_gate.py
 │   │   ├── validate_relation_candidates.py
 │   │   ├── validate_source_fields_contract.py
 │   │   └── verify_export_counts.py
@@ -738,6 +950,7 @@
 │   ├── test_session_sync_scan_p0.py
 │   ├── test_session_title_policy.py
 │   ├── test_source_fields_contract.py
+│   ├── test_tag_sanitation.py
 │   ├── test_tdc_menu_compatibility_aliases.py
 │   ├── test_tdc_menu_governed_admission.py
 │   ├── test_tdc_relations_shell.py

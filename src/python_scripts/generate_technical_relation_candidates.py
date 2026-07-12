@@ -42,6 +42,12 @@ TECHNICAL_RELATION_TYPES: dict[str, str] = {
 
 SCAN_DIRS = (Path("src/python_scripts"), Path("tests"))
 SKIP_DIR_PARTS = {".git", "__pycache__", ".pytest_cache", "data/out/local", "data/tmp"}
+POST_SRC_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("go/", "src/go/"),
+    ("python_scripts/", "src/python_scripts/"),
+    ("rust/", "src/rust/"),
+    ("shell_scripts/", "src/shell_scripts/"),
+)
 
 
 @dataclass(frozen=True)
@@ -65,6 +71,50 @@ class Observation:
     line: int
     raw_observation: str
     confidence: str = "high"
+
+
+def canonicalize_repo_path(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    value = str(raw).replace("\\", "/").strip()
+    while value.startswith("./"):
+        value = value[2:]
+    return value or None
+
+
+def normalize_post_src(raw: str | None) -> tuple[str | None, str]:
+    value = canonicalize_repo_path(raw)
+    if value is None:
+        return None, "missing"
+    for old, new in POST_SRC_PREFIXES:
+        if value.startswith(old):
+            return new + value[len(old):], "old_to_src_prefix"
+    return value, "identity"
+
+
+def old_alias_for_src(raw: str | None) -> str | None:
+    value = canonicalize_repo_path(raw)
+    if value is None:
+        return None
+    for old, new in POST_SRC_PREFIXES:
+        if value.startswith(new):
+            return old + value[len(new):]
+    return None
+
+
+def path_aliases(raw: str | None) -> set[str]:
+    aliases: set[str] = set()
+    value = canonicalize_repo_path(raw)
+    if not value:
+        return aliases
+    aliases.add(value)
+    normalized, _ = normalize_post_src(value)
+    if normalized:
+        aliases.add(normalized)
+    historical = old_alias_for_src(value)
+    if historical:
+        aliases.add(historical)
+    return aliases
 
 
 def sha256_file(path: Path) -> str:
@@ -92,11 +142,11 @@ def load_canon_artifacts(canon_root: Path) -> tuple[dict[str, CanonArtifact], se
                     if isinstance(rel, dict) and rel.get("target_id") and rel.get("type"):
                         canonical_relations.add((tid, str(rel["target_id"]), str(rel["type"])))
                 source_fields = rec.get("source_fields") or {}
-                repo_path = source_fields.get("repo_path")
+                repo_path = canonicalize_repo_path(source_fields.get("repo_path"))
                 if not repo_path:
                     continue
-                by_repo_path[str(repo_path)] = CanonArtifact(
-                    repo_path=str(repo_path),
+                artifact = CanonArtifact(
+                    repo_path=repo_path,
                     canonical_id=tid,
                     canonical_title=str(rec.get("title") or ""),
                     artifact_family=source_fields.get("artifact_family"),
@@ -105,6 +155,8 @@ def load_canon_artifacts(canon_root: Path) -> tuple[dict[str, CanonArtifact], se
                     canonical_status=source_fields.get("canonical_status"),
                     sha256=source_fields.get("content_sha256") or rec.get("version_id"),
                 )
+                for alias in path_aliases(repo_path) | path_aliases(source_fields.get("source_path")):
+                    by_repo_path.setdefault(alias, artifact)
     return by_repo_path, canonical_relations
 
 
@@ -361,16 +413,19 @@ def build_candidate(
         "candidate_id": candidate_id,
         "session_origin": session,
         "candidate_schema_version": SCHEMA,
+        "human_review_decision": "deferred",
         "status": status,
         "relation_type": relation_type,
         "technical_relation_kind": observation.technical_relation_kind,
         "source": artifact_payload(source_artifact, observation.source_repo_path, root),
         "target": artifact_payload(target_artifact, observation.target_repo_path, root),
         "evidence": {
-            "evidence_kind": observation.evidence_kind,
+            "evidence_kind": "content_embedded",
+            "technical_evidence_kind": observation.evidence_kind,
             "parser": "python_ast",
             "file": observation.source_repo_path,
             "line": observation.line,
+            "location": f"{observation.source_repo_path}:{observation.line}",
             "span": f"line {observation.line}",
             "raw_observation": observation.raw_observation,
             "confidence": observation.confidence,
@@ -382,6 +437,16 @@ def build_candidate(
             "reasons": reasons,
         },
         "duplicate_of": duplicate_of,
+        "session_resolution": {
+            "session": session,
+            "classification": (
+                "resolved_for_human_review" if status == READY else status
+            ),
+            "canonical_admission_allowed": False,
+            "derivation_allowed": False,
+            "human_review_required": status == READY,
+            "resolver": "post_src_alias_index",
+        },
     }
     return candidate
 

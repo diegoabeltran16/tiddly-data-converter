@@ -15,6 +15,7 @@ from semantic_text_builder import (
     DEFAULT_PATCH_PREVIEW_GLOB,
     DEFAULT_DRY_RUN_READY_GLOB,
     DEFAULT_SESSION,
+    DEFAULT_TAG_POLICY,
     DEFAULT_TYPE_POLICY,
     build_semantic_text_outputs,
 )
@@ -51,6 +52,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="S0139 relation type policy JSON.",
     )
     parser.add_argument(
+        "--tag-policy",
+        default=str(DEFAULT_TAG_POLICY),
+        help="S0169 tag sanitation policy JSON.",
+    )
+    parser.add_argument(
+        "--strict-tag-gate",
+        action="store_true",
+        default=True,
+        help="Require the tag sanitation policy and fail if it is missing.",
+    )
+    parser.add_argument(
+        "--allow-unsafe-legacy-tag-mode",
+        action="store_true",
+        help="Allow missing tag policy for legacy dry-run diagnostics; marks unsafe_legacy_mode=true.",
+    )
+    parser.add_argument(
         "--dry-run-ready-glob",
         default=DEFAULT_DRY_RUN_READY_GLOB,
         help="Glob for admission_ready_dry_run reports to count as excluded previews.",
@@ -80,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
         out_dir=Path(args.out_dir),
         session=args.session,
         type_policy=Path(args.type_policy),
+        tag_policy=Path(args.tag_policy),
+        strict_tag_gate=not args.allow_unsafe_legacy_tag_mode,
         dry_run_ready_glob=args.dry_run_ready_glob,
         patch_preview_glob=args.patch_preview_glob,
         max_content_chars=args.max_content_chars_per_section,

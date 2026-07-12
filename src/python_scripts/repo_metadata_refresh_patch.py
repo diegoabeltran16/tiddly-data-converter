@@ -21,7 +21,7 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_ADMISSION_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission"
 DEFAULT_S0147_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
 DEFAULT_S0150_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0150"

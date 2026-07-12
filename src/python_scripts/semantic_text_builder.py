@@ -17,8 +17,11 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from tag_sanitation_policy import DEFAULT_POLICY_PATH as DEFAULT_TAG_POLICY
+from tag_sanitation_policy import filter_tags_for_rag, load_policy as load_tag_policy
+
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
 SCHEMA = "semantic-text-build/v1"
 SEMANTIC_TEXT_VERSION = "semantic-text/v1"
@@ -481,11 +484,70 @@ def content_core(record: dict[str, Any]) -> str:
     return normalize_text(content)
 
 
+def redact_terms_for_rag(text: str, blocked_terms: list[str]) -> str:
+    redacted = text
+    for term in sorted(set(blocked_terms), key=len, reverse=True):
+        if not term:
+            continue
+        redacted = redacted.replace(term, "[RAG_TAG_BLOCKED]")
+    return redacted
+
+
+def build_retrieval_hints(
+    *,
+    family: str,
+    record: dict[str, Any],
+    source_fields: dict[str, Any],
+    tag_filter: dict[str, Any],
+    relations: dict[str, list[dict[str, Any]]],
+) -> list[str]:
+    hints: list[str] = []
+    for value in (
+        family,
+        normalize_text(record.get("role_primary")),
+        normalize_text(source_fields.get("artifact_family")),
+        normalize_text(source_fields.get("language")),
+    ):
+        if value and value not in hints:
+            hints.append(value)
+    for tag in tag_filter["retrieval_hint_tags"]:
+        if tag not in hints:
+            hints.append(tag)
+    for relation in relations["canonical"][:8]:
+        hint = normalize_text(relation.get("type"))
+        if hint and hint not in hints:
+            hints.append(hint)
+    return sorted(hints, key=lambda item: item.casefold())
+
+
+def build_embedding_metadata(
+    *,
+    family: str,
+    record: dict[str, Any],
+    source_fields: dict[str, Any],
+    tag_filter: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "semantic_family": family,
+        "artifact_family": family,
+        "role_primary": normalize_text(record.get("role_primary")) or None,
+        "language": normalize_text(source_fields.get("language")) or None,
+        "rag_allowed_tags": tag_filter["allowed_semantic_tags"],
+        "metadata_only_tags": tag_filter["metadata_only_tags"],
+        "projectable_tags": tag_filter["projectable_tags"],
+        "human_navigation_tag_count": len(tag_filter["human_navigation_tags"]),
+        "audit_only_blocked_tags_count": len(tag_filter["blocked_tags"]),
+        "audit_only_unknown_tags_count": len(tag_filter["unknown_tags"]),
+    }
+
+
 def build_semantic_text_record(
     record: dict[str, Any],
     *,
     index: dict[str, dict[str, Any]],
     policy: dict[str, dict[str, Any]],
+    tag_policy: dict[str, Any] | None = None,
+    global_redacted_terms: list[str] | None = None,
     profiles: dict[str, Any],
     preview_index: dict[str, dict[str, int]] | None = None,
     max_content_chars: int = DEFAULT_MAX_CONTENT_CHARS,
@@ -497,17 +559,36 @@ def build_semantic_text_record(
     family = artifact_family_for(record)
     profile = profiles.get("profiles", {}).get(family) or profile_for_family("unknown", max_content_chars)
     sf = record.get("source_fields") if isinstance(record.get("source_fields"), dict) else {}
-    tags = collect_tags(record)
+    raw_tags = collect_tags(record)
+    tag_policy = tag_policy or load_tag_policy(DEFAULT_TAG_POLICY)
+    tag_filter = filter_tags_for_rag(raw_tags, tag_policy)
+    tags = tag_filter["allowed_semantic_tags"]
+    blocked_tags = tag_filter["blocked_tags"]
+    unknown_tags = tag_filter["unknown_tags"]
+    redacted_terms = global_redacted_terms or (blocked_tags + unknown_tags)
     relations = classify_relations(record, index=index, policy=policy)
+    retrieval_hints = build_retrieval_hints(
+        family=family,
+        record=record,
+        source_fields=sf,
+        tag_filter=tag_filter,
+        relations=relations,
+    )
+    embedding_metadata = build_embedding_metadata(
+        family=family,
+        record=record,
+        source_fields=sf,
+        tag_filter=tag_filter,
+    )
     source_hash = sha256_text(stable_json_dumps({k: v for k, v in record.items() if not k.startswith("_semantic_text_")}))
     sections: list[tuple[str, str, list[str]]] = []
     warnings: list[str] = []
     truncated = False
 
     identity_lines = [
-        f"Titulo: {title}",
+        f"Titulo: {redact_terms_for_rag(title, redacted_terms)}",
         f"ID: {record_id}",
-        f"Key: {key}" if key else "",
+        f"Key: {redact_terms_for_rag(key, redacted_terms)}" if key else "",
         f"Familia documental: {family}",
     ]
     for field in ("session", "session_id", "canonical_slug", "version_id"):
@@ -519,7 +600,7 @@ def build_semantic_text_record(
     classification_lines = [
         f"Artifact family: {family}",
         "Perfil aplicado: " + profile["artifact_family"],
-        "Tags (clasificacion solamente; tag != relation): "
+        "Tags RAG permitidos (clasificacion solamente; tag != relation): "
         + (", ".join(tags) if tags else "(sin tags declarados)"),
     ]
     if profile.get("family_priorities"):
@@ -529,9 +610,13 @@ def build_semantic_text_record(
     if sf:
         sf_lines = []
         for key_name in sorted(sf):
+            if key_name in {"tags", "source_tags", "normalized_tags"}:
+                sf_lines.append(f"{key_name}: excluded_from_semantic_text_by_tag_sanitation_policy")
+                continue
             value = normalize_text(sf.get(key_name))
             value, was_truncated = truncate_deterministically(value, max_content_chars)
             truncated = truncated or was_truncated
+            value = redact_terms_for_rag(value, redacted_terms)
             sf_lines.append(f"{key_name}: {value}")
         sections.append(("source_fields", "# Procedencia / source_fields", sf_lines))
     else:
@@ -557,6 +642,7 @@ def build_semantic_text_record(
     core = content_core(record)
     core, was_truncated = truncate_deterministically(core, max_content_chars)
     truncated = truncated or was_truncated
+    core = redact_terms_for_rag(core, redacted_terms)
     sections.append(("content_core", "# Contenido principal", [core if core else "(sin contenido textual)"]))
 
     preview_counts = preview_index.get(record_id, {"dry_run_ready": 0, "patch_preview": 0})
@@ -578,6 +664,10 @@ def build_semantic_text_record(
 
     if truncated:
         warnings.append("truncated_deterministically")
+    if blocked_tags:
+        warnings.append("p0_tags_blocked_from_semantic_text")
+    if unknown_tags:
+        warnings.append("unknown_tags_blocked_from_rag")
 
     section_chunks = []
     sections_included: list[str] = []
@@ -585,6 +675,7 @@ def build_semantic_text_record(
         section_chunks.append(heading + "\n" + "\n".join(lines))
         sections_included.append(key_name)
     semantic_text = "\n\n".join(section_chunks).strip() + "\n"
+    semantic_text = redact_terms_for_rag(semantic_text, redacted_terms)
     semantic_hash = sha256_text(semantic_text)
 
     return {
@@ -594,6 +685,8 @@ def build_semantic_text_record(
         "semantic_text": semantic_text,
         "semantic_text_version": SEMANTIC_TEXT_VERSION,
         "semantic_text_sha256": semantic_hash,
+        "retrieval_hints": retrieval_hints,
+        "embedding_metadata": embedding_metadata,
         "source_record_sha256": source_hash,
         "source_canon_version_id": normalize_text(record.get("version_id")),
         "derivation_profile_version": SEMANTIC_TEXT_VERSION,
@@ -617,6 +710,13 @@ def build_semantic_text_record(
         "legacy_relation_count": len(relations["legacy"]),
         "structural_relation_count": len(relations["structural"]),
         "warnings": sorted(set(warnings)),
+        "source_tag_count": len(raw_tags),
+        "rag_allowed_tag_count": len(tags),
+        "metadata_only_tag_count": len(tag_filter["metadata_only_tags"]),
+        "human_navigation_tag_count": len(tag_filter["human_navigation_tags"]),
+        "audit_only_blocked_tags_count": len(blocked_tags),
+        "audit_only_unknown_tags_count": len(unknown_tags),
+        "tag_filter_counts": tag_filter["counts"],
     }
 
 
@@ -624,6 +724,8 @@ def build_records(
     records: list[dict[str, Any]],
     *,
     policy: dict[str, dict[str, Any]],
+    tag_policy: dict[str, Any] | None = None,
+    global_redacted_terms: list[str] | None = None,
     profiles: dict[str, Any],
     preview_index: dict[str, dict[str, int]] | None = None,
     max_content_chars: int = DEFAULT_MAX_CONTENT_CHARS,
@@ -634,6 +736,8 @@ def build_records(
             record,
             index=index,
             policy=policy,
+            tag_policy=tag_policy,
+            global_redacted_terms=global_redacted_terms,
             profiles=profiles,
             preview_index=preview_index,
             max_content_chars=max_content_chars,
@@ -677,6 +781,8 @@ def build_coverage_report(records: list[dict[str, Any]], profiles: dict[str, Any
                 "records_with_structural_relations": 0,
                 "records_with_dry_run_preview_excluded": 0,
                 "records_truncated": 0,
+                "blocked_tags": 0,
+                "unknown_tags": 0,
             },
         )
         bucket["total_records"] += 1
@@ -686,6 +792,8 @@ def build_coverage_report(records: list[dict[str, Any]], profiles: dict[str, Any
         bucket["records_with_structural_relations"] += int(record["has_structural_relations"])
         bucket["records_with_dry_run_preview_excluded"] += int(record["dry_run_preview_excluded"])
         bucket["records_truncated"] += int(record["records_truncated"])
+        bucket["blocked_tags"] += int(record["audit_only_blocked_tags_count"])
+        bucket["unknown_tags"] += int(record["audit_only_unknown_tags_count"])
 
     return {
         "schema": "semantic-text-coverage-report/v1",
@@ -704,6 +812,10 @@ def build_coverage_report(records: list[dict[str, Any]], profiles: dict[str, Any
         "records_with_dry_run_preview_excluded": sum(1 for record in records if record["dry_run_preview_excluded"]),
         "records_with_patch_preview_excluded": sum(1 for record in records if record["patch_preview_excluded"]),
         "records_truncated": sum(1 for record in records if record["records_truncated"]),
+        "blocked_tags_excluded_from_rag": sum(record["audit_only_blocked_tags_count"] for record in records),
+        "unknown_tags_excluded_from_rag": sum(record["audit_only_unknown_tags_count"] for record in records),
+        "records_with_blocked_tags": sum(1 for record in records if record["audit_only_blocked_tags_count"]),
+        "records_with_unknown_tags": sum(1 for record in records if record["audit_only_unknown_tags_count"]),
         "artifact_family_count": len(by_family),
         "profiles_applied": sorted({record["profile_applied"] for record in records}),
         "by_artifact_family": dict(sorted(by_family.items())),
@@ -726,6 +838,8 @@ def build_coverage_summary(report: dict[str, Any]) -> str:
         f"- records_with_dry_run_preview_excluded: {report['records_with_dry_run_preview_excluded']}",
         f"- records_with_patch_preview_excluded: {report['records_with_patch_preview_excluded']}",
         f"- records_truncated: {report['records_truncated']}",
+        f"- blocked_tags_excluded_from_rag: {report['blocked_tags_excluded_from_rag']}",
+        f"- unknown_tags_excluded_from_rag: {report['unknown_tags_excluded_from_rag']}",
         "- dry_run_candidates_included: no",
         "- patch_preview_included: no",
         "- embeddings_executed: no",
@@ -855,18 +969,37 @@ def build_semantic_text_outputs(
     out_dir: Path | str = DEFAULT_OUT_DIR,
     session: str = DEFAULT_SESSION,
     type_policy: Path | str = DEFAULT_TYPE_POLICY,
+    tag_policy: Path | str = DEFAULT_TAG_POLICY,
+    strict_tag_gate: bool = True,
     dry_run_ready_glob: str = DEFAULT_DRY_RUN_READY_GLOB,
     patch_preview_glob: str = DEFAULT_PATCH_PREVIEW_GLOB,
     max_content_chars: int = DEFAULT_MAX_CONTENT_CHARS,
 ) -> dict[str, Any]:
+    unsafe_legacy_mode = False
+    if strict_tag_gate and not Path(tag_policy).exists():
+        raise FileNotFoundError(f"strict tag gate requires a tag policy file: {tag_policy}")
+    if not strict_tag_gate and not Path(tag_policy).exists():
+        unsafe_legacy_mode = True
     canon_records = read_canon_records(canon_glob)
     detected_families = {artifact_family_for(record) for record in canon_records}
     profiles = build_profiles(detected_families, max_content_chars)
     policy = load_relation_policy(type_policy)
+    loaded_tag_policy = load_tag_policy(tag_policy)
+    global_filter = filter_tags_for_rag(
+        [
+            tag
+            for record in canon_records
+            for tag in collect_tags(record)
+        ],
+        loaded_tag_policy,
+    )
+    global_redacted_terms = global_filter["blocked_tags"] + global_filter["unknown_tags"]
     preview_index = load_dry_run_preview_index(dry_run_ready_glob, patch_preview_glob)
     semantic_records = build_records(
         canon_records,
         policy=policy,
+        tag_policy=loaded_tag_policy,
+        global_redacted_terms=global_redacted_terms,
         profiles=profiles,
         preview_index=preview_index,
         max_content_chars=max_content_chars,
@@ -883,6 +1016,9 @@ def build_semantic_text_outputs(
         "session": session.upper(),
         "dry_run": True,
         "canon_modified": False,
+        "strict_tag_gate": strict_tag_gate,
+        "unsafe_legacy_mode": unsafe_legacy_mode,
+        "tag_policy": str(tag_policy),
         "paths": {name: str(path) for name, path in paths.items()},
         "summary": {
             "record_count": len(semantic_records),
@@ -894,5 +1030,10 @@ def build_semantic_text_outputs(
             "records_with_dry_run_preview_excluded": coverage["records_with_dry_run_preview_excluded"],
             "records_with_patch_preview_excluded": coverage["records_with_patch_preview_excluded"],
             "records_truncated": coverage["records_truncated"],
+            "blocked_tags_excluded_from_rag": coverage["blocked_tags_excluded_from_rag"],
+            "unknown_tags_excluded_from_rag": coverage["unknown_tags_excluded_from_rag"],
+            "records_with_blocked_tags": coverage["records_with_blocked_tags"],
+            "records_with_unknown_tags": coverage["records_with_unknown_tags"],
+            "global_redacted_terms": len(global_redacted_terms),
         },
     }

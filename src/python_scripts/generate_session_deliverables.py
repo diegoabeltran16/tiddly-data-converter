@@ -57,7 +57,7 @@ from pathlib import Path
 from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
 
 # ── Schema constants ──────────────────────────────────────────────────────────
