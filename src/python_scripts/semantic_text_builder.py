@@ -500,6 +500,8 @@ def build_retrieval_hints(
     source_fields: dict[str, Any],
     tag_filter: dict[str, Any],
     relations: dict[str, list[dict[str, Any]]],
+    promoted_metadata: dict[str, Any] | None = None,
+    promoted_metadata_mode: bool = False,
 ) -> list[str]:
     hints: list[str] = []
     for value in (
@@ -510,9 +512,35 @@ def build_retrieval_hints(
     ):
         if value and value not in hints:
             hints.append(value)
-    for tag in tag_filter["retrieval_hint_tags"]:
-        if tag not in hints:
-            hints.append(tag)
+    if not promoted_metadata_mode:
+        for tag in tag_filter["retrieval_hint_tags"]:
+            if tag not in hints:
+                hints.append(tag)
+    label_alias = {"topics": "topic", "milestones": "milestone"}
+    for field in (
+        "topics",
+        "tech_stack",
+        "language",
+        "artifact_family",
+        "status",
+        "session_id",
+        "milestones",
+        "layer",
+        "module",
+        "source_kind",
+        "workflow_stage",
+        "template_set",
+        "template_node",
+        "structural_role",
+        "governance_axis",
+    ):
+        value = (promoted_metadata or {}).get(field)
+        values = value if isinstance(value, list) else [value]
+        for item in values:
+            clean = normalize_text(item)
+            hint = f"{label_alias.get(field, field)}: {clean}" if clean else ""
+            if hint and hint not in hints:
+                hints.append(hint)
     for relation in relations["canonical"][:8]:
         hint = normalize_text(relation.get("type"))
         if hint and hint not in hints:
@@ -526,19 +554,25 @@ def build_embedding_metadata(
     record: dict[str, Any],
     source_fields: dict[str, Any],
     tag_filter: dict[str, Any],
+    promoted_metadata: dict[str, Any] | None = None,
+    promoted_metadata_mode: bool = False,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "semantic_family": family,
         "artifact_family": family,
         "role_primary": normalize_text(record.get("role_primary")) or None,
         "language": normalize_text(source_fields.get("language")) or None,
         "rag_allowed_tags": tag_filter["allowed_semantic_tags"],
-        "metadata_only_tags": tag_filter["metadata_only_tags"],
-        "projectable_tags": tag_filter["projectable_tags"],
+        "metadata_only_tags": [] if promoted_metadata_mode else tag_filter["metadata_only_tags"],
+        "projectable_tags": [] if promoted_metadata_mode else tag_filter["projectable_tags"],
         "human_navigation_tag_count": len(tag_filter["human_navigation_tags"]),
         "audit_only_blocked_tags_count": len(tag_filter["blocked_tags"]),
         "audit_only_unknown_tags_count": len(tag_filter["unknown_tags"]),
     }
+    if promoted_metadata_mode:
+        payload["promoted_metadata"] = promoted_metadata or {}
+        payload["source_tag_projection_mode"] = "normalized_promoted_metadata_only"
+    return payload
 
 
 def build_semantic_text_record(
@@ -551,6 +585,8 @@ def build_semantic_text_record(
     profiles: dict[str, Any],
     preview_index: dict[str, dict[str, int]] | None = None,
     max_content_chars: int = DEFAULT_MAX_CONTENT_CHARS,
+    promoted_metadata: dict[str, Any] | None = None,
+    promoted_metadata_mode: bool = False,
 ) -> dict[str, Any]:
     preview_index = preview_index or {}
     record_id = normalize_text(record.get("id"))
@@ -573,12 +609,16 @@ def build_semantic_text_record(
         source_fields=sf,
         tag_filter=tag_filter,
         relations=relations,
+        promoted_metadata=promoted_metadata,
+        promoted_metadata_mode=promoted_metadata_mode,
     )
     embedding_metadata = build_embedding_metadata(
         family=family,
         record=record,
         source_fields=sf,
         tag_filter=tag_filter,
+        promoted_metadata=promoted_metadata,
+        promoted_metadata_mode=promoted_metadata_mode,
     )
     source_hash = sha256_text(stable_json_dumps({k: v for k, v in record.items() if not k.startswith("_semantic_text_")}))
     sections: list[tuple[str, str, list[str]]] = []
@@ -606,6 +646,24 @@ def build_semantic_text_record(
     if profile.get("family_priorities"):
         classification_lines.append("Prioridades de familia: " + ", ".join(profile["family_priorities"]))
     sections.append(("classification", "# Clasificacion", classification_lines))
+
+    if promoted_metadata_mode:
+        promoted_lines = []
+        for field, value in sorted((promoted_metadata or {}).items()):
+            if field == "formal_relation_vocab":
+                promoted_lines.append("formal_relation_vocab: metadata_reference_only")
+                continue
+            values = value if isinstance(value, list) else [value]
+            promoted_lines.append(
+                f"{field}: " + ", ".join(normalize_text(item) for item in values if normalize_text(item))
+            )
+        sections.append(
+            (
+                "promoted_metadata",
+                "# Metadata promovida para recuperacion",
+                promoted_lines or ["promoted_metadata: (sin candidatos seguros)"],
+            )
+        )
 
     if sf:
         sf_lines = []
@@ -687,6 +745,7 @@ def build_semantic_text_record(
         "semantic_text_sha256": semantic_hash,
         "retrieval_hints": retrieval_hints,
         "embedding_metadata": embedding_metadata,
+        "promoted_metadata": promoted_metadata or {} if promoted_metadata_mode else None,
         "source_record_sha256": source_hash,
         "source_canon_version_id": normalize_text(record.get("version_id")),
         "derivation_profile_version": SEMANTIC_TEXT_VERSION,
@@ -713,6 +772,8 @@ def build_semantic_text_record(
         "source_tag_count": len(raw_tags),
         "rag_allowed_tag_count": len(tags),
         "metadata_only_tag_count": len(tag_filter["metadata_only_tags"]),
+        "promoted_metadata_field_count": len(promoted_metadata or {}) if promoted_metadata_mode else 0,
+        "promoted_metadata_mode": promoted_metadata_mode,
         "human_navigation_tag_count": len(tag_filter["human_navigation_tags"]),
         "audit_only_blocked_tags_count": len(blocked_tags),
         "audit_only_unknown_tags_count": len(unknown_tags),
@@ -729,6 +790,7 @@ def build_records(
     profiles: dict[str, Any],
     preview_index: dict[str, dict[str, int]] | None = None,
     max_content_chars: int = DEFAULT_MAX_CONTENT_CHARS,
+    promoted_metadata_by_id: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     index = canon_index(records)
     return [
@@ -741,6 +803,8 @@ def build_records(
             profiles=profiles,
             preview_index=preview_index,
             max_content_chars=max_content_chars,
+            promoted_metadata=(promoted_metadata_by_id or {}).get(str(record.get("id") or "")),
+            promoted_metadata_mode=promoted_metadata_by_id is not None,
         )
         for record in records
     ]
@@ -974,6 +1038,7 @@ def build_semantic_text_outputs(
     dry_run_ready_glob: str = DEFAULT_DRY_RUN_READY_GLOB,
     patch_preview_glob: str = DEFAULT_PATCH_PREVIEW_GLOB,
     max_content_chars: int = DEFAULT_MAX_CONTENT_CHARS,
+    promoted_metadata_by_id: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     unsafe_legacy_mode = False
     if strict_tag_gate and not Path(tag_policy).exists():
@@ -994,6 +1059,8 @@ def build_semantic_text_outputs(
         loaded_tag_policy,
     )
     global_redacted_terms = global_filter["blocked_tags"] + global_filter["unknown_tags"]
+    if promoted_metadata_by_id is not None:
+        global_redacted_terms += global_filter["metadata_only_tags"] + global_filter["projectable_tags"]
     preview_index = load_dry_run_preview_index(dry_run_ready_glob, patch_preview_glob)
     semantic_records = build_records(
         canon_records,
@@ -1003,6 +1070,7 @@ def build_semantic_text_outputs(
         profiles=profiles,
         preview_index=preview_index,
         max_content_chars=max_content_chars,
+        promoted_metadata_by_id=promoted_metadata_by_id,
     )
     paths = write_outputs(
         semantic_records,
@@ -1019,6 +1087,7 @@ def build_semantic_text_outputs(
         "strict_tag_gate": strict_tag_gate,
         "unsafe_legacy_mode": unsafe_legacy_mode,
         "tag_policy": str(tag_policy),
+        "promoted_metadata_mode": promoted_metadata_by_id is not None,
         "paths": {name: str(path) for name, path in paths.items()},
         "summary": {
             "record_count": len(semantic_records),
@@ -1035,5 +1104,8 @@ def build_semantic_text_outputs(
             "records_with_blocked_tags": coverage["records_with_blocked_tags"],
             "records_with_unknown_tags": coverage["records_with_unknown_tags"],
             "global_redacted_terms": len(global_redacted_terms),
+            "records_with_promoted_metadata": sum(
+                bool(record.get("promoted_metadata")) for record in semantic_records
+            ),
         },
     }

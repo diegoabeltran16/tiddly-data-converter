@@ -872,7 +872,8 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
                      role: str, taxonomy: list, section: list,
                      known_ids: set, relation_index: dict,
                      target_tokens: int, max_tokens: int,
-                     propagation_context: dict | None = None) -> tuple:
+                     propagation_context: dict | None = None,
+                     rag_projection: dict | None = None) -> tuple:
     """
     Build AI-friendly record and optional chunks.
     Returns (ai_record, chunks, invalid_relations, payload_info)
@@ -884,7 +885,15 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
     canon_role = rec.get("role_primary")
     role_check = classify_role_primary_value(canon_role, CANON_POLICY_BUNDLE)
 
-    hints = build_retrieval_hints(rec, role)
+    if rag_projection is not None:
+        safe_hints = list(rag_projection.get("retrieval_hints") or [])
+        hints = {
+            "retrieval_terms": safe_hints,
+            "retrieval_aliases": [],
+            "retrieval_hints": safe_hints,
+        }
+    else:
+        hints = build_retrieval_hints(rec, role)
     payload_info = classify_payload(rec, role, target_tokens)
     role_source = "canon_contract_inherited" if role_check.get("canonical_role") == role else "s52_classifier"
 
@@ -951,7 +960,11 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
         "secondary_roles": build_secondary_roles(rec, role),
         # Three distinct text fields
         "preview_text": compute_preview_text(rec),
-        "semantic_text": compute_semantic_text(rec),
+        "semantic_text": (
+            rag_projection.get("semantic_text", "")
+            if rag_projection is not None
+            else compute_semantic_text(rec)
+        ),
         "ai_summary": compute_ai_summary(rec, role),
         # Retrieval
         "retrieval_terms": hints["retrieval_terms"],
@@ -995,6 +1008,15 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
             "governance_policy_ref": CANON_POLICY_BUNDLE_REL,
         },
     }
+    # Do not alter the historical productive schema when this reusable builder
+    # is called without a projection.  The preview receives only tags already
+    # permitted by the authoritative semantic builder, never its free-form
+    # retrieval hints.
+    if rag_projection is not None:
+        embedding_metadata = dict(rag_projection.get("embedding_metadata") or {})
+        ai_rec["embedding_metadata"] = embedding_metadata
+        ai_rec["rag_safe_tags"] = list(embedding_metadata.get("rag_allowed_tags") or [])
+        ai_rec["derivation"]["semantic_builder"] = "semantic_text_builder.py"
 
     # Generate chunks
     chunks = []

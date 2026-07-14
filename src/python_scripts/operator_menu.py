@@ -69,6 +69,7 @@ from tdc_cat import (  # noqa: E402
     tdc_cat_warning,
 )
 from repo_metadata_review_menu import option_repo_metadata_admission_menu  # noqa: E402
+from rag_derivation_profile import load_profile as load_rag_derivation_profile  # noqa: E402
 from tdc_menu_registry import menu_text as registry_menu_text, resolve_choice as resolve_main_choice  # noqa: E402
 
 
@@ -82,6 +83,22 @@ QUALITY_REPORT_DIR = DEFAULT_TMP_DIR / "canonical_quality"
 MAIN_SEED_HTML = REPO_ROOT / "data" / "in" / "objeto_de_estudio_trazabilidad_y_desarrollo.html"
 BOOTSTRAP_AUX_HTML = REPO_ROOT / "data" / "in" / "empty-store.html"
 CANON_SHARD_MAX_LINES = 100
+RAG_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0172"
+RAG_DERIVATION_PREVIEW_ROOT = RAG_DERIVATION_ROOT / "preview"
+RAG_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0172"
+RAG_DERIVATION_PROFILE = RAG_DERIVATION_ROOT / "rag_derivation_profile.json"
+RAG_DERIVATION_PLAN = RAG_DERIVATION_ROOT / "rag_derivation_plan.json"
+RAG_DERIVATION_PREVIEW_MANIFEST = RAG_DERIVATION_ROOT / "preview_manifest.json"
+RAG_DERIVATION_GATE_REPORT = RAG_DERIVATION_AUDIT_ROOT / "rag_gate_report.json"
+RAG_DERIVATION_GATE_REPORT_MD = RAG_DERIVATION_AUDIT_ROOT / "rag_gate_report.md"
+RAG_TAG_POLICY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169" / "tag_sanitation_policy.json"
+RAG_TAG_INVENTORY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169" / "tag_inventory.json"
+RAG_METADATA_POLICY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
+RAG_METADATA_CANDIDATES = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_candidates.jsonl"
+S0173_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0173"
+S0173_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0173"
+S0174_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0174"
+S0174_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0174"
 
 
 @dataclass
@@ -1425,84 +1442,321 @@ def option_session_sync(state: MenuState) -> None:
             print("Opcion invalida.")
 
 
-def option_derivatives(state: MenuState) -> None:
-    print("\nDerivados: canon local -> derivados")
-    print("Los derivados no son fuente de verdad y no escriben al canon.")
-    continuity_ok, reason, reverse_report = derivative_continuity_ok(state)
-    if continuity_ok and reverse_report:
-        print(f"- evidencia reverse: OK ({display(reverse_report)}, Rejected: 0)")
-    else:
-        print(f"- evidencia reverse: BLOQUEADA - {reason}")
-    for path in (DEFAULT_ENRICHED_DIR, DEFAULT_AI_DIR, DEFAULT_MICROSOFT_COPILOT_DIR, DEFAULT_AUDIT_DIR, DEFAULT_EXPORT_DIR):
-        print(f"- {display(path)}: {'OK' if path.exists() else 'no existe'}")
+def _read_rag_derivation_json(path: Path) -> tuple[dict[str, Any], str | None]:
+    if not path.exists():
+        return {}, "no disponible"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, f"corrupto: {exc}"
+    if not isinstance(value, dict):
+        return {}, "corrupto: se esperaba un objeto JSON"
+    return value, None
 
-    print("\n1) Generar derivados principales")
-    print("2) Validar gobernanza de derivados")
-    print("3) Auditoria normativa")
-    print("0) Volver")
-    choice = prompt("> ").strip()
-    if choice == "1":
-        if not continuity_ok:
-            print("Generacion bloqueada: ejecuta reverse y exige Rejected: 0 antes de derivados.")
+
+def _safe_rag_derivation_hash(path: Path) -> tuple[str | None, str | None]:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest(), None
+    except OSError as exc:
+        return None, f"corrupto: {exc}"
+
+
+def _rag_derivation_status() -> dict[str, str]:
+    profile, profile_error = _read_rag_derivation_json(RAG_DERIVATION_PROFILE)
+    preview, preview_error = _read_rag_derivation_json(RAG_DERIVATION_PREVIEW_MANIFEST)
+    gate, gate_error = _read_rag_derivation_json(RAG_DERIVATION_GATE_REPORT)
+    plan, plan_error = _read_rag_derivation_json(RAG_DERIVATION_PLAN)
+
+    profile_hash, profile_hash_error = _safe_rag_derivation_hash(RAG_DERIVATION_PROFILE)
+    try:
+        load_rag_derivation_profile(RAG_DERIVATION_PROFILE)
+        profile_contract_error = None
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        profile_contract_error = str(exc)
+    profile_valid = (
+        not profile_error
+        and not profile_hash_error
+        and not profile_contract_error
+    )
+    profile_state = "rag-derivation-profile/v1" if profile_valid else "no disponible"
+    if not profile_valid:
+        preview_state = "no disponible"
+        plan_state = "no disponible"
+    else:
+        preview_state = preview_error or "disponible"
+        if preview and (
+            preview.get("schema_version") != "rag-preview-manifest/v1"
+            or preview.get("derivation_profile_hash") != profile_hash
+        ):
+            preview_state = "stale"
+        plan_state = plan_error or "vigente"
+        if (
+            plan
+            and (
+                plan.get("schema_version") != "rag-derivation-plan/v1"
+                or plan.get("status") != "validated_preview"
+                or plan.get("derivation_profile_hash") != profile_hash
+            )
+        ):
+            plan_state = "stale"
+    gate_state = gate_error or str(gate.get("status") or "no ejecutado").upper()
+    if not gate_error and gate and gate.get("schema") != "rag-tag-gate/v1":
+        gate_state = "no disponible"
+    productive_state = "legacy" if any(path.exists() for path in (DEFAULT_ENRICHED_DIR, DEFAULT_AI_DIR, DEFAULT_MICROSOFT_COPILOT_DIR)) else "desconocido"
+    return {
+        "profile": profile_state,
+        "preview": preview_state,
+        "gate": gate_state,
+        "plan": plan_state,
+        "productive": productive_state,
+    }
+
+
+def _s0173_derivation_status() -> dict[str, str]:
+    """Expose S0173 readiness without ever creating authorization or writing product."""
+
+    def read(name: str) -> dict[str, Any]:
+        value, error = _read_rag_derivation_json(S0173_DERIVATION_AUDIT_ROOT / name)
+        return value if not error else {}
+
+    preflight = read("current_preflight.json")
+    staging = _read_rag_derivation_json(S0173_DERIVATION_ROOT / "staging_manifest.json")[0]
+    gate = read("staging_rag_gate_report.json")
+    plan = _read_rag_derivation_json(S0173_DERIVATION_ROOT / "rag_derivation_plan.json")[0]
+    equivalence = _read_rag_derivation_json(S0173_DERIVATION_ROOT / "preview_staging_equivalence_report.json")[0]
+    rollback = read("rollback_readiness_report.json")
+    authorization = _read_rag_derivation_json(S0173_DERIVATION_AUDIT_ROOT / "productive_write_authorization.json")[0]
+    return {
+        "canon": "vigente" if preflight.get("canon", {}).get("source_canon_hash") else "stale",
+        "preview": "vigente" if staging.get("source_canon_hash") else "no disponible",
+        "gate": str(gate.get("status") or "no ejecutado").upper(),
+        "staging": "disponible" if staging.get("output_root") else "no disponible",
+        "equivalence": str(equivalence.get("equivalence_status") or "no ejecutada"),
+        "rollback": "listo" if rollback.get("rollback_ready") is True else "no disponible",
+        "plan": "vigente" if plan.get("status") == "preflight_validated" and plan.get("productive_write_allowed") is False else "stale",
+        "authorization": "concedida" if authorization.get("authorization_phrase") == "REGENERATE RAG SAFE S0173" else "pendiente",
+        "productive": "disponible" if authorization.get("authorization_phrase") == "REGENERATE RAG SAFE S0173" else "bloqueada",
+    }
+
+
+def _s0174_governance_status() -> dict[str, str]:
+    gate = _read_rag_derivation_json(S0174_DERIVATION_AUDIT_ROOT / "governance_gate_report.json")[0]
+    verdict = _read_rag_derivation_json(S0174_DERIVATION_AUDIT_ROOT / "final_verdict.json")[0]
+    auth = _read_rag_derivation_json(S0174_DERIVATION_AUDIT_ROOT / "authorization_state.json")[0]
+    return {
+        "phase_a": str(verdict.get("phase_a_integration") or "unknown"),
+        "governance": str(gate.get("status") or "not executed").upper(),
+        "authorization": str(auth.get("authorization_state") or "unknown"),
+        "trial_write": str(verdict.get("trial_write") or "unknown"),
+        "rollback": str(verdict.get("rollback_verification") or "unknown"),
+        "final": str(verdict.get("final_verdict") or "unknown"),
+    }
+
+
+def _print_rag_derivation_status() -> None:
+    status = _rag_derivation_status()
+    print(f"Productor autoritativo: derive_layers.py")
+    print("Semantic builder: semantic_text_builder.py")
+    print("Tag policy: tag-sanitation/v1")
+    print("Metadata policy: metadata-promotion/v1")
+    print(f"Perfil: {status['profile']}")
+    print(f"Preview: {status['preview']}")
+    print(f"Gate: {status['gate']}")
+    print(f"Plan: {status['plan']}")
+    print(f"Derivados productivos: {status['productive']}")
+    print("Regeneración productiva: BLOQUEADA en S0172")
+    if status["preview"] in {"no disponible", "stale"}:
+        print("Acción recomendada: generar o refrescar la preview RAG-safe.")
+    elif status["gate"] != "PASS":
+        print("Acción recomendada: validar la preview con el gate RAG.")
+    elif status["plan"] in {"no disponible", "stale"}:
+        print("Acción recomendada: preparar o refrescar el plan contractual.")
+    else:
+        print("Acción recomendada: conservar la evidencia para la sesión productiva autorizada S0173.")
+    s0173 = _s0173_derivation_status()
+    print("\nS0173 regeneración gobernada:")
+    print(f"Canon: {s0173['canon']}")
+    print(f"Preview/staging: {s0173['preview']} / {s0173['staging']}")
+    print(f"Gate staging: {s0173['gate']}")
+    print(f"Equivalencia: {s0173['equivalence']}")
+    print(f"Rollback: {s0173['rollback']}")
+    print(f"Plan: {s0173['plan']}")
+    print(f"Autorización: {s0173['authorization']}")
+    print(f"Producción S0173: {s0173['productive']}")
+    s0174 = _s0174_governance_status()
+    print("\nS0174 integración y primera admisión:")
+    print(f"Fase A: {s0174['phase_a']}")
+    print(f"Governance gate: {s0174['governance']}")
+    print(f"Autorización: {s0174['authorization']}")
+    print(f"Trial write: {s0174['trial_write']}")
+    print(f"Rollback: {s0174['rollback']}")
+    print(f"Veredicto: {s0174['final']}")
+
+
+def _preview_derivation_command() -> list[str]:
+    return [
+        sys.executable,
+        "src/python_scripts/derive_layers.py",
+        "--mode",
+        "preview",
+        "--dry-run",
+        "--input-dir",
+        str(DEFAULT_CANON_DIR),
+        "--out-dir",
+        str(RAG_DERIVATION_PREVIEW_ROOT),
+        "--profile",
+        str(RAG_DERIVATION_PROFILE),
+        "--metadata-candidates",
+        str(RAG_METADATA_CANDIDATES),
+        "--tag-inventory",
+        str(RAG_TAG_INVENTORY),
+        "--run-id",
+        "s0172-rag-derivation-preview",
+        "--preview-manifest",
+        str(RAG_DERIVATION_PREVIEW_MANIFEST),
+        "--gate-report",
+        str(RAG_DERIVATION_GATE_REPORT),
+        "--gate-report-md",
+        str(RAG_DERIVATION_GATE_REPORT_MD),
+        "--plan-out",
+        str(RAG_DERIVATION_PLAN),
+    ]
+
+
+def _preview_gate_command() -> list[str]:
+    return [
+        sys.executable,
+        "src/python_scripts/validate_rag_tag_gate.py",
+        "--policy",
+        str(RAG_TAG_POLICY),
+        "--inventory",
+        str(RAG_TAG_INVENTORY),
+        "--scan-root",
+        str(RAG_DERIVATION_PREVIEW_ROOT / "semantic_text"),
+        "--scan-root",
+        str(RAG_DERIVATION_PREVIEW_ROOT / "ai"),
+        "--scan-root",
+        str(RAG_DERIVATION_PREVIEW_ROOT / "microsoft_copilot"),
+        "--session",
+        "S0172",
+        "--run-id",
+        "s0172-rag-derivation-preview",
+        "--enforce-p1-raw",
+        "--report",
+        str(RAG_DERIVATION_GATE_REPORT),
+        "--report-md",
+        str(RAG_DERIVATION_GATE_REPORT_MD),
+    ]
+
+
+def _s0173_staging_command() -> list[str]:
+    return [
+        sys.executable,
+        "src/python_scripts/derive_layers.py",
+        "--mode", "staging", "--dry-run", "--session", "S0173",
+        "--input-dir", str(DEFAULT_CANON_DIR),
+        "--out-dir", str(S0173_DERIVATION_ROOT / "staging"),
+        "--profile", str(S0173_DERIVATION_ROOT / "rag_derivation_profile.json"),
+        "--metadata-candidates", str(RAG_METADATA_CANDIDATES),
+        "--tag-inventory", str(RAG_TAG_INVENTORY),
+        "--run-id", "s0173-rag-derivation-staging",
+        "--preview-manifest", str(S0173_DERIVATION_ROOT / "staging_manifest.json"),
+        "--gate-report", str(S0173_DERIVATION_AUDIT_ROOT / "staging_rag_gate_report.json"),
+        "--gate-report-md", str(S0173_DERIVATION_AUDIT_ROOT / "staging_rag_gate_report.md"),
+        "--plan-out", str(S0173_DERIVATION_ROOT / "staging_derived_plan.json"),
+    ]
+
+
+def _s0174_governance_command() -> list[str]:
+    return [
+        sys.executable,
+        "src/python_scripts/s0174_governance.py",
+        "--preflight-out", str(S0174_DERIVATION_AUDIT_ROOT / "preflight.json"),
+        "--inventory-out", str(S0174_DERIVATION_AUDIT_ROOT / "producer_writer_inventory.json"),
+        "--graph-out", str(S0174_DERIVATION_AUDIT_ROOT / "execution_graph.json"),
+        "--modifications-out", str(S0174_DERIVATION_AUDIT_ROOT / "integration_modifications.json"),
+        "--governance-gate-out", str(S0174_DERIVATION_AUDIT_ROOT / "governance_gate_report.json"),
+    ]
+
+
+def option_derivatives(state: MenuState) -> None:
+    del state
+    while True:
+        print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("  Derivados / RAG")
+        print("  Canon: SOLO LECTURA")
+        print("  Producción: PROTEGIDA")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        _print_rag_derivation_status()
+        print("\n1) Ver estado de derivados y políticas")
+        print("2) Generar preview RAG-safe")
+        print("3) Validar preview / ejecutar gate RAG")
+        print("4) Ver plan de regeneración")
+        print("5) Preparar o refrescar plan")
+        print("6) Regenerar derivados productivos")
+        print("7) Generar staging productivo S0173")
+        print("8) Validar integración y governance S0174")
+        print("9) Avanzado / compatibilidad")
+        print("0) Volver")
+        choice = prompt("> ").strip()
+        if choice == "0":
             return
-        confirmation = prompt("Escribe DERIVE para generar derivados locales: ").strip()
-        if confirmation != "DERIVE":
-            print("Generacion cancelada.")
-            return
-        result = run_command(
-            [
-                sys.executable,
-                "src/python_scripts/derive_layers.py",
-                "--input-dir",
-                str(DEFAULT_CANON_DIR),
-                "--enriched-dir",
-                str(DEFAULT_ENRICHED_DIR),
-                "--ai-dir",
-                str(DEFAULT_AI_DIR),
-                "--microsoft-copilot-dir",
-                str(DEFAULT_MICROSOFT_COPILOT_DIR),
-                "--reports-dir",
-                str(DEFAULT_AI_DIR / "reports"),
-                "--audit-dir",
-                str(DEFAULT_AUDIT_DIR),
-                "--export-dir",
-                str(DEFAULT_EXPORT_DIR),
-                "--chunk-target-tokens",
-                "1800",
-                "--chunk-max-tokens",
-                "4000",
-            ],
-            cwd=REPO_ROOT,
-        )
-        print_command_result(result)
-    elif choice == "2":
-        result = run_command(
-            [
-                sys.executable,
-                "src/python_scripts/validate_corpus_governance.py",
-                "--canon-dir",
-                str(DEFAULT_CANON_DIR),
-                "--ai-dir",
-                str(DEFAULT_AI_DIR),
-            ],
-            cwd=REPO_ROOT,
-        )
-        print_command_result(result)
-    elif choice == "3":
-        result = run_command(
-            [
-                sys.executable,
-                "src/python_scripts/audit_normative_projection.py",
-                "--mode",
-                "audit",
-                "--input-root",
-                str(DEFAULT_CANON_DIR),
-                "--docs-root",
-                "docs",
-            ],
-            cwd=REPO_ROOT,
-        )
-        print_command_result(result)
+        if choice == "1":
+            continue
+        if choice == "2":
+            print_command_result(run_command(_preview_derivation_command(), cwd=REPO_ROOT))
+            continue
+        if choice == "3":
+            semantic_root = RAG_DERIVATION_PREVIEW_ROOT / "semantic_text"
+            ai_root = RAG_DERIVATION_PREVIEW_ROOT / "ai"
+            copilot_root = RAG_DERIVATION_PREVIEW_ROOT / "microsoft_copilot"
+            if not semantic_root.exists() or not ai_root.exists() or not copilot_root.exists():
+                print("estado: no disponible")
+                print("acción sugerida: generar la preview RAG-safe antes de ejecutar el gate.")
+                continue
+            print_command_result(run_command(_preview_gate_command(), cwd=REPO_ROOT))
+            continue
+        if choice == "4":
+            plan, error = _read_rag_derivation_json(RAG_DERIVATION_PLAN)
+            if error:
+                print(f"estado: {error}")
+                print("acción sugerida: generar la preview y después preparar el plan.")
+            else:
+                print(json.dumps(plan, ensure_ascii=False, indent=2))
+            continue
+        if choice == "5":
+            if not RAG_DERIVATION_PREVIEW_MANIFEST.exists() or not RAG_DERIVATION_GATE_REPORT.exists():
+                print("estado: no disponible")
+                print("acción sugerida: generar la preview y ejecutar el gate antes de refrescar el plan.")
+                continue
+            command = _preview_derivation_command()
+            command[command.index("preview")] = "plan"
+            command.remove("--dry-run")
+            command.remove("--out-dir")
+            command.remove(str(RAG_DERIVATION_PREVIEW_ROOT))
+            print_command_result(run_command(command, cwd=REPO_ROOT))
+            continue
+        if choice == "6":
+            print("Regeneración productiva no habilitada en S0172.")
+            print("\nRequisitos:")
+            print("- preview vigente;")
+            print("- gate PASS;")
+            print("- plan válido;")
+            print("- canon y políticas coincidentes;")
+            print("- sesión productiva autorizada;")
+            print("- confirmación humana explícita.")
+            continue
+        if choice == "7":
+            print_command_result(run_command(_s0173_staging_command(), cwd=REPO_ROOT))
+            continue
+        if choice == "8":
+            print_command_result(run_command(_s0174_governance_command(), cwd=REPO_ROOT))
+            continue
+        if choice == "9":
+            print("Compatibilidad: build_semantic_text.py, build_semantic_text_authority_aware.py y s45_derive_layers.py")
+            print("permanecen fuera de la ruta normal; esta pantalla no los ejecuta.")
+            continue
+        print("Opción inválida.")
 
 
 def option_reverse(state: MenuState) -> None:

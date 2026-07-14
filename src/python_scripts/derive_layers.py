@@ -113,6 +113,40 @@ from qc_reports import (
     write_relations_qc_report,
     write_derivation_report,
 )
+from build_rag_filter_preview import build_promoted_metadata_index, read_jsonl as read_metadata_candidates
+from metadata_promotion_policy import (
+    DEFAULT_POLICY as DEFAULT_METADATA_PROMOTION_POLICY,
+    POLICY_VERSION as METADATA_PROMOTION_POLICY_VERSION,
+    load_policy as load_metadata_promotion_policy,
+)
+from rag_derivation_plan import (
+    build_plan as build_rag_derivation_plan,
+    canonical_snapshot as rag_canonical_snapshot,
+    evaluate_productive_write_preflight,
+    load_json as load_rag_json,
+    write_json as write_rag_json,
+)
+from rag_derivation_profile import (
+    DEFAULT_METADATA_POLICY_PATH as DEFAULT_RAG_METADATA_POLICY_PATH,
+    DEFAULT_PROFILE_PATH as DEFAULT_RAG_DERIVATION_PROFILE_PATH,
+    DEFAULT_SEMANTIC_TYPE_POLICY_PATH as DEFAULT_RAG_SEMANTIC_TYPE_POLICY_PATH,
+    DEFAULT_TAG_POLICY_PATH as DEFAULT_RAG_TAG_POLICY_PATH,
+    load_profile as load_rag_derivation_profile,
+    sha256_file as rag_sha256_file,
+)
+from rag_derivative_writers import ProductiveWriteBlocked, require_productive_write_permission
+from semantic_text_builder import build_semantic_text_outputs
+from tag_sanitation_policy import (
+    DEFAULT_POLICY as DEFAULT_TAG_SANITATION_POLICY,
+    POLICY_VERSION as TAG_SANITATION_POLICY_VERSION,
+    load_policy as load_tag_sanitation_policy,
+)
+from validate_metadata_promotion import validate_candidates as validate_metadata_promotion_candidates
+from validate_rag_tag_gate import build_gate_report, write_report as write_rag_gate_report
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
 # ── Derivation session identifier ────────────────────────────────────────────
 SESSION = "S55"
@@ -192,6 +226,35 @@ HUB_RELATIVE_THRESHOLD = 0.05
 HUB_ABSOLUTE_MIN_COUNT = 20
 HUB_FAMILY_DOMINANCE_THRESHOLD = 0.40
 HUB_FAMILY_MIN_COUNT = 10
+
+# S0172: the authoritative producer can run the same orchestration against an
+# isolated preview root.  These defaults are evidence paths, never productive
+# output paths.
+RAG_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0172"
+RAG_DERIVATION_EVIDENCE_ROOT = RAG_DERIVATION_ROOT.parent
+RAG_DERIVATION_PREVIEW_ROOT = RAG_DERIVATION_ROOT / "preview"
+RAG_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0172"
+RAG_DERIVATION_AUDIT_EVIDENCE_ROOT = RAG_DERIVATION_AUDIT_ROOT.parent
+DEFAULT_METADATA_CANDIDATES = (
+    REPO_ROOT
+    / "data"
+    / "out"
+    / "local"
+    / "pipeline"
+    / "metadata_promotion"
+    / "s0171"
+    / "metadata_promotion_candidates.jsonl"
+)
+DEFAULT_TAG_INVENTORY = (
+    REPO_ROOT
+    / "data"
+    / "out"
+    / "local"
+    / "pipeline"
+    / "tag_sanitation"
+    / "s0169"
+    / "tag_inventory.json"
+)
 
 # ── Controlled vocabulary for role_primary ────────────────────────────────────
 VALID_ROLES = role_primary_canonical_roles(CANON_POLICY_BUNDLE)
@@ -936,10 +999,11 @@ def truncate_declared(text: str, max_chars: int, source_label: str) -> str:
 
 def source_ref_for_record(canon_rec: dict, shard_file: str, line_num: int,
                           record_index: int, enriched_dir: Path, ai_dir: Path,
-                          tiddler_shard_size: int) -> dict:
+                          tiddler_shard_size: int,
+                          input_dir: Path = DEFAULT_CANON_DIR) -> dict:
     return {
         "canon": {
-            "path": as_display_path(DEFAULT_CANON_DIR / shard_file),
+            "path": as_display_path(input_dir / shard_file),
             "line": line_num,
             "id": canon_rec.get("id"),
             "source_position": canon_rec.get("source_position"),
@@ -963,6 +1027,7 @@ def build_s61_projection_items(
     enriched_dir: Path,
     ai_dir: Path,
     tiddler_shard_size: int,
+    input_dir: Path = DEFAULT_CANON_DIR,
 ) -> list[dict]:
     copilot_layer = get_layer_registry_entry("microsoft_copilot")
     items = []
@@ -979,6 +1044,7 @@ def build_s61_projection_items(
             enriched_dir,
             ai_dir,
             tiddler_shard_size,
+            input_dir,
         )
         relation_targets = []
         for rel in canon_rec.get("relations") or []:
@@ -989,7 +1055,11 @@ def build_s61_projection_items(
             target = rel.get("target_id") if isinstance(rel, dict) else safe_str(rel)
             if target and target not in relation_targets:
                 relation_targets.append(target)
-        tags = canon_rec.get("normalized_tags") or canon_rec.get("tags") or []
+        # S0172 preview passes a RAG-safe projection through the authoritative
+        # AI record.  Historical productive compatibility retains the canon
+        # fallback until a future guarded regeneration consumes a valid plan.
+        safe_tags = ai_rec.get("rag_safe_tags")
+        tags = safe_tags if safe_tags is not None else (canon_rec.get("normalized_tags") or canon_rec.get("tags") or [])
         items.append(
             {
                 "id": canon_rec.get("id"),
@@ -1737,7 +1807,7 @@ def copilot_agent_selection_reason(entity_type: str, family: str) -> str:
     return "retained as a high-value structural anchor."
 
 
-def build_copilot_agent_layer_entities() -> list[dict]:
+def build_copilot_agent_layer_entities(*, rag_safe: bool = False) -> list[dict]:
     canon_layer = get_layer_registry_entry("canon")
     enriched_layer = get_layer_registry_entry("enriched")
     ai_layer = get_layer_registry_entry("ai")
@@ -1750,7 +1820,7 @@ def build_copilot_agent_layer_entities() -> list[dict]:
             "type": "layer",
             "authority_level": canon_layer.get("authority"),
             "source_primary": "data/out/local/tiddlers_*.jsonl",
-            "tags": ["layer:canon", "authority:local-source-of-truth"],
+            "tags": [] if rag_safe else ["layer:canon", "authority:local-source-of-truth"],
             "related_ids": ["layer:enriched", "layer:ai", "layer:microsoft_copilot"],
             "taxonomy_path": ["layer", "canon"],
             "synthetic": True,
@@ -1762,7 +1832,7 @@ def build_copilot_agent_layer_entities() -> list[dict]:
             "type": "layer",
             "authority_level": enriched_layer.get("authority"),
             "source_primary": "data/out/local/enriched/manifest.json",
-            "tags": ["layer:enriched", "derived:non-authoritative"],
+            "tags": [] if rag_safe else ["layer:enriched", "derived:non-authoritative"],
             "related_ids": ["layer:canon", "layer:microsoft_copilot"],
             "taxonomy_path": ["layer", "enriched"],
             "synthetic": True,
@@ -1774,7 +1844,7 @@ def build_copilot_agent_layer_entities() -> list[dict]:
             "type": "layer",
             "authority_level": ai_layer.get("authority"),
             "source_primary": "data/out/local/ai/manifest.json",
-            "tags": ["layer:ai", "derived:non-authoritative"],
+            "tags": [] if rag_safe else ["layer:ai", "derived:non-authoritative"],
             "related_ids": ["layer:canon", "layer:microsoft_copilot"],
             "taxonomy_path": ["layer", "ai"],
             "synthetic": True,
@@ -1786,7 +1856,7 @@ def build_copilot_agent_layer_entities() -> list[dict]:
             "type": "layer",
             "authority_level": copilot_layer.get("authority"),
             "source_primary": "data/out/local/microsoft_copilot/manifest.json",
-            "tags": ["layer:microsoft_copilot", "derived:agent-projection"],
+            "tags": [] if rag_safe else ["layer:microsoft_copilot", "derived:agent-projection"],
             "related_ids": ["layer:canon", "layer:enriched", "layer:ai", "layer:copilot_agent"],
             "taxonomy_path": ["layer", "microsoft_copilot"],
             "synthetic": True,
@@ -1798,7 +1868,7 @@ def build_copilot_agent_layer_entities() -> list[dict]:
             "type": "layer",
             "authority_level": "derived_non_authoritative_agent_projection",
             "source_primary": "data/out/local/microsoft_copilot/copilot_agent/",
-            "tags": ["layer:copilot_agent", "derived:agent-projection", "format:three-file-pack"],
+            "tags": [] if rag_safe else ["layer:copilot_agent", "derived:agent-projection", "format:three-file-pack"],
             "related_ids": ["layer:microsoft_copilot", "layer:canon"],
             "taxonomy_path": ["layer", "copilot_agent"],
             "synthetic": True,
@@ -1831,8 +1901,11 @@ def sort_copilot_agent_entities(items: list[dict]) -> list[dict]:
     )
 
 
-def select_copilot_agent_entities(items: list[dict]) -> list[dict]:
-    synthetic_entities = [decorate_copilot_agent_item(item) for item in build_copilot_agent_layer_entities()]
+def select_copilot_agent_entities(items: list[dict], *, rag_safe: bool = False) -> list[dict]:
+    synthetic_entities = [
+        decorate_copilot_agent_item(item)
+        for item in build_copilot_agent_layer_entities(rag_safe=rag_safe)
+    ]
     decorated_items = [decorate_copilot_agent_item(item) for item in items]
 
     selected = []
@@ -2419,7 +2492,13 @@ def build_copilot_agent_corpus(selected_entities: list[dict], relation_rows: lis
     return fallback_text
 
 
-def write_copilot_agent_artifacts(items: list[dict], copilot_agent_dir: Path, updated_at: str) -> list[Path]:
+def write_copilot_agent_artifacts(
+    items: list[dict],
+    copilot_agent_dir: Path,
+    updated_at: str,
+    *,
+    rag_safe: bool = False,
+) -> list[Path]:
     """
     Generate the hardened three-file pack for copilot_agent/:
       - corpus.txt    : curated cognitive snapshot with DOC_ID anchors
@@ -2432,7 +2511,7 @@ def write_copilot_agent_artifacts(items: list[dict], copilot_agent_dir: Path, up
             stale_path.unlink()
 
     written = []
-    selected_entities = assign_copilot_agent_anchors(select_copilot_agent_entities(items))
+    selected_entities = assign_copilot_agent_anchors(select_copilot_agent_entities(items, rag_safe=rag_safe))
     relation_rows = build_copilot_agent_relations(selected_entities)
 
     entity_records = []
@@ -2518,6 +2597,7 @@ def write_microsoft_copilot_s61_artifacts(
     export_dir: Path,
     copilot_dir: Path,
     tiddler_shard_size: int,
+    input_dir: Path = DEFAULT_CANON_DIR,
 ) -> dict:
     cleanup_s61_copilot_output(copilot_dir)
     updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -2547,7 +2627,9 @@ def write_microsoft_copilot_s61_artifacts(
         enriched_dir,
         ai_dir,
         tiddler_shard_size,
+        input_dir,
     )
+    rag_safe_projection = bool(ai_records) and all("rag_safe_tags" in item for item in ai_records)
     bundles = select_bundle_members(items)
     public_entities = [
         {key: value for key, value in item.items() if not key.startswith("_")}
@@ -2709,6 +2791,7 @@ def write_microsoft_copilot_s61_artifacts(
             items,
             copilot_dir / "copilot_agent",
             updated_at,
+            rag_safe=rag_safe_projection,
         ),
     }
 
@@ -2843,11 +2926,456 @@ def _pct_local(part: int, total: int) -> float:
     return round((part / total) * 100, 2) if total else 0.0
 
 
+# ── S0172 RAG-safe orchestration support ──────────────────────────────────────
+
+def _resolve_rag_path(value: str | None, default: Path) -> Path:
+    candidate = Path(value) if value else default
+    if not candidate.is_absolute():
+        candidate = REPO_ROOT / candidate
+    return candidate.resolve()
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def _assert_preview_target_isolated(path: Path, *, label: str, allow_audit: bool = False) -> None:
+    """Reject a preview/evidence destination that can overlap live outputs.
+
+    External temporary roots remain useful for fixture tests, but an in-repo
+    S0172 preview must live in its declared pipeline/audit evidence roots.
+    """
+
+    productive_roots = (
+        DEFAULT_ENRICHED_DIR.resolve(),
+        DEFAULT_AI_DIR.resolve(),
+        DEFAULT_MICROSOFT_COPILOT_DIR.resolve(),
+        (REPO_ROOT / "data" / "out" / "local" / "reverse_html").resolve(),
+    )
+    if any(_is_within(path, productive) or _is_within(productive, path) for productive in productive_roots):
+        raise ValueError(f"{label} must not overlap a productive derivative root: {path}")
+    # A root at (or above) the canon directory could overwrite shards through
+    # downstream writers.  A preview below data/out/local/pipeline is safe.
+    if path.resolve() == DEFAULT_CANON_DIR.resolve() or _is_within(DEFAULT_CANON_DIR, path):
+        raise ValueError(f"{label} must not be the canon directory or one of its ancestors: {path}")
+    if _is_within(path, REPO_ROOT):
+        allowed_root = RAG_DERIVATION_AUDIT_EVIDENCE_ROOT if allow_audit else RAG_DERIVATION_EVIDENCE_ROOT
+        if not _is_within(path, allowed_root):
+            raise ValueError(f"{label} must remain under its S0172 evidence root: {path}")
+
+
+def _require_persisted_policy(
+    path: Path,
+    *,
+    expected_version: str,
+    loader,
+    label: str,
+    required_shape: dict,
+) -> tuple[dict, str]:
+    """Reject absent/corrupt policy artifacts before their permissive loaders run."""
+
+    if not path.exists():
+        raise FileNotFoundError(f"{label} policy artifact is required: {path}")
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"{label} policy artifact must be a JSON object: {path}")
+    missing = sorted(set(required_shape) - set(raw))
+    wrong_types = sorted(
+        key
+        for key, expected in required_shape.items()
+        if key in raw and not isinstance(raw[key], type(expected))
+    )
+    if missing or wrong_types:
+        details = []
+        if missing:
+            details.append("missing=" + ",".join(missing))
+        if wrong_types:
+            details.append("wrong_type=" + ",".join(wrong_types))
+        raise ValueError(f"{label} policy artifact is incomplete or corrupt ({'; '.join(details)}): {path}")
+    if raw.get("policy_version") != expected_version:
+        raise ValueError(
+            f"{label} policy version mismatch: expected {expected_version}, got {raw.get('policy_version')!r}"
+        )
+    loaded = loader(path)
+    if loaded.get("policy_version") != expected_version:
+        raise ValueError(f"{label} loader did not preserve required version {expected_version}")
+    return loaded, rag_sha256_file(path)
+
+
+def _resolve_s0172_evidence_paths(args, *, preview_root: Path) -> dict:
+    """Resolve every S0172 evidence writer through the same no-overlap guard."""
+
+    preview_manifest = _resolve_rag_path(args.preview_manifest, preview_root.parent / "preview_manifest.json")
+    plan_out = _resolve_rag_path(args.plan_out, preview_root.parent / "rag_derivation_plan.json")
+    gate_report = _resolve_rag_path(args.gate_report, RAG_DERIVATION_AUDIT_ROOT / "rag_gate_report.json")
+    gate_report_md = _resolve_rag_path(args.gate_report_md, RAG_DERIVATION_AUDIT_ROOT / "rag_gate_report.md")
+    productive_preflight_report = _resolve_rag_path(
+        args.productive_preflight_report,
+        RAG_DERIVATION_AUDIT_ROOT / "productive_write_preflight.json",
+    )
+    _assert_preview_target_isolated(preview_manifest, label="preview manifest")
+    _assert_preview_target_isolated(plan_out, label="derivation plan")
+    _assert_preview_target_isolated(gate_report, label="RAG gate report", allow_audit=True)
+    _assert_preview_target_isolated(gate_report_md, label="RAG gate markdown", allow_audit=True)
+    _assert_preview_target_isolated(
+        productive_preflight_report,
+        label="productive-write preflight report",
+        allow_audit=True,
+    )
+    return {
+        "preview_manifest": preview_manifest,
+        "plan_out": plan_out,
+        "gate_report": gate_report,
+        "gate_report_md": gate_report_md,
+        "productive_preflight_report": productive_preflight_report,
+    }
+
+
+def _resolve_derivation_layout(args) -> dict:
+    input_dir = resolve_repo_path(args.input_dir, DEFAULT_CANON_DIR)
+    if args.mode in {"preview", "staging"}:
+        if not args.out_dir:
+            raise ValueError(f"--mode {args.mode} requires --out-dir to keep writes isolated")
+        if not args.dry_run:
+            raise ValueError(f"--mode {args.mode} requires --dry-run (isolated evidence only)")
+        root = _resolve_rag_path(args.out_dir, RAG_DERIVATION_PREVIEW_ROOT)
+        _assert_preview_target_isolated(root, label="preview output root")
+        evidence_paths = _resolve_s0172_evidence_paths(args, preview_root=root)
+        return {
+            "mode": args.mode,
+            "input_dir": input_dir,
+            "output_root": root,
+            "enriched_dir": root / "enriched",
+            "ai_dir": root / "ai",
+            "reports_dir": root / "ai" / "reports",
+            "audit_dir": root / "audit",
+            "export_dir": root / "export",
+            "microsoft_copilot_dir": root / "microsoft_copilot",
+            "semantic_dir": root / "semantic_text",
+            **evidence_paths,
+        }
+
+    evidence_paths = _resolve_s0172_evidence_paths(args, preview_root=RAG_DERIVATION_PREVIEW_ROOT)
+    if args.mode == "plan":
+        return {
+            "mode": "plan",
+            "input_dir": input_dir,
+            "output_root": None,
+            **evidence_paths,
+        }
+
+    return {
+        "mode": "production",
+        "input_dir": input_dir,
+        "output_root": None,
+        "enriched_dir": resolve_repo_path(args.enriched_dir, DEFAULT_ENRICHED_DIR),
+        "ai_dir": resolve_repo_path(args.ai_dir, DEFAULT_AI_DIR),
+        "reports_dir": resolve_repo_path(args.reports_dir, DEFAULT_AI_REPORTS_DIR),
+        "audit_dir": resolve_repo_path(args.audit_dir, DEFAULT_AUDIT_DIR),
+        "export_dir": resolve_repo_path(args.export_dir, DEFAULT_EXPORT_DIR),
+        "microsoft_copilot_dir": resolve_repo_path(args.microsoft_copilot_dir, DEFAULT_MICROSOFT_COPILOT_DIR),
+        # Future guarded production uses the same semantic builder contract;
+        # its sidecar evidence stays outside productive derivative families.
+        "semantic_dir": RAG_DERIVATION_ROOT / "production_semantic_staging",
+        **evidence_paths,
+    }
+
+
+def _load_rag_contract_inputs(args, layout: dict) -> dict:
+    profile_path = _resolve_rag_path(args.profile, DEFAULT_RAG_DERIVATION_PROFILE_PATH)
+    profile = load_rag_derivation_profile(profile_path)
+    profile_tag_path = _resolve_rag_path(profile["tag_policy_path"], DEFAULT_RAG_TAG_POLICY_PATH)
+    profile_metadata_path = _resolve_rag_path(profile["metadata_policy_path"], DEFAULT_RAG_METADATA_POLICY_PATH)
+    profile_semantic_type_path = _resolve_rag_path(
+        profile["semantic_type_policy_path"],
+        DEFAULT_RAG_SEMANTIC_TYPE_POLICY_PATH,
+    )
+    tag_policy_path = _resolve_rag_path(args.tag_policy, profile_tag_path)
+    metadata_policy_path = _resolve_rag_path(args.metadata_policy, profile_metadata_path)
+    if tag_policy_path != profile_tag_path or metadata_policy_path != profile_metadata_path:
+        raise ValueError("explicit policy paths must match the signed derivation profile in S0172")
+    if not profile_semantic_type_path.exists():
+        raise FileNotFoundError(f"semantic relation-type policy is required: {profile_semantic_type_path}")
+    semantic_type_raw = json.loads(profile_semantic_type_path.read_text(encoding="utf-8"))
+    if not isinstance(semantic_type_raw, dict) or not (
+        isinstance(semantic_type_raw.get("decisions_by_type"), dict)
+        or isinstance(semantic_type_raw.get("decisions"), list)
+    ):
+        raise ValueError(f"semantic relation-type policy is corrupt: {profile_semantic_type_path}")
+    tag_policy, tag_policy_hash = _require_persisted_policy(
+        tag_policy_path,
+        expected_version=TAG_SANITATION_POLICY_VERSION,
+        loader=load_tag_sanitation_policy,
+        label="tag-sanitation",
+        required_shape=DEFAULT_TAG_SANITATION_POLICY,
+    )
+    metadata_policy, metadata_policy_hash = _require_persisted_policy(
+        metadata_policy_path,
+        expected_version=METADATA_PROMOTION_POLICY_VERSION,
+        loader=load_metadata_promotion_policy,
+        label="metadata-promotion",
+        required_shape=DEFAULT_METADATA_PROMOTION_POLICY,
+    )
+    inventory_path = _resolve_rag_path(args.tag_inventory, DEFAULT_TAG_INVENTORY)
+    if not inventory_path.exists():
+        raise FileNotFoundError(f"tag inventory required for RAG gate: {inventory_path}")
+    inventory = load_rag_json(inventory_path, label="tag inventory")
+    if not inventory.get("tags"):
+        raise ValueError(f"tag inventory has no tags: {inventory_path}")
+    candidates_path = _resolve_rag_path(args.metadata_candidates, DEFAULT_METADATA_CANDIDATES)
+    if not candidates_path.exists():
+        raise FileNotFoundError(f"metadata promotion candidates required: {candidates_path}")
+    candidates = read_metadata_candidates(candidates_path)
+    candidate_findings, candidate_metrics = validate_metadata_promotion_candidates(
+        candidates,
+        policy=metadata_policy,
+    )
+    allowed_candidate_classes = {"p1_promote", "p1_metadata_only", "p2_human_navigation"}
+    formal_relation_vocab = set(metadata_policy.get("formal_relation_vocab") or [])
+    for candidate in candidates:
+        candidate_id = candidate.get("candidate_id")
+        if candidate.get("source_policy") != TAG_SANITATION_POLICY_VERSION:
+            candidate_findings.append({"candidate_id": candidate_id, "code": "source_policy_mismatch"})
+        if candidate.get("promotion_policy") != METADATA_PROMOTION_POLICY_VERSION:
+            candidate_findings.append({"candidate_id": candidate_id, "code": "promotion_policy_mismatch"})
+        if candidate.get("source_tag_classification") not in allowed_candidate_classes:
+            candidate_findings.append({"candidate_id": candidate_id, "code": "source_tag_classification_not_allowed"})
+        if candidate.get("target_field") == "formal_relation_vocab":
+            values = candidate.get("proposed_value")
+            values = values if isinstance(values, list) else [values]
+            if any(value not in formal_relation_vocab for value in values):
+                candidate_findings.append({"candidate_id": candidate_id, "code": "formal_relation_vocab_not_controlled"})
+    if candidate_findings:
+        raise ValueError(
+            "metadata promotion candidates failed their authority contract: "
+            + json.dumps(candidate_findings[:5], ensure_ascii=False)
+        )
+    promoted_metadata = build_promoted_metadata_index(
+        candidates,
+        allowed_fields=set(metadata_policy["allowed_fields"]),
+    )
+    return {
+        "profile": profile,
+        "profile_path": profile_path,
+        "profile_hash": rag_sha256_file(profile_path),
+        "tag_policy": tag_policy,
+        "tag_policy_path": tag_policy_path,
+        "tag_policy_hash": tag_policy_hash,
+        "metadata_policy": metadata_policy,
+        "metadata_policy_path": metadata_policy_path,
+        "metadata_policy_hash": metadata_policy_hash,
+        "tag_inventory": inventory,
+        "tag_inventory_path": inventory_path,
+        "tag_inventory_hash": rag_sha256_file(inventory_path),
+        "metadata_candidates_path": candidates_path,
+        "metadata_candidates_hash": rag_sha256_file(candidates_path),
+        "metadata_candidate_metrics": candidate_metrics,
+        "semantic_builder_path": SCRIPT_DIR / "semantic_text_builder.py",
+        "semantic_builder_hash": rag_sha256_file(SCRIPT_DIR / "semantic_text_builder.py"),
+        "productive_orchestrator_path": SCRIPT_DIR / "derive_layers.py",
+        "productive_orchestrator_hash": rag_sha256_file(SCRIPT_DIR / "derive_layers.py"),
+        "semantic_type_policy_path": profile_semantic_type_path,
+        "semantic_type_policy_hash": rag_sha256_file(profile_semantic_type_path),
+        "promoted_metadata": promoted_metadata,
+        "canon": rag_canonical_snapshot(layout["input_dir"]),
+    }
+
+
+def _build_authoritative_semantic_projection(args, layout: dict, contract: dict) -> dict:
+    semantic_result = build_semantic_text_outputs(
+        canon_glob=str(layout["input_dir"] / "tiddlers_*.jsonl"),
+        out_dir=layout["semantic_dir"],
+        session=args.run_id,
+        tag_policy=contract["tag_policy_path"],
+        strict_tag_gate=True,
+        type_policy=contract["semantic_type_policy_path"],
+        dry_run_ready_glob="",
+        patch_preview_glob="",
+        promoted_metadata_by_id=contract["promoted_metadata"],
+    )
+    record_path = Path(semantic_result["paths"]["records"])
+    records = read_metadata_candidates(record_path)
+    by_id = {str(record.get("id")): record for record in records if record.get("id")}
+    if len(by_id) != contract["canon"]["source_canon_record_count"]:
+        raise ValueError(
+            "semantic builder record count does not match current canon: "
+            f"{len(by_id)} != {contract['canon']['source_canon_record_count']}"
+        )
+    return {"by_id": by_id, "result": semantic_result}
+
+
+def _preview_invariant_context(semantic_by_id: dict) -> dict:
+    """Contextual metrics not owned by the reusable RAG gate.
+
+    ``validate_rag_tag_gate.py`` owns the actual template/edge verdict so the
+    CLI and the operator menu cannot overwrite it with a weaker report.
+    """
+
+    formal_metadata_records = sum(
+        1
+        for projection in semantic_by_id.values()
+        if (projection.get("promoted_metadata") or {}).get("formal_relation_vocab")
+    )
+    return {
+        "formal_relation_vocab_records": formal_metadata_records,
+    }
+
+
+def _write_plan_markdown(plan: dict) -> str:
+    return "\n".join(
+        [
+            "# Plan de derivación RAG-safe",
+            "",
+            f"- run_id: `{plan['run_id']}`",
+            f"- estado: `{plan['status']}`",
+            f"- gate: `{plan['gate_status']}`",
+            f"- canon: `{plan['source_canon_version_id']}`",
+            f"- productive_write_allowed: `{str(plan['productive_write_allowed']).lower()}`",
+            f"- razón: {plan['productive_write_reason']}",
+            "",
+            "S0173 deberá verificar de nuevo los hashes antes de cualquier escritura productiva.",
+            "",
+        ]
+    )
+
+
+def _write_preview_evidence(args, layout: dict, contract: dict, semantic_projection: dict,
+                            ai_records: list[dict], all_chunks: list[dict], copilot_artifacts: dict) -> dict:
+    invariant_context = _preview_invariant_context(semantic_projection["by_id"])
+    gate = build_gate_report(
+        policy=contract["tag_policy"],
+        inventory=contract["tag_inventory"],
+        roots=[layout["semantic_dir"], layout["ai_dir"], layout["microsoft_copilot_dir"]],
+        session=getattr(args, "session", "S0172"),
+        run_id=args.run_id,
+        enforce_p1_raw=True,
+    )
+    gate.update(invariant_context)
+    gate["preview_scope"] = {
+        "included": [str(layout["semantic_dir"]), str(layout["ai_dir"]), str(layout["microsoft_copilot_dir"])],
+        "excluded_traceability_surfaces": [str(layout["enriched_dir"])],
+        "reason": "raw source tags remain enriched traceability fields only; all RAG-facing semantic, retrieval, embedding and Copilot surfaces are audited",
+    }
+    # A warning is blocking by contract: it cannot be promoted silently by a
+    # future writer.  Never downgrade the validator's own status.
+    gate["blocking"] = gate["status"] != "pass"
+    write_rag_gate_report(layout["gate_report"], layout["gate_report_md"], gate)
+    preview_manifest = {
+        "schema_version": "rag-preview-manifest/v1",
+        "run_id": args.run_id,
+        **contract["canon"],
+        "productive_orchestrator": "derive_layers.py",
+        "productive_orchestrator_path": str(contract["productive_orchestrator_path"]),
+        "productive_orchestrator_hash": contract["productive_orchestrator_hash"],
+        "semantic_builder": "semantic_text_builder.py",
+        "tag_policy_version": TAG_SANITATION_POLICY_VERSION,
+        "tag_policy_hash": contract["tag_policy_hash"],
+        "metadata_policy_version": METADATA_PROMOTION_POLICY_VERSION,
+        "metadata_policy_hash": contract["metadata_policy_hash"],
+        "metadata_candidates_path": str(contract["metadata_candidates_path"]),
+        "metadata_candidates_hash": contract["metadata_candidates_hash"],
+        "tag_inventory_path": str(contract["tag_inventory_path"]),
+        "tag_inventory_hash": contract["tag_inventory_hash"],
+        "semantic_builder_path": str(contract["semantic_builder_path"]),
+        "semantic_builder_hash": contract["semantic_builder_hash"],
+        "semantic_type_policy_path": str(contract["semantic_type_policy_path"]),
+        "semantic_type_policy_hash": contract["semantic_type_policy_hash"],
+        "semantic_dynamic_relation_preview_inputs": False,
+        "derivation_profile_version": contract["profile"]["schema_version"],
+        "derivation_profile_hash": contract["profile_hash"],
+        "record_count": len(ai_records),
+        "chunk_count": len(all_chunks),
+        "artifact_families": ["enriched", "ai", "chunks_ai", "microsoft_copilot"],
+        "output_root": str(layout["output_root"]),
+        "semantic_builder_result": semantic_projection["result"],
+        "copilot_artifact_count": copilot_artifacts.get("artifact_count", 0),
+        "gate_status": gate["status"],
+        "productive_write": False,
+        "canon_modified": False,
+        "productive_derivatives_modified": False,
+        "productive_regeneration_executed": False,
+        "producer_execution_mode": layout["mode"],
+        "authority_state": "staging" if layout["mode"] == "staging" else "preview",
+    }
+    write_rag_json(layout["preview_manifest"], preview_manifest)
+    plan = build_rag_derivation_plan(
+        run_id=args.run_id,
+        canon=contract["canon"],
+        preview_manifest_path=layout["preview_manifest"],
+        gate_report_path=layout["gate_report"],
+        profile_path=contract["profile_path"],
+        tag_policy_path=contract["tag_policy_path"],
+        metadata_policy_path=contract["metadata_policy_path"],
+        metadata_candidates_path=contract["metadata_candidates_path"],
+        tag_inventory_path=contract["tag_inventory_path"],
+        semantic_builder_path=contract["semantic_builder_path"],
+        semantic_type_policy_path=contract["semantic_type_policy_path"],
+        productive_orchestrator_path=contract["productive_orchestrator_path"],
+        gate_report=gate,
+        planned_productive_outputs=[
+            "data/out/local/enriched/",
+            "data/out/local/ai/",
+            "data/out/local/microsoft_copilot/",
+        ],
+    )
+    write_rag_json(layout["plan_out"], plan)
+    layout["plan_out"].with_suffix(".md").write_text(_write_plan_markdown(plan), encoding="utf-8")
+    summary = {
+        "schema_version": "rag-derivation-preview-summary/v1",
+        "run_id": args.run_id,
+        "record_count": len(ai_records),
+        "chunk_count": len(all_chunks),
+        "gate_status": gate["status"],
+        "template_nodes_as_topics": gate["template_nodes_as_topics"],
+        "formal_relation_edges_emitted": gate["formal_relation_edges_emitted"],
+        "productive_write": False,
+        "canon_modified": False,
+        "productive_derivatives_modified": False,
+        "producer_execution_mode": layout["mode"],
+    }
+    summary_name = "staging_summary.json" if layout["mode"] == "staging" else "preview_summary.json"
+    write_rag_json(layout["output_root"].parent / summary_name, summary)
+    return {"gate": gate, "preview_manifest": preview_manifest, "plan": plan, "summary": summary}
+
+
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="derive_layers.py — S55 governed derivation entrypoint for tiddly-data-converter"
+    )
+    parser.add_argument(
+        "--mode", choices=("preview", "staging", "plan", "production"), default="production",
+        help="preview/staging write only an isolated RAG-safe root; production remains evidence-gated",
+    )
+    parser.add_argument(
+        "--out-dir", default=None,
+        help="Required isolated root for --mode preview/staging; never defaults to productive output paths",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Required safety declaration for preview/staging mode; evidence is written only below --out-dir",
+    )
+    parser.add_argument("--profile", default=str(DEFAULT_RAG_DERIVATION_PROFILE_PATH))
+    parser.add_argument("--tag-policy", default=None)
+    parser.add_argument("--metadata-policy", default=None)
+    parser.add_argument("--metadata-candidates", default=str(DEFAULT_METADATA_CANDIDATES))
+    parser.add_argument("--tag-inventory", default=str(DEFAULT_TAG_INVENTORY))
+    parser.add_argument("--run-id", default="s0172-rag-derivation-preview")
+    parser.add_argument("--session", default="S0172")
+    parser.add_argument("--preview-manifest", default=None)
+    parser.add_argument("--gate-report", default=None)
+    parser.add_argument("--gate-report-md", default=None)
+    parser.add_argument("--plan-out", default=None)
+    parser.add_argument("--plan", default=None, help="Existing plan required for guarded production.")
+    parser.add_argument("--productive-preflight-report", default=None)
+    parser.add_argument(
+        "--allow-productive-write", action="store_true",
+        help="Future-session explicit request; still denied unless all plan evidence is current and permits it.",
     )
     parser.add_argument(
         "--input-dir", default=None,
@@ -2910,16 +3438,32 @@ def parse_args():
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
-def main():
-    args = parse_args()
+def run_derivation(args, layout: dict, rag_context: dict | None = None):
+    """Run the one authoritative derivation path against preview or production roots."""
 
-    input_dir = resolve_repo_path(args.input_dir, DEFAULT_CANON_DIR)
-    enriched_dir = resolve_repo_path(args.enriched_dir, DEFAULT_ENRICHED_DIR)
-    ai_dir = resolve_repo_path(args.ai_dir, DEFAULT_AI_DIR)
-    reports_dir = resolve_repo_path(args.reports_dir, DEFAULT_AI_REPORTS_DIR)
-    audit_dir = resolve_repo_path(args.audit_dir, DEFAULT_AUDIT_DIR)
-    export_dir = resolve_repo_path(args.export_dir, DEFAULT_EXPORT_DIR)
-    microsoft_copilot_dir = resolve_repo_path(args.microsoft_copilot_dir, DEFAULT_MICROSOFT_COPILOT_DIR)
+    if not rag_context or not rag_context.get("semantic_by_id"):
+        raise RuntimeError(
+            "derive_layers orchestration requires an authoritative semantic projection; "
+            "legacy local semantic helpers are not a productive writer path"
+        )
+    if layout.get("mode") == "production":
+        # Productive persistence belongs to the governed writer boundary.  The
+        # authoritative producer emits isolated staging; a separate S0174
+        # governance action promotes that frozen payload after all gates and
+        # human authorization.  This deny-by-construction guard prevents a
+        # direct ``write_sharded(..., data/out/local/...)`` bypass.
+        raise ProductiveWriteBlocked(
+            "derive_layers.py does not write productive directories directly; "
+            "promote approved staging through rag_derivative_writers.py"
+        )
+
+    input_dir = layout["input_dir"]
+    enriched_dir = layout["enriched_dir"]
+    ai_dir = layout["ai_dir"]
+    reports_dir = layout["reports_dir"]
+    audit_dir = layout["audit_dir"]
+    export_dir = layout["export_dir"]
+    microsoft_copilot_dir = layout["microsoft_copilot_dir"]
 
     target_tokens = args.chunk_target_tokens
     max_tokens = args.chunk_max_tokens
@@ -2977,8 +3521,19 @@ def main():
     print(f"\n[{SESSION}] Phase 2: Building Capa A — Enriched Canonical Export...")
     enriched_records = []
     for rec, shard_file, line_num, role, taxonomy, section in classified:
+        rag_projection = (rag_context or {}).get("semantic_by_id", {}).get(str(rec.get("id")))
+        if layout["mode"] in {"preview", "staging"} and rag_projection is None:
+            raise ValueError(f"missing authoritative semantic projection for canon record {rec.get('id')}")
         enriched_records.append(
-            build_enriched_record(rec, shard_file, line_num, role, taxonomy, section)
+            build_enriched_record(
+                rec,
+                shard_file,
+                line_num,
+                role,
+                taxonomy,
+                section,
+                rag_projection=rag_projection,
+            )
         )
 
     enriched_shards_info = write_sharded(
@@ -3007,10 +3562,12 @@ def main():
     chunk_qc_events = []
 
     for rec, shard_file, line_num, role, taxonomy, section in classified:
+        rag_projection = (rag_context or {}).get("semantic_by_id", {}).get(str(rec.get("id")))
         ai_rec, chunks, invalid_rels, payload_info, relation_event = build_ai_record(
             rec, shard_file, line_num, role, taxonomy, section,
             known_ids, relation_index, target_tokens, max_tokens,
             relation_propagation_context,
+            rag_projection=rag_projection,
         )
         ai_records.append(ai_rec)
         all_chunks.extend(chunks)
@@ -3093,7 +3650,21 @@ def main():
         export_dir,
         microsoft_copilot_dir,
         tiddler_shard_size,
+        input_dir=input_dir,
     )
+    preview_evidence = None
+    if layout["mode"] in {"preview", "staging"}:
+        if rag_context is None:
+            raise ValueError("preview requires a RAG policy context")
+        preview_evidence = _write_preview_evidence(
+            args,
+            layout,
+            rag_context["contract"],
+            rag_context["semantic_projection"],
+            ai_records,
+            all_chunks,
+            copilot_artifacts,
+        )
     print(
         f"  Wrote {len(copilot_artifacts['records'])} microsoft_copilot entities"
         f" → {copilot_artifacts['artifact_count']} JSON/CSV/TXT artifacts"
@@ -3102,6 +3673,10 @@ def main():
     print(f"  {copilot_artifacts['navigation_path']}")
     print(f"  {copilot_artifacts['source_report_path']}")
     print(f"  {copilot_artifacts['overview_path']}")
+    if preview_evidence is not None:
+        print(f"  RAG gate: {preview_evidence['gate']['status']}")
+        print(f"  Preview manifest: {layout['preview_manifest']}")
+        print(f"  Derivation plan: {layout['plan_out']}")
 
     # ── Summary ──
     over_max = sum(1 for c in all_chunks if not c.get("within_hard_max"))
@@ -3123,7 +3698,117 @@ def main():
         sys.exit(2)
 
     print(f"\n[{SESSION}] Derivation complete.")
+    return preview_evidence
+
+
+def _refresh_existing_preview_plan(args, layout: dict, contract: dict) -> dict:
+    preview = load_rag_json(layout["preview_manifest"], label="preview manifest")
+    gate = load_rag_json(layout["gate_report"], label="rag gate report")
+    plan = build_rag_derivation_plan(
+        run_id=args.run_id,
+        canon=contract["canon"],
+        preview_manifest_path=layout["preview_manifest"],
+        gate_report_path=layout["gate_report"],
+        profile_path=contract["profile_path"],
+        tag_policy_path=contract["tag_policy_path"],
+        metadata_policy_path=contract["metadata_policy_path"],
+        metadata_candidates_path=contract["metadata_candidates_path"],
+        tag_inventory_path=contract["tag_inventory_path"],
+        semantic_builder_path=contract["semantic_builder_path"],
+        semantic_type_policy_path=contract["semantic_type_policy_path"],
+        gate_report=gate,
+        planned_productive_outputs=[
+            "data/out/local/enriched/",
+            "data/out/local/ai/",
+            "data/out/local/microsoft_copilot/",
+        ],
+    )
+    matching_canon = (
+        preview.get("source_canon_version_id") == contract["canon"]["source_canon_version_id"]
+        and preview.get("source_canon_hash") == contract["canon"]["source_canon_hash"]
+    )
+    matching_profile = preview.get("derivation_profile_hash") == contract["profile_hash"]
+    matching_policies = (
+        preview.get("tag_policy_hash") == contract["tag_policy_hash"]
+        and preview.get("metadata_policy_hash") == contract["metadata_policy_hash"]
+    )
+    matching_additional_inputs = (
+        preview.get("metadata_candidates_hash") == contract["metadata_candidates_hash"]
+        and preview.get("tag_inventory_hash") == contract["tag_inventory_hash"]
+        and preview.get("semantic_builder_hash") == contract["semantic_builder_hash"]
+        and preview.get("semantic_type_policy_hash") == contract["semantic_type_policy_hash"]
+        and preview.get("semantic_dynamic_relation_preview_inputs") is False
+    )
+    if not (matching_canon and matching_profile and matching_policies and matching_additional_inputs):
+        plan["status"] = "stale"
+        plan["productive_write_reason"] = "Preview evidence is stale; regenerate an isolated preview before S0173."
+    write_rag_json(layout["plan_out"], plan)
+    layout["plan_out"].with_suffix(".md").write_text(_write_plan_markdown(plan), encoding="utf-8")
+    return plan
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        layout = _resolve_derivation_layout(args)
+        contract = _load_rag_contract_inputs(args, layout)
+        if args.mode == "plan":
+            plan = _refresh_existing_preview_plan(args, layout, contract)
+            print(json.dumps({"plan": str(layout["plan_out"]), "status": plan["status"]}, ensure_ascii=False))
+            return 0
+
+        if args.mode == "production":
+            plan_path = _resolve_rag_path(args.plan, layout["plan_out"])
+            _assert_preview_target_isolated(plan_path, label="productive derivation plan")
+            preflight = evaluate_productive_write_preflight(
+                plan_path=plan_path,
+                preview_manifest_path=layout["preview_manifest"],
+                gate_report_path=layout["gate_report"],
+                profile_path=contract["profile_path"],
+                tag_policy_path=contract["tag_policy_path"],
+                metadata_policy_path=contract["metadata_policy_path"],
+                metadata_candidates_path=contract["metadata_candidates_path"],
+                tag_inventory_path=contract["tag_inventory_path"],
+                semantic_builder_path=contract["semantic_builder_path"],
+                semantic_type_policy_path=contract["semantic_type_policy_path"],
+                productive_orchestrator_path=contract["productive_orchestrator_path"],
+                canon=contract["canon"],
+            )
+            write_rag_json(layout["productive_preflight_report"], preflight)
+            if not args.allow_productive_write:
+                preflight["blocking_reasons"] = sorted(
+                    set(preflight["blocking_reasons"] + ["explicit_allow_productive_write_missing"])
+                )
+                preflight["productive_write_allowed"] = False
+                write_rag_json(layout["productive_preflight_report"], preflight)
+            require_productive_write_permission(preflight)
+            # A future authorized session may reach this shared orchestration
+            # path only after all evidence checks above pass.  S0172's plan
+            # intentionally never grants that permission.
+            semantic_projection = _build_authoritative_semantic_projection(args, layout, contract)
+            run_derivation(
+                args,
+                layout,
+                rag_context={
+                    "contract": contract,
+                    "semantic_projection": semantic_projection,
+                    "semantic_by_id": semantic_projection["by_id"],
+                    "productive_preflight": preflight,
+                },
+            )
+            return 0
+
+        semantic_projection = _build_authoritative_semantic_projection(args, layout, contract)
+        run_derivation(
+            args,
+            layout,
+            rag_context={"contract": contract, "semantic_projection": semantic_projection, "semantic_by_id": semantic_projection["by_id"]},
+        )
+        return 0
+    except Exception as exc:  # CLI boundary: menu callers get a useful blocked state, not a traceback.
+        print(f"derive_layers.py blocked: {exc}", file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
