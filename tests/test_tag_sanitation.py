@@ -12,7 +12,7 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 from audit_tags_inventory import build_inventory, read_canon_records  # noqa: E402
 from build_tag_sanitation_plan import build_plan  # noqa: E402
 from tag_sanitation_policy import classify_tag, classify_tag_for_rag, filter_tags_for_rag, load_policy, write_default_policy  # noqa: E402
-from validate_rag_tag_gate import build_gate_report  # noqa: E402
+from validate_rag_tag_gate import build_gate_report, main as rag_gate_main  # noqa: E402
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> Path:
@@ -137,6 +137,123 @@ def test_rag_gate_blocks_legacy_contaminated_outputs(tmp_path: Path) -> None:
 
     assert report["status"] == "blocked"
     assert report["p0_tags_in_embedding_metadata"] == 1
+
+
+def test_rag_gate_p1_raw_enforcement_is_opt_in(tmp_path: Path) -> None:
+    policy = write_default_policy(tmp_path / "policy.json")
+    inventory = {
+        "tags": [
+            {"tag": "--- Codigo", "classification": "p0_blocked", "count": 1},
+            {"tag": "topic:rag", "classification": "p1_promote", "count": 3},
+        ],
+    }
+    _write_jsonl(
+        tmp_path / "rag" / "records.jsonl",
+        [
+            {
+                "id": "r1",
+                "semantic_text": "raw source tag topic:rag",
+                "retrieval_hints": ["topic:rag"],
+                "embedding_metadata": {
+                    "promotion": {"topics": ["rag"]},
+                    "source_tags": ["topic:rag"],
+                },
+            }
+        ],
+    )
+
+    legacy_report = build_gate_report(policy=policy, inventory=inventory, roots=[tmp_path / "rag"])
+    enforced_report = build_gate_report(
+        policy=policy,
+        inventory=inventory,
+        roots=[tmp_path / "rag"],
+        enforce_p1_raw=True,
+    )
+
+    assert legacy_report["status"] == "pass"
+    assert legacy_report["p1_raw_tags_in_semantic_text"] == 0
+    assert legacy_report["p1_raw_tags_in_retrieval_hints"] == 0
+    assert legacy_report["p1_raw_tags_in_embedding_metadata"] == 0
+    assert enforced_report["status"] == "blocked"
+    assert enforced_report["p1_raw_tags_in_semantic_text"] == 1
+    assert enforced_report["p1_raw_tags_in_retrieval_hints"] == 1
+    assert enforced_report["p1_raw_tags_in_embedding_metadata"] == 1
+    assert {finding["tag_kind"] for finding in enforced_report["blocked_records"]} == {"p1"}
+
+
+def test_rag_gate_p1_raw_ignores_normalized_promoted_values(tmp_path: Path) -> None:
+    policy = write_default_policy(tmp_path / "policy.json")
+    inventory = {
+        "tags": [
+            {"tag": "--- Codigo", "classification": "p0_blocked", "count": 1},
+            {"tag": "topic:rag", "classification": "p1_promote", "count": 1},
+            {"tag": "session:s0171", "classification": "p1_promote", "count": 1},
+        ],
+    }
+    _write_jsonl(
+        tmp_path / "preview" / "records.jsonl",
+        [
+            {
+                "id": "r1",
+                "semantic_text": "RAG metadata promotion",
+                "retrieval_hints": ["topic=rag", "session=s0171"],
+                "embedding_metadata": {
+                    "promoted_metadata": {"topics": ["rag"], "session_id": "s0171"},
+                },
+            }
+        ],
+    )
+
+    report = build_gate_report(
+        policy=policy,
+        inventory=inventory,
+        roots=[tmp_path / "preview"],
+        enforce_p1_raw=True,
+    )
+
+    assert report["status"] == "pass"
+    assert report["p1_raw_tags_in_semantic_text"] == 0
+    assert report["p1_raw_tags_in_retrieval_hints"] == 0
+    assert report["p1_raw_tags_in_embedding_metadata"] == 0
+
+
+def test_rag_gate_cli_enforces_p1_raw(monkeypatch, tmp_path: Path) -> None:
+    policy_path = tmp_path / "policy.json"
+    write_default_policy(policy_path)
+    inventory_path = _write_jsonl(
+        tmp_path / "inventory.json",
+        [{"tags": [{"tag": "topic:rag", "classification": "p1_promote", "count": 1}]}],
+    )
+    _write_jsonl(
+        tmp_path / "rag" / "records.jsonl",
+        [{"id": "r1", "retrieval_hints": ["topic:rag"]}],
+    )
+    report_path = tmp_path / "report.json"
+    report_md_path = tmp_path / "report.md"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "validate_rag_tag_gate.py",
+            "--policy",
+            str(policy_path),
+            "--inventory",
+            str(inventory_path),
+            "--input-dir",
+            str(tmp_path / "rag"),
+            "--report",
+            str(report_path),
+            "--report-md",
+            str(report_md_path),
+            "--enforce-p1-raw",
+        ],
+    )
+
+    assert rag_gate_main() == 0
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "blocked"
+    assert report["enforce_p1_raw"] is True
+    assert report["p1_raw_tags_in_retrieval_hints"] == 1
 
 
 def test_tag_policy_required_in_strict_mode(tmp_path: Path) -> None:

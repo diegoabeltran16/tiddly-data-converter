@@ -201,7 +201,15 @@ def derive_corpus_policy(rec: dict, role: str) -> dict:
 # ── Enriched record builder ────────────────────────────────────────────────────
 
 def build_enriched_record(rec: dict, shard_file: str, line_num: int,
-                           role: str, taxonomy: list, section: list) -> dict:
+                           role: str, taxonomy: list, section: list,
+                           rag_projection: dict | None = None) -> dict:
+    """Build an enriched record.
+
+    ``rag_projection`` is supplied only by the authoritative
+    ``derive_layers.py`` orchestration path.  When present it carries the
+    sanitized semantic representation built by ``semantic_text_builder``;
+    this module deliberately does not recreate sanitation or promotion rules.
+    """
     text = safe_str(rec.get("text"))
     content = rec.get("content") or {}
     token_est = estimate_tokens(text)
@@ -251,7 +259,11 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
         "corpus_state_rule_id": corpus_policy["corpus_state_rule_id"],
         # Derived deterministic fields
         "preview_text": compute_preview_text(rec),
-        "semantic_text": compute_semantic_text(rec),
+        "semantic_text": (
+            rag_projection.get("semantic_text", "")
+            if rag_projection is not None
+            else compute_semantic_text(rec)
+        ),
         "content": {
             "plain": safe_str(content.get("plain")),
             "markdown": text if is_prose else None,
@@ -277,4 +289,10 @@ def build_enriched_record(rec: dict, shard_file: str, line_num: int,
             "governance_policy_ref": CANON_POLICY_BUNDLE_REL,
         },
     }
+    # Keep the legacy productive schema untouched unless the authoritative
+    # RAG-safe projection was explicitly supplied by derive_layers.py.
+    if rag_projection is not None:
+        enriched["retrieval_hints"] = list(rag_projection.get("retrieval_hints") or [])
+        enriched["embedding_metadata"] = dict(rag_projection.get("embedding_metadata") or {})
+        enriched["derivation"]["semantic_builder"] = "semantic_text_builder.py"
     return enriched

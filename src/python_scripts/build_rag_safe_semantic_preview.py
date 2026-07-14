@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from audit_tags_inventory import DEFAULT_CANON_GLOB, read_canon_records
+from build_rag_filter_preview import build_promoted_metadata_index, read_jsonl
+from metadata_promotion_policy import load_policy as load_metadata_promotion_policy
 from semantic_text_builder import build_semantic_text_outputs
 from tag_sanitation_policy import DEFAULT_POLICY_PATH, filter_tags_for_rag, load_policy, stable_json
 
@@ -83,8 +85,11 @@ def main() -> int:
     parser.add_argument("--canon-dir", help="Canon dir; converted to <dir>/tiddlers_*.jsonl.")
     parser.add_argument("--tag-policy", default=str(DEFAULT_POLICY_PATH))
     parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
-    parser.add_argument("--preview-dir", default=str(DEFAULT_PREVIEW_DIR))
+    parser.add_argument("--preview-dir")
     parser.add_argument("--run-id", default="s0170-rag-safe-preview")
+    parser.add_argument("--session", default="S0170")
+    parser.add_argument("--metadata-promotion-policy")
+    parser.add_argument("--metadata-candidates")
     parser.add_argument("--strict-tag-gate", action="store_true", default=True)
     parser.add_argument("--dry-run", action="store_true", default=True)
     args = parser.parse_args()
@@ -94,10 +99,27 @@ def main() -> int:
 
     canon_glob = str(Path(args.canon_dir) / "tiddlers_*.jsonl") if args.canon_dir else args.canon_glob
     out_dir = Path(args.out_dir)
-    preview_dir = Path(args.preview_dir)
+    if args.preview_dir:
+        preview_dir = Path(args.preview_dir)
+    elif args.metadata_candidates or args.metadata_promotion_policy or args.session.upper() == "S0171":
+        preview_dir = out_dir / "preview"
+    else:
+        preview_dir = DEFAULT_PREVIEW_DIR
     policy = load_policy(args.tag_policy)
     records = read_canon_records(canon_glob)
     review = collect_tag_review(records, policy)
+    promoted_metadata = None
+    promotion_policy_version = None
+    if args.metadata_candidates:
+        promotion_policy = load_metadata_promotion_policy(
+            args.metadata_promotion_policy
+            or "data/out/local/pipeline/metadata_promotion/s0171/metadata_promotion_policy.json"
+        )
+        promoted_metadata = build_promoted_metadata_index(
+            read_jsonl(args.metadata_candidates),
+            allowed_fields=set(promotion_policy["allowed_fields"]),
+        )
+        promotion_policy_version = promotion_policy.get("policy_version")
 
     result = build_semantic_text_outputs(
         canon_glob=canon_glob,
@@ -105,34 +127,43 @@ def main() -> int:
         session=args.run_id,
         tag_policy=Path(args.tag_policy),
         strict_tag_gate=args.strict_tag_gate,
+        promoted_metadata_by_id=promoted_metadata,
     )
 
     manifest = {
         "schema": "rag-safe-preview-manifest/v1",
-        "session": "S0170",
+        "session": args.session.upper(),
         "run_id": args.run_id,
         "dry_run": True,
         "canon_modified": False,
         "productive_derivatives_modified": False,
         "tag_policy": str(args.tag_policy),
+        "metadata_promotion_policy": args.metadata_promotion_policy,
+        "metadata_candidates": args.metadata_candidates,
+        "metadata_promotion_policy_version": promotion_policy_version,
         "preview_dir": str(preview_dir),
         "semantic_text_result": result,
         "tag_review_summary": review["summary"],
     }
     policy_report = {
         "schema": "semantic-text-builder-policy-report/v1",
-        "session": "S0170",
+        "session": args.session.upper(),
         "run_id": args.run_id,
         "policy_version": policy.get("policy_version"),
         "strict_tag_gate": args.strict_tag_gate,
-        "flow": "source_tags -> tag_sanitation_policy -> classified_tags -> rag_allowed_tags/metadata_only/human_navigation/blocked/unknown -> semantic_text/retrieval_hints/embedding_metadata",
+        "flow": (
+            "source_tags -> tag_sanitation_policy -> metadata-promotion/v1 -> "
+            "normalized promoted metadata -> semantic_text/retrieval_hints/embedding_metadata"
+            if promoted_metadata is not None
+            else "source_tags -> tag_sanitation_policy -> classified_tags -> rag_allowed_tags/metadata_only/human_navigation/blocked/unknown -> semantic_text/retrieval_hints/embedding_metadata"
+        ),
         "canon_modified": False,
         "productive_derivatives_modified": False,
         "builder_summary": result["summary"],
     }
     unknown_queue = {
         "schema": "unknown-tag-review-queue/v1",
-        "session": "S0170",
+        "session": args.session.upper(),
         "unknown_tags_unique": review["summary"]["unknown_tags_unique"],
         "unknown_tags_occurrences": review["summary"]["unknown_tags_occurrences"],
         "recommended_review": "unknown tags are excluded from RAG by default until human review",
@@ -140,7 +171,7 @@ def main() -> int:
     }
     blocked_samples = {
         "schema": "blocked-tag-samples/v1",
-        "session": "S0170",
+        "session": args.session.upper(),
         "blocked_tags_unique": review["summary"]["blocked_tags_unique"],
         "blocked_tags_occurrences": review["summary"]["blocked_tags_occurrences"],
         "items": review["blocked"][:200],
