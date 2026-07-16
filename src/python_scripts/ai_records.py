@@ -951,6 +951,9 @@ def build_ai_record(rec: dict, shard_file: str, line_num: int,
     ai_rec = {
         "id": node_id,
         "node_id": node_id,
+        # Keep the canonical revision explicit in every derivative family.
+        # It is provenance, not a semantic reinterpretation by the writer.
+        "version_id": rec.get("version_id"),
         "title": rec.get("title"),
         "canon_role_primary": canon_role,
         "role_primary": role,
