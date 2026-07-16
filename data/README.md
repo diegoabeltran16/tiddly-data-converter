@@ -18,6 +18,7 @@
 - `data/out/local/export/`
 - `data/out/local/tiddlers-export/`: salida runtime del exportador de repositorio; contiene tiddlers JSON documentales y estado incremental bajo `hashes_rep_export/.hashes.json`; no es canon ni reemplaza `data/out/local/export/`
 - `data/out/local/microsoft_copilot/`: proyección derivada legible por Microsoft Copilot y otros agentes remotos; regenerable, trazable, no autoritativa y emitida como JSON/CSV/TXT; incluye sublayer `copilot_agent/` con paquete semántico reversible (`corpus.txt`, `entities.json`, `relations.csv`)
+- `data/out/local/pipeline/rag_admission/` y `data/out/local/audit/rag_admission/`: staging, autorizaciones, snapshots, journals, receipts y estado reconstruible de la admisión RAG; no son canon ni una superficie remota
 
 Reglas:
 

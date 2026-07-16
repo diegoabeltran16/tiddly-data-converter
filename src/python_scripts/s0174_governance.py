@@ -43,6 +43,11 @@ PRODUCTIVE_ROOTS = {
     "microsoft_copilot": LOCAL_ROOT / "microsoft_copilot",
 }
 PLANNED_FAMILIES = tuple(PRODUCTIVE_ROOTS)
+NON_BLOCKING_EQUIVALENCE_STATUSES = {
+    "equivalent",
+    "equivalent_with_declared_operational_differences",
+    "equivalent_with_expected_canonical_evolution",
+}
 
 
 def utc_now() -> str:
@@ -301,7 +306,7 @@ def build_governance_gate(
         reasons.append("staging_authority_state_invalid")
     if gate.get("status") != "pass" or gate.get("blocking") is True:
         reasons.append("technical_gate_not_pass")
-    if equivalence.get("equivalence_status") != "equivalent_with_declared_operational_differences" or equivalence.get("blocking") is True:
+    if equivalence.get("equivalence_status") not in NON_BLOCKING_EQUIVALENCE_STATUSES or equivalence.get("blocking") is True:
         reasons.append("staging_equivalence_not_pass")
     if rollback.get("rollback_ready") is not True:
         reasons.append("rollback_not_ready")

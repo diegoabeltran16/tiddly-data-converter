@@ -386,13 +386,16 @@ def rollback_productive_transaction(
             _restore_family_from_snapshot(target, snapshot)
             observed = _tree_manifest(target)
             expected = sorted(
-                {
-                    "relative_path": entry.get("relative_path"),
-                    "sha256": entry.get("sha256"),
-                    "size_bytes": entry.get("size_bytes"),
-                }
-                for entry in manifest.get("files", [])
-                if entry.get("artifact_family") == family
+                (
+                    {
+                        "relative_path": entry.get("relative_path"),
+                        "sha256": entry.get("sha256"),
+                        "size_bytes": entry.get("size_bytes"),
+                    }
+                    for entry in manifest.get("files", [])
+                    if entry.get("artifact_family") == family
+                ),
+                key=lambda item: str(item.get("relative_path") or ""),
             )
             restored.append({
                 "family": family,

@@ -235,6 +235,8 @@ RAG_DERIVATION_EVIDENCE_ROOT = RAG_DERIVATION_ROOT.parent
 RAG_DERIVATION_PREVIEW_ROOT = RAG_DERIVATION_ROOT / "preview"
 RAG_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0172"
 RAG_DERIVATION_AUDIT_EVIDENCE_ROOT = RAG_DERIVATION_AUDIT_ROOT.parent
+RAG_ADMISSION_PIPELINE_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_admission"
+RAG_ADMISSION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_admission"
 DEFAULT_METADATA_CANDIDATES = (
     REPO_ROOT
     / "data"
@@ -1063,6 +1065,10 @@ def build_s61_projection_items(
         items.append(
             {
                 "id": canon_rec.get("id"),
+                # Equivalence v2 validates this direct projection against the
+                # live canonical index.  ``content_hash`` remains for older
+                # readers that already consume the historical Copilot shape.
+                "version_id": canon_rec.get("version_id"),
                 "title": canon_rec.get("title"),
                 "type": role,
                 "summary": derive_microsoft_copilot_summary(canon_rec, ai_rec, role),
@@ -2946,8 +2952,8 @@ def _is_within(path: Path, root: Path) -> bool:
 def _assert_preview_target_isolated(path: Path, *, label: str, allow_audit: bool = False) -> None:
     """Reject a preview/evidence destination that can overlap live outputs.
 
-    External temporary roots remain useful for fixture tests, but an in-repo
-    S0172 preview must live in its declared pipeline/audit evidence roots.
+    External temporary roots remain useful for fixture tests. In-repo staging
+    must live below a governed legacy or stable RAG evidence root.
     """
 
     productive_roots = (
@@ -2963,9 +2969,10 @@ def _assert_preview_target_isolated(path: Path, *, label: str, allow_audit: bool
     if path.resolve() == DEFAULT_CANON_DIR.resolve() or _is_within(DEFAULT_CANON_DIR, path):
         raise ValueError(f"{label} must not be the canon directory or one of its ancestors: {path}")
     if _is_within(path, REPO_ROOT):
-        allowed_root = RAG_DERIVATION_AUDIT_EVIDENCE_ROOT if allow_audit else RAG_DERIVATION_EVIDENCE_ROOT
-        if not _is_within(path, allowed_root):
-            raise ValueError(f"{label} must remain under its S0172 evidence root: {path}")
+        legacy_root = RAG_DERIVATION_AUDIT_EVIDENCE_ROOT if allow_audit else RAG_DERIVATION_EVIDENCE_ROOT
+        admission_root = RAG_ADMISSION_AUDIT_ROOT if allow_audit else RAG_ADMISSION_PIPELINE_ROOT
+        if not _is_within(path, legacy_root) and not _is_within(path, admission_root):
+            raise ValueError(f"{label} must remain under a governed RAG evidence root: {path}")
 
 
 def _require_persisted_policy(

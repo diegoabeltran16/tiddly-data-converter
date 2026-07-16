@@ -70,6 +70,18 @@ from tdc_cat import (  # noqa: E402
 )
 from repo_metadata_review_menu import option_repo_metadata_admission_menu  # noqa: E402
 from rag_derivation_profile import load_profile as load_rag_derivation_profile  # noqa: E402
+from rag_admission_state import (  # noqa: E402
+    DEFINITIVE_PHRASE,
+    EQUIVALENCE_REPORT as RAG_ADMISSION_EQUIVALENCE_REPORT,
+    GOVERNANCE_GATE as RAG_ADMISSION_GOVERNANCE_GATE,
+    PIPELINE_ROOT as RAG_ADMISSION_ROOT,
+    STAGING_MANIFEST as RAG_ADMISSION_STAGING_MANIFEST,
+    STAGING_ROOT as RAG_ADMISSION_STAGING_ROOT,
+    TECHNICAL_GATE as RAG_ADMISSION_TECHNICAL_GATE,
+    TRIAL_PHRASE,
+    build_state as build_rag_admission_state,
+    resolve_equivalence_baseline,
+)
 from tdc_menu_registry import menu_text as registry_menu_text, resolve_choice as resolve_main_choice  # noqa: E402
 
 
@@ -1679,6 +1691,76 @@ def _s0174_governance_command() -> list[str]:
     ]
 
 
+def _print_rag_admission_status() -> None:
+    """Show stable capability state, rebuilt from evidence on each redraw."""
+
+    state = build_rag_admission_state()
+    equivalence = state["equivalence"]
+    evolution = equivalence.get("evolution") or {}
+    equivalence_label = {
+        "equivalent_with_expected_canonical_evolution": "EVOLUCIÓN CANÓNICA ESPERADA",
+        "equivalent": "EQUIVALENTE",
+        "equivalent_with_declared_operational_differences": "EQUIVALENTE CON DIFERENCIAS OPERATIVAS DECLARADAS",
+    }.get(str(equivalence.get("status")), str(equivalence.get("status")))
+    print("Estado vigente reconstruido desde evidencia en disco:")
+    print(f"- Staging: {'VIGENTE' if state['staging']['current'] else state['verdict']}")
+    print(f"- Technical gate: {str(state['technical_gate']['status']).upper()}")
+    print(f"- Equivalencia: {equivalence_label}")
+    print(f"  - Altas: {evolution.get('additions', 0)}")
+    print(f"  - Actualizaciones: {evolution.get('updates', 0)}")
+    print(f"  - Pérdidas: {evolution.get('removals', 0)}")
+    print(f"  - Regresiones: {evolution.get('regressions', 0)}")
+    print(f"- Governance gate: {str(state['governance_gate']['status']).upper()}")
+    print(f"- Autorización trial: {state['authorization']['trial'].upper()}")
+    print(f"- Trial write: {state['trial_write']['status']}")
+    rollback_status = "ATTEMPT_FAILED" if state["rollback"]["status"] == "attempted_failed" else str(state["rollback"]["status"]).upper()
+    print(f"- Rollback productivo: {rollback_status}")
+    print(f"- Promoción definitiva: {state['definitive_promotion']['status']}")
+    print(f"- Estado RAG: {state['verdict']}")
+    print(f"Siguiente acción segura: {state['next_action']}")
+    if state['blocking_reasons']:
+        print("Bloqueos: " + ", ".join(state['blocking_reasons']))
+
+
+def _rag_admission_command(command: str, phrase: str | None = None) -> list[str]:
+    args = [sys.executable, "src/python_scripts/rag_admission_state.py", command]
+    if phrase is not None:
+        args.extend(["--phrase", phrase])
+    return args
+
+
+def _rag_admission_staging_command() -> list[str]:
+    return [
+        sys.executable, "src/python_scripts/derive_layers.py",
+        "--mode", "staging", "--dry-run", "--session", "governed-rag-admission",
+        "--input-dir", str(DEFAULT_CANON_DIR),
+        "--out-dir", str(RAG_ADMISSION_STAGING_ROOT),
+        "--profile", str(RAG_DERIVATION_PROFILE),
+        "--metadata-candidates", str(RAG_METADATA_CANDIDATES),
+        "--tag-inventory", str(RAG_TAG_INVENTORY),
+        "--run-id", "rag-admission-staging",
+        "--preview-manifest", str(RAG_ADMISSION_STAGING_MANIFEST),
+        "--gate-report", str(RAG_ADMISSION_TECHNICAL_GATE),
+        "--plan-out", str(RAG_ADMISSION_ROOT / "staging_derived_plan.json"),
+    ]
+
+
+def _rag_admission_equivalence_command() -> list[str]:
+    baseline_root, baseline_manifest, baseline_source_type = resolve_equivalence_baseline()
+    return [
+        sys.executable, "src/python_scripts/validate_productive_equivalence.py",
+        "--preview-root", str(baseline_root),
+        "--staging-root", str(RAG_ADMISSION_STAGING_ROOT),
+        "--canon-dir", str(DEFAULT_CANON_DIR),
+        "--baseline-manifest", str(baseline_manifest) if baseline_manifest else "",
+        "--baseline-source-type", baseline_source_type,
+        "--staging-manifest", str(RAG_ADMISSION_STAGING_MANIFEST),
+        "--report", str(RAG_ADMISSION_EQUIVALENCE_REPORT),
+        "--report-md", str(RAG_ADMISSION_EQUIVALENCE_REPORT.with_suffix(".md")),
+        "--family", "enriched", "--family", "ai", "--family", "chunks_ai", "--family", "microsoft_copilot",
+    ]
+
+
 def option_derivatives(state: MenuState) -> None:
     del state
     while True:
@@ -1687,16 +1769,20 @@ def option_derivatives(state: MenuState) -> None:
         print("  Canon: SOLO LECTURA")
         print("  Producción: PROTEGIDA")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        _print_rag_derivation_status()
-        print("\n1) Ver estado de derivados y políticas")
-        print("2) Generar preview RAG-safe")
-        print("3) Validar preview / ejecutar gate RAG")
-        print("4) Ver plan de regeneración")
-        print("5) Preparar o refrescar plan")
-        print("6) Regenerar derivados productivos")
-        print("7) Generar staging productivo S0173")
-        print("8) Validar integración y governance S0174")
-        print("9) Avanzado / compatibilidad")
+        _print_rag_admission_status()
+        print("\n1) Ver estado y evidencia")
+        print("2) Actualizar staging RAG-safe")
+        print("3) Validar staging, equivalencia y governance")
+        print("4) Revisar alcance productivo")
+        print("5) Autorizar trial write")
+        print("6) Ejecutar trial write")
+        print("7) Validar trial desde disco")
+        print("8) Ejecutar rollback de prueba")
+        print("9) Verificar restauración")
+        print("10) Autorizar promoción definitiva")
+        print("11) Promover derivados definitivamente")
+        print("12) Ver manifest, recibos y auditoría")
+        print("9x) Avanzado / procedencia histórica")
         print("0) Volver")
         choice = prompt("> ").strip()
         if choice == "0":
@@ -1704,55 +1790,44 @@ def option_derivatives(state: MenuState) -> None:
         if choice == "1":
             continue
         if choice == "2":
-            print_command_result(run_command(_preview_derivation_command(), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_staging_command(), cwd=REPO_ROOT))
             continue
         if choice == "3":
-            semantic_root = RAG_DERIVATION_PREVIEW_ROOT / "semantic_text"
-            ai_root = RAG_DERIVATION_PREVIEW_ROOT / "ai"
-            copilot_root = RAG_DERIVATION_PREVIEW_ROOT / "microsoft_copilot"
-            if not semantic_root.exists() or not ai_root.exists() or not copilot_root.exists():
-                print("estado: no disponible")
-                print("acción sugerida: generar la preview RAG-safe antes de ejecutar el gate.")
-                continue
-            print_command_result(run_command(_preview_gate_command(), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_equivalence_command(), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("refresh-governance"), cwd=REPO_ROOT))
             continue
         if choice == "4":
-            plan, error = _read_rag_derivation_json(RAG_DERIVATION_PLAN)
-            if error:
-                print(f"estado: {error}")
-                print("acción sugerida: generar la preview y después preparar el plan.")
-            else:
-                print(json.dumps(plan, ensure_ascii=False, indent=2))
+            print(json.dumps(build_rag_admission_state(), ensure_ascii=False, indent=2))
             continue
         if choice == "5":
-            if not RAG_DERIVATION_PREVIEW_MANIFEST.exists() or not RAG_DERIVATION_GATE_REPORT.exists():
-                print("estado: no disponible")
-                print("acción sugerida: generar la preview y ejecutar el gate antes de refrescar el plan.")
-                continue
-            command = _preview_derivation_command()
-            command[command.index("preview")] = "plan"
-            command.remove("--dry-run")
-            command.remove("--out-dir")
-            command.remove(str(RAG_DERIVATION_PREVIEW_ROOT))
-            print_command_result(run_command(command, cwd=REPO_ROOT))
+            phrase = prompt(f"Escriba exactamente '{TRIAL_PHRASE}' para autorizar el trial: ").strip()
+            print_command_result(run_command(_rag_admission_command("authorize-trial", phrase), cwd=REPO_ROOT))
             continue
         if choice == "6":
-            print("Regeneración productiva no habilitada en S0172.")
-            print("\nRequisitos:")
-            print("- preview vigente;")
-            print("- gate PASS;")
-            print("- plan válido;")
-            print("- canon y políticas coincidentes;")
-            print("- sesión productiva autorizada;")
-            print("- confirmación humana explícita.")
+            print_command_result(run_command(_rag_admission_command("trial-write"), cwd=REPO_ROOT))
             continue
         if choice == "7":
-            print_command_result(run_command(_s0173_staging_command(), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("validate-trial"), cwd=REPO_ROOT))
             continue
         if choice == "8":
-            print_command_result(run_command(_s0174_governance_command(), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("rollback-trial"), cwd=REPO_ROOT))
             continue
         if choice == "9":
+            print_command_result(run_command(_rag_admission_command("state"), cwd=REPO_ROOT))
+            continue
+        if choice == "10":
+            phrase = prompt(f"Escriba exactamente '{DEFINITIVE_PHRASE}' para autorizar la promoción: ").strip()
+            print_command_result(run_command(_rag_admission_command("authorize-definitive", phrase), cwd=REPO_ROOT))
+            continue
+        if choice == "11":
+            print_command_result(run_command(_rag_admission_command("promote-definitive"), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("validate-definitive"), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("finalize"), cwd=REPO_ROOT))
+            continue
+        if choice == "12":
+            print_command_result(run_command(_rag_admission_command("state"), cwd=REPO_ROOT))
+            continue
+        if choice == "9x":
             print("Compatibilidad: build_semantic_text.py, build_semantic_text_authority_aware.py y s45_derive_layers.py")
             print("permanecen fuera de la ruta normal; esta pantalla no los ejecuta.")
             continue

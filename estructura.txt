@@ -34,21 +34,64 @@
 │   │   │   │   │   │   ├── admit-20260706220323-multi-session
 │   │   │   │   │   │   ├── admit-20260708001525-multi-session
 │   │   │   │   │   │   ├── admit-20260708154009-multi-session
-│   │   │   │   │   │   └── admit-20260712205311-multi-session
+│   │   │   │   │   │   ├── admit-20260712205311-multi-session
+│   │   │   │   │   │   ├── admit-20260715144518-multi-session
+│   │   │   │   │   │   └── admit-20260716133807-multi-session
 │   │   │   │   │   ├── s0164-menu-navigation-final
 │   │   │   │   │   ├── s0164-microajuste-terminal-final
 │   │   │   │   │   ├── s0164-microajuste-terminal-final2
 │   │   │   │   │   ├── s0166-inventario-relacional
 │   │   │   │   │   ├── s0166-inventario-relacional-final
 │   │   │   │   │   ├── s0167-aclaraciones-post-review
-│   │   │   │   │   └── s0167-alineacion-motor-relacional
+│   │   │   │   │   ├── s0167-alineacion-motor-relacional
+│   │   │   │   │   ├── s0172-alineacion-productor-autoritativo-derivados-rag-safe
+│   │   │   │   │   ├── s0173
+│   │   │   │   │   ├── s0174
+│   │   │   │   │   ├── s0176
+│   │   │   │   │   ├── s0176-close
+│   │   │   │   │   ├── s0176-final
+│   │   │   │   │   ├── s0177-close
+│   │   │   │   │   └── s0177-close-final
 │   │   │   │   ├── compliance_summary.md
+│   │   │   │   ├── functional_alignment
+│   │   │   │   │   ├── dt065
+│   │   │   │   │   │   ├── component_file_list.txt
+│   │   │   │   │   │   ├── legacy_alignment_report.md
+│   │   │   │   │   │   ├── operator_menu_pipeline_map.md
+│   │   │   │   │   │   ├── potential_writers.txt
+│   │   │   │   │   │   └── producer_artifact_matrix.md
+│   │   │   │   │   ├── s0172
+│   │   │   │   │   │   ├── legacy_alignment_report.md
+│   │   │   │   │   │   ├── operator_menu_pipeline_map.md
+│   │   │   │   │   │   └── producer_artifact_matrix.md
+│   │   │   │   │   └── s0173
+│   │   │   │   ├── metadata_promotion
+│   │   │   │   │   └── s0171
+│   │   │   │   ├── premium_rag_quality
+│   │   │   │   │   └── dt066
+│   │   │   │   ├── rag_admission
+│   │   │   │   │   ├── authorizations
+│   │   │   │   │   ├── current_trial
+│   │   │   │   │   └── staging_equivalence_report.md
+│   │   │   │   ├── rag_derivation
+│   │   │   │   │   ├── s0172
+│   │   │   │   │   │   └── rag_gate_report.md
+│   │   │   │   │   ├── s0173
+│   │   │   │   │   │   ├── staging_productive_equivalence_report.md
+│   │   │   │   │   │   └── staging_rag_gate_report.md
+│   │   │   │   │   └── s0174
+│   │   │   │   │       ├── determinism_equivalence_report.md
+│   │   │   │   │       ├── determinism_repeat_gate.md
+│   │   │   │   │       └── staging_rag_gate_report.md
 │   │   │   │   ├── rag_tag_gate
-│   │   │   │   │   └── s0170
-│   │   │   │   │       ├── after
-│   │   │   │   │       │   └── rag_tag_gate_report.md
-│   │   │   │   │       └── before
-│   │   │   │   │           └── rag_tag_gate_report.md
+│   │   │   │   │   ├── s0170
+│   │   │   │   │   │   ├── after
+│   │   │   │   │   │   │   └── rag_tag_gate_report.md
+│   │   │   │   │   │   └── before
+│   │   │   │   │   │       └── rag_tag_gate_report.md
+│   │   │   │   │   └── s0171
+│   │   │   │   │       ├── rag_gate_after_metadata_promotion_preview.md
+│   │   │   │   │       └── rag_gate_before_metadata_promotion.md
 │   │   │   │   ├── relation_admission
 │   │   │   │   │   ├── current
 │   │   │   │   │   ├── s0164
@@ -68,6 +111,9 @@
 │   │   │   │       ├── local-dt062-schema-fix-20260708190352
 │   │   │   │       ├── local-dt063-ajuste-20260709112533
 │   │   │   │       ├── local-dt063-taxonomia-tags-metadata-relaciones-tiddlers-base-20260709102301
+│   │   │   │       ├── local-dt065-alineacion-funcional-20260713083832
+│   │   │   │       ├── local-dt066-evaluacion-calidad-rag-ia-premium-derivados-gobernados-tdc-20260714135800
+│   │   │   │       ├── local-dt066-final-20260714140011
 │   │   │   │       ├── s0159-close-202607061035
 │   │   │   │       ├── s0159-close-final-202607061037
 │   │   │   │       ├── s0160-close-202607061620
@@ -93,6 +139,25 @@
 │   │   │   │       ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root-final
 │   │   │   │       ├── s0169-sanitation-tags-p0-gate-antirruido-rag
 │   │   │   │       ├── s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder
+│   │   │   │       ├── s0171-promocion-metadata-minima-tech-stack-topics-y-filtros-rag
+│   │   │   │       ├── s0172-alineacion-productor-autoritativo-derivados-rag-safe
+│   │   │   │       ├── s0173
+│   │   │   │       │   └── s0173-regeneracion-gobernada
+│   │   │   │       ├── s0174
+│   │   │   │       │   └── s0174-integracion-final
+│   │   │   │       ├── s0174-microadjust
+│   │   │   │       │   ├── s0174-microadjust
+│   │   │   │       │   └── validation
+│   │   │   │       ├── s0176
+│   │   │   │       │   └── s0176
+│   │   │   │       ├── s0176-close
+│   │   │   │       │   └── s0176-close
+│   │   │   │       ├── s0176-final
+│   │   │   │       │   └── s0176-final
+│   │   │   │       ├── s0177-close
+│   │   │   │       │   └── s0177-close
+│   │   │   │       ├── s0177-close-final
+│   │   │   │       │   └── s0177-close-final
 │   │   │   │       ├── sync-20260706220253
 │   │   │   │       ├── sync-20260706222042
 │   │   │   │       ├── sync-20260708000029
@@ -117,7 +182,11 @@
 │   │   │   │       ├── sync-20260709145022
 │   │   │   │       ├── sync-20260709145025
 │   │   │   │       ├── sync-20260709164658
-│   │   │   │       └── sync-20260712205227
+│   │   │   │       ├── sync-20260712205227
+│   │   │   │       ├── sync-20260714192930
+│   │   │   │       ├── sync-20260715141426
+│   │   │   │       ├── sync-20260715144435
+│   │   │   │       └── sync-20260716133713
 │   │   │   ├── backups
 │   │   │   │   ├── titlenorm-20260523-diag-4digit
 │   │   │   │   ├── titlenorm-20260523-diag-tematico
@@ -172,6 +241,402 @@
 │   │   │   │   │       ├── s0150_menu_before.txt
 │   │   │   │   │       ├── s0150_menu_compatibility_report.md
 │   │   │   │   │       └── s0150_menu_operator_guide.md
+│   │   │   │   ├── metadata_promotion
+│   │   │   │   │   └── s0171
+│   │   │   │   │       └── metadata_promotion_summary.md
+│   │   │   │   ├── rag_admission
+│   │   │   │   │   ├── current_trial_rollback_snapshot
+│   │   │   │   │   │   ├── ai
+│   │   │   │   │   │   │   └── reports
+│   │   │   │   │   │   ├── enriched
+│   │   │   │   │   │   └── microsoft_copilot
+│   │   │   │   │   │       ├── artifacts.csv
+│   │   │   │   │   │       ├── bundles
+│   │   │   │   │   │       │   ├── governance_core.txt
+│   │   │   │   │   │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │       │   └── recent_sessions.txt
+│   │   │   │   │   │       ├── copilot_agent
+│   │   │   │   │   │       │   ├── corpus.txt
+│   │   │   │   │   │       │   └── relations.csv
+│   │   │   │   │   │       ├── coverage.csv
+│   │   │   │   │   │       ├── edges.csv
+│   │   │   │   │   │       ├── nodes.csv
+│   │   │   │   │   │       ├── overview.txt
+│   │   │   │   │   │       ├── reading_guide.txt
+│   │   │   │   │   │       └── spec
+│   │   │   │   │   │           ├── checklist_global_s61.md
+│   │   │   │   │   │           ├── memoria_decisiones_s61.md
+│   │   │   │   │   │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │           └── summaries
+│   │   │   │   │   │               ├── contratos-instructions.md
+│   │   │   │   │   │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │               ├── detalles-del-tema.md
+│   │   │   │   │   │               ├── elementos-especificos.md
+│   │   │   │   │   │               ├── glosario-y-convenciones.md
+│   │   │   │   │   │               ├── hipotesis.md
+│   │   │   │   │   │               ├── microsoft-support-formats.md
+│   │   │   │   │   │               ├── politica-de-memoria-activa.md
+│   │   │   │   │   │               ├── prcommits.md
+│   │   │   │   │   │               ├── principios-de-gestion.md
+│   │   │   │   │   │               ├── procedencia-epistemologica.md
+│   │   │   │   │   │               ├── protocolo-de-sesion.md
+│   │   │   │   │   │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │               ├── sesiones.md
+│   │   │   │   │   │               └── tiddlers-sesiones.md
+│   │   │   │   │   ├── staging
+│   │   │   │   │   │   ├── ai
+│   │   │   │   │   │   │   └── reports
+│   │   │   │   │   │   ├── enriched
+│   │   │   │   │   │   ├── microsoft_copilot
+│   │   │   │   │   │   │   ├── artifacts.csv
+│   │   │   │   │   │   │   ├── bundles
+│   │   │   │   │   │   │   │   ├── governance_core.txt
+│   │   │   │   │   │   │   │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │   │   │   └── recent_sessions.txt
+│   │   │   │   │   │   │   ├── copilot_agent
+│   │   │   │   │   │   │   │   ├── corpus.txt
+│   │   │   │   │   │   │   │   └── relations.csv
+│   │   │   │   │   │   │   ├── coverage.csv
+│   │   │   │   │   │   │   ├── edges.csv
+│   │   │   │   │   │   │   ├── nodes.csv
+│   │   │   │   │   │   │   ├── overview.txt
+│   │   │   │   │   │   │   ├── reading_guide.txt
+│   │   │   │   │   │   │   └── spec
+│   │   │   │   │   │   │       ├── checklist_global_s61.md
+│   │   │   │   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │       └── summaries
+│   │   │   │   │   │   │           ├── contratos-instructions.md
+│   │   │   │   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │           ├── detalles-del-tema.md
+│   │   │   │   │   │   │           ├── elementos-especificos.md
+│   │   │   │   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │           ├── hipotesis.md
+│   │   │   │   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │           ├── prcommits.md
+│   │   │   │   │   │   │           ├── principios-de-gestion.md
+│   │   │   │   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │           ├── sesiones.md
+│   │   │   │   │   │   │           └── tiddlers-sesiones.md
+│   │   │   │   │   │   └── semantic_text
+│   │   │   │   │   │       ├── rag-admission-staging_semantic_text_coverage_summary.md
+│   │   │   │   │   │       └── rag-admission-staging_semantic_text_review.csv
+│   │   │   │   │   ├── staging_derived_plan.md
+│   │   │   │   │   └── trial_rollback_snapshot
+│   │   │   │   │       ├── ai
+│   │   │   │   │       │   └── reports
+│   │   │   │   │       ├── enriched
+│   │   │   │   │       └── microsoft_copilot
+│   │   │   │   │           ├── artifacts.csv
+│   │   │   │   │           ├── bundles
+│   │   │   │   │           │   ├── governance_core.txt
+│   │   │   │   │           │   ├── pipeline_and_layers.txt
+│   │   │   │   │           │   └── recent_sessions.txt
+│   │   │   │   │           ├── copilot_agent
+│   │   │   │   │           │   ├── corpus.txt
+│   │   │   │   │           │   └── relations.csv
+│   │   │   │   │           ├── coverage.csv
+│   │   │   │   │           ├── edges.csv
+│   │   │   │   │           ├── nodes.csv
+│   │   │   │   │           ├── overview.txt
+│   │   │   │   │           ├── reading_guide.txt
+│   │   │   │   │           └── spec
+│   │   │   │   │               ├── checklist_global_s61.md
+│   │   │   │   │               ├── memoria_decisiones_s61.md
+│   │   │   │   │               ├── plan_de_implementacion_s61.md
+│   │   │   │   │               └── summaries
+│   │   │   │   │                   ├── contratos-instructions.md
+│   │   │   │   │                   ├── contratos-s58-s59-s60.md
+│   │   │   │   │                   ├── dependencia-y-superficie-externa.md
+│   │   │   │   │                   ├── desarrollo-y-evolucion.md
+│   │   │   │   │                   ├── detalles-del-tema.md
+│   │   │   │   │                   ├── elementos-especificos.md
+│   │   │   │   │                   ├── glosario-y-convenciones.md
+│   │   │   │   │                   ├── hipotesis.md
+│   │   │   │   │                   ├── microsoft-support-formats.md
+│   │   │   │   │                   ├── politica-de-memoria-activa.md
+│   │   │   │   │                   ├── prcommits.md
+│   │   │   │   │                   ├── principios-de-gestion.md
+│   │   │   │   │                   ├── procedencia-epistemologica.md
+│   │   │   │   │                   ├── protocolo-de-sesion.md
+│   │   │   │   │                   ├── repo-y-derivados-actuales.md
+│   │   │   │   │                   ├── sesiones.md
+│   │   │   │   │                   └── tiddlers-sesiones.md
+│   │   │   │   ├── rag_derivation
+│   │   │   │   │   ├── s0172
+│   │   │   │   │   │   ├── authoritative_dependency_map.md
+│   │   │   │   │   │   ├── derive_layers_characterization_after.md
+│   │   │   │   │   │   ├── derive_layers_characterization_before.md
+│   │   │   │   │   │   ├── derive_layers_characterization_delta.md
+│   │   │   │   │   │   ├── preview
+│   │   │   │   │   │   │   ├── ai
+│   │   │   │   │   │   │   │   └── reports
+│   │   │   │   │   │   │   ├── enriched
+│   │   │   │   │   │   │   ├── microsoft_copilot
+│   │   │   │   │   │   │   │   ├── artifacts.csv
+│   │   │   │   │   │   │   │   ├── bundles
+│   │   │   │   │   │   │   │   │   ├── governance_core.txt
+│   │   │   │   │   │   │   │   │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │   │   │   │   └── recent_sessions.txt
+│   │   │   │   │   │   │   │   ├── copilot_agent
+│   │   │   │   │   │   │   │   │   ├── corpus.txt
+│   │   │   │   │   │   │   │   │   └── relations.csv
+│   │   │   │   │   │   │   │   ├── coverage.csv
+│   │   │   │   │   │   │   │   ├── edges.csv
+│   │   │   │   │   │   │   │   ├── nodes.csv
+│   │   │   │   │   │   │   │   ├── overview.txt
+│   │   │   │   │   │   │   │   ├── reading_guide.txt
+│   │   │   │   │   │   │   │   └── spec
+│   │   │   │   │   │   │   │       ├── checklist_global_s61.md
+│   │   │   │   │   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │   │       └── summaries
+│   │   │   │   │   │   │   │           ├── contratos-instructions.md
+│   │   │   │   │   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │   │           ├── detalles-del-tema.md
+│   │   │   │   │   │   │   │           ├── elementos-especificos.md
+│   │   │   │   │   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │   │           ├── hipotesis.md
+│   │   │   │   │   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │   │   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │   │           ├── prcommits.md
+│   │   │   │   │   │   │   │           ├── principios-de-gestion.md
+│   │   │   │   │   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │   │           ├── sesiones.md
+│   │   │   │   │   │   │   │           └── tiddlers-sesiones.md
+│   │   │   │   │   │   │   └── semantic_text
+│   │   │   │   │   │   │       ├── s0172-rag-derivation-preview_semantic_text_coverage_summary.md
+│   │   │   │   │   │   │       └── s0172-rag-derivation-preview_semantic_text_review.csv
+│   │   │   │   │   │   └── rag_derivation_plan.md
+│   │   │   │   │   ├── s0173
+│   │   │   │   │   │   ├── preview_staging_equivalence_report.md
+│   │   │   │   │   │   ├── rag_derivation_plan.md
+│   │   │   │   │   │   ├── rollback_snapshot
+│   │   │   │   │   │   │   ├── ai
+│   │   │   │   │   │   │   │   └── reports
+│   │   │   │   │   │   │   ├── enriched
+│   │   │   │   │   │   │   └── microsoft_copilot
+│   │   │   │   │   │   │       ├── artifacts.csv
+│   │   │   │   │   │   │       ├── bundles
+│   │   │   │   │   │   │       │   ├── governance_core.txt
+│   │   │   │   │   │   │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │   │       │   └── recent_sessions.txt
+│   │   │   │   │   │   │       ├── copilot_agent
+│   │   │   │   │   │   │       │   ├── corpus.txt
+│   │   │   │   │   │   │       │   └── relations.csv
+│   │   │   │   │   │   │       ├── coverage.csv
+│   │   │   │   │   │   │       ├── edges.csv
+│   │   │   │   │   │   │       ├── nodes.csv
+│   │   │   │   │   │   │       ├── overview.txt
+│   │   │   │   │   │   │       ├── reading_guide.txt
+│   │   │   │   │   │   │       └── spec
+│   │   │   │   │   │   │           ├── checklist_global_s61.md
+│   │   │   │   │   │   │           ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │           └── summaries
+│   │   │   │   │   │   │               ├── contratos-instructions.md
+│   │   │   │   │   │   │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │               ├── detalles-del-tema.md
+│   │   │   │   │   │   │               ├── elementos-especificos.md
+│   │   │   │   │   │   │               ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │               ├── hipotesis.md
+│   │   │   │   │   │   │               ├── microsoft-support-formats.md
+│   │   │   │   │   │   │               ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │               ├── prcommits.md
+│   │   │   │   │   │   │               ├── principios-de-gestion.md
+│   │   │   │   │   │   │               ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │               ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │               ├── sesiones.md
+│   │   │   │   │   │   │               └── tiddlers-sesiones.md
+│   │   │   │   │   │   ├── staging
+│   │   │   │   │   │   │   ├── ai
+│   │   │   │   │   │   │   │   └── reports
+│   │   │   │   │   │   │   ├── enriched
+│   │   │   │   │   │   │   ├── microsoft_copilot
+│   │   │   │   │   │   │   │   ├── artifacts.csv
+│   │   │   │   │   │   │   │   ├── bundles
+│   │   │   │   │   │   │   │   │   ├── governance_core.txt
+│   │   │   │   │   │   │   │   │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │   │   │   │   └── recent_sessions.txt
+│   │   │   │   │   │   │   │   ├── copilot_agent
+│   │   │   │   │   │   │   │   │   ├── corpus.txt
+│   │   │   │   │   │   │   │   │   └── relations.csv
+│   │   │   │   │   │   │   │   ├── coverage.csv
+│   │   │   │   │   │   │   │   ├── edges.csv
+│   │   │   │   │   │   │   │   ├── nodes.csv
+│   │   │   │   │   │   │   │   ├── overview.txt
+│   │   │   │   │   │   │   │   ├── reading_guide.txt
+│   │   │   │   │   │   │   │   └── spec
+│   │   │   │   │   │   │   │       ├── checklist_global_s61.md
+│   │   │   │   │   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │   │       └── summaries
+│   │   │   │   │   │   │   │           ├── contratos-instructions.md
+│   │   │   │   │   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │   │           ├── detalles-del-tema.md
+│   │   │   │   │   │   │   │           ├── elementos-especificos.md
+│   │   │   │   │   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │   │           ├── hipotesis.md
+│   │   │   │   │   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │   │   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │   │           ├── prcommits.md
+│   │   │   │   │   │   │   │           ├── principios-de-gestion.md
+│   │   │   │   │   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │   │           ├── sesiones.md
+│   │   │   │   │   │   │   │           └── tiddlers-sesiones.md
+│   │   │   │   │   │   │   └── semantic_text
+│   │   │   │   │   │   │       ├── s0173-rag-derivation-staging_semantic_text_coverage_summary.md
+│   │   │   │   │   │   │       └── s0173-rag-derivation-staging_semantic_text_review.csv
+│   │   │   │   │   │   └── staging_derived_plan.md
+│   │   │   │   │   └── s0174
+│   │   │   │   │       ├── determinism_repeat_plan.md
+│   │   │   │   │       ├── rollback_snapshot
+│   │   │   │   │       │   ├── ai
+│   │   │   │   │       │   │   └── reports
+│   │   │   │   │       │   ├── enriched
+│   │   │   │   │       │   └── microsoft_copilot
+│   │   │   │   │       │       ├── artifacts.csv
+│   │   │   │   │       │       ├── bundles
+│   │   │   │   │       │       │   ├── governance_core.txt
+│   │   │   │   │       │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │       │       │   └── recent_sessions.txt
+│   │   │   │   │       │       ├── copilot_agent
+│   │   │   │   │       │       │   ├── corpus.txt
+│   │   │   │   │       │       │   └── relations.csv
+│   │   │   │   │       │       ├── coverage.csv
+│   │   │   │   │       │       ├── edges.csv
+│   │   │   │   │       │       ├── nodes.csv
+│   │   │   │   │       │       ├── overview.txt
+│   │   │   │   │       │       ├── reading_guide.txt
+│   │   │   │   │       │       └── spec
+│   │   │   │   │       │           ├── checklist_global_s61.md
+│   │   │   │   │       │           ├── memoria_decisiones_s61.md
+│   │   │   │   │       │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │       │           └── summaries
+│   │   │   │   │       │               ├── contratos-instructions.md
+│   │   │   │   │       │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │       │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │       │               ├── detalles-del-tema.md
+│   │   │   │   │       │               ├── elementos-especificos.md
+│   │   │   │   │       │               ├── glosario-y-convenciones.md
+│   │   │   │   │       │               ├── hipotesis.md
+│   │   │   │   │       │               ├── microsoft-support-formats.md
+│   │   │   │   │       │               ├── politica-de-memoria-activa.md
+│   │   │   │   │       │               ├── prcommits.md
+│   │   │   │   │       │               ├── principios-de-gestion.md
+│   │   │   │   │       │               ├── procedencia-epistemologica.md
+│   │   │   │   │       │               ├── protocolo-de-sesion.md
+│   │   │   │   │       │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │       │               ├── sesiones.md
+│   │   │   │   │       │               └── tiddlers-sesiones.md
+│   │   │   │   │       ├── rollback_snapshot_prewrite
+│   │   │   │   │       │   ├── ai
+│   │   │   │   │       │   │   └── reports
+│   │   │   │   │       │   ├── enriched
+│   │   │   │   │       │   └── microsoft_copilot
+│   │   │   │   │       │       ├── artifacts.csv
+│   │   │   │   │       │       ├── bundles
+│   │   │   │   │       │       │   ├── governance_core.txt
+│   │   │   │   │       │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │       │       │   └── recent_sessions.txt
+│   │   │   │   │       │       ├── copilot_agent
+│   │   │   │   │       │       │   ├── corpus.txt
+│   │   │   │   │       │       │   └── relations.csv
+│   │   │   │   │       │       ├── coverage.csv
+│   │   │   │   │       │       ├── edges.csv
+│   │   │   │   │       │       ├── nodes.csv
+│   │   │   │   │       │       ├── overview.txt
+│   │   │   │   │       │       ├── reading_guide.txt
+│   │   │   │   │       │       └── spec
+│   │   │   │   │       │           ├── checklist_global_s61.md
+│   │   │   │   │       │           ├── memoria_decisiones_s61.md
+│   │   │   │   │       │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │       │           └── summaries
+│   │   │   │   │       │               ├── contratos-instructions.md
+│   │   │   │   │       │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │       │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │       │               ├── detalles-del-tema.md
+│   │   │   │   │       │               ├── elementos-especificos.md
+│   │   │   │   │       │               ├── glosario-y-convenciones.md
+│   │   │   │   │       │               ├── hipotesis.md
+│   │   │   │   │       │               ├── microsoft-support-formats.md
+│   │   │   │   │       │               ├── politica-de-memoria-activa.md
+│   │   │   │   │       │               ├── prcommits.md
+│   │   │   │   │       │               ├── principios-de-gestion.md
+│   │   │   │   │       │               ├── procedencia-epistemologica.md
+│   │   │   │   │       │               ├── protocolo-de-sesion.md
+│   │   │   │   │       │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │       │               ├── sesiones.md
+│   │   │   │   │       │               └── tiddlers-sesiones.md
+│   │   │   │   │       ├── staging
+│   │   │   │   │       │   ├── ai
+│   │   │   │   │       │   │   └── reports
+│   │   │   │   │       │   ├── enriched
+│   │   │   │   │       │   ├── microsoft_copilot
+│   │   │   │   │       │   │   ├── artifacts.csv
+│   │   │   │   │       │   │   ├── bundles
+│   │   │   │   │       │   │   │   ├── governance_core.txt
+│   │   │   │   │       │   │   │   ├── pipeline_and_layers.txt
+│   │   │   │   │       │   │   │   └── recent_sessions.txt
+│   │   │   │   │       │   │   ├── copilot_agent
+│   │   │   │   │       │   │   │   ├── corpus.txt
+│   │   │   │   │       │   │   │   └── relations.csv
+│   │   │   │   │       │   │   ├── coverage.csv
+│   │   │   │   │       │   │   ├── edges.csv
+│   │   │   │   │       │   │   ├── nodes.csv
+│   │   │   │   │       │   │   ├── overview.txt
+│   │   │   │   │       │   │   ├── reading_guide.txt
+│   │   │   │   │       │   │   └── spec
+│   │   │   │   │       │   │       ├── checklist_global_s61.md
+│   │   │   │   │       │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │       │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │       │   │       └── summaries
+│   │   │   │   │       │   │           ├── contratos-instructions.md
+│   │   │   │   │       │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │       │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │       │   │           ├── detalles-del-tema.md
+│   │   │   │   │       │   │           ├── elementos-especificos.md
+│   │   │   │   │       │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │       │   │           ├── hipotesis.md
+│   │   │   │   │       │   │           ├── microsoft-support-formats.md
+│   │   │   │   │       │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │       │   │           ├── prcommits.md
+│   │   │   │   │       │   │           ├── principios-de-gestion.md
+│   │   │   │   │       │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │       │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │       │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │       │   │           ├── sesiones.md
+│   │   │   │   │       │   │           └── tiddlers-sesiones.md
+│   │   │   │   │       │   └── semantic_text
+│   │   │   │   │       │       ├── s0174-rag-derivation-staging_semantic_text_coverage_summary.md
+│   │   │   │   │       │       └── s0174-rag-derivation-staging_semantic_text_review.csv
+│   │   │   │   │       └── staging_derived_plan.md
+│   │   │   │   ├── rag_filters
+│   │   │   │   │   └── s0171
+│   │   │   │   │       └── preview
+│   │   │   │   │           ├── s0171-rag-filter-preview_semantic_text_coverage_summary.md
+│   │   │   │   │           └── s0171-rag-filter-preview_semantic_text_review.csv
 │   │   │   │   ├── rag_sanitation
 │   │   │   │   │   └── s0170
 │   │   │   │   │       └── preview
@@ -384,17 +849,40 @@
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
+│       ├── admissions
+│       │   └── s69_unittest
+│       │       └── backups
+│       │           ├── admit-20260713190700-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │           ├── admit-20260713190745-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │           ├── rollback-20260713190716-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │           └── rollback-20260713190800-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
 │       ├── html_export
-│       │   └── export-20260708154306
+│       │   ├── export-20260708154306
+│       │   │   └── tiddlers.export.log
+│       │   ├── export-20260712205819
+│       │   │   └── tiddlers.export.log
+│       │   └── export-20260715145051
 │       │       └── tiddlers.export.log
 │       ├── reconstruction
 │       │   ├── diagnostic-20260708154303
+│       │   ├── diagnostic-20260712205816
+│       │   ├── diagnostic-20260715145047
 │       │   ├── export-20260708154306
+│       │   ├── export-20260712205819
+│       │   ├── export-20260715145051
 │       │   ├── reconstruction-20260708154312
 │       │   │   ├── canon_after
 │       │   │   └── canon_before
+│       │   ├── reconstruction-20260712205829
+│       │   │   ├── canon_after
+│       │   │   └── canon_before
+│       │   ├── reconstruction-20260715145102
+│       │   │   ├── canon_after
+│       │   │   └── canon_before
 │       │   ├── reverse-20260708154044
-│       │   └── reverse-20260712205346
+│       │   ├── reverse-20260712205346
+│       │   ├── reverse-20260715144544
+│       │   └── reverse-20260716133845
 │       ├── sanitation
 │       │   └── backup-20260709172739
 │       ├── session_admission
@@ -417,9 +905,52 @@
 │       │   ├── admit-20260712205246-multi-session
 │       │   │   ├── canon
 │       │   │   └── reverse_html
-│       │   └── admit-20260712205311-multi-session
+│       │   │       └── admit-20260712205246-multi-session.derived.html
+│       │   ├── admit-20260712205311-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260712205311-multi-session.derived.html
+│       │   ├── admit-20260715144442-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260715144442-multi-session.derived.html
+│       │   ├── admit-20260715144518-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260715144518-multi-session.derived.html
+│       │   ├── admit-20260716133728-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260716133728-multi-session.derived.html
+│       │   └── admit-20260716133807-multi-session
 │       │       ├── canon
 │       │       └── reverse_html
+│       │           └── admit-20260716133807-multi-session.derived.html
+│       ├── session_admission_s69_unittest
+│       │   ├── admit-20260713190645-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260713190645-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   ├── admit-20260713190700-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260713190700-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   ├── admit-20260713190724-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260713190724-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   ├── admit-20260713190745-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── admit-20260713190745-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   ├── rollback-20260713190716-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       └── rollback-20260713190716-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   └── rollback-20260713190800-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       ├── canon
+│       │       └── reverse_html
+│       │           └── rollback-20260713190800-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
 │       └── session_sync
 │           ├── local-dt055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica-20260707184932
 │           │   └── normalize
@@ -446,6 +977,12 @@
 │           ├── local-dt063-ajuste-20260709112533
 │           │   └── normalize
 │           ├── local-dt063-taxonomia-tags-metadata-relaciones-tiddlers-base-20260709102301
+│           │   └── normalize
+│           ├── local-dt065-alineacion-funcional-20260713083832
+│           │   └── normalize
+│           ├── local-dt066-evaluacion-calidad-rag-ia-premium-derivados-gobernados-tdc-20260714135800
+│           │   └── normalize
+│           ├── local-dt066-final-20260714140011
 │           │   └── normalize
 │           ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica
 │           │   └── normalize
@@ -483,6 +1020,34 @@
 │           │   └── normalize
 │           ├── s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder
 │           │   └── normalize
+│           ├── s0171-promocion-metadata-minima-tech-stack-topics-y-filtros-rag
+│           │   └── normalize
+│           ├── s0172-alineacion-productor-autoritativo-derivados-rag-safe
+│           │   └── normalize
+│           ├── s0173
+│           │   └── s0173-regeneracion-gobernada
+│           │       └── normalize
+│           ├── s0174
+│           │   └── s0174-integracion-final
+│           │       └── normalize
+│           ├── s0174-microadjust
+│           │   └── s0174-microadjust
+│           │       └── normalize
+│           ├── s0176
+│           │   └── s0176
+│           │       └── normalize
+│           ├── s0176-close
+│           │   └── s0176-close
+│           │       └── normalize
+│           ├── s0176-final
+│           │   └── s0176-final
+│           │       └── normalize
+│           ├── s0177-close
+│           │   └── s0177-close
+│           │       └── normalize
+│           ├── s0177-close-final
+│           │   └── s0177-close-final
+│           │       └── normalize
 │           ├── sync-20260706222042
 │           │   └── normalize
 │           ├── sync-20260708000029
@@ -529,13 +1094,22 @@
 │           │   └── normalize
 │           ├── sync-20260709164658
 │           │   └── normalize
-│           └── sync-20260712205227
+│           ├── sync-20260712205227
+│           │   └── normalize
+│           ├── sync-20260714192930
+│           │   └── normalize
+│           ├── sync-20260715141426
+│           │   └── normalize
+│           ├── sync-20260715144435
+│           │   └── normalize
+│           └── sync-20260716133713
 │               └── normalize
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── plantillas
 │   │   ├── plantilla-sesion-local.md
 │   │   └── plantilla-sesion-remota.md
+│   ├── productive_equivalence_contract.md
 │   ├── refs
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.docx
 │   │   ├── 01. The semantic desktop at work, Interlinking notes.pdf
@@ -707,7 +1281,9 @@
 │   │   ├── audit_relation_inventory.py
 │   │   ├── audit_tags_inventory.py
 │   │   ├── build_historical_relation_type_decision_matrix.py
+│   │   ├── build_metadata_promotion_candidates.py
 │   │   ├── build_minimal_reversible_metadata.py
+│   │   ├── build_rag_filter_preview.py
 │   │   ├── build_rag_safe_semantic_preview.py
 │   │   ├── build_relation_admission_plan.py
 │   │   ├── build_relation_correspondence_matrix.py
@@ -732,10 +1308,16 @@
 │   │   ├── layer_authority_policy.py
 │   │   ├── legacy_test_classifier.py
 │   │   ├── mcp_env_manager.py
+│   │   ├── metadata_promotion_policy.py
 │   │   ├── normalize_session_titles.py
 │   │   ├── operator_menu.py
 │   │   ├── path_governance.py
 │   │   ├── qc_reports.py
+│   │   ├── rag_admission_state.py
+│   │   ├── rag_derivation_plan.py
+│   │   ├── rag_derivation_preflight.py
+│   │   ├── rag_derivation_profile.py
+│   │   ├── rag_derivative_writers.py
 │   │   ├── relation_admission_gate.py
 │   │   ├── relation_admission_policy.py
 │   │   ├── relation_batch_review.py
@@ -766,6 +1348,7 @@
 │   │   ├── repo_metadata_admission_gate.py
 │   │   ├── repo_metadata_refresh_patch.py
 │   │   ├── repo_metadata_review_menu.py
+│   │   ├── s0174_governance.py
 │   │   ├── s45_derive_layers.py
 │   │   ├── semantic_text_builder.py
 │   │   ├── session_artifact_governance.py
@@ -777,10 +1360,13 @@
 │   │   ├── tag_sanitation_policy.py
 │   │   ├── tdc_cat.py
 │   │   ├── tdc_menu_registry.py
+│   │   ├── template_set_classifier.py
 │   │   ├── text_utils.py
 │   │   ├── tiddlers_to_jsonl.py
 │   │   ├── validate_corpus_governance.py
 │   │   ├── validate_layer_authority.py
+│   │   ├── validate_metadata_promotion.py
+│   │   ├── validate_productive_equivalence.py
 │   │   ├── validate_rag_tag_gate.py
 │   │   ├── validate_relation_candidates.py
 │   │   ├── validate_source_fields_contract.py
@@ -897,6 +1483,7 @@
 │   ├── test_chunking_characterization.py
 │   ├── test_classification_characterization.py
 │   ├── test_controlled_relation_propagation.py
+│   ├── test_derivation_menu.py
 │   ├── test_derive_layers_characterization.py
 │   ├── test_diagnostic_artifact_governance.py
 │   ├── test_field_equivalence_characterization.py
@@ -905,10 +1492,14 @@
 │   ├── test_layer_authority_policy.py
 │   ├── test_legacy_test_classifier.py
 │   ├── test_mcp_env_manager_security.py
+│   ├── test_metadata_promotion.py
 │   ├── test_minimal_reversible_metadata.py
 │   ├── test_normalize_session_titles.py
 │   ├── test_operator_menu_smoke.py
+│   ├── test_productive_equivalence_s0173.py
 │   ├── test_qc_reports_characterization.py
+│   ├── test_rag_admission_state.py
+│   ├── test_rag_derivation_s0172.py
 │   ├── test_relation_admissibility_evaluator.py
 │   ├── test_relation_admission_gate.py
 │   ├── test_relation_admission_plan.py
@@ -942,6 +1533,7 @@
 │   ├── test_reverse_contract.py
 │   ├── test_reversible_metadata_normalization.py
 │   ├── test_rule23_relational_coverage.py
+│   ├── test_s0174_governance.py
 │   ├── test_semantic_text_authority_aware.py
 │   ├── test_semantic_text_builder.py
 │   ├── test_session_artifact_governance.py

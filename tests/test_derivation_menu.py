@@ -1,8 +1,7 @@
-"""S0172 operator-menu boundary tests for the authoritative derivation path."""
+"""Operator-menu checks for stable, evidence-derived RAG admission."""
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -12,7 +11,6 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import operator_menu  # noqa: E402
 from tdc_menu_registry import resolve_choice  # noqa: E402
-from rag_derivation_profile import build_profile  # noqa: E402
 
 
 def _answers(*values: str):
@@ -28,136 +26,108 @@ def test_option_5_resolves_to_authoritative_derivation_menu() -> None:
     choice = resolve_choice("5")
     assert choice is not None
     assert choice["action"] == "derivatives"
-    assert "derive_layers.py" in choice["label"]
 
 
-def test_derivation_menu_shows_authoritative_builder(monkeypatch, capsys) -> None:
-    monkeypatch.setattr(operator_menu, "prompt", _answers("0"))
-    operator_menu.option_derivatives(operator_menu.MenuState())
-    assert "Productor autoritativo: derive_layers.py" in capsys.readouterr().out
-
-
-def test_derivation_menu_shows_policy_versions(monkeypatch, capsys) -> None:
+def test_derivation_menu_uses_stable_capability_names(monkeypatch, capsys) -> None:
     monkeypatch.setattr(operator_menu, "prompt", _answers("0"))
     operator_menu.option_derivatives(operator_menu.MenuState())
     out = capsys.readouterr().out
-    assert "Tag policy: tag-sanitation/v1" in out
-    assert "Metadata policy: metadata-promotion/v1" in out
+    assert "Actualizar staging RAG-safe" in out
+    assert "Autorizar trial write" in out
+    assert "Promover derivados definitivamente" in out
+    assert "Generar staging productivo S0173" not in out
+    assert "Validar integración y governance S0174" not in out
 
 
-def test_derivation_menu_preview_uses_derive_layers(monkeypatch) -> None:
+def test_staging_action_uses_authoritative_producer(monkeypatch) -> None:
     calls: list[list[str]] = []
     monkeypatch.setattr(operator_menu, "prompt", _answers("2", "0"))
-    monkeypatch.setattr(
-        operator_menu,
-        "run_command",
-        lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)),
-    )
+    monkeypatch.setattr(operator_menu, "run_command", lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)))
     operator_menu.option_derivatives(operator_menu.MenuState())
     assert len(calls) == 1
     assert "src/python_scripts/derive_layers.py" in calls[0]
-    assert calls[0][calls[0].index("--mode") + 1] == "preview"
+    assert calls[0][calls[0].index("--mode") + 1] == "staging"
     assert "--dry-run" in calls[0]
-    assert "--out-dir" in calls[0]
 
 
-def test_derivation_menu_gate_uses_authoritative_gate(monkeypatch, tmp_path: Path) -> None:
+def test_validation_recalculates_equivalence_then_governance(monkeypatch) -> None:
     calls: list[list[str]] = []
-    preview = tmp_path / "preview"
-    (preview / "semantic_text").mkdir(parents=True)
-    (preview / "ai").mkdir(parents=True)
-    (preview / "microsoft_copilot").mkdir(parents=True)
-    monkeypatch.setattr(operator_menu, "RAG_DERIVATION_PREVIEW_ROOT", preview)
     monkeypatch.setattr(operator_menu, "prompt", _answers("3", "0"))
-    monkeypatch.setattr(
-        operator_menu,
-        "run_command",
-        lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)),
-    )
+    monkeypatch.setattr(operator_menu, "run_command", lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)))
     operator_menu.option_derivatives(operator_menu.MenuState())
-    assert len(calls) == 1
-    assert "src/python_scripts/validate_rag_tag_gate.py" in calls[0]
-    assert "--enforce-p1-raw" in calls[0]
-    assert "--scan-root" in calls[0]
+    assert len(calls) == 2
+    assert any("validate_productive_equivalence.py" in item for item in calls[0])
+    assert calls[1][-1] == "refresh-governance"
 
 
-def test_derivation_menu_productive_regeneration_is_blocked_in_s0172(monkeypatch, capsys) -> None:
+def test_trial_authorization_is_guided_and_phrase_bound(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(operator_menu, "prompt", _answers("5", operator_menu.TRIAL_PHRASE, "0"))
+    monkeypatch.setattr(operator_menu, "run_command", lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)))
+    operator_menu.option_derivatives(operator_menu.MenuState())
+    assert calls[0][-3:] == ["authorize-trial", "--phrase", operator_menu.TRIAL_PHRASE]
+
+
+def test_trial_write_is_delegated_to_governed_capability(monkeypatch) -> None:
     calls: list[list[str]] = []
     monkeypatch.setattr(operator_menu, "prompt", _answers("6", "0"))
+    monkeypatch.setattr(operator_menu, "run_command", lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)))
+    operator_menu.option_derivatives(operator_menu.MenuState())
+    assert calls[0][-1] == "trial-write"
+
+
+def test_derivation_menu_surfaces_persisted_rollback_failure(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         operator_menu,
-        "run_command",
-        lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)),
+        "build_rag_admission_state",
+        lambda: {
+            "staging": {"current": True},
+            "technical_gate": {"status": "pass"},
+            "equivalence": {"status": "pass"},
+            "governance_gate": {"status": "pass"},
+            "authorization": {"trial": "consumed"},
+            "trial_write": {"status": "pass"},
+            "rollback": {"status": "attempted_failed"},
+            "definitive_promotion": {"status": "not_executed"},
+            "verdict": "BLOCKED_ROLLBACK_ERROR",
+            "next_action": "FIX_AND_RESUME_TRIAL_ROLLBACK",
+            "blocking_reasons": [],
+        },
     )
-    operator_menu.option_derivatives(operator_menu.MenuState())
-    assert not calls
-    assert "Regeneración productiva no habilitada en S0172." in capsys.readouterr().out
-
-
-def test_derivation_menu_does_not_call_legacy_builder_by_default(monkeypatch) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr(operator_menu, "prompt", _answers("2", "0"))
-    monkeypatch.setattr(
-        operator_menu,
-        "run_command",
-        lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)),
-    )
-    operator_menu.option_derivatives(operator_menu.MenuState())
-    joined = " ".join(calls[0])
-    assert "build_rag_safe_semantic_preview.py" not in joined
-    assert "build_semantic_text.py" not in joined
-    assert "build_semantic_text_authority_aware.py" not in joined
-    assert "s45_derive_layers.py" not in joined
-
-
-def test_derivation_menu_handles_missing_preview_without_traceback(monkeypatch, tmp_path: Path, capsys) -> None:
-    monkeypatch.setattr(operator_menu, "RAG_DERIVATION_PREVIEW_ROOT", tmp_path / "missing-preview")
-    monkeypatch.setattr(operator_menu, "prompt", _answers("3", "0"))
-    operator_menu.option_derivatives(operator_menu.MenuState())
-    out = capsys.readouterr().out
-    assert "estado: no disponible" in out
-    assert "Traceback" not in out
-
-
-def test_derivation_menu_handles_missing_plan_without_traceback(monkeypatch, tmp_path: Path, capsys) -> None:
-    monkeypatch.setattr(operator_menu, "RAG_DERIVATION_PLAN", tmp_path / "missing-plan.json")
-    monkeypatch.setattr(operator_menu, "prompt", _answers("4", "0"))
-    operator_menu.option_derivatives(operator_menu.MenuState())
-    out = capsys.readouterr().out
-    assert "acción sugerida" in out
-    assert "Traceback" not in out
-
-
-def test_derivation_menu_handles_corrupt_profile_without_traceback(monkeypatch, tmp_path: Path, capsys) -> None:
-    profile = tmp_path / "corrupt-profile.json"
-    profile.write_text("[]", encoding="utf-8")
-    monkeypatch.setattr(operator_menu, "RAG_DERIVATION_PROFILE", profile)
     monkeypatch.setattr(operator_menu, "prompt", _answers("0"))
     operator_menu.option_derivatives(operator_menu.MenuState())
     out = capsys.readouterr().out
-    assert "Perfil: no disponible" in out
-    assert "Preview: no disponible" in out
-    assert "Traceback" not in out
+    assert "Rollback productivo: ATTEMPT_FAILED" in out
+    assert "Estado RAG: BLOCKED_ROLLBACK_ERROR" in out
+    assert "Siguiente acción segura: FIX_AND_RESUME_TRIAL_ROLLBACK" in out
 
 
-def test_derivation_menu_handles_stale_plan_without_traceback(monkeypatch, tmp_path: Path, capsys) -> None:
-    profile = tmp_path / "profile.json"
-    profile.write_text(json.dumps(build_profile()), encoding="utf-8")
-    plan = tmp_path / "plan.json"
-    plan.write_text(
-        json.dumps(
-            {
-                "schema_version": "rag-derivation-plan/v1",
-                "status": "validated_preview",
-                "derivation_profile_hash": "stale",
-            }
-        ),
-        encoding="utf-8",
+def test_derivation_menu_explains_expected_canonical_evolution(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        operator_menu,
+        "build_rag_admission_state",
+        lambda: {
+            "staging": {"current": True},
+            "technical_gate": {"status": "pass"},
+            "equivalence": {
+                "status": "equivalent_with_expected_canonical_evolution",
+                "evolution": {"additions": 2, "updates": 3, "removals": 0, "regressions": 0},
+            },
+            "governance_gate": {"status": "pass"},
+            "authorization": {"trial": "absent"},
+            "trial_write": {"status": "not_executed"},
+            "rollback": {"status": "not_executed"},
+            "definitive_promotion": {"status": "not_executed"},
+            "verdict": "READY_FOR_GOVERNED_WRITE",
+            "next_action": "REQUEST_TRIAL_AUTHORIZATION",
+            "blocking_reasons": [],
+        },
     )
-    monkeypatch.setattr(operator_menu, "RAG_DERIVATION_PROFILE", profile)
-    monkeypatch.setattr(operator_menu, "RAG_DERIVATION_PLAN", plan)
     monkeypatch.setattr(operator_menu, "prompt", _answers("0"))
     operator_menu.option_derivatives(operator_menu.MenuState())
     out = capsys.readouterr().out
-    assert "Plan: stale" in out
-    assert "Traceback" not in out
+    assert "Equivalencia: EVOLUCIÓN CANÓNICA ESPERADA" in out
+    assert "Altas: 2" in out
+    assert "Actualizaciones: 3" in out
+    assert "Pérdidas: 0" in out
+    assert "Regresiones: 0" in out

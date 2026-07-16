@@ -39,6 +39,37 @@ def test_inventory_has_one_authoritative_writer() -> None:
     assert inventory["parallel_productive_writers"] == []
 
 
+def test_governance_accepts_current_nonblocking_canonical_evolution(tmp_path: Path) -> None:
+    staging_manifest = tmp_path / "staging_manifest.json"
+    staging_manifest.write_text(
+        json.dumps(
+            {
+                "source_canon_hash": "canon-hash",
+                "productive_orchestrator": "derive_layers.py",
+                "productive_orchestrator_hash": hashlib.sha256((SCRIPT_DIR / "derive_layers.py").read_bytes()).hexdigest(),
+                "productive_write": False,
+                "authority_state": "staging",
+            }
+        )
+    )
+    technical = tmp_path / "technical.json"
+    technical.write_text(json.dumps({"status": "pass", "blocking": False}))
+    equivalence = tmp_path / "equivalence.json"
+    equivalence.write_text(json.dumps({"equivalence_status": "equivalent_with_expected_canonical_evolution", "blocking": False}))
+    rollback = tmp_path / "rollback.json"
+    rollback.write_text(json.dumps({"rollback_ready": True}))
+    gate = build_governance_gate(
+        preflight={"canon": {"source_canon_hash": "canon-hash"}},
+        inventory=build_producer_inventory(),
+        staging_manifest_path=staging_manifest,
+        technical_gate_path=technical,
+        equivalence_report_path=equivalence,
+        rollback_readiness_path=rollback,
+    )
+    assert gate["status"] == "pass"
+    assert gate["staging_equivalence"] == "equivalent_with_expected_canonical_evolution"
+
+
 def test_s0174_writer_requires_explicit_scoped_authorization(tmp_path: Path) -> None:
     with pytest.raises(ProductiveWriteBlocked, match="explicit authorization phrase"):
         promote_staging_transaction(
@@ -60,9 +91,16 @@ def test_s0174_sandbox_write_and_real_rollback(tmp_path: Path) -> None:
     for family, target in families.items():
         target.mkdir(parents=True)
         (target / "old.txt").write_text(f"old-{family}")
+        (target / "nested").mkdir()
+        (target / "nested" / "old-2.txt").write_text(f"old-2-{family}")
+        (target / "tiddlers_2.jsonl").write_text(f"old-two-{family}")
+        (target / "tiddlers_10.jsonl").write_text(f"old-ten-{family}")
+        (target / "manifest.json").write_text(f"old-manifest-{family}")
         source = staging / family
         source.mkdir(parents=True)
         (source / "new.txt").write_text(f"new-{family}")
+        (source / "nested").mkdir()
+        (source / "nested" / "new-2.txt").write_text(f"new-2-{family}")
     manifest_path = staging / "staging_manifest.json"
     manifest_path.write_text("{}")
     digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
@@ -96,4 +134,23 @@ def test_s0174_sandbox_write_and_real_rollback(tmp_path: Path) -> None:
         expected_session_id="S0174",
     )
     assert report["status"] == "pass"
-    assert all((target / "old.txt").exists() and not (target / "new.txt").exists() for target in families.values())
+    assert report["rollback_execution"] == "pass"
+    assert report["rollback_verification"] == "pass"
+    assert all(
+        (target / "old.txt").exists()
+        and (target / "nested" / "old-2.txt").exists()
+        and (target / "tiddlers_2.jsonl").exists()
+        and (target / "tiddlers_10.jsonl").exists()
+        and not (target / "new.txt").exists()
+        and not (target / "nested" / "new-2.txt").exists()
+        for target in families.values()
+    )
+    repeated = rollback_productive_transaction(
+        rollback_root=rollback,
+        planned_families=list(families),
+        transaction_journal=tmp_path / "journal.jsonl",
+        verification_report_path=tmp_path / "rollback-report-repeated.json",
+        productive_families=families,
+        expected_session_id="S0174",
+    )
+    assert repeated["status"] == "pass"
