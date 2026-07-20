@@ -175,7 +175,7 @@ def build_state(
         if reconciliation.get("predicate_policy_hash") != sha256_file(policy):
             reconciliation_reasons.append("stale_predicate_policy_changed")
         if reconciliation.get("candidate_contract_hash") != sha256_file(contract):
-            reconciliation_reasons.append("stale_reconciliation_contract_changed")
+            reconciliation_reasons.append("stale_candidate_contract_changed")
         if reconciliation.get("reconciler_hash") != sha256_file(reconciler):
             reconciliation_reasons.append("stale_reconciler_changed")
 
@@ -188,7 +188,7 @@ def build_state(
         if reviewable.get("candidate_manifest_hash") != candidate_manifest_hash:
             reviewable_reasons.append("stale_candidate_manifest_changed")
         if reviewable.get("reconciliation_manifest_hash") != reconciliation_hash:
-            reviewable_reasons.append("stale_reconciliation_contract_changed")
+            reviewable_reasons.append("stale_reconciliation_manifest_changed")
         if reviewable.get("predicate_policy_hash") != sha256_file(policy):
             reviewable_reasons.append("stale_predicate_policy_changed")
 
@@ -201,9 +201,18 @@ def build_state(
     gate_summary = gate.get("summary") or {}
     gate_items = gate.get("items") or []
     gate_decisions = Counter(str(item.get("decision") or "unknown") for item in gate_items if isinstance(item, dict))
+    gate_reasons: list[str] = []
+    if gate_error:
+        gate_reasons.append(f"admission_gate_report_{gate_error}")
+    if run_manifest_error:
+        gate_reasons.append(f"current_run_manifest_{run_manifest_error}")
+    log_path = audit_dir / "current_relation_admission_log.jsonl"
+    if not gate_error and run_manifest.get("report_hash") != sha256_file(gate_path):
+        gate_reasons.append("current_run_manifest_report_hash_mismatch")
+    if not run_manifest_error and run_manifest.get("log_hash") != sha256_file(log_path):
+        gate_reasons.append("current_run_manifest_log_hash_mismatch")
     gate_current = bool(
-        not gate_error
-        and not run_manifest_error
+        not gate_reasons
         and run_manifest.get("canon_hash") == canon["hash"]
         and run_manifest.get("candidate_manifest_hash") == candidate_manifest_hash
         and run_manifest.get("reviewable_manifest_hash") == reviewable_hash
@@ -219,6 +228,9 @@ def build_state(
     elif reconciliation_reasons or reviewable_reasons:
         verdict = "CURRENT_RELATION_CANDIDATES_REQUIRE_RECONCILIATION"
         next_action = "VALIDATE_AND_RECONCILE_CURRENT_CANDIDATES"
+    elif not gate_current:
+        verdict = "RELATIONAL_ADMISSION_CURRENT_RUN_INCOMPLETE"
+        next_action = "RUN_RELATIONAL_ADMISSION_GATE_DRY_RUN"
     elif ready_count > 0 and decision_counts["total"] == 0:
         verdict = "READY_FOR_HUMAN_RELATIONAL_REVIEW"
         next_action = "OPEN_S0181_HUMAN_RELATIONAL_REVIEW"
@@ -288,6 +300,7 @@ def build_state(
             "approved_for_admission": gate_summary.get("approved_for_admission", 0),
             "admission_ready": gate_summary.get("admission_ready_dry_run", 0),
             "current": gate_current,
+            "stale_reasons": gate_reasons,
         },
         "apply": {
             "executed": bool(apply_report.get("status") == "applied"),

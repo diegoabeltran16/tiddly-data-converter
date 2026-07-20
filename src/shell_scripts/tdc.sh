@@ -82,8 +82,9 @@ tdc_relations_dry_run_gate() {
     local candidate_file
     candidate_file="$(tdc_relation_reviewable_file)"
     if [[ ! -f "$candidate_file" ]]; then
-        echo "No existe archivo de candidatas: $candidate_file"
-        echo "Ejecute primero la opción 1 o defina RELATION_CANDIDATE_FILE."
+        echo "No existe la cola reviewable vigente: $candidate_file."
+        echo "Ejecute primero “Validar y reconciliar candidatas vigentes” (opción 2)"
+        echo "o defina RELATION_REVIEWABLE_FILE."
         return 1
     fi
     python3 src/python_scripts/relation_admission_gate.py \

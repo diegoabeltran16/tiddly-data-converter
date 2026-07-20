@@ -1,0 +1,19 @@
+{
+  "title": "#### 🌀 Diagnóstico de sesión 0180 = congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas",
+  "type": "text/markdown",
+  "created": "20260717014116378",
+  "modified": "20260720194113009",
+  "session_id": "m04-s0180",
+  "module": "m04",
+  "session": "S0180",
+  "status": "delivered",
+  "revision_type": "robust_controlled_closure",
+  "canonical_slug": "diagnostico-sesion-s0180-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas",
+  "tags": [
+    "sesion",
+    "diagnostico",
+    "m04",
+    "s0180"
+  ],
+  "text": "### Diagnóstico de cierre robusto\n\n```yaml\nfinal_verdict: READY_FOR_HUMAN_RELATIONAL_REVIEW\nrevision_type: robust_controlled_closure\nfinal_menu_wiring:\n  reports_audit_rag: PASS\n  shared_authority: true\n  regression_resolved: true\npr_review_hardening:\n  verdict: PASS_PR_REVIEW_HARDENING\n  commit_pending_operator: true\n  push_pending_operator: true\nbaseline:\n  frozen: true\n  hash_preserved: true\nreconciliation:\n  total: 413\n  unclassified: 0\n  ready_for_review: 157\n  blocked: 256\n  counts:\n    not_canonicalizable: 202\n    unresolved_target: 50\n    self_reference: 4\nhistorical_occurrence:\n  candidates_observed: 161\n  authority: provenance_only\nadmission_gate:\n  evaluated: 157\n  technically_invalid: 0\n  awaiting_human_review: 157\n  admission_ready: 0\nrelational_state:\n  preserved: true\nhuman_reviewed: false\ncanon_admitted: false\ncanon_modified: false\nderivatives_regenerated: false\nreverse_html_mutated: false\nremote_mutated: false\nnext_action: OPEN_S0181_HUMAN_RELATIONAL_REVIEW\n```\n\nEl cierre inicial fue archivado como provisional superado. La evidencia machine-readable vigente vive en `data/out/local/pipeline/relation_candidates/current/`, `data/out/local/audit/relation_admission/current/` y `data/out/local/audit/s0180/`.\n"
+}

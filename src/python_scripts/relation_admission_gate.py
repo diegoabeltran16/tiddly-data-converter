@@ -1151,29 +1151,91 @@ def aggregate_canon_hash(canon_glob: str) -> str:
     return digest.hexdigest()
 
 
+CURRENT_RUN_ARTIFACT_NAMES = (
+    "admission_gate_dry_run.json",
+    "current_relation_admission_dry_run_report.json",
+    "current_relation_admission_log.jsonl",
+    "current_run_manifest.json",
+    "relation_apply_plan.json",
+    "relation_apply_report.json",
+    "relational_audit_index.json",
+    "relational_operational_state.json",
+)
+
+
+def _current_run_files(out: Path) -> list[Path]:
+    """Return only explicit artifacts that may belong to the current run."""
+    return [out / name for name in CURRENT_RUN_ARTIFACT_NAMES if (out / name).is_file()]
+
+
 def rotate_current_run(out: Path) -> dict[str, Any]:
-    """Archive the previous operational current run and reset its mixed log."""
-    log_path = out / "current_relation_admission_log.jsonl"
-    previous_files = sorted(path for path in out.glob("*") if path.is_file())
+    """Atomically archive the previous current run or leave it untouched.
+
+    The historical directory is staged on the same filesystem.  Until it is
+    published, a failed move is rolled back in reverse order so consumers keep
+    seeing one complete current run rather than a partial archive.
+    """
+    previous_files = _current_run_files(out)
     if not previous_files:
         return {"rotated": False, "archived_files": [], "history_path": None}
     previous_manifest = load_json(out / "current_run_manifest.json", default={}) or {}
     prior_seed = sha256_path(out / "admission_gate_dry_run.json") or datetime.now(tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = str(previous_manifest.get("run_id") or f"run-{prior_seed[:16]}")
     history = out.parent / "history" / run_id
-    suffix = 1
-    while history.exists():
-        history = out.parent / "history" / f"{run_id}-{suffix}"
-        suffix += 1
-    history.mkdir(parents=True, exist_ok=False)
-    archived = []
-    for path in previous_files:
-        shutil.copy2(path, history / path.name)
-        archived.append(path.name)
-    log_path.unlink(missing_ok=True)
+    if history.exists():
+        raise FileExistsError(f"history collision for current run: {history}")
+    temporary_history = history.parent / f".{run_id}.tmp"
+    if temporary_history.exists():
+        raise FileExistsError(f"temporary history collision for current run: {temporary_history}")
+
+    temporary_history.mkdir(parents=True, exist_ok=False)
+    moved: list[tuple[Path, Path, str]] = []
+    try:
+        for path in previous_files:
+            destination = temporary_history / path.name
+            digest = sha256_path(path)
+            if digest is None:
+                raise RuntimeError(f"current artifact disappeared before archive: {path}")
+            shutil.move(str(path), str(destination))
+            moved.append((path, destination, digest))
+            if sha256_path(destination) != digest:
+                raise RuntimeError(f"current artifact hash changed during archive: {path}")
+
+        archive_manifest = {
+            "schema_version": "relation-admission-history-archive/v1",
+            "previous_run_id": run_id,
+            "files": [
+                {
+                    "source": str(source),
+                    "temporary_destination": str(destination),
+                    "sha256_before": digest,
+                }
+                for source, destination, digest in moved
+            ],
+        }
+        archive_manifest_path = temporary_history / "archive_manifest.json"
+        archive_manifest_path.write_text(
+            json.dumps(archive_manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        if len(moved) != len(previous_files) or any(sha256_path(destination) != digest for _, destination, digest in moved):
+            raise RuntimeError("current archive verification failed")
+        temporary_history.replace(history)
+    except Exception as error:
+        for source, destination, _ in reversed(moved):
+            if destination.exists():
+                shutil.move(str(destination), str(source))
+        archive_manifest_path = temporary_history / "archive_manifest.json"
+        archive_manifest_path.unlink(missing_ok=True)
+        try:
+            temporary_history.rmdir()
+        except OSError:
+            pass
+        raise RuntimeError(f"current run archive aborted: {error}") from error
+
     return {
         "rotated": True,
-        "archived_files": archived,
+        "archived_files": [path.name for path in previous_files],
         "history_path": str(history),
     }
 
@@ -1183,6 +1245,8 @@ def write_current_run_manifest(
     log_path: Path, evaluated: int, human_decisions_path: Path | None,
     rotation: dict[str, Any],
 ) -> Path:
+    if not report_path.is_file() or not log_path.is_file():
+        raise RuntimeError("current run manifest requires published report and log")
     candidate_dir = candidates_file.parent
     candidate_manifest = candidate_dir / "current_candidate_manifest.json"
     reviewable_manifest = candidate_dir / "reviewable_candidate_manifest.json"
@@ -1214,7 +1278,9 @@ def write_current_run_manifest(
         "canon_modified": False,
     }
     path = out / "current_run_manifest.json"
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary_path = path.with_name(f"{path.name}.tmp")
+    temporary_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary_path.replace(path)
     return path
 
 
@@ -2076,17 +2142,21 @@ def main(argv: list[str] | None = None) -> int:
     # A current operational run is a replaceable snapshot, not an append-only
     # mixture of historical namespaces. Historical runs remain archived.
     rotation = {"rotated": False, "archived_files": [], "history_path": None}
+    out.mkdir(parents=True, exist_ok=True)
     if session_tag == "current":
         rotation = rotate_current_run(out)
 
-    # Append to log
+    # Produce current outputs privately first.  If production fails after a
+    # successful archive, no previous run is left visible as current.
     log_path = out / f"{session_tag}_relation_admission_log.jsonl"
+    temporary_log_path = log_path.with_name(f"{log_path.name}.tmp") if session_tag == "current" else log_path
+    if session_tag == "current":
+        temporary_log_path.unlink(missing_ok=True)
     log_outcomes: list[dict[str, str]] = []
     for result, candidate in zip(results, candidates):
-        outcome = append_to_log(result, candidate, log_path, session=session_tag)
+        outcome = append_to_log(result, candidate, temporary_log_path, session=session_tag)
         log_outcomes.append(outcome)
 
-    # Build and write report
     report = build_dry_run_report(
         results,
         session=session_tag,
@@ -2095,10 +2165,15 @@ def main(argv: list[str] | None = None) -> int:
         persistent_human_decisions=persistent_decisions,
     )
     report_path = args.output or (out / f"{session_tag}_relation_admission_dry_run_report.json")
-    out.mkdir(parents=True, exist_ok=True)
-    with report_path.open("w", encoding="utf-8") as fh:
+    temporary_report_path = report_path.with_name(f"{report_path.name}.tmp") if session_tag == "current" else report_path
+    if session_tag == "current":
+        temporary_report_path.unlink(missing_ok=True)
+    temporary_report_path.parent.mkdir(parents=True, exist_ok=True)
+    with temporary_report_path.open("w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, ensure_ascii=False)
     if session_tag == "current":
+        temporary_log_path.replace(log_path)
+        temporary_report_path.replace(report_path)
         manifest_path = write_current_run_manifest(
             out=out,
             candidates_file=args.candidates_file,

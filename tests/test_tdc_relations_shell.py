@@ -90,6 +90,22 @@ def test_tdc_relations_summary_uses_current_operational_state() -> None:
     assert "S0167 repaired queue" not in result.stdout
 
 
+def test_tdc_relations_dry_run_missing_reviewable_queue_gives_exact_guidance(tmp_path: Path) -> None:
+    missing_queue = tmp_path / "ready_for_human_review.jsonl"
+
+    result = _run_tdc_with_env(
+        "3\n\n0\n",
+        {"RELATION_REVIEWABLE_FILE": str(missing_queue), "PATH": "/usr/bin:/bin"},
+        "relations-admission",
+    )
+
+    assert result.returncode == 1
+    assert f"No existe la cola reviewable vigente: {missing_queue}." in result.stdout
+    assert "Ejecute primero “Validar y reconciliar candidatas vigentes” (opción 2)" in result.stdout
+    assert "o defina RELATION_REVIEWABLE_FILE." in result.stdout
+    assert "RELATION_CANDIDATE_FILE" not in result.stdout
+
+
 def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
     before = {
         path: path.stat().st_mtime
