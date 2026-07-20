@@ -1,0 +1,69 @@
+{
+  "schema_version": "s0180-pr-review-hardening/v1",
+  "session_id": "m04-s0180",
+  "pull_request": 151,
+  "base_branch": "main",
+  "head_branch": "m04",
+  "opening_commit": "6c38660 refactor(pipeline): reorganiza operación relacional con estado read-only, auditoría de linaje y reconciliación gobernada",
+  "checked_at": "2026-07-20T19:41:13Z",
+  "copilot_comments": {
+    "candidate_contract_reason": {
+      "decision": "implemented_manually",
+      "result": "candidate_contract_hash now emits stale_candidate_contract_changed"
+    },
+    "reconciliation_manifest_reason": {
+      "decision": "implemented_manually",
+      "result": "reconciliation_manifest_hash now emits stale_reconciliation_manifest_changed"
+    },
+    "current_rotation": {
+      "decision": "reimplemented_robustly",
+      "result": "explicit artifacts move through same-filesystem temporary history, rollback on archive failure, verify hashes, publish history atomically, and publish current manifest last"
+    },
+    "build_baseline_unused": {
+      "consumers_found": 0,
+      "decision": "deferred",
+      "code_modified": false,
+      "reason": "non_blocking_dead_code_investigation_out_of_scope"
+    },
+    "reviewable_shell_message": {
+      "source": "suppressed_low_confidence_comment",
+      "decision": "implemented",
+      "result": "guides to option 2 and RELATION_REVIEWABLE_FILE"
+    }
+  },
+  "files_modified": [
+    "src/python_scripts/relation_admission_state.py",
+    "src/python_scripts/relation_admission_gate.py",
+    "src/shell_scripts/tdc.sh",
+    "tests/test_relation_admission_state.py",
+    "tests/test_relation_admission_gate.py",
+    "tests/test_tdc_relations_shell.py"
+  ],
+  "tests_added_or_updated": [
+    "stale reason binding taxonomy and controls",
+    "current rotation success, rollback, empty current, collision, and manifest publication",
+    "missing reviewable queue shell guidance",
+    "missing current manifest is fail-closed"
+  ],
+  "validation": {
+    "py_compile": "PASS",
+    "shell_syntax": "PASS",
+    "focused_tests": "PASS: 67 passed",
+    "broader_tests": "PASS: 79 related integration tests passed; full suite interrupted after 479 passed and 8 known characterization failures that expect the historical 1424-record/15-shard canon rather than the pre-existing S0180 2205-record/23-shard canon",
+    "relation_currentness": "PASS: exit 0",
+    "relational_state": "PASS: READY_FOR_HUMAN_RELATIONAL_REVIEW; total=413; ready_for_review=157; blocked=256; unclassified=0; human_decisions=0; admission_ready=0",
+    "operator_read_only_checks": "PASS: 6→3, 8→2, 9→3, and 8→5 each exited 0",
+    "canon_strict": "PASS: lines_read=2205; lines_valid=2205",
+    "reverse_preflight": "PASS: reverse_ready=2205; not_ready=0",
+    "session_deliverables": "The seven updated S0180 artifacts are valid JSON; validate-dir reports 9 pre-existing schema errors in unrelated diagnostics 065 and 066"
+  },
+  "protected_surfaces": {
+    "before_inventory_hash": "e89af687cd9bf2dcf05c0598bc33ce0269b6e75bf70c147cd7e05081963bd02c",
+    "after_inventory_hash": "e89af687cd9bf2dcf05c0598bc33ce0269b6e75bf70c147cd7e05081963bd02c",
+    "changed_files": [],
+    "result": "PASS"
+  },
+  "final_verdict": "PASS_PR_REVIEW_HARDENING",
+  "commit_created": false,
+  "push_executed": false
+}

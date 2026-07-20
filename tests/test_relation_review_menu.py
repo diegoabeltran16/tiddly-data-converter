@@ -429,7 +429,7 @@ class TestMainMenuIntegration:
 
     def test_alias_16_redirects_to_canonical_relations(self):
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "Revisión relacional ahora vive" in result.stdout, (
+        assert "Preparación relacional ahora vive" in result.stdout, (
             f"Alias 16 no redirigió correctamente:\n{result.stdout[:800]}"
         )
         assert "Relaciones canónicas" in result.stdout
@@ -448,19 +448,17 @@ class TestMainMenuIntegration:
             f"'Canon: PROTEGIDO' no encontrado:\n{result.stdout[:800]}"
         )
 
-    def test_canonical_relations_submenu_shows_apply_confirmation_boundary(self):
-        """Al abrir el submenú (opción 16), el output muestra la frontera APPLY."""
+    def test_canonical_relations_submenu_excludes_apply_boundary(self):
+        """La preparación técnica no expone apply; vive en admisión gobernada."""
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "APPLY RELATIONS al canon" in result.stdout, (
-            f"'APPLY RELATIONS al canon' no encontrado:\n{result.stdout[:800]}"
-        )
+        assert "Este módulo no contiene apply" in result.stdout
+        assert "APPLY RELATIONS al canon" not in result.stdout
 
-    def test_canonical_relations_submenu_shows_dry_run(self):
-        """Al abrir el submenú (opción 16), el output contiene 'dry-run'."""
+    def test_canonical_relations_submenu_shows_reconciliation(self):
+        """La opción 16 abre validación/reconciliación, no admission gate."""
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "Dry-run admission gate" in result.stdout, (
-            f"'dry-run' no encontrado:\n{result.stdout[:800]}"
-        )
+        assert "Validar y reconciliar candidatas vigentes" in result.stdout
+        assert "Dry-run admission gate" not in result.stdout
 
     def test_canonical_relations_submenu_does_not_modify_canon(self):
         """Abrir y cerrar el submenú oficial no modifica el canon."""

@@ -76,6 +76,28 @@ def test_trial_write_is_delegated_to_governed_capability(monkeypatch) -> None:
     assert calls[0][-1] == "trial-write"
 
 
+def test_restoration_and_audit_menu_options_have_distinct_read_only_commands(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(operator_menu, "prompt", _answers("9", "12", "0"))
+    monkeypatch.setattr(operator_menu, "run_command", lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)))
+
+    operator_menu.option_derivatives(operator_menu.MenuState())
+
+    assert calls[0][-1] == "rollback-status"
+    assert calls[1][-1] == "audit"
+
+
+def test_reports_audit_rag_delegates_to_authoritative_derivatives_surface(monkeypatch) -> None:
+    calls: list[operator_menu.MenuState] = []
+    monkeypatch.setattr(operator_menu, "prompt", _answers("3", "0"))
+    monkeypatch.setattr(operator_menu, "option_derivatives", lambda state: calls.append(state))
+
+    operator_menu.option_reports_audit()
+
+    assert len(calls) == 1
+    assert isinstance(calls[0], operator_menu.MenuState)
+
+
 def test_derivation_menu_surfaces_persisted_rollback_failure(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         operator_menu,

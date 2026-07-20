@@ -23,23 +23,19 @@ tdc_relation_candidate_file() {
         printf '%s\n' "$RELATION_CANDIDATE_FILE"
         return
     fi
-    if [[ -f "$RELATION_OUT_DIR/review_queue.jsonl" ]]; then
-        printf '%s\n' "$RELATION_OUT_DIR/review_queue.jsonl"
-        return
-    fi
     if [[ -f "$RELATION_OUT_DIR/relation_candidates.jsonl" ]]; then
         printf '%s\n' "$RELATION_OUT_DIR/relation_candidates.jsonl"
         return
     fi
-    if [[ -f "$RELATION_OUT_DIR/candidates.jsonl" ]]; then
-        printf '%s\n' "$RELATION_OUT_DIR/candidates.jsonl"
+    printf '%s\n' "$RELATION_OUT_DIR/relation_candidates.jsonl"
+}
+
+tdc_relation_reviewable_file() {
+    if [[ -n "${RELATION_REVIEWABLE_FILE:-}" ]]; then
+        printf '%s\n' "$RELATION_REVIEWABLE_FILE"
         return
     fi
-    if [[ -f "data/out/local/pipeline/relation_candidates/s0162/review_queue.jsonl" ]]; then
-        printf '%s\n' "data/out/local/pipeline/relation_candidates/s0162/review_queue.jsonl"
-        return
-    fi
-    printf '%s\n' "$RELATION_OUT_DIR/review_queue.jsonl"
+    printf '%s\n' "$RELATION_OUT_DIR/ready_for_human_review.jsonl"
 }
 
 tdc_relations_generate_candidates() {
@@ -48,7 +44,7 @@ tdc_relations_generate_candidates() {
 Generando candidatas relacionales contra canon vigente.
 Canon vigente: $CANON_DIR
 Salida: $RELATION_OUT_DIR
-Nota: S0162 review_queue, si se usa después, es evidencia histórica; no autoridad actual.
+Los lotes S0161-S0167 permanecen únicamente como historia avanzada.
 EOF
     python3 src/python_scripts/generate_technical_relation_candidates.py \
         --canon-root "$CANON_DIR" \
@@ -62,9 +58,6 @@ tdc_relations_validate_candidates() {
     mkdir -p "$RELATION_OUT_DIR"
     local candidate_file
     candidate_file="$(tdc_relation_candidate_file)"
-    if [[ "$candidate_file" == *"/s0162/"* ]]; then
-        echo "Usando S0162 review_queue como evidencia histórica: $candidate_file"
-    fi
     if [[ ! -f "$candidate_file" ]]; then
         echo "No existe archivo de candidatas: $candidate_file"
         echo "Ejecute primero la opción 1 o defina RELATION_CANDIDATE_FILE."
@@ -78,18 +71,20 @@ tdc_relations_validate_candidates() {
         --output-dir "$RELATION_OUT_DIR" \
         --session-tag "$RELATION_SESSION" \
         --dry-run
+    python3 src/python_scripts/reconcile_current_relation_candidates.py \
+        --canon-root "$CANON_DIR" \
+        --current-dir "$RELATION_OUT_DIR" \
+        --audit-dir data/out/local/audit/s0180
 }
 
 tdc_relations_dry_run_gate() {
     mkdir -p "$AUDIT_DIR"
     local candidate_file
-    candidate_file="$(tdc_relation_candidate_file)"
-    if [[ "$candidate_file" == *"/s0162/"* ]]; then
-        echo "Usando S0162 review_queue como evidencia histórica: $candidate_file"
-    fi
+    candidate_file="$(tdc_relation_reviewable_file)"
     if [[ ! -f "$candidate_file" ]]; then
-        echo "No existe archivo de candidatas: $candidate_file"
-        echo "Ejecute primero la opción 1 o defina RELATION_CANDIDATE_FILE."
+        echo "No existe la cola reviewable vigente: $candidate_file."
+        echo "Ejecute primero “Validar y reconciliar candidatas vigentes” (opción 2)"
+        echo "o defina RELATION_REVIEWABLE_FILE."
         return 1
     fi
     python3 src/python_scripts/relation_admission_gate.py \
@@ -102,139 +97,39 @@ tdc_relations_dry_run_gate() {
 }
 
 tdc_relations_show_summary() {
-    local report="$AUDIT_DIR/admission_gate_dry_run.json"
-    python3 - "$report" <<'PY'
-import json
+    python3 src/python_scripts/relation_admission_state.py state
+}
+
+tdc_relations_show_ready_queue() {
+    python3 - "$RELATION_OUT_DIR/ready_for_human_review.jsonl" <<'PY'
 import sys
-from collections import Counter
 from pathlib import Path
-
-path = Path(sys.argv[1])
-repo_root = Path.cwd()
-current_dir = repo_root / "data/out/local/pipeline/relation_candidates/current"
-s0167_dir = repo_root / "data/out/local/pipeline/relation_candidates/s0167"
-s0167_audit = repo_root / "data/out/local/audit/relation_admission/s0167/s0167_admission_gate_dry_run.json"
-
-
-def load_json(json_path):
-    if not json_path.exists():
-        return {}
-    return json.loads(json_path.read_text(encoding="utf-8"))
-
-
-def count_jsonl(jsonl_path):
-    if not jsonl_path.exists():
-        return 0
-    with jsonl_path.open(encoding="utf-8") as handle:
-        return sum(1 for line in handle if line.strip())
-
-
-def count_human_decisions(jsonl_path):
-    counts = Counter()
-    if not jsonl_path.exists():
-        return counts
-    with jsonl_path.open(encoding="utf-8") as handle:
-        for raw in handle:
-            if not raw.strip():
-                continue
-            row = json.loads(raw)
-            counts[row.get("human_review_decision") or row.get("decision") or "(unknown)"] += 1
-    return counts
-
-print("Resumen relacional")
-
-current_report = load_json(current_dir / "relation_candidates_report.json")
-current_validation = load_json(current_dir / "validation_report.json")
-current_candidate_count = 0
-if current_report:
-    current_candidate_count = int(current_report.get("candidate_count") or 0)
-    print("Current generation:")
-    print(f"- candidatas generadas: {current_candidate_count}")
-    print(f"- listas directas para review: {current_report.get('ready_for_review_count', 0)}")
-    print(f"- bloqueadas: {current_report.get('blocked_count', 0)}")
-    status_counts = current_report.get("status_counts") or {}
-    if status_counts:
-        print("- bloqueos:")
-        for status, count in sorted(status_counts.items()):
-            print(f"  - {status}: {count}")
-elif (current_dir / "relation_candidates.jsonl").exists():
-    print("Current generation:")
-    print(f"- candidatas generadas: {count_jsonl(current_dir / 'relation_candidates.jsonl')}")
-    print("- listas directas para review: no calculado")
-    print("- bloqueadas: no calculado")
-else:
-    print("Current generation:")
-    print("- no hay candidatas current generadas")
-
-validation_summary = current_validation.get("summary") or {}
-if validation_summary:
-    validation_total = int(validation_summary.get("total") or 0)
-    validation_label = "validación current"
-    if current_candidate_count and validation_total != current_candidate_count:
-        validation_label += " (desfasada frente a la generación actual)"
-    print(
-        f"- {validation_label}: total={validation_total} "
-        f"valid={validation_summary.get('valid', 0)} invalid={validation_summary.get('invalid', 0)}"
-    )
-
-repair_report = load_json(s0167_dir / "repair_report.json")
-ready_path = s0167_dir / "relation_candidates_ready_for_review.jsonl"
-ready_count = count_jsonl(ready_path)
-if repair_report or ready_path.exists():
-    residual = repair_report.get("residual_breakdown_for_s0168") or {}
-    summary = repair_report.get("summary") or {}
-    decisions = count_human_decisions(s0167_dir / "human_review_decisions.jsonl")
-    approved = decisions.get("approved_for_admission", 0)
-    print("S0167 repaired queue:")
-    print(f"- cola S0167: {ready_count} candidatas válidas para revisión humana")
-    print("- estado: no admitidas")
-    print(f"- decisiones humanas persistentes: {sum(decisions.values())}")
-    print(f"- aprobadas para admisión: {approved}")
-    print(f"- bloqueadas por mapping restantes: {residual.get('blocked_mapping_remaining', summary.get('blocked_mapping_remaining', 0))}")
-    print(f"- bloqueadas por target restantes: {residual.get('blocked_target_remaining', summary.get('blocked_target_remaining', 0))}")
-    print(f"- inválidas por contrato restantes: {residual.get('invalid_contract_remaining', summary.get('invalid_contract_remaining', 0))}")
-    print(f"- duplicados excluidos: {residual.get('duplicate_excluded', summary.get('duplicate_excluded', 0))}")
-    print("- siguiente paso: revisión humana persistente")
-else:
-    print("S0167 repaired queue:")
-    print("- no disponible")
-
-print("Apply:")
-print("- protegido: requiere human_review_decisions persistente y confirmación explícita")
-
-if path.exists():
-    data = json.loads(path.read_text(encoding="utf-8"))
-    summary = data.get("summary") or {}
-    items = data.get("items") or []
-    decisions = Counter(item.get("decision") for item in items)
-    all_reasons = Counter()
-    for item in items:
-        for reason in item.get("all_block_reasons") or item.get("blocking_reasons") or []:
-            all_reasons[reason.split(":", 1)[0]] += 1
-    print("Último dry-run current:")
-    print(f"- evaluadas: {summary.get('total_evaluated', len(items))}")
-    print(f"- admission_ready_dry_run: {summary.get('admission_ready_dry_run', 0)}")
-    print(f"- bloqueadas: {summary.get('blocked', 0)}")
-    print(f"- missing_human_review: {decisions.get('blocked_missing_human_review', 0)}")
-    print(f"- stale_path: {decisions.get('blocked_repo_path_stale_or_lifecycle', 0)}")
-    print(f"- missing_lifecycle_state: {all_reasons.get('GATE-020', 0)}")
-    print(f"- build_artifact_blocked: {decisions.get('blocked_build_artifact', 0)}")
-    print(f"- duplicate_existing: {decisions.get('blocked_duplicate_existing', 0)}")
-    print(f"- reporte: {path}")
-elif s0167_audit.exists():
-    gate = load_json(s0167_audit)
-    gate_summary = gate.get("summary") or {}
-    print("Último dry-run S0167:")
-    print(f"- evaluadas: {gate_summary.get('total_evaluated', 0)}")
-    print(f"- admission_ready_dry_run: {gate_summary.get('admission_ready_dry_run', 0)}")
-    print(f"- bloqueadas: {gate_summary.get('blocked', 0)}")
-    print("- estado: bloqueado correctamente hasta decisiones humanas persistentes")
-    print(f"- reporte: {s0167_audit}")
-else:
-    print("Último dry-run:")
-    print("- no existe todavía un dry-run relacional persistente")
-    print("- ejecute primero la opción 3")
+p = Path(sys.argv[1])
+print(f"Cola técnica vigente: {p}")
+print(f"Registros: {sum(1 for line in p.open(encoding='utf-8') if line.strip()) if p.exists() else 0}")
+print("Autoridad: candidate; revisión humana no ejecutada; canon no admitido.")
 PY
+}
+
+tdc_relations_show_blocked() {
+    python3 src/python_scripts/relation_admission_state.py validate-currentness || true
+}
+
+tdc_relations_show_history() {
+    echo "Historia relacional (solo consulta):"
+    find data/out/local/pipeline/relation_candidates data/out/local/audit/relation_admission/history -mindepth 1 -maxdepth 1 -type d -printf '%p\n' 2>/dev/null | sort || true
+}
+
+tdc_relations_show_decisions() {
+    if [[ -s "$RELATION_HUMAN_REVIEW_DECISIONS" ]]; then
+        sed -n '1,20p' "$RELATION_HUMAN_REVIEW_DECISIONS"
+    else
+        echo "No existen decisiones humanas vigentes. Revisión reservada para S0181."
+    fi
+}
+
+tdc_relations_review() {
+    echo "Revisión humana no ejecutada en S0180. Próxima acción gobernada: OPEN_S0181_HUMAN_RELATIONAL_REVIEW."
 }
 
 tdc_relations_apply() {
@@ -261,7 +156,7 @@ EOF
 
     local report="$AUDIT_DIR/admission_gate_dry_run.json"
     local candidate_file
-    candidate_file="$(tdc_relation_candidate_file)"
+    candidate_file="$(tdc_relation_reviewable_file)"
     mkdir -p "$AUDIT_DIR"
     python3 src/python_scripts/relation_admission_gate.py \
         --candidate-file "$candidate_file" \
@@ -278,16 +173,17 @@ tdc_relations_menu() {
     while true; do
         cat <<'EOF'
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Relaciones canónicas
+  Relaciones canónicas / preparación técnica
   Canon: PROTEGIDO
-  Apply: requiere confirmación humana explícita
+  Este módulo no contiene apply
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 1) Generar candidatas desde canon vigente
-2) Validar candidatas / review queue
-3) Dry-run admission gate
-4) Ver estado relacional y cola S0167
-5) APPLY RELATIONS al canon
+2) Validar y reconciliar candidatas vigentes
+3) Ver estado relacional vigente
+4) Ver cola lista para revisión humana
+5) Ver bloqueos técnicos
+9) Historia relacional avanzada
 0) Volver
 EOF
         printf "> "
@@ -296,9 +192,42 @@ EOF
         case "$choice" in
             1) tdc_relations_generate_candidates; tdc_pause ;;
             2) tdc_relations_validate_candidates; tdc_pause ;;
+            3) tdc_relations_show_summary; tdc_pause ;;
+            4) tdc_relations_show_ready_queue; tdc_pause ;;
+            5) tdc_relations_show_blocked; tdc_pause ;;
+            9) tdc_relations_show_history; tdc_pause ;;
+            0|"") return 0 ;;
+            *) echo "Opción inválida." ;;
+        esac
+    done
+}
+
+tdc_relations_admission_menu() {
+    while true; do
+        cat <<'EOF'
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Revisión humana / admisión relacional
+  Canon: PROTEGIDO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1) Abrir revisión humana (S0181; no ejecutada aquí)
+2) Ver decisiones humanas vigentes
+3) Ejecutar admission gate dry-run
+4) Ver estado de compuerta relacional
+5) APPLY RELATIONS protegido
+6) Ver reportes relacionales
+0) Volver
+EOF
+        printf "> "
+        local choice
+        read -r choice || choice=""
+        case "$choice" in
+            1) tdc_relations_review; tdc_pause ;;
+            2) tdc_relations_show_decisions; tdc_pause ;;
             3) tdc_relations_dry_run_gate; tdc_pause ;;
             4) tdc_relations_show_summary; tdc_pause ;;
             5) tdc_relations_apply; tdc_pause ;;
+            6) find "$RELATION_OUT_DIR" "$AUDIT_DIR" -maxdepth 1 -type f -printf '%p\n' | sort; tdc_pause ;;
             0|"") return 0 ;;
             *) echo "Opción inválida." ;;
         esac
@@ -314,6 +243,18 @@ case "${1:-}" in
         ;;
     relations)
         tdc_relations_menu
+        ;;
+    relations-admission)
+        tdc_relations_admission_menu
+        ;;
+    relations-state)
+        tdc_relations_show_summary
+        ;;
+    relations-audit)
+        python3 src/python_scripts/relation_admission_state.py audit
+        ;;
+    relations-rollback-status)
+        tdc_relations_show_summary
         ;;
     *)
         python3 src/python_scripts/operator_menu.py

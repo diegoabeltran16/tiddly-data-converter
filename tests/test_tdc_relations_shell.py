@@ -42,8 +42,9 @@ def test_tdc_relations_submenu_is_visible() -> None:
     assert result.returncode == 0
     assert "Relaciones canónicas" in result.stdout
     assert "Canon: PROTEGIDO" in result.stdout
-    assert "Dry-run admission gate" in result.stdout
-    assert "APPLY RELATIONS al canon" in result.stdout
+    assert "Validar y reconciliar candidatas vigentes" in result.stdout
+    assert "Este módulo no contiene apply" in result.stdout
+    assert "APPLY RELATIONS al canon" not in result.stdout
 
 
 def test_tdc_default_opens_single_operator_menu() -> None:
@@ -64,9 +65,9 @@ def test_tdc_main_option_6_opens_canonical_relations() -> None:
     assert "Tiddly Data Converter - Operador local" in result.stdout
     assert "Relaciones canónicas" in result.stdout
     assert "Generar candidatas desde canon vigente" in result.stdout
-    assert "Dry-run admission gate" in result.stdout
-    assert "Ver estado relacional y cola S0167" in result.stdout
-    assert "APPLY RELATIONS al canon" in result.stdout
+    assert "Validar y reconciliar candidatas vigentes" in result.stdout
+    assert "Ver estado relacional vigente" in result.stdout
+    assert "APPLY RELATIONS al canon" not in result.stdout
 
 
 def test_tdc_governed_admission_bridges_to_canonical_relations_without_duplicate_label() -> None:
@@ -76,20 +77,33 @@ def test_tdc_governed_admission_bridges_to_canonical_relations_without_duplicate
     assert "Revisión / admisión gobernada" in result.stdout
     assert "Relaciones canónicas" in result.stdout
     assert "Relaciones candidatas" not in result.stdout
-    assert "Generar candidatas desde canon vigente" in result.stdout
+    assert "Revisión humana / admisión relacional" in result.stdout
+    assert "Ejecutar admission gate dry-run" in result.stdout
 
 
-def test_tdc_relations_summary_separates_current_and_s0167_queue() -> None:
-    result = _run_tdc("4\n0\n", "relations")
+def test_tdc_relations_summary_uses_current_operational_state() -> None:
+    result = _run_tdc("3\n0\n", "relations")
 
     assert result.returncode == 0
-    assert "Resumen relacional" in result.stdout
-    assert "Current generation:" in result.stdout
-    assert "S0167 repaired queue:" in result.stdout
-    assert "cola S0167:" in result.stdout
-    assert "candidatas válidas para revisión humana" in result.stdout
-    assert "decisiones humanas persistentes:" in result.stdout
-    assert "Apply:" in result.stdout
+    assert '"schema_version": "relational-operational-state/v1"' in result.stdout
+    assert '"candidate_generation"' in result.stdout
+    assert "S0167 repaired queue" not in result.stdout
+
+
+def test_tdc_relations_dry_run_missing_reviewable_queue_gives_exact_guidance(tmp_path: Path) -> None:
+    missing_queue = tmp_path / "ready_for_human_review.jsonl"
+
+    result = _run_tdc_with_env(
+        "3\n\n0\n",
+        {"RELATION_REVIEWABLE_FILE": str(missing_queue), "PATH": "/usr/bin:/bin"},
+        "relations-admission",
+    )
+
+    assert result.returncode == 1
+    assert f"No existe la cola reviewable vigente: {missing_queue}." in result.stdout
+    assert "Ejecute primero “Validar y reconciliar candidatas vigentes” (opción 2)" in result.stdout
+    assert "o defina RELATION_REVIEWABLE_FILE." in result.stdout
+    assert "RELATION_CANDIDATE_FILE" not in result.stdout
 
 
 def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
@@ -97,7 +111,7 @@ def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
         path: path.stat().st_mtime
         for path in sorted((REPO_ROOT / "data" / "out" / "local").glob("tiddlers_*.jsonl"))
     }
-    result = _run_tdc("5\nNO\n0\n", "relations")
+    result = _run_tdc("5\nNO\n0\n", "relations-admission")
     after = {path: path.stat().st_mtime for path in before}
 
     assert result.returncode == 0
@@ -132,7 +146,7 @@ def test_tdc_relations_apply_exact_confirmation_blocks_without_ready_candidates(
             "RELATION_HUMAN_REVIEW_DECISIONS": str(tmp_path / "missing-review.jsonl"),
             "PATH": "/usr/bin:/bin",
         },
-        "relations",
+        "relations-admission",
     )
 
     assert result.returncode == 1
@@ -173,7 +187,7 @@ def test_tdc_relations_apply_routes_to_safe_engine_and_blocks_missing_review(tmp
             "RELATION_HUMAN_REVIEW_DECISIONS": str(tmp_path / "missing-review.jsonl"),
             "PATH": "/usr/bin:/bin",
         },
-        "relations",
+        "relations-admission",
     )
 
     assert result.returncode == 1

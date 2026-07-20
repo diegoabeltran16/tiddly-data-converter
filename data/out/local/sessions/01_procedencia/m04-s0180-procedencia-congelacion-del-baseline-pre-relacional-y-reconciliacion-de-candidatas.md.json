@@ -1,0 +1,19 @@
+{
+  "title": "#### 🌀🧾 Procedencia de sesión 0180 = congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas",
+  "type": "text/markdown",
+  "created": "20260717014116378",
+  "modified": "20260720194113009",
+  "session_id": "m04-s0180",
+  "module": "m04",
+  "session": "S0180",
+  "status": "delivered",
+  "revision_type": "robust_controlled_closure",
+  "canonical_slug": "m04-s0180-procedencia-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas",
+  "tags": [
+    "sesion",
+    "procedencia",
+    "m04",
+    "s0180"
+  ],
+  "text": "### Procedencia vigente\n\nSe leyó el canon vigente, el baseline S0180, la cola current, sus resultados del validador y los lotes históricos. El hash del baseline se preservó exactamente. La reproducción de causa probó que los 157 IDs válidos eran exactamente los 157 antes clasificados como `historical_duplicate`, sin decisiones humanas ni apply observados.\n\n### Evidencia durable\n\nEl cierre inicial quedó archivado en `audit/s0180/history/initial_closure/`. La operación vigente se enlaza mediante los manifests current, reconciliation y reviewable; la historia se registra como `provenance_only`.\n\n### Microfix final de wiring\n\nLa prueba manual de `8 → 3` reveló `NameError: option_derivatives_menu is not defined`: el símbolo era una referencia stale. Se corrigió para delegar en `option_derivatives(MenuState())`, la función autoritativa vigente, y el test de navegación verifica una sola llamada. Compilación, sintaxis shell, 47 tests focalizados, navegación manual, estado relacional, gate canónico y hashes protegidos pasaron. La evidencia durable es `data/out/local/audit/s0180/final_menu_wiring_validation.json`; el inventario protegido antes/después conservó el hash `e89af687cd9bf2dcf05c0598bc33ce0269b6e75bf70c147cd7e05081963bd02c`.\n\n### Hardening post-review del PR #151\n\nSe abrió sobre `m04` en `6c38660`. Los comentarios de Copilot sobre dos nombres stale y la rotación fueron implementados manualmente; la guía shell se corrigió desde un comentario de baja confianza. `build_baseline()` solo tuvo su definición como resultado de búsqueda y quedó diferido. No se creó commit ni se ejecutó push. La evidencia es `data/out/local/audit/s0180/pr_review_hardening_validation.json`.\n"
+}

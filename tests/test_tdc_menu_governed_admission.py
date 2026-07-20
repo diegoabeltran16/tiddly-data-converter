@@ -57,8 +57,9 @@ def test_governed_admission_status_is_operator_facing() -> None:
     assert "Estado de compuertas" in result.stdout
     assert "Contratos: separados" in result.stdout
     assert "Relaciones current:" in result.stdout
-    assert "Relaciones S0167:" in result.stdout
-    assert "apply bloqueado" in result.stdout
+    assert "veredicto=" in result.stdout
+    assert "siguiente=" in result.stdout
+    assert "Relaciones S0167:" not in result.stdout
 
 
 def test_menu_mapping_declares_metadata_and_relation_access() -> None:
@@ -67,3 +68,4 @@ def test_menu_mapping_declares_metadata_and_relation_access() -> None:
     assert mapping["critical_functions_preserved"]["canonical_relations"] == "6 and alias 16"
     assert mapping["critical_functions_preserved"]["metadata_admission"] == "7.1 and alias 18"
     assert mapping["critical_functions_preserved"]["repository_exporter"] == "10"
+    assert mapping["relational_operation"]["state_engine"] == "src/python_scripts/relation_admission_state.py"

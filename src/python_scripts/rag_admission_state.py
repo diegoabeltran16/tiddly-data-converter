@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -56,6 +57,7 @@ HISTORICAL_TRIAL_JOURNAL = AUDIT_ROOT / "trial_transaction_journal.jsonl"
 HISTORICAL_TRIAL_CLASSIFICATION = AUDIT_ROOT / "historical_trial_snapshot_classification.json"
 ACTIVE_TRIAL_ROOT = AUDIT_ROOT / "current_trial"
 TRIAL_SNAPSHOT = PIPELINE_ROOT / "current_trial_rollback_snapshot"
+ARCHIVED_TRIAL_ROOT = PIPELINE_ROOT / "archived_trial_snapshots"
 DEFINITIVE_SNAPSHOT = PIPELINE_ROOT / "definitive_rollback_snapshot"
 TRIAL_RECEIPT = ACTIVE_TRIAL_ROOT / "trial_write_receipt.json"
 DEFINITIVE_RECEIPT = AUDIT_ROOT / "definitive_promotion_receipt.json"
@@ -359,9 +361,118 @@ def resolve_equivalence_baseline() -> tuple[Path, Path | None, str]:
 
     final_manifest, _ = _read(FINAL_MANIFEST)
     productive_present = all(path.exists() for path in PRODUCTIVE_ROOTS.values())
-    if final_manifest.get("status") == "admitted" and productive_present:
+    manifest_families = final_manifest.get("families")
+    family_hashes_match = isinstance(manifest_families, dict) and all(
+        isinstance(manifest_families.get(name), dict)
+        and manifest_families[name].get("hash") == hashlib.sha256(
+            json.dumps(_tree(root), sort_keys=True).encode()
+        ).hexdigest()
+        for name, root in PRODUCTIVE_ROOTS.items()
+    )
+    if final_manifest.get("status") == "admitted" and productive_present and family_hashes_match:
         return LOCAL_ROOT, FINAL_MANIFEST, "last_admitted_productive_manifest"
     return HISTORICAL_BASELINE_ROOT, HISTORICAL_BASELINE_MANIFEST, "historical_bootstrap_baseline"
+
+
+def _snapshot_lifecycle() -> dict[str, Any]:
+    """Describe active and archived trial snapshots without changing either."""
+
+    archived = []
+    if ARCHIVED_TRIAL_ROOT.exists():
+        for candidate in sorted(ARCHIVED_TRIAL_ROOT.iterdir()):
+            if candidate.is_dir():
+                manifest, error = _read(candidate / "archive_manifest.json")
+                archived.append({
+                    "path": str(candidate),
+                    "status": "archived" if not error else "invalid_archive_manifest",
+                    "manifest_hash": manifest.get("staging_manifest_hash"),
+                    "reusable": False,
+                })
+    return {
+        "active": {
+            "path": str(TRIAL_SNAPSHOT),
+            "status": "active" if TRIAL_SNAPSHOT.exists() else "absent",
+            "slot_free": not TRIAL_SNAPSHOT.exists(),
+        },
+        "archived": archived,
+        "historical_legacy": {
+            "path": str(HISTORICAL_TRIAL_SNAPSHOT),
+            "status": "historical_legacy" if HISTORICAL_TRIAL_SNAPSHOT.exists() else "absent",
+            "reusable": False,
+        },
+    }
+
+
+def build_audit_index() -> dict[str, Any]:
+    """Assemble existing RAG evidence read-only; this is not a state transition."""
+
+    state = build_state()
+    baseline_root, baseline_manifest, baseline_source = resolve_equivalence_baseline()
+    paths = {
+        "productive_manifest": FINAL_MANIFEST,
+        "trial_authorization": TRIAL_AUTH,
+        "trial_receipt": TRIAL_RECEIPT,
+        "trial_validation": TRIAL_VALIDATION,
+        "rollback": ROLLBACK_REPORT,
+        "equality": ROLLBACK_EQUALITY,
+        "definitive_authorization": DEFINITIVE_AUTH,
+        "definitive_receipt": DEFINITIVE_RECEIPT,
+        "definitive_validation": DEFINITIVE_VALIDATION,
+        "equivalence": EQUIVALENCE_REPORT,
+        "governance": GOVERNANCE_GATE,
+    }
+    evidence = {
+        name: {
+            "status": "present" if path.exists() else "absent",
+            "path": str(path),
+            "hash": _hash(path),
+        }
+        for name, path in paths.items()
+    }
+    warnings = [f"{name}:absent" for name, item in evidence.items() if item["status"] == "absent"]
+    if baseline_source == "historical_bootstrap_baseline":
+        warnings.append("baseline:historical_fallback")
+    if state["warnings"]:
+        warnings.extend(state["warnings"])
+    return {
+        "schema_version": "rag-audit-index/v1",
+        "checked_at": _now(),
+        "read_only": True,
+        "productive_manifest": evidence["productive_manifest"],
+        "baseline": {
+            "source": baseline_source,
+            "path": str(baseline_root),
+            "manifest_path": str(baseline_manifest) if baseline_manifest else None,
+            "hash": _hash(baseline_manifest) if baseline_manifest else None,
+        },
+        "trial": {name.removeprefix("trial_"): evidence[name] for name in ("trial_authorization", "trial_receipt", "trial_validation")},
+        "rollback": {"receipt": evidence["rollback"], "equality": evidence["equality"]},
+        "definitive": {name.removeprefix("definitive_"): evidence[name] for name in ("definitive_authorization", "definitive_receipt", "definitive_validation")},
+        "equivalence": evidence["equivalence"] | {"status": state["equivalence"]["status"]},
+        "governance": evidence["governance"] | {"status": state["governance_gate"]["status"]},
+        "snapshot": _snapshot_lifecycle(),
+        "protected_surfaces": _protected_snapshot() | {
+            "canon_mutated": False,
+            "relations_mutated": False,
+            "reverse_html_mutated": False,
+        },
+        "state": {"verdict": state["verdict"], "next_action": state["next_action"]},
+        "warnings": sorted(set(warnings)),
+    }
+
+
+def rollback_status() -> dict[str, Any]:
+    """Read-only restoration view for the menu's dedicated rollback option."""
+
+    rollback, _ = _read(ROLLBACK_REPORT)
+    equality, _ = _read(ROLLBACK_EQUALITY)
+    return {
+        "schema_version": "rag-rollback-status/v1",
+        "read_only": True,
+        "rollback": {"status": rollback.get("status", "absent"), "path": str(ROLLBACK_REPORT), "hash": _hash(ROLLBACK_REPORT)},
+        "equality": {"status": equality.get("status", "absent"), "state_equal": equality.get("state_equal"), "mismatches": equality.get("mismatches", []), "path": str(ROLLBACK_EQUALITY), "hash": _hash(ROLLBACK_EQUALITY)},
+        "snapshot": _snapshot_lifecycle(),
+    }
 
 
 def build_state() -> dict[str, Any]:
@@ -743,12 +854,59 @@ def execute_trial_rollback() -> dict[str, Any]:
         }
     )
     _write(ROLLBACK_EQUALITY, equality)
+    if report["status"] == "pass" and equality["state_equal"] is True and not equality.get("mismatches"):
+        archive_verified_trial_snapshot(auth, snapshot_manifest, equality)
     previous_error, _ = _read(ROLLBACK_ERROR)
     if previous_error.get("status") == "error" and previous_error.get("resolved") is not True:
         previous_error.update({"resolved": True, "resolved_at": _now(), "resolution_report": str(ROLLBACK_REPORT)})
         _write(ROLLBACK_ERROR, previous_error)
     write_state()
     return equality
+
+
+def archive_verified_trial_snapshot(
+    authorization: dict[str, Any], snapshot_manifest: dict[str, Any], equality: dict[str, Any]
+) -> dict[str, Any]:
+    """Archive a completed trial snapshot only after rollback equality succeeds."""
+
+    if equality.get("status") != "pass" or equality.get("state_equal") is not True or equality.get("mismatches"):
+        raise ProductiveWriteBlocked("snapshot archive requires successful rollback equality")
+    if not TRIAL_SNAPSHOT.exists():
+        raise ProductiveWriteBlocked("active trial snapshot is absent")
+    manifest_hash = str(snapshot_manifest.get("staging_manifest_hash") or "unbound")
+    target = ARCHIVED_TRIAL_ROOT / manifest_hash[:16]
+    if target.exists():
+        raise ProductiveWriteBlocked(f"archived snapshot target already exists: {target}")
+    ARCHIVED_TRIAL_ROOT.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(TRIAL_SNAPSHOT), str(target))
+    archive_manifest = {
+        "schema_version": "rag-trial-snapshot-archive/v1",
+        "snapshot_state": "archived",
+        "staging_manifest_hash": snapshot_manifest.get("staging_manifest_hash"),
+        "authorization_id": authorization.get("authorization_id"),
+        "receipt_hash": _hash(TRIAL_RECEIPT),
+        "snapshot_hashes": _historical_snapshot_hashes(target),
+        "archived_at": _now(),
+        "reusable": False,
+        "rollback_equality": {"status": equality.get("status"), "state_equal": equality.get("state_equal")},
+    }
+    _write(target / "archive_manifest.json", archive_manifest)
+    return archive_manifest
+
+
+def archive_current_verified_trial_snapshot() -> dict[str, Any]:
+    """Release the active slot for an already verified rollback, preserving evidence."""
+
+    authorization, auth_error = _read(TRIAL_AUTH)
+    snapshot_manifest, snapshot_error = _read(TRIAL_SNAPSHOT / "rollback_manifest.json")
+    rollback, rollback_error = _read(ROLLBACK_REPORT)
+    equality, equality_error = _read(ROLLBACK_EQUALITY)
+    errors = [error for error in (auth_error, snapshot_error, rollback_error, equality_error) if error]
+    if errors:
+        raise ProductiveWriteBlocked("snapshot archive evidence unavailable: " + ", ".join(errors))
+    if rollback.get("status") != "pass":
+        raise ProductiveWriteBlocked("snapshot archive requires rollback=pass")
+    return archive_verified_trial_snapshot(authorization, snapshot_manifest, equality)
 
 
 def record_observed_rollback_error() -> dict[str, Any]:
@@ -831,11 +989,17 @@ def refresh_governance() -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evidence-derived governed RAG admission")
-    parser.add_argument("command", choices=("state", "classify-historical-trial", "recover-trial-validation", "refresh-governance", "authorize-trial", "authorize-definitive", "trial-write", "validate-trial", "record-rollback-error", "rollback-trial", "promote-definitive", "validate-definitive", "finalize"))
+    parser.add_argument("command", choices=("state", "audit", "rollback-status", "archive-verified-trial-snapshot", "classify-historical-trial", "recover-trial-validation", "refresh-governance", "authorize-trial", "authorize-definitive", "trial-write", "validate-trial", "record-rollback-error", "rollback-trial", "promote-definitive", "validate-definitive", "finalize"))
     parser.add_argument("--phrase")
     args = parser.parse_args()
     if args.command == "state":
         result = write_state()
+    elif args.command == "audit":
+        result = build_audit_index()
+    elif args.command == "rollback-status":
+        result = rollback_status()
+    elif args.command == "archive-verified-trial-snapshot":
+        result = archive_current_verified_trial_snapshot()
     elif args.command == "classify-historical-trial":
         result = classify_historical_trial_snapshot()
     elif args.command == "recover-trial-validation":

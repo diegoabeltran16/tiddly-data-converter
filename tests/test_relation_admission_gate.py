@@ -33,7 +33,125 @@ from relation_admission_gate import (
     ADMISSION_READY,
     BLOCKED,
     HISTORICAL_BLOCKED_TYPES,
+    rotate_current_run,
 )
+
+
+def test_current_rotation_archives_previous_mixed_log(tmp_path: Path) -> None:
+    current = tmp_path / "relation_admission/current"
+    current.mkdir(parents=True)
+    (current / "current_relation_admission_log.jsonl").write_text(
+        json.dumps({"candidate_id": "rc_s0161_old"}) + "\n",
+        encoding="utf-8",
+    )
+    (current / "admission_gate_dry_run.json").write_text("{}\n", encoding="utf-8")
+
+    rotation = rotate_current_run(current)
+
+    assert rotation["rotated"] is True
+    assert not (current / "current_relation_admission_log.jsonl").exists()
+    archived = Path(rotation["history_path"])
+    assert (archived / "current_relation_admission_log.jsonl").exists()
+
+
+def _write_current_run_artifacts(current: Path, run_id: str = "run-previous") -> dict[str, str]:
+    current.mkdir(parents=True, exist_ok=True)
+    payloads = {
+        "current_relation_admission_log.jsonl": json.dumps({"candidate_id": "rc_old"}) + "\n",
+        "admission_gate_dry_run.json": json.dumps({"summary": {"total_evaluated": 1}}) + "\n",
+        "current_run_manifest.json": json.dumps({"run_id": run_id}) + "\n",
+        "relational_operational_state.json": json.dumps({"verdict": "old"}) + "\n",
+    }
+    for name, content in payloads.items():
+        (current / name).write_text(content, encoding="utf-8")
+    return {name: relation_gate.sha256_path(current / name) for name in payloads}
+
+
+def test_current_rotation_moves_all_explicit_artifacts_with_verified_archive(tmp_path: Path) -> None:
+    current = tmp_path / "relation_admission/current"
+    before = _write_current_run_artifacts(current)
+
+    rotation = rotate_current_run(current)
+
+    history = Path(rotation["history_path"])
+    assert rotation["rotated"] is True
+    assert not any((current / name).exists() for name in before)
+    archive_manifest = json.loads((history / "archive_manifest.json").read_text())
+    assert {item["source"].rsplit("/", 1)[-1] for item in archive_manifest["files"]} == set(before)
+    assert {name: relation_gate.sha256_path(history / name) for name in before} == before
+    assert not (history.parent / ".run-previous.tmp").exists()
+
+
+def test_current_rotation_restores_all_files_when_a_move_fails(tmp_path: Path, monkeypatch) -> None:
+    current = tmp_path / "relation_admission/current"
+    before = _write_current_run_artifacts(current)
+    original_move = relation_gate.shutil.move
+    calls = 0
+
+    def fail_second_move(source: str, destination: str) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("simulated second move failure")
+        return original_move(source, destination)
+
+    monkeypatch.setattr(relation_gate.shutil, "move", fail_second_move)
+
+    with pytest.raises(RuntimeError, match="current run archive aborted"):
+        rotate_current_run(current)
+
+    assert {name: relation_gate.sha256_path(current / name) for name in before} == before
+    assert not (current.parent / "history/run-previous").exists()
+    assert not (current.parent / "history/.run-previous.tmp").exists()
+
+
+def test_current_rotation_handles_empty_current_and_rejects_history_collisions(tmp_path: Path) -> None:
+    empty_current = tmp_path / "empty/current"
+    assert rotate_current_run(empty_current) == {"rotated": False, "archived_files": [], "history_path": None}
+
+    current = tmp_path / "relation_admission/current"
+    before = _write_current_run_artifacts(current)
+    (current.parent / "history/run-previous").mkdir(parents=True)
+
+    with pytest.raises(FileExistsError, match="history collision"):
+        rotate_current_run(current)
+
+    assert {name: relation_gate.sha256_path(current / name) for name in before} == before
+
+
+def test_current_manifest_is_published_only_after_report_and_log(tmp_path: Path) -> None:
+    out = tmp_path / "audit/current"
+    out.mkdir(parents=True)
+    report = out / "admission_gate_dry_run.json"
+    log = out / "current_relation_admission_log.jsonl"
+
+    with pytest.raises(RuntimeError, match="requires published report and log"):
+        relation_gate.write_current_run_manifest(
+            out=out, candidates_file=tmp_path / "queue.jsonl", canon_glob=str(tmp_path / "canon/*.jsonl"),
+            report_path=report, log_path=log, evaluated=0, human_decisions_path=None,
+            rotation={"rotated": False, "archived_files": [], "history_path": None},
+        )
+
+    report.write_text("{}\n", encoding="utf-8")
+    log.write_text("\n", encoding="utf-8")
+    manifest = relation_gate.write_current_run_manifest(
+        out=out, candidates_file=tmp_path / "queue.jsonl", canon_glob=str(tmp_path / "canon/*.jsonl"),
+        report_path=report, log_path=log, evaluated=0, human_decisions_path=None,
+        rotation={"rotated": False, "archived_files": [], "history_path": None},
+    )
+
+    assert manifest.exists()
+    assert not (out / "current_run_manifest.json.tmp").exists()
+
+
+def test_gate_summary_separates_awaiting_review_from_invalid() -> None:
+    result = evaluate_gate(_candidate(human_review=None), _canon())
+    report = build_dry_run_report(
+        [result], session="current", candidates_file=Path("queue.jsonl"), canon_glob="canon/*.jsonl"
+    )
+    assert report["summary"]["awaiting_human_review"] == 1
+    assert report["summary"]["technically_invalid"] == 0
+    assert report["summary"]["human_deferred"] == 0
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

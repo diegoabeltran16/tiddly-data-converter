@@ -233,3 +233,79 @@ def test_historical_snapshot_classification_preserves_the_original_path(monkeypa
     assert payload["relocation_performed"] is False
     assert payload["productive_surfaces_mutated"] is False
     assert json.loads(classification.read_text())["historical_snapshot"]["files_manifest"] > 0
+
+
+def test_audit_index_is_read_only_and_reports_absent_evidence(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(admission, "FINAL_MANIFEST", tmp_path / "final.json")
+    monkeypatch.setattr(admission, "TRIAL_AUTH", tmp_path / "trial-auth.json")
+    monkeypatch.setattr(admission, "TRIAL_RECEIPT", tmp_path / "trial-receipt.json")
+    monkeypatch.setattr(admission, "TRIAL_VALIDATION", tmp_path / "trial-validation.json")
+    monkeypatch.setattr(admission, "ROLLBACK_REPORT", tmp_path / "rollback.json")
+    monkeypatch.setattr(admission, "ROLLBACK_EQUALITY", tmp_path / "equality.json")
+    monkeypatch.setattr(admission, "DEFINITIVE_AUTH", tmp_path / "definitive-auth.json")
+    monkeypatch.setattr(admission, "DEFINITIVE_RECEIPT", tmp_path / "definitive-receipt.json")
+    monkeypatch.setattr(admission, "DEFINITIVE_VALIDATION", tmp_path / "definitive-validation.json")
+    monkeypatch.setattr(admission, "EQUIVALENCE_REPORT", tmp_path / "equivalence.json")
+    monkeypatch.setattr(admission, "GOVERNANCE_GATE", tmp_path / "governance.json")
+    monkeypatch.setattr(admission, "TRIAL_SNAPSHOT", tmp_path / "active-snapshot")
+    monkeypatch.setattr(admission, "ARCHIVED_TRIAL_ROOT", tmp_path / "archived")
+    monkeypatch.setattr(admission, "HISTORICAL_TRIAL_SNAPSHOT", tmp_path / "legacy")
+    monkeypatch.setattr(admission, "build_state", lambda: {"warnings": [], "equivalence": {"status": "absent"}, "governance_gate": {"status": "absent"}, "verdict": "NO_STAGING", "next_action": "UPDATE_STAGING"})
+    monkeypatch.setattr(admission, "resolve_equivalence_baseline", lambda: (tmp_path / "baseline", None, "historical_bootstrap_baseline"))
+    monkeypatch.setattr(admission, "_protected_snapshot", lambda: {"canon_hash": "canon", "remote_mutated": False})
+
+    payload = admission.build_audit_index()
+
+    assert payload["read_only"] is True
+    assert payload["trial"]["receipt"]["status"] == "absent"
+    assert "baseline:historical_fallback" in payload["warnings"]
+    assert not any(tmp_path.iterdir())
+
+
+def test_verified_rollback_archives_snapshot_and_frees_active_slot(monkeypatch, tmp_path: Path) -> None:
+    snapshot = tmp_path / "active"
+    for family in admission.PRODUCTIVE_FAMILIES:
+        target = snapshot / family
+        target.mkdir(parents=True)
+        (target / "before.txt").write_text(f"before-{family}")
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text("{}")
+    archived = tmp_path / "archived"
+    monkeypatch.setattr(admission, "TRIAL_SNAPSHOT", snapshot)
+    monkeypatch.setattr(admission, "ARCHIVED_TRIAL_ROOT", archived)
+    monkeypatch.setattr(admission, "TRIAL_RECEIPT", receipt)
+
+    result = admission.archive_verified_trial_snapshot(
+        {"authorization_id": "human-1"},
+        {"staging_manifest_hash": "a" * 64},
+        {"status": "pass", "state_equal": True, "mismatches": []},
+    )
+
+    assert result["snapshot_state"] == "archived"
+    assert result["reusable"] is False
+    assert not snapshot.exists()
+    assert (archived / ("a" * 16) / "archive_manifest.json").exists()
+
+
+def test_governed_productive_manifest_is_preferred_only_when_family_hashes_bind(monkeypatch, tmp_path: Path) -> None:
+    productive = {name: tmp_path / "productive" / name for name in admission.PRODUCTIVE_FAMILIES}
+    for name, root in productive.items():
+        root.mkdir(parents=True)
+        (root / "record.txt").write_text(name)
+    final = tmp_path / "productive-manifest.json"
+    final.write_text(json.dumps({
+        "status": "admitted",
+        "families": {
+            name: {"hash": admission.hashlib.sha256(json.dumps(admission._tree(root), sort_keys=True).encode()).hexdigest()}
+            for name, root in productive.items()
+        },
+    }))
+    monkeypatch.setattr(admission, "PRODUCTIVE_ROOTS", productive)
+    monkeypatch.setattr(admission, "LOCAL_ROOT", tmp_path / "local")
+    monkeypatch.setattr(admission, "FINAL_MANIFEST", final)
+
+    root, manifest, source = admission.resolve_equivalence_baseline()
+
+    assert root == tmp_path / "local"
+    assert manifest == final
+    assert source == "last_admitted_productive_manifest"

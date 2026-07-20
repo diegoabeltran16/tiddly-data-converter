@@ -1,0 +1,19 @@
+{
+  "title": "#### 🌀🧪 Hipótesis de sesión 0180 = congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas",
+  "type": "text/markdown",
+  "created": "20260717014116378",
+  "modified": "20260720194113009",
+  "session_id": "m04-s0180",
+  "module": "m04",
+  "session": "S0180",
+  "status": "delivered",
+  "revision_type": "robust_controlled_closure",
+  "canonical_slug": "m04-s0180-hipotesis-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas",
+  "tags": [
+    "sesion",
+    "hipotesis",
+    "m04",
+    "s0180"
+  ],
+  "text": "### Hipótesis corregidas\n\nH0180.1 se mantiene: solo `current` tiene autoridad operativa. H0180.2 queda corregida: un cierre con cero reviewables no era válido cuando la historia se usó como veto sin decisión humana ni admisión canónica. H0180.3 queda confirmada por reproducción exacta: los 157 válidos coincidían con los 157 vetados históricamente.\n\nLa nueva reconciliación confirma 157 reviewables y 256 bloqueos técnicos. El baseline permanece reproducible e inmutable; ninguna conclusión concede autoridad canónica.\n\n### H0180.4 — centralización de menú\n\nLa centralización del menú solo es válida si las rutas secundarias delegan en funciones existentes y probadas, sin aliases stale. Resultado: confirmada por la prueba automatizada y manual de `8 → 3`, que invoca una sola vez el dispatcher autoritativo.\n\n### H0180.5 — precisión diagnóstica y current fail-closed\n\nLa centralización operacional solo es confiable si cada causa stale identifica el binding exacto que cambió y si la rotación no conserva un run anterior como current después de un fallo. Resultado: confirmada por tests positivos y negativos de taxonomía, archivo, rollback, colisión, publicación final e incompletitud del manifest.\n"
+}
