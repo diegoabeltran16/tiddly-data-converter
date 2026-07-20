@@ -247,9 +247,9 @@ pub fn audit_perimeter(repo_root: &Path) -> PerimeterReport {
         &mut checks,
         root,
         "operator-wrapper-exists",
-        "shell_scripts/tdc.sh",
+        "src/shell_scripts/tdc.sh",
         ExpectedPathKind::File,
-        "único wrapper operativo público",
+        "wrapper operativo público único",
     );
 
     let root_sessions = root.join("sessions");
@@ -1834,33 +1834,51 @@ fn check_readme_single_operator(root: &Path, checks: &mut Vec<PerimeterCheck>) {
     };
     push_ok(checks, "readme-readable", "README.md legible");
 
-    if text.contains("shell_scripts/tdc.sh") {
+    if text.contains("src/shell_scripts/tdc.sh") {
         push_ok(
             checks,
             "readme-single-operator-wrapper",
-            "README apunta al wrapper operativo único shell_scripts/tdc.sh",
+            "README apunta al wrapper operativo único src/shell_scripts/tdc.sh",
         );
     } else {
         push_error(
             checks,
             "readme-single-operator-wrapper",
-            "README no menciona shell_scripts/tdc.sh como entry point operativo",
+            "README no menciona src/shell_scripts/tdc.sh como entry point operativo",
         );
     }
 
-    let mentions_obsolete_wrapper = text.contains("`scripts/tdc.sh`")
-        || text.lines().any(|line| line.trim() == "scripts/tdc.sh");
+    let mentions_obsolete_wrapper = text.lines().any(|line| {
+        let normalized = line
+            .trim()
+            .trim_matches('`')
+            .trim_start_matches("$ ")
+            .trim();
+
+        matches!(
+            normalized,
+            "scripts/tdc.sh"
+                | "./scripts/tdc.sh"
+                | "bash scripts/tdc.sh"
+                | "bash ./scripts/tdc.sh"
+                | "shell_scripts/tdc.sh"
+                | "./shell_scripts/tdc.sh"
+                | "bash shell_scripts/tdc.sh"
+                | "bash ./shell_scripts/tdc.sh"
+        )
+    });
+
     if mentions_obsolete_wrapper {
         push_error(
             checks,
             "readme-no-obsolete-scripts-wrapper",
-            "README todavía menciona scripts/tdc.sh",
+            "README todavía menciona un wrapper obsoleto fuera de src/",
         );
     } else {
         push_ok(
             checks,
             "readme-no-obsolete-scripts-wrapper",
-            "README no menciona el wrapper obsoleto scripts/tdc.sh",
+            "README no menciona wrappers obsoletos fuera de src/",
         );
     }
 }

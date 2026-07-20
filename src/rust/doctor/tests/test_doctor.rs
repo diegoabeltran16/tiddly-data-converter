@@ -77,10 +77,13 @@ fn write_minimal_perimeter_fixture(root: &Path) {
     std::fs::create_dir_all(root.join("data/tmp")).expect("tmp dir");
     std::fs::create_dir_all(root.join("data/out/local/reverse_html")).expect("reverse dir");
     write_file(&root.join("data/out/local/tiddlers_1.jsonl"), "{}\n");
-    write_file(&root.join("shell_scripts/tdc.sh"), "#!/usr/bin/env bash\n");
+    write_file(
+        &root.join("src/shell_scripts/tdc.sh"),
+        "#!/usr/bin/env bash\n",
+    );
     write_file(
         &root.join("README.md"),
-        "# tdc\n\n```bash\nshell_scripts/tdc.sh\n```\n",
+        "# tdc\n\n```bash\n./src/shell_scripts/tdc.sh\n```\n",
     );
     write_minimal_role_contract(root);
     write_file(
@@ -662,6 +665,52 @@ fn test_perimetro_minimo_reusable_produce_veredicto_ok() {
         .any(|check| check.check_id == "registry-derived-noncanonical" && check.status == "ok"));
 
     std::fs::remove_dir_all(root).expect("cleanup perimeter ok fixture");
+}
+
+#[test]
+fn test_perimetro_rechaza_wrapper_legacy_en_raiz() {
+    let root = temp_repo_root("perimeter_legacy_root_wrapper");
+    write_minimal_perimeter_fixture(&root);
+
+    std::fs::remove_file(root.join("src/shell_scripts/tdc.sh"))
+        .expect("remove current operator wrapper");
+    write_file(
+        &root.join("shell_scripts/tdc.sh"),
+        "#!/usr/bin/env bash\n",
+    );
+
+    let report = audit_perimeter(&root);
+
+    assert_eq!(report.verdict, PerimeterVerdict::Error);
+    assert!(report.checks.iter().any(|check| {
+        check.check_id == "operator-wrapper-exists" && check.status == "error"
+    }));
+
+    std::fs::remove_dir_all(root).expect("cleanup legacy root wrapper fixture");
+}
+
+#[test]
+fn test_perimetro_rechaza_readme_con_wrapper_legacy() {
+    let root = temp_repo_root("perimeter_legacy_readme_wrapper");
+    write_minimal_perimeter_fixture(&root);
+
+    write_file(
+        &root.join("README.md"),
+        "# tdc\n\n```bash\nshell_scripts/tdc.sh\n```\n",
+    );
+
+    let report = audit_perimeter(&root);
+
+    assert_eq!(report.verdict, PerimeterVerdict::Error);
+    assert!(report.checks.iter().any(|check| {
+        check.check_id == "readme-single-operator-wrapper" && check.status == "error"
+    }));
+    assert!(report.checks.iter().any(|check| {
+        check.check_id == "readme-no-obsolete-scripts-wrapper"
+            && check.status == "error"
+    }));
+
+    std::fs::remove_dir_all(root).expect("cleanup legacy README wrapper fixture");
 }
 
 #[test]
