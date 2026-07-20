@@ -86,7 +86,7 @@ class TestMenuExitsCleanly:
             "Construir o importar canon",
             "Exportar / consultar canon",
             "Sincronizar sesiones",
-            "Generar derivados",
+            "Derivados / RAG",
             "Revisión / admisión gobernada",
         ]
         missing = [f for f in expected_fragments if f not in stdout]

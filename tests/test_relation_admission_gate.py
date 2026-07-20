@@ -33,7 +33,35 @@ from relation_admission_gate import (
     ADMISSION_READY,
     BLOCKED,
     HISTORICAL_BLOCKED_TYPES,
+    rotate_current_run,
 )
+
+
+def test_current_rotation_archives_previous_mixed_log(tmp_path: Path) -> None:
+    current = tmp_path / "relation_admission/current"
+    current.mkdir(parents=True)
+    (current / "current_relation_admission_log.jsonl").write_text(
+        json.dumps({"candidate_id": "rc_s0161_old"}) + "\n",
+        encoding="utf-8",
+    )
+    (current / "admission_gate_dry_run.json").write_text("{}\n", encoding="utf-8")
+
+    rotation = rotate_current_run(current)
+
+    assert rotation["rotated"] is True
+    assert not (current / "current_relation_admission_log.jsonl").exists()
+    archived = Path(rotation["history_path"])
+    assert (archived / "current_relation_admission_log.jsonl").exists()
+
+
+def test_gate_summary_separates_awaiting_review_from_invalid() -> None:
+    result = evaluate_gate(_candidate(human_review=None), _canon())
+    report = build_dry_run_report(
+        [result], session="current", candidates_file=Path("queue.jsonl"), canon_glob="canon/*.jsonl"
+    )
+    assert report["summary"]["awaiting_human_review"] == 1
+    assert report["summary"]["technically_invalid"] == 0
+    assert report["summary"]["human_deferred"] == 0
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

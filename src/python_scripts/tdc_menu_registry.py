@@ -30,7 +30,7 @@ COMPATIBILITY_ALIASES: dict[str, dict[str, str]] = {
     "16": {
         "target": "6",
         "action": "canonical_relations",
-        "message": "Revisión relacional ahora vive en Relaciones canónicas.",
+        "message": "Preparación relacional ahora vive en Relaciones canónicas; revisión y admisión viven en la opción 7.",
     },
     "17": {
         "target": "10",
@@ -91,6 +91,15 @@ def menu_mapping() -> dict[str, Any]:
             "staging_mode": "derive_layers.py --mode staging --dry-run",
             "historical_governance_compatibility": "src/python_scripts/s0174_governance.py",
             "writer": "src/python_scripts/rag_derivative_writers.py",
+            "productive_write_default": False,
+        },
+        "relational_operation": {
+            "preparation_menu": "6 and alias 16",
+            "human_review_and_admission_menu": "7.2",
+            "state_engine": "src/python_scripts/relation_admission_state.py",
+            "audit_menu": "8.2",
+            "rollback_status_menu": "9.3",
+            "legacy_batches": "advanced_history_only",
             "productive_write_default": False,
         },
     }

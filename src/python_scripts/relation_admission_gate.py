@@ -37,6 +37,7 @@ import glob
 import hashlib
 import json
 import re
+import shutil
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -1079,9 +1080,19 @@ def build_dry_run_report(
     session: str,
     candidates_file: Path,
     canon_glob: str,
+    persistent_human_decisions: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     ready = [r for r in results if r["gate_status"] == ADMISSION_READY]
     blocked = [r for r in results if r["gate_status"] == BLOCKED]
+    decisions = Counter(str(r.get("decision") or BLOCKED) for r in results)
+    human_decisions = Counter(
+        str(row.get("human_review_decision") or row.get("decision") or "")
+        for row in (persistent_human_decisions or {}).values()
+    )
+    awaiting = decisions.get("blocked_missing_human_review", 0)
+    rejected = decisions.get("rejected_by_human", 0)
+    deferred = human_decisions.get("deferred", 0)
+    technically_invalid = max(0, len(blocked) - awaiting - rejected - deferred)
     return {
         "schema": SCHEMA_REPORT,
         "session": session.upper(),
@@ -1093,6 +1104,13 @@ def build_dry_run_report(
         },
         "summary": {
             "total_evaluated": len(results),
+            "evaluated": len(results),
+            "technically_invalid": technically_invalid,
+            "awaiting_human_review": awaiting,
+            "human_rejected": rejected,
+            "human_deferred": deferred,
+            "approved_for_admission": human_decisions.get("approved_for_admission", 0),
+            "admission_ready": len(ready),
             "admission_ready_dry_run": len(ready),
             "blocked": len(blocked),
             "applied_to_canon": False,
@@ -1120,6 +1138,84 @@ def build_dry_run_report(
             for r in results
         ],
     }
+
+
+def sha256_path(path: Path) -> str | None:
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+
+
+def aggregate_canon_hash(canon_glob: str) -> str:
+    digest = hashlib.sha256()
+    for name in sorted(glob.glob(canon_glob)):
+        digest.update(Path(name).read_bytes())
+    return digest.hexdigest()
+
+
+def rotate_current_run(out: Path) -> dict[str, Any]:
+    """Archive the previous operational current run and reset its mixed log."""
+    log_path = out / "current_relation_admission_log.jsonl"
+    previous_files = sorted(path for path in out.glob("*") if path.is_file())
+    if not previous_files:
+        return {"rotated": False, "archived_files": [], "history_path": None}
+    previous_manifest = load_json(out / "current_run_manifest.json", default={}) or {}
+    prior_seed = sha256_path(out / "admission_gate_dry_run.json") or datetime.now(tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = str(previous_manifest.get("run_id") or f"run-{prior_seed[:16]}")
+    history = out.parent / "history" / run_id
+    suffix = 1
+    while history.exists():
+        history = out.parent / "history" / f"{run_id}-{suffix}"
+        suffix += 1
+    history.mkdir(parents=True, exist_ok=False)
+    archived = []
+    for path in previous_files:
+        shutil.copy2(path, history / path.name)
+        archived.append(path.name)
+    log_path.unlink(missing_ok=True)
+    return {
+        "rotated": True,
+        "archived_files": archived,
+        "history_path": str(history),
+    }
+
+
+def write_current_run_manifest(
+    *, out: Path, candidates_file: Path, canon_glob: str, report_path: Path,
+    log_path: Path, evaluated: int, human_decisions_path: Path | None,
+    rotation: dict[str, Any],
+) -> Path:
+    candidate_dir = candidates_file.parent
+    candidate_manifest = candidate_dir / "current_candidate_manifest.json"
+    reviewable_manifest = candidate_dir / "reviewable_candidate_manifest.json"
+    generated_at = datetime.now(tz=timezone.utc).isoformat()
+    run_id = "current-" + hashlib.sha256(
+        f"{sha256_path(report_path)}|{generated_at}".encode()
+    ).hexdigest()[:16]
+    payload = {
+        "schema_version": "relation-admission-current-run-manifest/v1",
+        "run_id": run_id,
+        "generated_at": generated_at,
+        "canon_hash": aggregate_canon_hash(canon_glob),
+        "candidate_manifest_path": str(candidate_manifest),
+        "candidate_manifest_hash": sha256_path(candidate_manifest),
+        "reviewable_manifest_path": str(reviewable_manifest),
+        "reviewable_manifest_hash": sha256_path(reviewable_manifest),
+        "human_review_decisions_path": str(human_decisions_path) if human_decisions_path else None,
+        "human_review_decisions_hash": sha256_path(human_decisions_path) if human_decisions_path else None,
+        "gate_contract_path": str(Path(__file__).resolve()),
+        "gate_contract_hash": sha256_path(Path(__file__).resolve()),
+        "evaluated": evaluated,
+        "log_path": str(log_path),
+        "log_hash": sha256_path(log_path),
+        "report_path": str(report_path),
+        "report_hash": sha256_path(report_path),
+        "rotation": rotation,
+        "dry_run": True,
+        "applied_to_canon": False,
+        "canon_modified": False,
+    }
+    path = out / "current_run_manifest.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
 
 
 def dry_run_report_is_recent(path: Path, *, max_age_minutes: int = 1440) -> tuple[bool, str]:
@@ -1977,6 +2073,12 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
+    # A current operational run is a replaceable snapshot, not an append-only
+    # mixture of historical namespaces. Historical runs remain archived.
+    rotation = {"rotated": False, "archived_files": [], "history_path": None}
+    if session_tag == "current":
+        rotation = rotate_current_run(out)
+
     # Append to log
     log_path = out / f"{session_tag}_relation_admission_log.jsonl"
     log_outcomes: list[dict[str, str]] = []
@@ -1990,11 +2092,24 @@ def main(argv: list[str] | None = None) -> int:
         session=session_tag,
         candidates_file=args.candidates_file,
         canon_glob=args.canon_glob,
+        persistent_human_decisions=persistent_decisions,
     )
     report_path = args.output or (out / f"{session_tag}_relation_admission_dry_run_report.json")
     out.mkdir(parents=True, exist_ok=True)
     with report_path.open("w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, ensure_ascii=False)
+    if session_tag == "current":
+        manifest_path = write_current_run_manifest(
+            out=out,
+            candidates_file=args.candidates_file,
+            canon_glob=args.canon_glob,
+            report_path=report_path,
+            log_path=log_path,
+            evaluated=len(results),
+            human_decisions_path=args.human_review_decisions,
+            rotation=rotation,
+        )
+        print(f"[OK] Manifiesto current → {manifest_path}", file=sys.stderr)
     print(f"[OK] Reporte → {report_path}", file=sys.stderr)
     print(f"[OK] Log → {log_path}", file=sys.stderr)
 

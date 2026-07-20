@@ -182,20 +182,7 @@ def print_governed_gate_status() -> None:
         / "s0151"
         / "s0151_metadata_admission_dry_run_report.json"
     )
-    current_relation_report = (
-        REPO_ROOT
-        / "data"
-        / "out"
-        / "local"
-        / "pipeline"
-        / "relation_candidates"
-        / "current"
-        / "relation_candidates_report.json"
-    )
-    s0167_dir = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_candidates" / "s0167"
-    s0167_ready = s0167_dir / "relation_candidates_ready_for_review.jsonl"
-    s0167_repair = load_json_if_exists(s0167_dir / "repair_report.json")
-    s0167_decisions = s0167_dir / "human_review_decisions.jsonl"
+    relation_state_path = REPO_ROOT / "data/out/local/audit/relation_admission/current/relational_operational_state.json"
 
     print("\nEstado de compuertas")
     print("- Superficies: metadata técnica, relaciones canónicas y sesiones al canon")
@@ -211,31 +198,26 @@ def print_governed_gate_status() -> None:
     else:
         print("- Metadata dry-run: no ejecutado")
 
-    relation_current = load_json_if_exists(current_relation_report)
-    if relation_current:
+    relation_state_result = run_command(
+        ["python3", "src/python_scripts/relation_admission_state.py", "state"]
+    )
+    relation_state = load_json_if_exists(relation_state_path)
+    if relation_state_result.returncode == 0 and relation_state:
+        candidate = relation_state.get("candidate_generation") or {}
+        reconciliation = relation_state.get("reconciliation") or {}
+        review = relation_state.get("human_review") or {}
         print(
-            "- Relaciones current: "
-            f"{relation_current.get('candidate_count', 0)} candidatas generadas, "
-            f"{relation_current.get('ready_for_review_count', 0)} ready directas, "
-            f"{relation_current.get('blocked_count', 0)} bloqueadas"
+            f"- Relaciones current: total={candidate.get('total', 0)}, "
+            f"ready_for_review={reconciliation.get('ready_for_review', 0)}, "
+            f"bloqueadas={reconciliation.get('blocked', 0)}"
+        )
+        print(
+            f"  decisiones humanas={review.get('total', 0)}; "
+            f"veredicto={relation_state.get('verdict')}; "
+            f"siguiente={relation_state.get('next_action')}"
         )
     else:
-        print("- Relaciones current: no hay reporte de generación")
-    ready_count = count_jsonl_records(s0167_ready)
-    if ready_count:
-        residual = s0167_repair.get("residual_breakdown_for_s0168") or {}
-        print(f"- Relaciones S0167: {ready_count} candidatas válidas para revisión humana")
-        print(
-            "  bloqueos restantes: "
-            f"mapping={residual.get('blocked_mapping_remaining', 0)}, "
-            f"target={residual.get('blocked_target_remaining', 0)}, "
-            f"contrato={residual.get('invalid_contract_remaining', 0)}, "
-            f"duplicados excluidos={residual.get('duplicate_excluded', 0)}"
-        )
-        print(f"  decisiones humanas persistentes: {count_jsonl_records(s0167_decisions)}")
-        print("  estado: no admitidas; apply bloqueado")
-    else:
-        print("- Relaciones S0167: cola reparada no disponible")
+        print("- Relaciones current: estado operativo ausente o malformado")
     print(f"- Sesiones al canon: {display(DEFAULT_ADMISSION_REPORT_DIR)}")
 
 
@@ -1813,7 +1795,7 @@ def option_derivatives(state: MenuState) -> None:
             print_command_result(run_command(_rag_admission_command("rollback-trial"), cwd=REPO_ROOT))
             continue
         if choice == "9":
-            print_command_result(run_command(_rag_admission_command("state"), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("rollback-status"), cwd=REPO_ROOT))
             continue
         if choice == "10":
             phrase = prompt(f"Escriba exactamente '{DEFINITIVE_PHRASE}' para autorizar la promoción: ").strip()
@@ -1825,7 +1807,7 @@ def option_derivatives(state: MenuState) -> None:
             print_command_result(run_command(_rag_admission_command("finalize"), cwd=REPO_ROOT))
             continue
         if choice == "12":
-            print_command_result(run_command(_rag_admission_command("state"), cwd=REPO_ROOT))
+            print_command_result(run_command(_rag_admission_command("audit"), cwd=REPO_ROOT))
             continue
         if choice == "9x":
             print("Compatibilidad: build_semantic_text.py, build_semantic_text_authority_aware.py y s45_derive_layers.py")
@@ -2562,7 +2544,7 @@ def option_governed_admission(state: MenuState) -> None:
         if choice == "1":
             option_repo_metadata_admission_menu()
         elif choice == "2":
-            option_canonical_relations_menu()
+            option_relational_admission_menu()
         elif choice == "3":
             option_session_sync(state)
         elif choice == "4":
@@ -2585,13 +2567,48 @@ def option_canonical_relations_menu() -> None:
     )
 
 
+def option_relational_admission_menu() -> None:
+    """Open human review/admission, separately from technical preparation."""
+    subprocess.run(
+        ["bash", str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh"), "relations-admission"],
+        cwd=REPO_ROOT,
+        env=command_env(),
+        check=False,
+    )
+
+
+def option_relational_audit() -> None:
+    print_command_result(run_command([
+        "python3", "src/python_scripts/relation_admission_state.py", "audit"
+    ]))
+
+
+def option_relational_rollback_status() -> None:
+    state_path = REPO_ROOT / "data/out/local/audit/relation_admission/current/relational_operational_state.json"
+    result = run_command(["python3", "src/python_scripts/relation_admission_state.py", "state"])
+    if result.returncode != 0:
+        print_command_result(result)
+        return
+    state = load_json_if_exists(state_path)
+    rollback = state.get("rollback") or {}
+    apply = state.get("apply") or {}
+    print("\nEstado de rollback relacional (solo lectura)")
+    print(f"- apply ejecutado: {apply.get('executed', False)}")
+    print(f"- canon modificado por apply: {apply.get('canon_modified', False)}")
+    print(f"- rollback disponible: {rollback.get('available', False)}")
+    if not rollback.get("available"):
+        print("- No existe una relación aplicada por este flujo que deba revertirse.")
+
+
 def option_reports_audit() -> None:
     while True:
         print(
             "\nReportes / métricas / auditoría\n"
             "1) Ver reportes / métricas\n"
-            "2) Auditar calidad canonica / nodos\n"
-            "3) Validar canon\n"
+            "2) Auditoría relacional vigente\n"
+            "3) Auditoría RAG / derivados\n"
+            "4) Auditar calidad canonica / nodos\n"
+            "5) Validar canon\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
@@ -2600,8 +2617,14 @@ def option_reports_audit() -> None:
         if choice == "1":
             option_reports()
         elif choice == "2":
-            option_canon_quality()
+            option_relational_audit()
         elif choice == "3":
+            # Reuse the authoritative derivatives dispatcher; this audit route
+            # must not maintain a second RAG menu or stale compatibility alias.
+            option_derivatives(MenuState())
+        elif choice == "4":
+            option_canon_quality()
+        elif choice == "5":
             option_validate_canon()
         else:
             print("Opcion invalida.")
@@ -2613,6 +2636,7 @@ def option_rollback_menu() -> None:
             "\nRollback\n"
             "1) Rollback de admision\n"
             "2) Rollback de reconstruccion\n"
+            "3) Estado de rollback relacional (solo lectura)\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
@@ -2622,6 +2646,8 @@ def option_rollback_menu() -> None:
             option_rollback()
         elif choice == "2":
             option_reconstruction_rollback()
+        elif choice == "3":
+            option_relational_rollback_status()
         else:
             print("Opcion invalida.")
 
