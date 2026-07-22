@@ -80,7 +80,8 @@ from relation_batch_review import (  # noqa: E402
 SCHEMA_LOG = "relation-admission-log/v1"
 SCHEMA_REPORT = "relation-admission-dry-run-report/v1"
 SCHEMA_HUMAN_DECISIONS = "relation-human-review-decisions/v1"
-SCHEMA_HUMAN_DECISION_LINE = "relation-human-review-decision/v1"
+SCHEMA_HUMAN_DECISION_LINE_LEGACY = "relation-human-review-decision/v1"
+SCHEMA_HUMAN_DECISION_LINE = "relation-human-review-decision/v2"
 SCHEMA_HUMAN_QUEUE = "relation-human-review-queue/v1"
 SCHEMA_PATCH_PREVIEW = "relation-admission-patch-preview/v1"
 SCHEMA_APPLY_PLAN = "relation-admission-apply-plan/v1"
@@ -113,6 +114,35 @@ S0165_APPLY_HUMAN_DECISIONS: frozenset[str] = frozenset({
     "rejected",
     "deferred",
 })
+
+DECISION_REASON_CODES: dict[str, frozenset[str]] = {
+    "approved_for_admission": frozenset({
+        "DIRECT_CODE_DEPENDENCY_CONFIRMED",
+        "TEST_VALIDATES_TARGET_CONFIRMED",
+        "EXPLICIT_REFERENCE_CONFIRMED",
+        "ARCHITECTURAL_RELATION_CONFIRMED",
+        "EVIDENCE_AND_ENDPOINTS_VERIFIED",
+    }),
+    "rejected": frozenset({
+        "INCIDENTAL_REFERENCE",
+        "TEST_FIXTURE_ONLY",
+        "PATH_LITERAL_NOT_SEMANTIC",
+        "DUPLICATE_RELATION",
+        "WRONG_PREDICATE",
+        "WRONG_SOURCE_OR_TARGET",
+        "OUT_OF_SCOPE",
+    }),
+    "deferred": frozenset({
+        "STALE_TARGET_PATH",
+        "INSUFFICIENT_CONTEXT",
+        "LIFECYCLE_UNRESOLVED",
+        "REQUIRES_CANON_RECONCILIATION",
+        "POLICY_UNCLEAR",
+        "MANUAL_TECHNICAL_REVIEW_REQUIRED",
+    }),
+}
+EXCEPTION_REASON_CODES = frozenset({"OTHER", "POLICY_EXCEPTION", "MANUAL_OVERRIDE"})
+NOTE_REQUIRED_REASON_CODES = EXCEPTION_REASON_CODES
 
 APPLY_CONFIRMATION = "APPLY RELATIONS"
 
@@ -191,11 +221,19 @@ def count_canon_records(canon_glob: str) -> int:
     return total
 
 
-def validate_human_review_decision_record(record: Any) -> list[str]:
-    """Validate one S0165 persistent human-review JSONL record."""
+def validate_human_review_decision_record(
+    record: Any, *, allow_legacy: bool = False,
+) -> list[str]:
+    """Validate one authoritative v2 decision or an explicit migration-only v1 record."""
     errors: list[str] = []
     if not isinstance(record, dict):
         return ["record must be object"]
+    schema = record.get("schema_version")
+    if schema == SCHEMA_HUMAN_DECISION_LINE_LEGACY:
+        if not allow_legacy:
+            errors.append("legacy v1 decision is audit/migration only")
+    elif schema != SCHEMA_HUMAN_DECISION_LINE:
+        errors.append(f"schema_version must be {SCHEMA_HUMAN_DECISION_LINE}")
     cid = str(record.get("candidate_id") or "")
     if not cid:
         errors.append("candidate_id required")
@@ -211,9 +249,38 @@ def validate_human_review_decision_record(record: Any) -> list[str]:
         errors.append("human_review_actor required")
     if not str(record.get("human_review_timestamp") or "").strip():
         errors.append("human_review_timestamp required")
+    if schema == SCHEMA_HUMAN_DECISION_LINE_LEGACY and allow_legacy:
+        if decision == ADMISSION_HUMAN_REVIEW_DECISION and not str(record.get("human_review_rationale") or "").strip():
+            errors.append("human_review_rationale required for legacy approval")
+    else:
+        reason_code = str(record.get("human_review_reason_code") or "").strip()
+        allowed_reasons = DECISION_REASON_CODES.get(str(decision), frozenset()) | EXCEPTION_REASON_CODES
+        if reason_code not in allowed_reasons:
+            errors.append(
+                f"human_review_reason_code invalid for {decision!r}: {reason_code!r}"
+            )
+        note = record.get("human_review_note")
+        if note is not None and not isinstance(note, str):
+            errors.append("human_review_note must be string or null")
+        if reason_code in NOTE_REQUIRED_REASON_CODES and not str(note or "").strip():
+            errors.append(f"human_review_note required for {reason_code}")
+        mode = record.get("decision_mode")
+        if mode not in {"individual", "batch"}:
+            errors.append("decision_mode must be individual or batch")
+        if mode == "batch" and not str(record.get("decision_batch_id") or "").strip():
+            errors.append("decision_batch_id required for batch decision")
+        multi_operation = record.get("multi_review_operation_id")
+        if multi_operation is not None and not re.fullmatch(r"hrm_[a-f0-9]{24}", str(multi_operation)):
+            errors.append("multi_review_operation_id must match hrm_<24 hex>")
+        if record.get("supersedes_decision_hash") is not None:
+            if not re.fullmatch(r"sha256:[a-f0-9]{64}", str(record.get("supersedes_decision_hash"))):
+                errors.append("supersedes_decision_hash must be sha256:<64 hex>")
+            if not str(note or "").strip():
+                errors.append("human_review_note required for manual supersession")
+        for binding in ("canon_hash", "candidate_manifest_hash", "reconciliation_manifest_hash"):
+            if not re.fullmatch(r"[a-f0-9]{64}", str(record.get(binding) or "")):
+                errors.append(f"{binding} must be 64 lowercase hex")
     if decision == ADMISSION_HUMAN_REVIEW_DECISION:
-        if not str(record.get("human_review_rationale") or "").strip():
-            errors.append("human_review_rationale required for approval")
         if record.get("approval_scope") != "canonical_admission":
             errors.append("approval_scope must be canonical_admission for approval")
     evidence_paths = record.get("reviewed_evidence_paths")
@@ -225,7 +292,9 @@ def validate_human_review_decision_record(record: Any) -> list[str]:
     return errors
 
 
-def load_human_review_decisions_jsonl(path: Path) -> tuple[dict[str, dict[str, Any]], list[str]]:
+def load_human_review_decisions_jsonl(
+    path: Path, *, allow_legacy: bool = False,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
     """Load S0165 JSONL decisions keyed by candidate_id."""
     decisions: dict[str, dict[str, Any]] = {}
     errors: list[str] = []
@@ -241,7 +310,7 @@ def load_human_review_decisions_jsonl(path: Path) -> tuple[dict[str, dict[str, A
             except json.JSONDecodeError as exc:
                 errors.append(f"line {line_no}: invalid JSON: {exc}")
                 continue
-            record_errors = validate_human_review_decision_record(record)
+            record_errors = validate_human_review_decision_record(record, allow_legacy=allow_legacy)
             if record_errors:
                 errors.extend(f"line {line_no}: {err}" for err in record_errors)
                 continue
@@ -288,7 +357,9 @@ def load_persistent_human_review_decisions(path: Path | None) -> tuple[dict[str,
     translated = human_review_decision_lines_from_legacy_doc(doc)
     errors: list[str] = []
     for cid, record in translated.items():
-        record_errors = validate_human_review_decision_record(record)
+        record_errors = validate_human_review_decision_record(record, allow_legacy=True)
+        if not record_errors:
+            record_errors.append("legacy decision documents are audit/migration only")
         if record_errors:
             errors.extend(f"{cid}: {err}" for err in record_errors)
     return translated, errors
@@ -308,6 +379,12 @@ def apply_persistent_review_decisions_to_candidates(
             merged["human_review_actor"] = decision.get("human_review_actor")
             merged["human_review_timestamp"] = decision.get("human_review_timestamp")
             merged["human_review_rationale"] = decision.get("human_review_rationale")
+            merged["human_review_reason_code"] = decision.get("human_review_reason_code")
+            merged["human_review_note"] = decision.get("human_review_note")
+            merged["decision_batch_id"] = decision.get("decision_batch_id")
+            merged["multi_review_operation_id"] = decision.get("multi_review_operation_id")
+            merged["review_policy_id"] = decision.get("review_policy_id")
+            merged["human_review_schema_version"] = decision.get("schema_version")
             merged["approval_scope"] = decision.get("approval_scope")
             merged["reviewed_evidence_paths"] = decision.get("reviewed_evidence_paths") or []
         updated.append(merged)
@@ -710,9 +787,12 @@ def validate_candidate_human_review_decision(candidate: dict[str, Any], hr: Any)
                 "GATE-016: human_review_decision != approved_for_admission; "
                 f"encontrado={direct!r}."
             )
+        if direct in S0165_APPLY_HUMAN_DECISIONS:
+            reason_code = str(candidate.get("human_review_reason_code") or "")
+            allowed_reasons = DECISION_REASON_CODES.get(str(direct), frozenset()) | EXCEPTION_REASON_CODES
+            if reason_code not in allowed_reasons:
+                reasons.append("GATE-024: human_review_reason_code ausente o inválido.")
         if direct == ADMISSION_HUMAN_REVIEW_DECISION:
-            if not str(candidate.get("human_review_rationale") or "").strip():
-                reasons.append("GATE-024: human_review_rationale ausente o vacío.")
             if candidate.get("approval_scope") != "canonical_admission":
                 reasons.append(
                     "GATE-025: approval_scope != canonical_admission; "
@@ -925,11 +1005,18 @@ def evaluate_gate(
         "all_block_reasons": reasons_blocked,
         "blocking_stage": blocking_stage,
         "ok_reasons": reasons_ok,
-        "human_review_status": hr.get("status", "(absent)"),
+        "human_review_status": candidate.get(
+            "human_review_decision",
+            hr.get("decision", hr.get("status", "(absent)")),
+        ),
         "human_review_decision": candidate.get(
             "human_review_decision",
             hr.get("decision", hr.get("status", "(absent)")),
         ),
+        "human_review_reason_code": candidate.get("human_review_reason_code"),
+        "human_review_note": candidate.get("human_review_note"),
+        "decision_batch_id": candidate.get("decision_batch_id"),
+        "multi_review_operation_id": candidate.get("multi_review_operation_id"),
         "reviewer": hr.get("reviewer", ""),
         "reviewed_at": hr.get("reviewed_at", ""),
         "decision_reason": hr.get("decision_reason", ""),
@@ -1089,10 +1176,11 @@ def build_dry_run_report(
         str(row.get("human_review_decision") or row.get("decision") or "")
         for row in (persistent_human_decisions or {}).values()
     )
-    awaiting = decisions.get("blocked_missing_human_review", 0)
+    missing_or_deferred = decisions.get("blocked_missing_human_review", 0)
     rejected = decisions.get("rejected_by_human", 0)
     deferred = human_decisions.get("deferred", 0)
-    technically_invalid = max(0, len(blocked) - awaiting - rejected - deferred)
+    awaiting = max(0, missing_or_deferred - deferred)
+    technically_invalid = max(0, len(blocked) - missing_or_deferred - rejected)
     return {
         "schema": SCHEMA_REPORT,
         "session": session.upper(),
@@ -1112,7 +1200,6 @@ def build_dry_run_report(
             "approved_for_admission": human_decisions.get("approved_for_admission", 0),
             "admission_ready": len(ready),
             "admission_ready_dry_run": len(ready),
-            "blocked": len(blocked),
             "applied_to_canon": False,
             "canon_modified": False,
             "dry_run": True,
@@ -1131,6 +1218,10 @@ def build_dry_run_report(
                 "ok_reasons": r["ok_reasons"],
                 "human_review_status": r["human_review_status"],
                 "human_review_decision": r.get("human_review_decision", r["human_review_status"]),
+                "human_review_reason_code": r.get("human_review_reason_code"),
+                "human_review_note": r.get("human_review_note"),
+                "decision_batch_id": r.get("decision_batch_id"),
+                "multi_review_operation_id": r.get("multi_review_operation_id"),
                 "applied_to_canon": False,
                 "canon_modified": False,
                 "dry_run": True,
@@ -1336,7 +1427,11 @@ def build_admitted_relation(candidate: dict[str, Any], review: dict[str, Any]) -
             "admitted_by": review.get("human_review_actor") or "operator",
             "admission_session": review.get("session_id") or "",
             "human_review_decision": review.get("human_review_decision"),
-            "human_review_rationale": review.get("human_review_rationale") or "",
+            "human_review_reason_code": review.get("human_review_reason_code"),
+            "human_review_note": review.get("human_review_note"),
+            "decision_batch_id": review.get("decision_batch_id"),
+            "multi_review_operation_id": review.get("multi_review_operation_id"),
+            "review_policy_id": review.get("review_policy_id"),
         },
         "lifecycle_state": "admitted_to_canon",
     }
@@ -1376,8 +1471,8 @@ def validate_admitted_relation_schema(record: Any) -> list[str]:
     else:
         if authority.get("human_review_decision") != ADMISSION_HUMAN_REVIEW_DECISION:
             errors.append("authority.human_review_decision must be approved_for_admission")
-        if not str(authority.get("human_review_rationale") or "").strip():
-            errors.append("authority.human_review_rationale required")
+        if not str(authority.get("human_review_reason_code") or "").strip():
+            errors.append("authority.human_review_reason_code required")
     return errors
 
 
@@ -1395,7 +1490,7 @@ def build_apply_plan(
         cid for cid, decision in human_review_decisions.items()
         if decision.get("human_review_decision") == ADMISSION_HUMAN_REVIEW_DECISION
         and decision.get("approval_scope") == "canonical_admission"
-        and str(decision.get("human_review_rationale") or "").strip()
+        and str(decision.get("human_review_reason_code") or "").strip()
     }
     dry_run_items = dry_run_report.get("items") or []
     ready_ids = {
@@ -2203,8 +2298,9 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"\n=== Relation Admission Gate ({session_tag.upper()}) — DRY-RUN ===\n"
         f"  Total evaluados          : {s['total_evaluated']}\n"
+        f"  awaiting_human_review    : {s['awaiting_human_review']}\n"
+        f"  technically_invalid      : {s['technically_invalid']}\n"
         f"  admission_ready_dry_run  : {s['admission_ready_dry_run']}\n"
-        f"  blocked                  : {s['blocked']}\n"
     )
     if batch_summary is not None:
         decision = approved_batch_decision(batch_doc)

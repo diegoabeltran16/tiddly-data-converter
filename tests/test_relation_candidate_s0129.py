@@ -482,6 +482,8 @@ class TestContractCatalogs:
 
     def test_candidate_id_regex_valid(self):
         assert rcc.CANDIDATE_ID_RE.match("rc1_aabb1122334455667788")
+        assert rcc.CANDIDATE_ID_RE.match("rc_current_aabb1122334455667788")
+        assert rcc.CANDIDATE_ID_RE.match("rc_s0181_aabb1122334455667788")
         assert not rcc.CANDIDATE_ID_RE.match("rc2_aabb1122")
         assert not rcc.CANDIDATE_ID_RE.match("rc1_xyz")
 

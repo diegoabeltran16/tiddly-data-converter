@@ -128,8 +128,9 @@ ALLOWED_RESOLUTION_STATUSES: frozenset[str] = frozenset({
 # Umbral de confianza bajo la cual se considera evidencia débil
 WEAK_EVIDENCE_THRESHOLD: float = 0.50
 
-# Regex para candidate_id válido (DT031): prefijo rc1_ seguido de 16-64 hex
-CANDIDATE_ID_RE = re.compile(r"^rc1_[a-f0-9]{16,64}$")
+# IDs históricos usan ``rc1_``. El productor operational current conserva el
+# namespace del lote para ligar una decisión humana a su manifest vigente.
+CANDIDATE_ID_RE = re.compile(r"^(?:rc1|rc_(?:current|s\d{4}))_[a-f0-9]{16,64}$")
 
 # ---------------------------------------------------------------------------
 # Funciones de verificación

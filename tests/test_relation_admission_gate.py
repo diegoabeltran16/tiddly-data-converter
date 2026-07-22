@@ -152,6 +152,65 @@ def test_gate_summary_separates_awaiting_review_from_invalid() -> None:
     assert report["summary"]["awaiting_human_review"] == 1
     assert report["summary"]["technically_invalid"] == 0
     assert report["summary"]["human_deferred"] == 0
+    assert "blocked" not in report["summary"]
+
+
+def test_gate_summary_does_not_count_explicit_deferred_as_awaiting() -> None:
+    result = evaluate_gate(_technical_candidate(human_review_decision="deferred"), _canon())
+    report = build_dry_run_report(
+        [result], session="current", candidates_file=Path("queue.jsonl"), canon_glob="canon/*.jsonl",
+        persistent_human_decisions={"rc1_c1c2c3c4c5c6c7c8": {"human_review_decision": "deferred"}},
+    )
+    assert report["summary"]["awaiting_human_review"] == 0
+    assert report["summary"]["human_deferred"] == 1
+    assert report["summary"]["technically_invalid"] == 0
+
+
+def test_human_review_status_is_derived_from_current_decision() -> None:
+    result = evaluate_gate(_technical_candidate(), _canon())
+    assert result["human_review_status"] == "approved_for_admission"
+    assert result["human_review_decision"] == "approved_for_admission"
+    assert result["human_review_status"] != "(absent)"
+
+
+def test_structured_final_mix_reports_140_ready_and_17_deferred_without_invalid() -> None:
+    ready = [
+        {
+            "candidate_id": f"ready-{index}", "gate_status": ADMISSION_READY,
+            "decision": ADMISSION_READY, "relation_type": "depende_de",
+            "blocking_reasons": [], "ok_reasons": [],
+            "human_review_status": "approved_for_admission",
+        }
+        for index in range(140)
+    ]
+    deferred = [
+        {
+            "candidate_id": f"stale-{index}", "gate_status": BLOCKED,
+            "decision": "blocked_missing_human_review", "relation_type": "depende_de",
+            "blocking_reasons": ["GATE-016", "GATE-022"], "ok_reasons": [],
+            "human_review_status": "deferred",
+        }
+        for index in range(17)
+    ]
+    decisions = {
+        item["candidate_id"]: {"human_review_decision": "approved_for_admission"}
+        for item in ready
+    } | {
+        item["candidate_id"]: {
+            "human_review_decision": "deferred",
+            "human_review_reason_code": "STALE_TARGET_PATH",
+        }
+        for item in deferred
+    }
+    summary = build_dry_run_report(
+        ready + deferred, session="current", candidates_file=Path("queue.jsonl"),
+        canon_glob="tiddlers_*.jsonl", persistent_human_decisions=decisions,
+    )["summary"]
+    assert summary["approved_for_admission"] == 140
+    assert summary["human_deferred"] == 17
+    assert summary["admission_ready_dry_run"] == 140
+    assert summary["technically_invalid"] == 0
+    assert summary["awaiting_human_review"] == 0
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -208,7 +267,7 @@ def _technical_candidate(**overrides) -> dict:
         "artifact_family": "relation_candidate",
         "relation_type": "references",
         "human_review_decision": "approved_for_admission",
-        "human_review_rationale": "Operador verificó source, target, evidencia y tipo relacional.",
+        "human_review_reason_code": "EXPLICIT_REFERENCE_CONFIRMED",
         "approval_scope": "canonical_admission",
         "human_review_actor": "operator",
         "human_review_timestamp": "2026-07-08T00:00:00Z",
@@ -241,6 +300,12 @@ def _technical_candidate(**overrides) -> dict:
             cand[key].update(value)
         else:
             cand[key] = value
+    if "human_review_reason_code" not in overrides:
+        cand["human_review_reason_code"] = {
+            "approved_for_admission": "EXPLICIT_REFERENCE_CONFIRMED",
+            "rejected": "OUT_OF_SCOPE",
+            "deferred": "INSUFFICIENT_CONTEXT",
+        }.get(cand.get("human_review_decision"), cand.get("human_review_reason_code"))
     return cand
 
 
@@ -583,8 +648,29 @@ class TestS0165SafeApplyEngine:
 
     def _write_review(self, tmp_path: Path, records: list[dict]) -> Path:
         path = tmp_path / "human_review_decisions.jsonl"
+        reason_by_decision = {
+            "approved_for_admission": "EVIDENCE_AND_ENDPOINTS_VERIFIED",
+            "rejected": "OUT_OF_SCOPE",
+            "deferred": "INSUFFICIENT_CONTEXT",
+        }
+        normalized = []
+        for source in records:
+            record = dict(source)
+            record.setdefault("schema_version", "relation-human-review-decision/v2")
+            record.setdefault(
+                "human_review_reason_code",
+                reason_by_decision.get(record.get("human_review_decision"), "INSUFFICIENT_CONTEXT"),
+            )
+            record.setdefault("human_review_note", None)
+            record.setdefault("decision_mode", "individual")
+            record.setdefault("decision_batch_id", None)
+            record.setdefault("supersedes_decision_hash", None)
+            record.setdefault("canon_hash", "1" * 64)
+            record.setdefault("candidate_manifest_hash", "2" * 64)
+            record.setdefault("reconciliation_manifest_hash", "3" * 64)
+            normalized.append(record)
         path.write_text(
-            "\n".join(json.dumps(record) for record in records) + "\n",
+            "\n".join(json.dumps(record) for record in normalized) + "\n",
             encoding="utf-8",
         )
         return path
@@ -753,14 +839,22 @@ class TestS0165SafeApplyEngine:
 
     def test_human_review_decision_schema_validation(self):
         valid = {
+            "schema_version": "relation-human-review-decision/v2",
             "candidate_id": "rc1_c1c2c3c4c5c6c7c8",
             "human_review_decision": "approved_for_admission",
+            "human_review_reason_code": "EVIDENCE_AND_ENDPOINTS_VERIFIED",
+            "human_review_note": None,
+            "decision_mode": "individual",
+            "decision_batch_id": None,
+            "supersedes_decision_hash": None,
             "human_review_actor": "operator",
             "human_review_timestamp": "2026-07-08T00:00:00Z",
-            "human_review_rationale": "Evidencia verificada.",
             "approval_scope": "canonical_admission",
             "reviewed_evidence_paths": ["data/out/local/pipeline/relation_candidates/current/review_queue.jsonl"],
             "session_id": "S0165",
+            "canon_hash": "1" * 64,
+            "candidate_manifest_hash": "2" * 64,
+            "reconciliation_manifest_hash": "3" * 64,
         }
         assert validate_human_review_decision_record(valid) == []
 
@@ -770,7 +864,7 @@ class TestS0165SafeApplyEngine:
             "human_review_actor": "operator",
             "session_id": "S0165",
             "human_review_decision": "approved_for_admission",
-            "human_review_rationale": "Evidencia verificada.",
+            "human_review_reason_code": "EVIDENCE_AND_ENDPOINTS_VERIFIED",
             "reviewed_evidence_paths": [],
         }
         relation = build_admitted_relation(cand, review)
@@ -888,7 +982,7 @@ class TestS0165SafeApplyEngine:
         assert relation["target_id"] == "tgt-002"
         assert relation["relation_type"] == "references"
         assert relation["authority"]["human_review_decision"] == "approved_for_admission"
-        assert relation["authority"]["human_review_rationale"]
+        assert relation["authority"]["human_review_reason_code"] == "EVIDENCE_AND_ENDPOINTS_VERIFIED"
         assert relation["authority"]["admission_session"] == "S0165"
         assert relation["authority"]["admitted_by"] == "operator-fixture"
 

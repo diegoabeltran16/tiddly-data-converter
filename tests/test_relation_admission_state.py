@@ -65,12 +65,16 @@ def _write_current_fixture(tmp_path: Path, *, with_run_manifest: bool = True) ->
     log = audit / "current_relation_admission_log.jsonl"
     log.write_text("\n", encoding="utf-8")
     if with_run_manifest:
+        decisions = current / "human_review_decisions.jsonl"
+        gate_contract = REPO_ROOT / "src/python_scripts/relation_admission_gate.py"
         (audit / "current_run_manifest.json").write_text(json.dumps({
             "canon_hash": canon_hash,
             "candidate_manifest_hash": _sha256(candidate_manifest),
             "reviewable_manifest_hash": _sha256(reviewable),
             "report_hash": _sha256(report),
             "log_hash": _sha256(log),
+            "human_review_decisions_hash": _sha256(decisions),
+            "gate_contract_hash": _sha256(gate_contract),
         }), encoding="utf-8")
     return local, {
         "candidate": candidate_manifest,
@@ -165,5 +169,88 @@ def test_stale_reason_controls_and_missing_current_manifest_are_fail_closed(tmp_
     local, _ = _write_current_fixture(tmp_path / "missing-manifest", with_run_manifest=False)
     state = relation_state.build_state(local)
     assert state["admission_gate"]["current"] is False
-    assert state["verdict"] == "RELATIONAL_ADMISSION_CURRENT_RUN_INCOMPLETE"
+    assert state["verdict"] == "READY_FOR_HUMAN_RELATIONAL_REVIEW"
+    assert state["next_action"] == relation_state.RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS
     assert "current_run_manifest_missing" in state["admission_gate"]["stale_reasons"]
+
+
+def test_current_review_action_is_unique_and_operational(tmp_path: Path) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    state = relation_state.build_state(local)
+    assert state["next_action"] == relation_state.RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS
+    assert "OPEN_S0181" not in state["next_action"]
+
+
+def test_legacy_review_is_counted_as_evidence_but_requires_supersession(tmp_path: Path) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    decisions = local / "pipeline/relation_candidates/current/human_review_decisions.jsonl"
+    decisions.write_text(json.dumps({
+        "schema_version": "relation-human-review-decision/v1",
+        "candidate_id": "rc_current_aabb112233445566",
+        "human_review_decision": "approved_for_admission",
+    }) + "\n", encoding="utf-8")
+    state = relation_state.build_state(local)
+    assert state["human_review"]["total"] == 0
+    assert state["human_review"]["legacy_supersession_required"] == 1
+    assert state["human_review"]["current"] is False
+    assert state["verdict"] == "LEGACY_HUMAN_RELATIONAL_REVIEW_NOT_AUTHORITATIVE"
+    assert state["next_action"] == relation_state.SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS
+
+
+def test_technically_invalid_approvals_emit_partial_verdict(tmp_path: Path) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    current = local / "pipeline/relation_candidates/current"
+    audit = local / "audit/relation_admission/current"
+    decisions = current / "human_review_decisions.jsonl"
+    decisions.write_text(json.dumps({
+        "schema_version": "relation-human-review-decision/v2",
+        "candidate_id": "rc_current_aabb112233445566",
+        "human_review_decision": "approved_for_admission",
+    }) + "\n", encoding="utf-8")
+    report = audit / "admission_gate_dry_run.json"
+    report.write_text(json.dumps({
+        "summary": {
+            "total_evaluated": 1, "approved_for_admission": 1,
+            "admission_ready_dry_run": 0, "technically_invalid": 1,
+            "awaiting_human_review": 0,
+        }
+    }), encoding="utf-8")
+    manifest_path = audit / "current_run_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["report_hash"] = _sha256(report)
+    manifest["human_review_decisions_hash"] = _sha256(decisions)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    state = relation_state.build_state(local)
+    assert state["verdict"] == "RELATIONAL_ADMISSION_PARTIALLY_READY"
+    assert state["next_action"] == "RESOLVE_OR_DEFER_TECHNICALLY_INVALID_APPROVALS"
+    preflight = relation_state.relational_apply_precondition(state)
+    assert "technically_invalid_approvals_present" in preflight["reasons"]
+
+
+def test_apply_precondition_blocks_incomplete_or_stale_state() -> None:
+    state = {
+        "admission_gate": {"current": False, "stale_reasons": ["changed"], "admission_ready": 0},
+        "human_review": {"total": 0},
+        "reconciliation": {"ready_for_review": 157},
+        "apply": {"executed": False},
+    }
+    result = relation_state.relational_apply_precondition(state)
+    assert result["allowed"] is False
+    assert result["reasons"] == [
+        "admission_gate_not_current",
+        "admission_gate_has_stale_reasons",
+        "human_review_incomplete",
+        "no_admission_ready_relations",
+    ]
+
+
+def test_apply_precondition_allows_only_current_complete_ready_state() -> None:
+    state = {
+        "admission_gate": {"current": True, "stale_reasons": [], "admission_ready": 2},
+        "human_review": {"total": 157},
+        "reconciliation": {"ready_for_review": 157},
+        "apply": {"executed": False},
+    }
+    result = relation_state.relational_apply_precondition(state)
+    assert result["allowed"] is True
+    assert result["reasons"] == []
