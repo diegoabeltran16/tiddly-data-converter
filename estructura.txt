@@ -29,29 +29,9 @@
 │   ├── out
 │   │   ├── local
 │   │   │   ├── ai
-│   │   │   │   ├── manifest.json
 │   │   │   │   └── reports
-│   │   │   │       ├── chunk_qc_report.json
-│   │   │   │       ├── classification_report.json
-│   │   │   │       ├── derivation_report.json
-│   │   │   │       ├── relations_qc_report.json
-│   │   │   │       └── retrieval_qc_report.json
 │   │   │   ├── audit
 │   │   │   │   ├── admissions
-│   │   │   │   │   ├── admit-20260706220300-multi-session.json
-│   │   │   │   │   ├── admit-20260706220323-multi-session.json
-│   │   │   │   │   ├── admit-20260708000035-multi-session.json
-│   │   │   │   │   ├── admit-20260708001525-multi-session.json
-│   │   │   │   │   ├── admit-20260708153946-multi-session.json
-│   │   │   │   │   ├── admit-20260708154009-multi-session.json
-│   │   │   │   │   ├── admit-20260712205246-multi-session.json
-│   │   │   │   │   ├── admit-20260712205311-multi-session.json
-│   │   │   │   │   ├── admit-20260715144442-multi-session.json
-│   │   │   │   │   ├── admit-20260715144518-multi-session.json
-│   │   │   │   │   ├── admit-20260716133728-multi-session.json
-│   │   │   │   │   ├── admit-20260716133807-multi-session.json
-│   │   │   │   │   ├── admit-20260721134303-multi-session.json
-│   │   │   │   │   ├── admit-20260721134340-multi-session.json
 │   │   │   │   │   ├── backups
 │   │   │   │   │   │   ├── admit-20260706220323-multi-session
 │   │   │   │   │   │   ├── admit-20260708001525-multi-session
@@ -64,569 +44,247 @@
 │   │   │   │   │   │   ├── all-contracts-20260716203727
 │   │   │   │   │   │   └── all-contracts-20260716203736
 │   │   │   │   │   ├── s0164-menu-navigation-final
-│   │   │   │   │   │   ├── validate-20260708162111-multi-session.json
-│   │   │   │   │   │   └── validate-20260708162159-multi-session.json
 │   │   │   │   │   ├── s0164-microajuste-terminal-final
-│   │   │   │   │   │   └── validate-20260708142650-multi-session.json
 │   │   │   │   │   ├── s0164-microajuste-terminal-final2
-│   │   │   │   │   │   └── validate-20260708142728-multi-session.json
 │   │   │   │   │   ├── s0166-inventario-relacional
-│   │   │   │   │   │   └── validate-20260709004240-multi-session.json
 │   │   │   │   │   ├── s0166-inventario-relacional-final
-│   │   │   │   │   │   └── validate-20260709004350-multi-session.json
 │   │   │   │   │   ├── s0167-aclaraciones-post-review
-│   │   │   │   │   │   └── validate-20260709142912-multi-session.json
 │   │   │   │   │   ├── s0167-alineacion-motor-relacional
-│   │   │   │   │   │   └── validate-20260709140215-multi-session.json
 │   │   │   │   │   ├── s0172-alineacion-productor-autoritativo-derivados-rag-safe
-│   │   │   │   │   │   ├── validate-20260713153050-multi-session.json
-│   │   │   │   │   │   ├── validate-20260713153437-multi-session.json
-│   │   │   │   │   │   └── validate-20260713155633-multi-session.json
 │   │   │   │   │   ├── s0173
-│   │   │   │   │   │   └── validate-20260713190602-multi-session.json
 │   │   │   │   │   ├── s0174
-│   │   │   │   │   │   └── validate-20260714011336-multi-session.json
 │   │   │   │   │   ├── s0176
-│   │   │   │   │   │   └── validate-20260716125626-multi-session.json
 │   │   │   │   │   ├── s0176-close
-│   │   │   │   │   │   └── validate-20260716125931-multi-session.json
 │   │   │   │   │   ├── s0176-final
-│   │   │   │   │   │   └── validate-20260716125743-multi-session.json
 │   │   │   │   │   ├── s0177-close
-│   │   │   │   │   │   └── validate-20260716132658-multi-session.json
-│   │   │   │   │   ├── s0177-close-final
-│   │   │   │   │   │   └── validate-20260716133339-multi-session.json
-│   │   │   │   │   ├── validate-20260706153552-multi-session.json
-│   │   │   │   │   ├── validate-20260706153658-multi-session.json
-│   │   │   │   │   ├── validate-20260706161609-multi-session.json
-│   │   │   │   │   ├── validate-20260706170308-multi-session.json
-│   │   │   │   │   ├── validate-20260706184211-multi-session.json
-│   │   │   │   │   ├── validate-20260706185541-multi-session.json
-│   │   │   │   │   ├── validate-20260706213255-multi-session.json
-│   │   │   │   │   ├── validate-20260706213327-multi-session.json
-│   │   │   │   │   ├── validate-20260706213350-multi-session.json
-│   │   │   │   │   ├── validate-20260706215828-multi-session.json
-│   │   │   │   │   ├── validate-20260707235002-multi-session.json
-│   │   │   │   │   ├── validate-20260708000718-multi-session.json
-│   │   │   │   │   ├── validate-20260708002530-multi-session.json
-│   │   │   │   │   ├── validate-20260708003338-multi-session.json
-│   │   │   │   │   ├── validate-20260708010608-multi-session.json
-│   │   │   │   │   ├── validate-20260708012222-multi-session.json
-│   │   │   │   │   ├── validate-20260708014410-multi-session.json
-│   │   │   │   │   ├── validate-20260708212533-multi-session.json
-│   │   │   │   │   ├── validate-20260708212629-multi-session.json
-│   │   │   │   │   ├── validate-20260708221236-multi-session.json
-│   │   │   │   │   ├── validate-20260708221318-multi-session.json
-│   │   │   │   │   ├── validate-20260709144934-multi-session.json
-│   │   │   │   │   ├── validate-20260709145043-multi-session.json
-│   │   │   │   │   ├── validate-20260709152337-multi-session.json
-│   │   │   │   │   ├── validate-20260709164708-multi-session.json
-│   │   │   │   │   ├── validate-20260709172843-multi-session.json
-│   │   │   │   │   ├── validate-20260709172958-multi-session.json
-│   │   │   │   │   ├── validate-20260709191240-multi-session.json
-│   │   │   │   │   ├── validate-20260712220508-multi-session.json
-│   │   │   │   │   ├── validate-20260712220611-multi-session.json
-│   │   │   │   │   ├── validate-20260713133904-multi-session.json
-│   │   │   │   │   ├── validate-20260715141438-multi-session.json
-│   │   │   │   │   ├── validate-20260716201800-multi-session.json
-│   │   │   │   │   ├── validate-20260716203727-multi-session.json
-│   │   │   │   │   └── validate-20260716203736-multi-session.json
-│   │   │   │   ├── applied_safe_fixes.json
-│   │   │   │   ├── compliance_report.json
+│   │   │   │   │   └── s0177-close-final
 │   │   │   │   ├── compliance_summary.md
 │   │   │   │   ├── functional_alignment
 │   │   │   │   │   ├── dt065
 │   │   │   │   │   │   ├── component_file_list.txt
-│   │   │   │   │   │   ├── functional_alignment_risk_report.json
 │   │   │   │   │   │   ├── legacy_alignment_report.md
-│   │   │   │   │   │   ├── operator_menu_pipeline_map.json
 │   │   │   │   │   │   ├── operator_menu_pipeline_map.md
-│   │   │   │   │   │   ├── policy_consumer_matrix.json
 │   │   │   │   │   │   ├── potential_writers.txt
-│   │   │   │   │   │   ├── producer_artifact_matrix.json
 │   │   │   │   │   │   └── producer_artifact_matrix.md
 │   │   │   │   │   ├── s0172
-│   │   │   │   │   │   ├── functional_alignment_risk_report.json
 │   │   │   │   │   │   ├── legacy_alignment_report.md
-│   │   │   │   │   │   ├── legacy_writer_boundary_report.json
-│   │   │   │   │   │   ├── menu_derivation_alignment_report.json
-│   │   │   │   │   │   ├── operator_menu_pipeline_map.json
 │   │   │   │   │   │   ├── operator_menu_pipeline_map.md
-│   │   │   │   │   │   ├── policy_consumer_matrix.json
-│   │   │   │   │   │   ├── producer_artifact_matrix.json
 │   │   │   │   │   │   └── producer_artifact_matrix.md
 │   │   │   │   │   └── s0173
-│   │   │   │   │       ├── functional_alignment_risk_report.json
-│   │   │   │   │       ├── productive_equivalence_alignment_report.json
-│   │   │   │   │       └── productive_writer_transaction_boundary_report.json
-│   │   │   │   ├── manifest.json
 │   │   │   │   ├── metadata_promotion
 │   │   │   │   │   └── s0171
-│   │   │   │   │       ├── ambiguous_values_report.json
-│   │   │   │   │       ├── canon_diff_report.json
-│   │   │   │   │       ├── normalization_collisions.json
-│   │   │   │   │       ├── template_node_topic_collision_report.json
-│   │   │   │   │       └── validation_report.json
-│   │   │   │   ├── pre_post_diff.json
 │   │   │   │   ├── premium_rag_quality
 │   │   │   │   │   └── dt066
-│   │   │   │   │       └── premium_rag_baseline.json
-│   │   │   │   ├── proposed_fixes.json
 │   │   │   │   ├── rag_admission
 │   │   │   │   │   ├── authorizations
-│   │   │   │   │   │   ├── definitive_promotion_authorization.json
-│   │   │   │   │   │   └── trial_write_authorization.json
-│   │   │   │   │   ├── canonical_evolution_ids.json
-│   │   │   │   │   ├── canonical_evolution_summary.json
 │   │   │   │   │   ├── current_trial
-│   │   │   │   │   │   ├── rollback_equality_report.json
-│   │   │   │   │   │   ├── rollback_execution_report.json
-│   │   │   │   │   │   ├── trial_post_write_validation.json
-│   │   │   │   │   │   └── trial_write_receipt.json
-│   │   │   │   │   ├── definitive_post_write_validation.json
-│   │   │   │   │   ├── definitive_promotion_receipt.json
-│   │   │   │   │   ├── governance_gate_report.json
-│   │   │   │   │   ├── historical_trial_snapshot_classification.json
-│   │   │   │   │   ├── productive_rag_manifest.json
-│   │   │   │   │   ├── rag_admission_state.json
-│   │   │   │   │   ├── rollback_equality_report.json
-│   │   │   │   │   ├── rollback_error_report.json
-│   │   │   │   │   ├── rollback_execution_report.json
-│   │   │   │   │   ├── staging_equivalence_report.json
-│   │   │   │   │   ├── staging_equivalence_report.md
-│   │   │   │   │   ├── technical_gate_report.json
-│   │   │   │   │   ├── trial_post_write_validation.json
-│   │   │   │   │   └── trial_write_receipt.json
+│   │   │   │   │   └── staging_equivalence_report.md
 │   │   │   │   ├── rag_derivation
 │   │   │   │   │   ├── s0172
-│   │   │   │   │   │   ├── productive_derivatives_after_manifest.json
-│   │   │   │   │   │   ├── productive_derivatives_before_manifest.json
-│   │   │   │   │   │   ├── productive_derivatives_diff_report.json
-│   │   │   │   │   │   ├── productive_write_block_test.json
-│   │   │   │   │   │   ├── productive_write_preflight.json
-│   │   │   │   │   │   ├── rag_gate_report.json
 │   │   │   │   │   │   └── rag_gate_report.md
 │   │   │   │   │   ├── s0173
-│   │   │   │   │   │   ├── canon_immutability_report.json
-│   │   │   │   │   │   ├── current_preflight.json
-│   │   │   │   │   │   ├── final_session_validation.json
-│   │   │   │   │   │   ├── menu_execution_report.json
-│   │   │   │   │   │   ├── productive_derivatives_after_manifest.json
-│   │   │   │   │   │   ├── productive_derivatives_before_manifest.json
-│   │   │   │   │   │   ├── productive_derivatives_diff_report.json
-│   │   │   │   │   │   ├── productive_rag_gate_report.json
-│   │   │   │   │   │   ├── rollback_execution_report.json
-│   │   │   │   │   │   ├── rollback_readiness_report.json
-│   │   │   │   │   │   ├── rollback_verification_report.json
-│   │   │   │   │   │   ├── s0172_evidence_revalidation.json
-│   │   │   │   │   │   ├── staging_productive_equivalence_report.json
 │   │   │   │   │   │   ├── staging_productive_equivalence_report.md
-│   │   │   │   │   │   ├── staging_rag_gate_report.json
-│   │   │   │   │   │   ├── staging_rag_gate_report.md
-│   │   │   │   │   │   └── unauthorized_path_diff_report.json
+│   │   │   │   │   │   └── staging_rag_gate_report.md
 │   │   │   │   │   └── s0174
-│   │   │   │   │       ├── authorization_state.json
-│   │   │   │   │       ├── canon_hash_comparison.json
-│   │   │   │   │       ├── definitive_promotion_report.json
-│   │   │   │   │       ├── deliverables_verification_and_update_report.json
-│   │   │   │   │       ├── determinism_equivalence_report.json
 │   │   │   │   │       ├── determinism_equivalence_report.md
-│   │   │   │   │       ├── determinism_repeat_gate.json
 │   │   │   │   │       ├── determinism_repeat_gate.md
-│   │   │   │   │       ├── execution_graph.json
-│   │   │   │   │       ├── final_session_validation.json
-│   │   │   │   │       ├── final_verdict.json
-│   │   │   │   │       ├── governance_gate_report.json
-│   │   │   │   │       ├── integration_modifications.json
-│   │   │   │   │       ├── post_write_validation_report.json
-│   │   │   │   │       ├── preflight.json
-│   │   │   │   │       ├── producer_writer_inventory.json
-│   │   │   │   │       ├── rollback_execution_report.json
-│   │   │   │   │       ├── rollback_readiness_prewrite_report.json
-│   │   │   │   │       ├── rollback_readiness_report.json
-│   │   │   │   │       ├── staging_rag_gate_report.json
-│   │   │   │   │       ├── staging_rag_gate_report.md
-│   │   │   │   │       └── trial_write_report.json
+│   │   │   │   │       └── staging_rag_gate_report.md
 │   │   │   │   ├── rag_tag_gate
 │   │   │   │   │   ├── s0170
 │   │   │   │   │   │   ├── after
-│   │   │   │   │   │   │   ├── rag_tag_gate_report.json
 │   │   │   │   │   │   │   └── rag_tag_gate_report.md
 │   │   │   │   │   │   └── before
-│   │   │   │   │   │       ├── rag_tag_gate_report.json
 │   │   │   │   │   │       └── rag_tag_gate_report.md
 │   │   │   │   │   └── s0171
-│   │   │   │   │       ├── rag_gate_after_metadata_promotion_preview.json
 │   │   │   │   │       ├── rag_gate_after_metadata_promotion_preview.md
-│   │   │   │   │       ├── rag_gate_before_metadata_promotion.json
 │   │   │   │   │       └── rag_gate_before_metadata_promotion.md
 │   │   │   │   ├── relation_admission
 │   │   │   │   │   ├── current
-│   │   │   │   │   │   ├── admission_gate_dry_run.json
-│   │   │   │   │   │   ├── current_run_manifest.json
-│   │   │   │   │   │   ├── relational_audit_index.json
-│   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   ├── history
+│   │   │   │   │   │   ├── current-16d0380495122099
 │   │   │   │   │   │   ├── current-44610d95b335f343
-│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
-│   │   │   │   │   │   │   ├── current_run_manifest.json
-│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-5983eb4718c33673
+│   │   │   │   │   │   ├── current-6a477e78de7d9ebf
+│   │   │   │   │   │   ├── current-6c48db5688b20e38
+│   │   │   │   │   │   ├── current-a1d6763bcc4a9cf0
+│   │   │   │   │   │   ├── current-a72afc8101b1294b
+│   │   │   │   │   │   ├── current-ac60c0bae5a21891
+│   │   │   │   │   │   ├── current-b5486061d0f3f1a8
 │   │   │   │   │   │   └── run-e1e966f3b3b4ae8e
-│   │   │   │   │   │       ├── admission_gate_dry_run.json
-│   │   │   │   │   │       └── relational_operational_state.json
 │   │   │   │   │   ├── s0164
-│   │   │   │   │   │   └── s0164_relation_admission_dry_run_report.json
 │   │   │   │   │   ├── s0165
-│   │   │   │   │   │   ├── admission_gate_dry_run.json
-│   │   │   │   │   │   ├── relation_apply_plan.json
-│   │   │   │   │   │   └── relation_apply_report.json
 │   │   │   │   │   └── s0167
-│   │   │   │   │       └── s0167_admission_gate_dry_run.json
 │   │   │   │   ├── relational_productive_state
 │   │   │   │   │   └── dt067
-│   │   │   │   │       ├── candidate_state_inventory.json
 │   │   │   │   │       ├── canonical_relation_inventory.csv
-│   │   │   │   │       ├── canonical_relation_inventory.json
-│   │   │   │   │       ├── human_review_state_report.json
 │   │   │   │   │       ├── micro_roadmap_relacional.md
-│   │   │   │   │       ├── relational_admission_capability_report.json
-│   │   │   │   │       ├── relational_currentness_report.json
-│   │   │   │   │       ├── relational_derivative_propagation_report.json
-│   │   │   │   │       ├── relational_productive_state_risk_report.json
 │   │   │   │   │       └── relational_readiness_matrix.csv
 │   │   │   │   ├── relational_rag_quality
 │   │   │   │   │   └── dt068
-│   │   │   │   │       ├── multi_node_context_report.json
-│   │   │   │   │       ├── premium_ai_relational_response_evaluation.json
-│   │   │   │   │       ├── relation_aware_retrieval_report.json
-│   │   │   │   │       ├── relational_ablation_comparison.json
-│   │   │   │   │       ├── relational_failure_taxonomy.json
-│   │   │   │   │       ├── relational_rag_baseline.json
-│   │   │   │   │       ├── relational_rag_corpus_freeze_manifest.json
-│   │   │   │   │       └── relational_rag_risk_report.json
 │   │   │   │   ├── s0178
-│   │   │   │   │   ├── p0_test_invariant_matrix.json
-│   │   │   │   │   ├── post_merge_finding_resolution.json
-│   │   │   │   │   ├── productive_baseline_resolution_report.json
-│   │   │   │   │   ├── rag_audit_index.json
-│   │   │   │   │   └── snapshot_lifecycle_report.json
 │   │   │   │   ├── s0179
-│   │   │   │   │   ├── current_derivative_relation_lineage.json
 │   │   │   │   │   ├── derivative_relation_contract_report.md
-│   │   │   │   │   ├── equivalence_relational_scope_report.json
-│   │   │   │   │   ├── legacy_relation_propagation_report.json
 │   │   │   │   │   └── relation_authority_matrix.csv
 │   │   │   │   ├── s0180
 │   │   │   │   │   ├── candidate_reconciliation_summary.md
-│   │   │   │   │   ├── canonical_mapping_resolution.json
-│   │   │   │   │   ├── current_candidate_manifest.json
-│   │   │   │   │   ├── current_log_rotation_report.json
-│   │   │   │   │   ├── duplicate_resolution_report.json
-│   │   │   │   │   ├── final_menu_wiring_validation.json
-│   │   │   │   │   ├── historical_candidate_classification.json
-│   │   │   │   │   ├── historical_occurrence_reclassification_report.json
 │   │   │   │   │   ├── history
 │   │   │   │   │   │   └── initial_closure
-│   │   │   │   │   │       ├── candidate_reconciliation_summary.md
-│   │   │   │   │   │       ├── canonical_mapping_resolution.json
-│   │   │   │   │   │       ├── current_candidate_manifest.json
-│   │   │   │   │   │       ├── duplicate_resolution_report.json
-│   │   │   │   │   │       ├── historical_candidate_classification.json
-│   │   │   │   │   │       ├── manifest.json
-│   │   │   │   │   │       ├── protected_surface_no_mutation_report.json
-│   │   │   │   │   │       └── unresolved_target_resolution.json
+│   │   │   │   │   │       └── candidate_reconciliation_summary.md
 │   │   │   │   │   ├── intermediate_current_candidate_batch
 │   │   │   │   │   │   ├── human_review.md
-│   │   │   │   │   │   ├── relation_candidates_blocked.json
-│   │   │   │   │   │   ├── relation_candidates_ready_for_review.json
-│   │   │   │   │   │   ├── relation_candidates_report.json
 │   │   │   │   │   │   ├── relation_candidates_review.csv
-│   │   │   │   │   │   ├── relation_candidates_summary.md
-│   │   │   │   │   │   └── validation_report.json
-│   │   │   │   │   ├── menu_relational_convergence_report.json
-│   │   │   │   │   ├── pr_review_hardening_validation.json
+│   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── pre_refresh_current_candidate_batch
 │   │   │   │   │   │   ├── human_review.md
-│   │   │   │   │   │   ├── relation_candidates_blocked.json
-│   │   │   │   │   │   ├── relation_candidates_ready_for_review.json
-│   │   │   │   │   │   ├── relation_candidates_report.json
 │   │   │   │   │   │   ├── relation_candidates_review.csv
-│   │   │   │   │   │   ├── relation_candidates_summary.md
-│   │   │   │   │   │   └── validation_report.json
-│   │   │   │   │   ├── pre_relational_rag_baseline_manifest.json
-│   │   │   │   │   ├── protected_surface_no_mutation_report.json
-│   │   │   │   │   ├── relational_operational_state_snapshot.json
-│   │   │   │   │   ├── s0180_revision_manifest.json
+│   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── session_admission_validation
-│   │   │   │   │   │   └── validate-20260717035107-multi-session.json
-│   │   │   │   │   ├── session_sync
-│   │   │   │   │   │   └── s0180-robust-closure
-│   │   │   │   │   │       └── summary.json
-│   │   │   │   │   ├── tmp_dependency_audit.json
-│   │   │   │   │   └── unresolved_target_resolution.json
-│   │   │   │   ├── s85_capa2_stale_target_classification.json
-│   │   │   │   ├── s85_session_admission_before_after.json
-│   │   │   │   ├── sanitation-20260526172159.json
+│   │   │   │   │   └── session_sync
+│   │   │   │   │       └── s0180-robust-closure
+│   │   │   │   ├── s0181
+│   │   │   │   │   └── human_review_superseded
+│   │   │   │   │       └── 20260721T195534Z
 │   │   │   │   ├── session_sync
 │   │   │   │   │   ├── local-dt055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica-20260707184932
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt056-preparacion-human-review-relacional-s0164-20260707190701
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt057-higiene-repo-artifact-canon-exclusion-build-artifacts-20260707192407
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt057-higiene-repo-artifact-canon-exclusion-build-artifacts-v2-20260707192514
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt058-frontera-canon-codigo-fuente-rutas-post-src-20260707193322
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt059-contrato-schema-relacional-review-queue-admission-gate-20260707200553
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt060-tests-stale-post-src-frontera-relacional-20260707202205
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt061-cobertura-rag-premium-canon-derivados-relaciones-20260707204354
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt062-arqueologia-relacional-20260708181031
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt062-microajustes-20260708185604
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt062-schema-fix-20260708190352
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt063-ajuste-20260709112533
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt063-taxonomia-tags-metadata-relaciones-tiddlers-base-20260709102301
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt065-alineacion-funcional-20260713083832
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt066-evaluacion-calidad-rag-ia-premium-derivados-gobernados-tdc-20260714135800
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt066-final-20260714140011
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt067-corrected-20260716150706
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt067-estado-productivo-relaciones-canonicas-brechas-rag-premium-20260716150057
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt067-final-20260716150755
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt068-evaluacion-calidad-rag-ia-premium-post-admision-relacional-20260716151711
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0159-close-202607061035
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0159-close-final-202607061037
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0160-close-202607061620
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0161-close-202607061705
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0162-micro-review-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0162-session-sync
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0162-session-sync-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0163-microajuste-instrucciones
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0163-refactor-instrucciones
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0164-hardening-preflight-relacional-p0-previo-a-admision-canonica-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0164-menu-navigation-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0164-microajuste-terminal-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0164-microajuste-terminal-final2
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0164-terminal-relations-microadjustment
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0165-motor-apply-relacional
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0165-simetria-experimental-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0166-inventario-relacional
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0166-inventario-relacional-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0167-aclaraciones-post-review
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0167-alineacion-motor-relacional
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0168-cohesion-menu-admision-gobernada-relaciones-metadata-y-rutas-root-final
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0169-sanitation-tags-p0-gate-antirruido-rag
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0171-promocion-metadata-minima-tech-stack-topics-y-filtros-rag
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0172-alineacion-productor-autoritativo-derivados-rag-safe
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0173
 │   │   │   │   │   │   └── s0173-regeneracion-gobernada
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0174
 │   │   │   │   │   │   └── s0174-integracion-final
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0174-microadjust
 │   │   │   │   │   │   ├── s0174-microadjust
-│   │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   │   └── validation
-│   │   │   │   │   │       └── validate-20260714022020-multi-session.json
 │   │   │   │   │   ├── s0176
 │   │   │   │   │   │   └── s0176
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0176-close
 │   │   │   │   │   │   └── s0176-close
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0176-final
 │   │   │   │   │   │   └── s0176-final
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0177-close
 │   │   │   │   │   │   └── s0177-close
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0177-close-final
 │   │   │   │   │   │   └── s0177-close-final
-│   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0178-close
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260706220253
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260706222042
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708000029
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708153921
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708161738
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708161741
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708161829
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708161832
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708161856
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708161859
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708212231
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708212233
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260708215356
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709000048
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709000440
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709004216
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709004221
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709140143
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709140155
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709144439
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709144443
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709145022
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709145025
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260709164658
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260712205227
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260714192930
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260715141426
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260715144435
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260716133713
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260716134532
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260716200434
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260716200954
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260716201934
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260716203458
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034538
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034544
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034635
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034640
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034715
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034719
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034839
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034842
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034900
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260717034903
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193347
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193349
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193455
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193457
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193545
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193548
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193730
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193733
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193821
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193824
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193951
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720193954
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720194353
-│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260720194355
-│   │   │   │   │   │   └── summary.json
-│   │   │   │   │   └── sync-20260721134206
-│   │   │   │   │       └── summary.json
-│   │   │   │   ├── test_suite_operational_invariants
-│   │   │   │   │   └── dt069
-│   │   │   │   │       ├── coverage_gap_report.json
-│   │   │   │   │       ├── false_positive_risk_report.json
-│   │   │   │   │       ├── fixture_file_list.txt
-│   │   │   │   │       ├── stale_test_report.json
-│   │   │   │   │       ├── test_collection_report.json
-│   │   │   │   │       ├── test_file_list.txt
-│   │   │   │   │       ├── test_hardening_roadmap.md
-│   │   │   │   │       ├── test_invariant_matrix.json
-│   │   │   │   │       ├── test_invariant_matrix.md
-│   │   │   │   │       ├── test_runtime_surface_map.json
-│   │   │   │   │       └── test_suite_risk_report.json
-│   │   │   │   ├── titlenorm-20260522213031.json
-│   │   │   │   ├── titlenorm-20260522213054.json
-│   │   │   │   ├── titlenorm-20260522215356.json
-│   │   │   │   ├── titlenorm-20260522215432.json
-│   │   │   │   ├── titlenorm-20260523003506.json
-│   │   │   │   └── titlenorm-20260523023936.json
+│   │   │   │   │   ├── sync-20260721134206
+│   │   │   │   │   ├── sync-20260721143552
+│   │   │   │   │   ├── sync-20260721143558
+│   │   │   │   │   ├── sync-20260721144146
+│   │   │   │   │   ├── sync-20260721144151
+│   │   │   │   │   ├── sync-20260721144638
+│   │   │   │   │   ├── sync-20260721144641
+│   │   │   │   │   ├── sync-20260721144727
+│   │   │   │   │   ├── sync-20260721144732
+│   │   │   │   │   ├── sync-20260721234729
+│   │   │   │   │   └── sync-20260721234737
+│   │   │   │   └── test_suite_operational_invariants
+│   │   │   │       └── dt069
+│   │   │   │           ├── fixture_file_list.txt
+│   │   │   │           ├── test_file_list.txt
+│   │   │   │           ├── test_hardening_roadmap.md
+│   │   │   │           └── test_invariant_matrix.md
 │   │   │   ├── backups
 │   │   │   │   ├── titlenorm-20260523-diag-4digit
 │   │   │   │   ├── titlenorm-20260523-diag-tematico
@@ -637,9 +295,7 @@
 │   │   │   │   ├── titlenorm-s0124-canon
 │   │   │   │   └── titlenorm-s0124-canon-reapply
 │   │   │   ├── enriched
-│   │   │   │   └── manifest.json
 │   │   │   ├── export
-│   │   │   │   └── s33-manifest.json
 │   │   │   ├── microsoft_copilot
 │   │   │   │   ├── artifacts.csv
 │   │   │   │   ├── bundles
@@ -648,304 +304,172 @@
 │   │   │   │   │   └── recent_sessions.txt
 │   │   │   │   ├── copilot_agent
 │   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   ├── entities.json
 │   │   │   │   │   └── relations.csv
 │   │   │   │   ├── coverage.csv
 │   │   │   │   ├── edges.csv
-│   │   │   │   ├── entities.json
-│   │   │   │   ├── manifest.json
-│   │   │   │   ├── navigation_index.json
 │   │   │   │   ├── nodes.csv
 │   │   │   │   ├── overview.txt
 │   │   │   │   ├── reading_guide.txt
-│   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   ├── spec
-│   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   └── summaries
-│   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       ├── prcommits.json
-│   │   │   │   │       ├── prcommits.md
-│   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       ├── sesiones.json
-│   │   │   │   │       ├── sesiones.md
-│   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   └── topics.json
+│   │   │   │   └── spec
+│   │   │   │       ├── checklist_global_s61.md
+│   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │       └── summaries
+│   │   │   │           ├── contratos-instructions.md
+│   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │           ├── detalles-del-tema.md
+│   │   │   │           ├── elementos-especificos.md
+│   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │           ├── hipotesis.md
+│   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │           ├── prcommits.md
+│   │   │   │           ├── principios-de-gestion.md
+│   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │           ├── sesiones.md
+│   │   │   │           └── tiddlers-sesiones.md
 │   │   │   ├── pipeline
 │   │   │   │   ├── menu_refactor
 │   │   │   │   │   └── s0150
 │   │   │   │   │       ├── s0150_menu_after.txt
 │   │   │   │   │       ├── s0150_menu_before.txt
 │   │   │   │   │       ├── s0150_menu_compatibility_report.md
-│   │   │   │   │       ├── s0150_menu_mapping.json
 │   │   │   │   │       └── s0150_menu_operator_guide.md
 │   │   │   │   ├── metadata_promotion
 │   │   │   │   │   └── s0171
-│   │   │   │   │       ├── metadata_promotion_field_distribution.json
-│   │   │   │   │       ├── metadata_promotion_policy.json
-│   │   │   │   │       ├── metadata_promotion_summary.json
-│   │   │   │   │       ├── metadata_promotion_summary.md
-│   │   │   │   │       ├── template_node_mapping_report.json
-│   │   │   │   │       ├── template_relation_vocab_report.json
-│   │   │   │   │       └── template_set_classification_report.json
+│   │   │   │   │       └── metadata_promotion_summary.md
 │   │   │   │   ├── rag_admission
 │   │   │   │   │   ├── archived_trial_snapshots
 │   │   │   │   │   │   └── 4733316a3951d969
 │   │   │   │   │   │       ├── ai
-│   │   │   │   │   │       │   ├── manifest.json
 │   │   │   │   │   │       │   └── reports
-│   │   │   │   │   │       │       ├── chunk_qc_report.json
-│   │   │   │   │   │       │       ├── classification_report.json
-│   │   │   │   │   │       │       ├── derivation_report.json
-│   │   │   │   │   │       │       ├── relations_qc_report.json
-│   │   │   │   │   │       │       └── retrieval_qc_report.json
-│   │   │   │   │   │       ├── archive_manifest.json
 │   │   │   │   │   │       ├── enriched
-│   │   │   │   │   │       │   └── manifest.json
-│   │   │   │   │   │       ├── microsoft_copilot
-│   │   │   │   │   │       │   ├── artifacts.csv
-│   │   │   │   │   │       │   ├── bundles
-│   │   │   │   │   │       │   │   ├── governance_core.txt
-│   │   │   │   │   │       │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │   │       │   │   └── recent_sessions.txt
-│   │   │   │   │   │       │   ├── copilot_agent
-│   │   │   │   │   │       │   │   ├── corpus.txt
-│   │   │   │   │   │       │   │   ├── entities.json
-│   │   │   │   │   │       │   │   └── relations.csv
-│   │   │   │   │   │       │   ├── coverage.csv
-│   │   │   │   │   │       │   ├── edges.csv
-│   │   │   │   │   │       │   ├── entities.json
-│   │   │   │   │   │       │   ├── manifest.json
-│   │   │   │   │   │       │   ├── navigation_index.json
-│   │   │   │   │   │       │   ├── nodes.csv
-│   │   │   │   │   │       │   ├── overview.txt
-│   │   │   │   │   │       │   ├── reading_guide.txt
-│   │   │   │   │   │       │   ├── source_arbitration_report.json
-│   │   │   │   │   │       │   ├── spec
-│   │   │   │   │   │       │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │       │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │       │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │       │   │   └── summaries
-│   │   │   │   │   │       │   │       ├── contratos-instructions.json
-│   │   │   │   │   │       │   │       ├── contratos-instructions.md
-│   │   │   │   │   │       │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │       │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │       │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │       │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │       │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │       │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │       │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │       │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │       │   │       ├── elementos-especificos.json
-│   │   │   │   │   │       │   │       ├── elementos-especificos.md
-│   │   │   │   │   │       │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │       │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │       │   │       ├── hipotesis.json
-│   │   │   │   │   │       │   │       ├── hipotesis.md
-│   │   │   │   │   │       │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │       │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │       │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │       │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │       │   │       ├── prcommits.json
-│   │   │   │   │   │       │   │       ├── prcommits.md
-│   │   │   │   │   │       │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │       │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │       │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │       │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │       │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │       │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │       │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │       │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │       │   │       ├── sesiones.json
-│   │   │   │   │   │       │   │       ├── sesiones.md
-│   │   │   │   │   │       │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │       │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │       │   └── topics.json
-│   │   │   │   │   │       └── rollback_manifest.json
+│   │   │   │   │   │       └── microsoft_copilot
+│   │   │   │   │   │           ├── artifacts.csv
+│   │   │   │   │   │           ├── bundles
+│   │   │   │   │   │           │   ├── governance_core.txt
+│   │   │   │   │   │           │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │           │   └── recent_sessions.txt
+│   │   │   │   │   │           ├── copilot_agent
+│   │   │   │   │   │           │   ├── corpus.txt
+│   │   │   │   │   │           │   └── relations.csv
+│   │   │   │   │   │           ├── coverage.csv
+│   │   │   │   │   │           ├── edges.csv
+│   │   │   │   │   │           ├── nodes.csv
+│   │   │   │   │   │           ├── overview.txt
+│   │   │   │   │   │           ├── reading_guide.txt
+│   │   │   │   │   │           └── spec
+│   │   │   │   │   │               ├── checklist_global_s61.md
+│   │   │   │   │   │               ├── memoria_decisiones_s61.md
+│   │   │   │   │   │               ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │               └── summaries
+│   │   │   │   │   │                   ├── contratos-instructions.md
+│   │   │   │   │   │                   ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │                   ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │                   ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │                   ├── detalles-del-tema.md
+│   │   │   │   │   │                   ├── elementos-especificos.md
+│   │   │   │   │   │                   ├── glosario-y-convenciones.md
+│   │   │   │   │   │                   ├── hipotesis.md
+│   │   │   │   │   │                   ├── microsoft-support-formats.md
+│   │   │   │   │   │                   ├── politica-de-memoria-activa.md
+│   │   │   │   │   │                   ├── prcommits.md
+│   │   │   │   │   │                   ├── principios-de-gestion.md
+│   │   │   │   │   │                   ├── procedencia-epistemologica.md
+│   │   │   │   │   │                   ├── protocolo-de-sesion.md
+│   │   │   │   │   │                   ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │                   ├── sesiones.md
+│   │   │   │   │   │                   └── tiddlers-sesiones.md
 │   │   │   │   │   ├── definitive_rollback_snapshot
 │   │   │   │   │   │   ├── ai
-│   │   │   │   │   │   │   ├── manifest.json
 │   │   │   │   │   │   │   └── reports
-│   │   │   │   │   │   │       ├── chunk_qc_report.json
-│   │   │   │   │   │   │       ├── classification_report.json
-│   │   │   │   │   │   │       ├── derivation_report.json
-│   │   │   │   │   │   │       ├── relations_qc_report.json
-│   │   │   │   │   │   │       └── retrieval_qc_report.json
 │   │   │   │   │   │   ├── enriched
-│   │   │   │   │   │   │   └── manifest.json
-│   │   │   │   │   │   ├── microsoft_copilot
-│   │   │   │   │   │   │   ├── artifacts.csv
-│   │   │   │   │   │   │   ├── bundles
-│   │   │   │   │   │   │   │   ├── governance_core.txt
-│   │   │   │   │   │   │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │   │   │   │   └── recent_sessions.txt
-│   │   │   │   │   │   │   ├── copilot_agent
-│   │   │   │   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   │   └── relations.csv
-│   │   │   │   │   │   │   ├── coverage.csv
-│   │   │   │   │   │   │   ├── edges.csv
-│   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   ├── manifest.json
-│   │   │   │   │   │   │   ├── navigation_index.json
-│   │   │   │   │   │   │   ├── nodes.csv
-│   │   │   │   │   │   │   ├── overview.txt
-│   │   │   │   │   │   │   ├── reading_guide.txt
-│   │   │   │   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   │   │   │   ├── spec
-│   │   │   │   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │   │   │   └── summaries
-│   │   │   │   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │   │   │       ├── prcommits.json
-│   │   │   │   │   │   │   │       ├── prcommits.md
-│   │   │   │   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │   │   │       ├── sesiones.json
-│   │   │   │   │   │   │   │       ├── sesiones.md
-│   │   │   │   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │   │   └── topics.json
-│   │   │   │   │   │   └── rollback_manifest.json
+│   │   │   │   │   │   └── microsoft_copilot
+│   │   │   │   │   │       ├── artifacts.csv
+│   │   │   │   │   │       ├── bundles
+│   │   │   │   │   │       │   ├── governance_core.txt
+│   │   │   │   │   │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │       │   └── recent_sessions.txt
+│   │   │   │   │   │       ├── copilot_agent
+│   │   │   │   │   │       │   ├── corpus.txt
+│   │   │   │   │   │       │   └── relations.csv
+│   │   │   │   │   │       ├── coverage.csv
+│   │   │   │   │   │       ├── edges.csv
+│   │   │   │   │   │       ├── nodes.csv
+│   │   │   │   │   │       ├── overview.txt
+│   │   │   │   │   │       ├── reading_guide.txt
+│   │   │   │   │   │       └── spec
+│   │   │   │   │   │           ├── checklist_global_s61.md
+│   │   │   │   │   │           ├── memoria_decisiones_s61.md
+│   │   │   │   │   │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │           └── summaries
+│   │   │   │   │   │               ├── contratos-instructions.md
+│   │   │   │   │   │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │               ├── detalles-del-tema.md
+│   │   │   │   │   │               ├── elementos-especificos.md
+│   │   │   │   │   │               ├── glosario-y-convenciones.md
+│   │   │   │   │   │               ├── hipotesis.md
+│   │   │   │   │   │               ├── microsoft-support-formats.md
+│   │   │   │   │   │               ├── politica-de-memoria-activa.md
+│   │   │   │   │   │               ├── prcommits.md
+│   │   │   │   │   │               ├── principios-de-gestion.md
+│   │   │   │   │   │               ├── procedencia-epistemologica.md
+│   │   │   │   │   │               ├── protocolo-de-sesion.md
+│   │   │   │   │   │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │               ├── sesiones.md
+│   │   │   │   │   │               └── tiddlers-sesiones.md
 │   │   │   │   │   ├── history
 │   │   │   │   │   │   └── trial_rollback_snapshots
 │   │   │   │   │   │       └── manifest-3c6af1b471c0216444200f33b1ffbb7e2d40ed3bea85e33393b366fb778ce8fa-20260716T135849Z
 │   │   │   │   │   │           ├── ai
-│   │   │   │   │   │           │   ├── manifest.json
 │   │   │   │   │   │           │   └── reports
-│   │   │   │   │   │           │       ├── chunk_qc_report.json
-│   │   │   │   │   │           │       ├── classification_report.json
-│   │   │   │   │   │           │       ├── derivation_report.json
-│   │   │   │   │   │           │       ├── relations_qc_report.json
-│   │   │   │   │   │           │       └── retrieval_qc_report.json
 │   │   │   │   │   │           ├── enriched
-│   │   │   │   │   │           │   └── manifest.json
-│   │   │   │   │   │           ├── microsoft_copilot
-│   │   │   │   │   │           │   ├── artifacts.csv
-│   │   │   │   │   │           │   ├── bundles
-│   │   │   │   │   │           │   │   ├── governance_core.txt
-│   │   │   │   │   │           │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │   │           │   │   └── recent_sessions.txt
-│   │   │   │   │   │           │   ├── copilot_agent
-│   │   │   │   │   │           │   │   ├── corpus.txt
-│   │   │   │   │   │           │   │   ├── entities.json
-│   │   │   │   │   │           │   │   └── relations.csv
-│   │   │   │   │   │           │   ├── coverage.csv
-│   │   │   │   │   │           │   ├── edges.csv
-│   │   │   │   │   │           │   ├── entities.json
-│   │   │   │   │   │           │   ├── manifest.json
-│   │   │   │   │   │           │   ├── navigation_index.json
-│   │   │   │   │   │           │   ├── nodes.csv
-│   │   │   │   │   │           │   ├── overview.txt
-│   │   │   │   │   │           │   ├── reading_guide.txt
-│   │   │   │   │   │           │   ├── source_arbitration_report.json
-│   │   │   │   │   │           │   ├── spec
-│   │   │   │   │   │           │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │           │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │           │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │           │   │   └── summaries
-│   │   │   │   │   │           │   │       ├── contratos-instructions.json
-│   │   │   │   │   │           │   │       ├── contratos-instructions.md
-│   │   │   │   │   │           │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │           │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │           │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │           │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │           │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │           │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │           │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │           │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │           │   │       ├── elementos-especificos.json
-│   │   │   │   │   │           │   │       ├── elementos-especificos.md
-│   │   │   │   │   │           │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │           │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │           │   │       ├── hipotesis.json
-│   │   │   │   │   │           │   │       ├── hipotesis.md
-│   │   │   │   │   │           │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │           │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │           │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │           │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │           │   │       ├── prcommits.json
-│   │   │   │   │   │           │   │       ├── prcommits.md
-│   │   │   │   │   │           │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │           │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │           │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │           │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │           │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │           │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │           │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │           │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │           │   │       ├── sesiones.json
-│   │   │   │   │   │           │   │       ├── sesiones.md
-│   │   │   │   │   │           │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │           │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │           │   └── topics.json
-│   │   │   │   │   │           └── rollback_manifest.json
-│   │   │   │   │   ├── rollback_readiness.json
+│   │   │   │   │   │           └── microsoft_copilot
+│   │   │   │   │   │               ├── artifacts.csv
+│   │   │   │   │   │               ├── bundles
+│   │   │   │   │   │               │   ├── governance_core.txt
+│   │   │   │   │   │               │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │               │   └── recent_sessions.txt
+│   │   │   │   │   │               ├── copilot_agent
+│   │   │   │   │   │               │   ├── corpus.txt
+│   │   │   │   │   │               │   └── relations.csv
+│   │   │   │   │   │               ├── coverage.csv
+│   │   │   │   │   │               ├── edges.csv
+│   │   │   │   │   │               ├── nodes.csv
+│   │   │   │   │   │               ├── overview.txt
+│   │   │   │   │   │               ├── reading_guide.txt
+│   │   │   │   │   │               └── spec
+│   │   │   │   │   │                   ├── checklist_global_s61.md
+│   │   │   │   │   │                   ├── memoria_decisiones_s61.md
+│   │   │   │   │   │                   ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │                   └── summaries
+│   │   │   │   │   │                       ├── contratos-instructions.md
+│   │   │   │   │   │                       ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │                       ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │                       ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │                       ├── detalles-del-tema.md
+│   │   │   │   │   │                       ├── elementos-especificos.md
+│   │   │   │   │   │                       ├── glosario-y-convenciones.md
+│   │   │   │   │   │                       ├── hipotesis.md
+│   │   │   │   │   │                       ├── microsoft-support-formats.md
+│   │   │   │   │   │                       ├── politica-de-memoria-activa.md
+│   │   │   │   │   │                       ├── prcommits.md
+│   │   │   │   │   │                       ├── principios-de-gestion.md
+│   │   │   │   │   │                       ├── procedencia-epistemologica.md
+│   │   │   │   │   │                       ├── protocolo-de-sesion.md
+│   │   │   │   │   │                       ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │                       ├── sesiones.md
+│   │   │   │   │   │                       └── tiddlers-sesiones.md
 │   │   │   │   │   ├── staging
 │   │   │   │   │   │   ├── ai
-│   │   │   │   │   │   │   ├── manifest.json
 │   │   │   │   │   │   │   └── reports
-│   │   │   │   │   │   │       ├── chunk_qc_report.json
-│   │   │   │   │   │   │       ├── classification_report.json
-│   │   │   │   │   │   │       ├── derivation_report.json
-│   │   │   │   │   │   │       ├── relations_qc_report.json
-│   │   │   │   │   │   │       └── retrieval_qc_report.json
 │   │   │   │   │   │   ├── enriched
-│   │   │   │   │   │   │   └── manifest.json
 │   │   │   │   │   │   ├── microsoft_copilot
 │   │   │   │   │   │   │   ├── artifacts.csv
 │   │   │   │   │   │   │   ├── bundles
@@ -954,161 +478,88 @@
 │   │   │   │   │   │   │   │   └── recent_sessions.txt
 │   │   │   │   │   │   │   ├── copilot_agent
 │   │   │   │   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   │   │   │   ├── entities.json
 │   │   │   │   │   │   │   │   └── relations.csv
 │   │   │   │   │   │   │   ├── coverage.csv
 │   │   │   │   │   │   │   ├── edges.csv
-│   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   ├── manifest.json
-│   │   │   │   │   │   │   ├── navigation_index.json
 │   │   │   │   │   │   │   ├── nodes.csv
 │   │   │   │   │   │   │   ├── overview.txt
 │   │   │   │   │   │   │   ├── reading_guide.txt
-│   │   │   │   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   │   │   │   ├── spec
-│   │   │   │   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │   │   │   └── summaries
-│   │   │   │   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │   │   │       ├── prcommits.json
-│   │   │   │   │   │   │   │       ├── prcommits.md
-│   │   │   │   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │   │   │       ├── sesiones.json
-│   │   │   │   │   │   │   │       ├── sesiones.md
-│   │   │   │   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │   │   └── topics.json
+│   │   │   │   │   │   │   └── spec
+│   │   │   │   │   │   │       ├── checklist_global_s61.md
+│   │   │   │   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │       └── summaries
+│   │   │   │   │   │   │           ├── contratos-instructions.md
+│   │   │   │   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │           ├── detalles-del-tema.md
+│   │   │   │   │   │   │           ├── elementos-especificos.md
+│   │   │   │   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │           ├── hipotesis.md
+│   │   │   │   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │           ├── prcommits.md
+│   │   │   │   │   │   │           ├── principios-de-gestion.md
+│   │   │   │   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │           ├── sesiones.md
+│   │   │   │   │   │   │           └── tiddlers-sesiones.md
 │   │   │   │   │   │   └── semantic_text
-│   │   │   │   │   │       ├── rag-admission-staging_semantic_text_coverage_report.json
 │   │   │   │   │   │       ├── rag-admission-staging_semantic_text_coverage_summary.md
-│   │   │   │   │   │       ├── rag-admission-staging_semantic_text_hashes.json
-│   │   │   │   │   │       ├── rag-admission-staging_semantic_text_index.json
-│   │   │   │   │   │       ├── rag-admission-staging_semantic_text_profiles.json
 │   │   │   │   │   │       └── rag-admission-staging_semantic_text_review.csv
-│   │   │   │   │   ├── staging_derived_plan.json
 │   │   │   │   │   ├── staging_derived_plan.md
-│   │   │   │   │   ├── staging_manifest.json
-│   │   │   │   │   ├── staging_summary.json
 │   │   │   │   │   └── trial_rollback_snapshot
 │   │   │   │   │       ├── ai
-│   │   │   │   │       │   ├── manifest.json
 │   │   │   │   │       │   └── reports
-│   │   │   │   │       │       ├── chunk_qc_report.json
-│   │   │   │   │       │       ├── classification_report.json
-│   │   │   │   │       │       ├── derivation_report.json
-│   │   │   │   │       │       ├── relations_qc_report.json
-│   │   │   │   │       │       └── retrieval_qc_report.json
 │   │   │   │   │       ├── enriched
-│   │   │   │   │       │   └── manifest.json
-│   │   │   │   │       ├── microsoft_copilot
-│   │   │   │   │       │   ├── artifacts.csv
-│   │   │   │   │       │   ├── bundles
-│   │   │   │   │       │   │   ├── governance_core.txt
-│   │   │   │   │       │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │       │   │   └── recent_sessions.txt
-│   │   │   │   │       │   ├── copilot_agent
-│   │   │   │   │       │   │   ├── corpus.txt
-│   │   │   │   │       │   │   ├── entities.json
-│   │   │   │   │       │   │   └── relations.csv
-│   │   │   │   │       │   ├── coverage.csv
-│   │   │   │   │       │   ├── edges.csv
-│   │   │   │   │       │   ├── entities.json
-│   │   │   │   │       │   ├── manifest.json
-│   │   │   │   │       │   ├── navigation_index.json
-│   │   │   │   │       │   ├── nodes.csv
-│   │   │   │   │       │   ├── overview.txt
-│   │   │   │   │       │   ├── reading_guide.txt
-│   │   │   │   │       │   ├── source_arbitration_report.json
-│   │   │   │   │       │   ├── spec
-│   │   │   │   │       │   │   ├── checklist_global_s61.md
-│   │   │   │   │       │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │       │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │       │   │   └── summaries
-│   │   │   │   │       │   │       ├── contratos-instructions.json
-│   │   │   │   │       │   │       ├── contratos-instructions.md
-│   │   │   │   │       │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       │   │       ├── detalles-del-tema.json
-│   │   │   │   │       │   │       ├── detalles-del-tema.md
-│   │   │   │   │       │   │       ├── elementos-especificos.json
-│   │   │   │   │       │   │       ├── elementos-especificos.md
-│   │   │   │   │       │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       │   │       ├── hipotesis.json
-│   │   │   │   │       │   │       ├── hipotesis.md
-│   │   │   │   │       │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       │   │       ├── prcommits.json
-│   │   │   │   │       │   │       ├── prcommits.md
-│   │   │   │   │       │   │       ├── principios-de-gestion.json
-│   │   │   │   │       │   │       ├── principios-de-gestion.md
-│   │   │   │   │       │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       │   │       ├── sesiones.json
-│   │   │   │   │       │   │       ├── sesiones.md
-│   │   │   │   │       │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       │   │       └── tiddlers-sesiones.md
-│   │   │   │   │       │   └── topics.json
-│   │   │   │   │       └── rollback_manifest.json
+│   │   │   │   │       └── microsoft_copilot
+│   │   │   │   │           ├── artifacts.csv
+│   │   │   │   │           ├── bundles
+│   │   │   │   │           │   ├── governance_core.txt
+│   │   │   │   │           │   ├── pipeline_and_layers.txt
+│   │   │   │   │           │   └── recent_sessions.txt
+│   │   │   │   │           ├── copilot_agent
+│   │   │   │   │           │   ├── corpus.txt
+│   │   │   │   │           │   └── relations.csv
+│   │   │   │   │           ├── coverage.csv
+│   │   │   │   │           ├── edges.csv
+│   │   │   │   │           ├── nodes.csv
+│   │   │   │   │           ├── overview.txt
+│   │   │   │   │           ├── reading_guide.txt
+│   │   │   │   │           └── spec
+│   │   │   │   │               ├── checklist_global_s61.md
+│   │   │   │   │               ├── memoria_decisiones_s61.md
+│   │   │   │   │               ├── plan_de_implementacion_s61.md
+│   │   │   │   │               └── summaries
+│   │   │   │   │                   ├── contratos-instructions.md
+│   │   │   │   │                   ├── contratos-s58-s59-s60.md
+│   │   │   │   │                   ├── dependencia-y-superficie-externa.md
+│   │   │   │   │                   ├── desarrollo-y-evolucion.md
+│   │   │   │   │                   ├── detalles-del-tema.md
+│   │   │   │   │                   ├── elementos-especificos.md
+│   │   │   │   │                   ├── glosario-y-convenciones.md
+│   │   │   │   │                   ├── hipotesis.md
+│   │   │   │   │                   ├── microsoft-support-formats.md
+│   │   │   │   │                   ├── politica-de-memoria-activa.md
+│   │   │   │   │                   ├── prcommits.md
+│   │   │   │   │                   ├── principios-de-gestion.md
+│   │   │   │   │                   ├── procedencia-epistemologica.md
+│   │   │   │   │                   ├── protocolo-de-sesion.md
+│   │   │   │   │                   ├── repo-y-derivados-actuales.md
+│   │   │   │   │                   ├── sesiones.md
+│   │   │   │   │                   └── tiddlers-sesiones.md
 │   │   │   │   ├── rag_derivation
 │   │   │   │   │   ├── s0172
-│   │   │   │   │   │   ├── authoritative_dependency_map.json
 │   │   │   │   │   │   ├── authoritative_dependency_map.md
-│   │   │   │   │   │   ├── derive_layers_characterization_after.json
 │   │   │   │   │   │   ├── derive_layers_characterization_after.md
-│   │   │   │   │   │   ├── derive_layers_characterization_before.json
 │   │   │   │   │   │   ├── derive_layers_characterization_before.md
-│   │   │   │   │   │   ├── derive_layers_characterization_delta.json
 │   │   │   │   │   │   ├── derive_layers_characterization_delta.md
-│   │   │   │   │   │   ├── policy_integration_report.json
 │   │   │   │   │   │   ├── preview
 │   │   │   │   │   │   │   ├── ai
-│   │   │   │   │   │   │   │   ├── manifest.json
 │   │   │   │   │   │   │   │   └── reports
-│   │   │   │   │   │   │   │       ├── chunk_qc_report.json
-│   │   │   │   │   │   │   │       ├── classification_report.json
-│   │   │   │   │   │   │   │       ├── derivation_report.json
-│   │   │   │   │   │   │   │       ├── relations_qc_report.json
-│   │   │   │   │   │   │   │       └── retrieval_qc_report.json
 │   │   │   │   │   │   │   ├── enriched
-│   │   │   │   │   │   │   │   └── manifest.json
 │   │   │   │   │   │   │   ├── microsoft_copilot
 │   │   │   │   │   │   │   │   ├── artifacts.csv
 │   │   │   │   │   │   │   │   ├── bundles
@@ -1117,160 +568,85 @@
 │   │   │   │   │   │   │   │   │   └── recent_sessions.txt
 │   │   │   │   │   │   │   │   ├── copilot_agent
 │   │   │   │   │   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   │   │   │   │   ├── entities.json
 │   │   │   │   │   │   │   │   │   └── relations.csv
 │   │   │   │   │   │   │   │   ├── coverage.csv
 │   │   │   │   │   │   │   │   ├── edges.csv
-│   │   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   │   ├── manifest.json
-│   │   │   │   │   │   │   │   ├── navigation_index.json
 │   │   │   │   │   │   │   │   ├── nodes.csv
 │   │   │   │   │   │   │   │   ├── overview.txt
 │   │   │   │   │   │   │   │   ├── reading_guide.txt
-│   │   │   │   │   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   │   │   │   │   ├── spec
-│   │   │   │   │   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │   │   │   │   └── summaries
-│   │   │   │   │   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │   │   │   │       ├── prcommits.json
-│   │   │   │   │   │   │   │   │       ├── prcommits.md
-│   │   │   │   │   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │   │   │   │       ├── sesiones.json
-│   │   │   │   │   │   │   │   │       ├── sesiones.md
-│   │   │   │   │   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │   │   │   └── topics.json
+│   │   │   │   │   │   │   │   └── spec
+│   │   │   │   │   │   │   │       ├── checklist_global_s61.md
+│   │   │   │   │   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │   │       └── summaries
+│   │   │   │   │   │   │   │           ├── contratos-instructions.md
+│   │   │   │   │   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │   │           ├── detalles-del-tema.md
+│   │   │   │   │   │   │   │           ├── elementos-especificos.md
+│   │   │   │   │   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │   │           ├── hipotesis.md
+│   │   │   │   │   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │   │   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │   │           ├── prcommits.md
+│   │   │   │   │   │   │   │           ├── principios-de-gestion.md
+│   │   │   │   │   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │   │           ├── sesiones.md
+│   │   │   │   │   │   │   │           └── tiddlers-sesiones.md
 │   │   │   │   │   │   │   └── semantic_text
-│   │   │   │   │   │   │       ├── s0172-rag-derivation-preview_semantic_text_coverage_report.json
 │   │   │   │   │   │   │       ├── s0172-rag-derivation-preview_semantic_text_coverage_summary.md
-│   │   │   │   │   │   │       ├── s0172-rag-derivation-preview_semantic_text_hashes.json
-│   │   │   │   │   │   │       ├── s0172-rag-derivation-preview_semantic_text_index.json
-│   │   │   │   │   │   │       ├── s0172-rag-derivation-preview_semantic_text_profiles.json
 │   │   │   │   │   │   │       └── s0172-rag-derivation-preview_semantic_text_review.csv
-│   │   │   │   │   │   ├── preview_manifest.json
-│   │   │   │   │   │   ├── preview_productive_equivalence_report.json
-│   │   │   │   │   │   ├── preview_summary.json
-│   │   │   │   │   │   ├── rag_derivation_plan.json
-│   │   │   │   │   │   ├── rag_derivation_plan.md
-│   │   │   │   │   │   └── rag_derivation_profile.json
+│   │   │   │   │   │   └── rag_derivation_plan.md
 │   │   │   │   │   ├── s0173
-│   │   │   │   │   │   ├── preview_staging_equivalence_report.json
 │   │   │   │   │   │   ├── preview_staging_equivalence_report.md
-│   │   │   │   │   │   ├── productive_equivalence_contract.json
-│   │   │   │   │   │   ├── productive_regeneration_receipt.json
-│   │   │   │   │   │   ├── rag_derivation_plan.json
 │   │   │   │   │   │   ├── rag_derivation_plan.md
-│   │   │   │   │   │   ├── rag_derivation_profile.json
 │   │   │   │   │   │   ├── rollback_snapshot
 │   │   │   │   │   │   │   ├── ai
-│   │   │   │   │   │   │   │   ├── manifest.json
 │   │   │   │   │   │   │   │   └── reports
-│   │   │   │   │   │   │   │       ├── chunk_qc_report.json
-│   │   │   │   │   │   │   │       ├── classification_report.json
-│   │   │   │   │   │   │   │       ├── derivation_report.json
-│   │   │   │   │   │   │   │       ├── relations_qc_report.json
-│   │   │   │   │   │   │   │       └── retrieval_qc_report.json
 │   │   │   │   │   │   │   ├── enriched
-│   │   │   │   │   │   │   │   └── manifest.json
-│   │   │   │   │   │   │   ├── microsoft_copilot
-│   │   │   │   │   │   │   │   ├── artifacts.csv
-│   │   │   │   │   │   │   │   ├── bundles
-│   │   │   │   │   │   │   │   │   ├── governance_core.txt
-│   │   │   │   │   │   │   │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │   │   │   │   │   └── recent_sessions.txt
-│   │   │   │   │   │   │   │   ├── copilot_agent
-│   │   │   │   │   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   │   │   └── relations.csv
-│   │   │   │   │   │   │   │   ├── coverage.csv
-│   │   │   │   │   │   │   │   ├── edges.csv
-│   │   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   │   ├── manifest.json
-│   │   │   │   │   │   │   │   ├── navigation_index.json
-│   │   │   │   │   │   │   │   ├── nodes.csv
-│   │   │   │   │   │   │   │   ├── overview.txt
-│   │   │   │   │   │   │   │   ├── reading_guide.txt
-│   │   │   │   │   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   │   │   │   │   ├── spec
-│   │   │   │   │   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │   │   │   │   └── summaries
-│   │   │   │   │   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │   │   │   │       ├── prcommits.json
-│   │   │   │   │   │   │   │   │       ├── prcommits.md
-│   │   │   │   │   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │   │   │   │       ├── sesiones.json
-│   │   │   │   │   │   │   │   │       ├── sesiones.md
-│   │   │   │   │   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │   │   │   └── topics.json
-│   │   │   │   │   │   │   └── rollback_manifest.json
+│   │   │   │   │   │   │   └── microsoft_copilot
+│   │   │   │   │   │   │       ├── artifacts.csv
+│   │   │   │   │   │   │       ├── bundles
+│   │   │   │   │   │   │       │   ├── governance_core.txt
+│   │   │   │   │   │   │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │   │   │       │   └── recent_sessions.txt
+│   │   │   │   │   │   │       ├── copilot_agent
+│   │   │   │   │   │   │       │   ├── corpus.txt
+│   │   │   │   │   │   │       │   └── relations.csv
+│   │   │   │   │   │   │       ├── coverage.csv
+│   │   │   │   │   │   │       ├── edges.csv
+│   │   │   │   │   │   │       ├── nodes.csv
+│   │   │   │   │   │   │       ├── overview.txt
+│   │   │   │   │   │   │       ├── reading_guide.txt
+│   │   │   │   │   │   │       └── spec
+│   │   │   │   │   │   │           ├── checklist_global_s61.md
+│   │   │   │   │   │   │           ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │           └── summaries
+│   │   │   │   │   │   │               ├── contratos-instructions.md
+│   │   │   │   │   │   │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │               ├── detalles-del-tema.md
+│   │   │   │   │   │   │               ├── elementos-especificos.md
+│   │   │   │   │   │   │               ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │               ├── hipotesis.md
+│   │   │   │   │   │   │               ├── microsoft-support-formats.md
+│   │   │   │   │   │   │               ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │               ├── prcommits.md
+│   │   │   │   │   │   │               ├── principios-de-gestion.md
+│   │   │   │   │   │   │               ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │               ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │               ├── sesiones.md
+│   │   │   │   │   │   │               └── tiddlers-sesiones.md
 │   │   │   │   │   │   ├── staging
 │   │   │   │   │   │   │   ├── ai
-│   │   │   │   │   │   │   │   ├── manifest.json
 │   │   │   │   │   │   │   │   └── reports
-│   │   │   │   │   │   │   │       ├── chunk_qc_report.json
-│   │   │   │   │   │   │   │       ├── classification_report.json
-│   │   │   │   │   │   │   │       ├── derivation_report.json
-│   │   │   │   │   │   │   │       ├── relations_qc_report.json
-│   │   │   │   │   │   │   │       └── retrieval_qc_report.json
 │   │   │   │   │   │   │   ├── enriched
-│   │   │   │   │   │   │   │   └── manifest.json
 │   │   │   │   │   │   │   ├── microsoft_copilot
 │   │   │   │   │   │   │   │   ├── artifacts.csv
 │   │   │   │   │   │   │   │   ├── bundles
@@ -1279,228 +655,124 @@
 │   │   │   │   │   │   │   │   │   └── recent_sessions.txt
 │   │   │   │   │   │   │   │   ├── copilot_agent
 │   │   │   │   │   │   │   │   │   ├── corpus.txt
-│   │   │   │   │   │   │   │   │   ├── entities.json
 │   │   │   │   │   │   │   │   │   └── relations.csv
 │   │   │   │   │   │   │   │   ├── coverage.csv
 │   │   │   │   │   │   │   │   ├── edges.csv
-│   │   │   │   │   │   │   │   ├── entities.json
-│   │   │   │   │   │   │   │   ├── manifest.json
-│   │   │   │   │   │   │   │   ├── navigation_index.json
 │   │   │   │   │   │   │   │   ├── nodes.csv
 │   │   │   │   │   │   │   │   ├── overview.txt
 │   │   │   │   │   │   │   │   ├── reading_guide.txt
-│   │   │   │   │   │   │   │   ├── source_arbitration_report.json
-│   │   │   │   │   │   │   │   ├── spec
-│   │   │   │   │   │   │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │   │   │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │   │   │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │   │   │   │   │   └── summaries
-│   │   │   │   │   │   │   │   │       ├── contratos-instructions.json
-│   │   │   │   │   │   │   │   │       ├── contratos-instructions.md
-│   │   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │   │   │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │   │   │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │   │   │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │   │   │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │   │   │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │   │   │   │   │       ├── elementos-especificos.json
-│   │   │   │   │   │   │   │   │       ├── elementos-especificos.md
-│   │   │   │   │   │   │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │   │   │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │   │   │   │   │       ├── hipotesis.json
-│   │   │   │   │   │   │   │   │       ├── hipotesis.md
-│   │   │   │   │   │   │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │   │   │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │   │   │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │   │   │   │   │       ├── prcommits.json
-│   │   │   │   │   │   │   │   │       ├── prcommits.md
-│   │   │   │   │   │   │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │   │   │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │   │   │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │   │   │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │   │   │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │   │   │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │   │   │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │   │   │   │   │       ├── sesiones.json
-│   │   │   │   │   │   │   │   │       ├── sesiones.md
-│   │   │   │   │   │   │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │   │   │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │   │   │   │   └── topics.json
+│   │   │   │   │   │   │   │   └── spec
+│   │   │   │   │   │   │   │       ├── checklist_global_s61.md
+│   │   │   │   │   │   │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │   │   │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │   │   │   │       └── summaries
+│   │   │   │   │   │   │   │           ├── contratos-instructions.md
+│   │   │   │   │   │   │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │   │   │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │   │   │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │   │   │   │           ├── detalles-del-tema.md
+│   │   │   │   │   │   │   │           ├── elementos-especificos.md
+│   │   │   │   │   │   │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │   │   │   │           ├── hipotesis.md
+│   │   │   │   │   │   │   │           ├── microsoft-support-formats.md
+│   │   │   │   │   │   │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │   │   │   │           ├── prcommits.md
+│   │   │   │   │   │   │   │           ├── principios-de-gestion.md
+│   │   │   │   │   │   │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │   │   │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │   │   │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │   │   │   │           ├── sesiones.md
+│   │   │   │   │   │   │   │           └── tiddlers-sesiones.md
 │   │   │   │   │   │   │   └── semantic_text
-│   │   │   │   │   │   │       ├── s0173-rag-derivation-staging_semantic_text_coverage_report.json
 │   │   │   │   │   │   │       ├── s0173-rag-derivation-staging_semantic_text_coverage_summary.md
-│   │   │   │   │   │   │       ├── s0173-rag-derivation-staging_semantic_text_hashes.json
-│   │   │   │   │   │   │       ├── s0173-rag-derivation-staging_semantic_text_index.json
-│   │   │   │   │   │   │       ├── s0173-rag-derivation-staging_semantic_text_profiles.json
 │   │   │   │   │   │   │       └── s0173-rag-derivation-staging_semantic_text_review.csv
-│   │   │   │   │   │   ├── staging_derived_plan.json
-│   │   │   │   │   │   ├── staging_derived_plan.md
-│   │   │   │   │   │   ├── staging_manifest.json
-│   │   │   │   │   │   └── staging_summary.json
+│   │   │   │   │   │   └── staging_derived_plan.md
 │   │   │   │   │   └── s0174
-│   │   │   │   │       ├── determinism_repeat_manifest.json
-│   │   │   │   │       ├── determinism_repeat_plan.json
 │   │   │   │   │       ├── determinism_repeat_plan.md
-│   │   │   │   │       ├── productive_regeneration_receipt.json
-│   │   │   │   │       ├── rag_derivation_profile.json
 │   │   │   │   │       ├── rollback_snapshot
 │   │   │   │   │       │   ├── ai
-│   │   │   │   │       │   │   ├── manifest.json
 │   │   │   │   │       │   │   └── reports
-│   │   │   │   │       │   │       ├── chunk_qc_report.json
-│   │   │   │   │       │   │       ├── classification_report.json
-│   │   │   │   │       │   │       ├── derivation_report.json
-│   │   │   │   │       │   │       ├── relations_qc_report.json
-│   │   │   │   │       │   │       └── retrieval_qc_report.json
 │   │   │   │   │       │   ├── enriched
-│   │   │   │   │       │   │   └── manifest.json
-│   │   │   │   │       │   ├── microsoft_copilot
-│   │   │   │   │       │   │   ├── artifacts.csv
-│   │   │   │   │       │   │   ├── bundles
-│   │   │   │   │       │   │   │   ├── governance_core.txt
-│   │   │   │   │       │   │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │       │   │   │   └── recent_sessions.txt
-│   │   │   │   │       │   │   ├── copilot_agent
-│   │   │   │   │       │   │   │   ├── corpus.txt
-│   │   │   │   │       │   │   │   ├── entities.json
-│   │   │   │   │       │   │   │   └── relations.csv
-│   │   │   │   │       │   │   ├── coverage.csv
-│   │   │   │   │       │   │   ├── edges.csv
-│   │   │   │   │       │   │   ├── entities.json
-│   │   │   │   │       │   │   ├── manifest.json
-│   │   │   │   │       │   │   ├── navigation_index.json
-│   │   │   │   │       │   │   ├── nodes.csv
-│   │   │   │   │       │   │   ├── overview.txt
-│   │   │   │   │       │   │   ├── reading_guide.txt
-│   │   │   │   │       │   │   ├── source_arbitration_report.json
-│   │   │   │   │       │   │   ├── spec
-│   │   │   │   │       │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │       │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │       │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │       │   │   │   └── summaries
-│   │   │   │   │       │   │   │       ├── contratos-instructions.json
-│   │   │   │   │       │   │   │       ├── contratos-instructions.md
-│   │   │   │   │       │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │       │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │       │   │   │       ├── elementos-especificos.json
-│   │   │   │   │       │   │   │       ├── elementos-especificos.md
-│   │   │   │   │       │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       │   │   │       ├── hipotesis.json
-│   │   │   │   │       │   │   │       ├── hipotesis.md
-│   │   │   │   │       │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       │   │   │       ├── prcommits.json
-│   │   │   │   │       │   │   │       ├── prcommits.md
-│   │   │   │   │       │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │       │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │       │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       │   │   │       ├── sesiones.json
-│   │   │   │   │       │   │   │       ├── sesiones.md
-│   │   │   │   │       │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │       │   │   └── topics.json
-│   │   │   │   │       │   └── rollback_manifest.json
+│   │   │   │   │       │   └── microsoft_copilot
+│   │   │   │   │       │       ├── artifacts.csv
+│   │   │   │   │       │       ├── bundles
+│   │   │   │   │       │       │   ├── governance_core.txt
+│   │   │   │   │       │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │       │       │   └── recent_sessions.txt
+│   │   │   │   │       │       ├── copilot_agent
+│   │   │   │   │       │       │   ├── corpus.txt
+│   │   │   │   │       │       │   └── relations.csv
+│   │   │   │   │       │       ├── coverage.csv
+│   │   │   │   │       │       ├── edges.csv
+│   │   │   │   │       │       ├── nodes.csv
+│   │   │   │   │       │       ├── overview.txt
+│   │   │   │   │       │       ├── reading_guide.txt
+│   │   │   │   │       │       └── spec
+│   │   │   │   │       │           ├── checklist_global_s61.md
+│   │   │   │   │       │           ├── memoria_decisiones_s61.md
+│   │   │   │   │       │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │       │           └── summaries
+│   │   │   │   │       │               ├── contratos-instructions.md
+│   │   │   │   │       │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │       │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │       │               ├── detalles-del-tema.md
+│   │   │   │   │       │               ├── elementos-especificos.md
+│   │   │   │   │       │               ├── glosario-y-convenciones.md
+│   │   │   │   │       │               ├── hipotesis.md
+│   │   │   │   │       │               ├── microsoft-support-formats.md
+│   │   │   │   │       │               ├── politica-de-memoria-activa.md
+│   │   │   │   │       │               ├── prcommits.md
+│   │   │   │   │       │               ├── principios-de-gestion.md
+│   │   │   │   │       │               ├── procedencia-epistemologica.md
+│   │   │   │   │       │               ├── protocolo-de-sesion.md
+│   │   │   │   │       │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │       │               ├── sesiones.md
+│   │   │   │   │       │               └── tiddlers-sesiones.md
 │   │   │   │   │       ├── rollback_snapshot_prewrite
 │   │   │   │   │       │   ├── ai
-│   │   │   │   │       │   │   ├── manifest.json
 │   │   │   │   │       │   │   └── reports
-│   │   │   │   │       │   │       ├── chunk_qc_report.json
-│   │   │   │   │       │   │       ├── classification_report.json
-│   │   │   │   │       │   │       ├── derivation_report.json
-│   │   │   │   │       │   │       ├── relations_qc_report.json
-│   │   │   │   │       │   │       └── retrieval_qc_report.json
 │   │   │   │   │       │   ├── enriched
-│   │   │   │   │       │   │   └── manifest.json
-│   │   │   │   │       │   ├── microsoft_copilot
-│   │   │   │   │       │   │   ├── artifacts.csv
-│   │   │   │   │       │   │   ├── bundles
-│   │   │   │   │       │   │   │   ├── governance_core.txt
-│   │   │   │   │       │   │   │   ├── pipeline_and_layers.txt
-│   │   │   │   │       │   │   │   └── recent_sessions.txt
-│   │   │   │   │       │   │   ├── copilot_agent
-│   │   │   │   │       │   │   │   ├── corpus.txt
-│   │   │   │   │       │   │   │   ├── entities.json
-│   │   │   │   │       │   │   │   └── relations.csv
-│   │   │   │   │       │   │   ├── coverage.csv
-│   │   │   │   │       │   │   ├── edges.csv
-│   │   │   │   │       │   │   ├── entities.json
-│   │   │   │   │       │   │   ├── manifest.json
-│   │   │   │   │       │   │   ├── navigation_index.json
-│   │   │   │   │       │   │   ├── nodes.csv
-│   │   │   │   │       │   │   ├── overview.txt
-│   │   │   │   │       │   │   ├── reading_guide.txt
-│   │   │   │   │       │   │   ├── source_arbitration_report.json
-│   │   │   │   │       │   │   ├── spec
-│   │   │   │   │       │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │       │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │       │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │       │   │   │   └── summaries
-│   │   │   │   │       │   │   │       ├── contratos-instructions.json
-│   │   │   │   │       │   │   │       ├── contratos-instructions.md
-│   │   │   │   │       │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │       │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │       │   │   │       ├── elementos-especificos.json
-│   │   │   │   │       │   │   │       ├── elementos-especificos.md
-│   │   │   │   │       │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       │   │   │       ├── hipotesis.json
-│   │   │   │   │       │   │   │       ├── hipotesis.md
-│   │   │   │   │       │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       │   │   │       ├── prcommits.json
-│   │   │   │   │       │   │   │       ├── prcommits.md
-│   │   │   │   │       │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │       │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │       │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       │   │   │       ├── sesiones.json
-│   │   │   │   │       │   │   │       ├── sesiones.md
-│   │   │   │   │       │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │       │   │   └── topics.json
-│   │   │   │   │       │   └── rollback_manifest.json
-│   │   │   │   │       ├── s0174_integration_plan.json
+│   │   │   │   │       │   └── microsoft_copilot
+│   │   │   │   │       │       ├── artifacts.csv
+│   │   │   │   │       │       ├── bundles
+│   │   │   │   │       │       │   ├── governance_core.txt
+│   │   │   │   │       │       │   ├── pipeline_and_layers.txt
+│   │   │   │   │       │       │   └── recent_sessions.txt
+│   │   │   │   │       │       ├── copilot_agent
+│   │   │   │   │       │       │   ├── corpus.txt
+│   │   │   │   │       │       │   └── relations.csv
+│   │   │   │   │       │       ├── coverage.csv
+│   │   │   │   │       │       ├── edges.csv
+│   │   │   │   │       │       ├── nodes.csv
+│   │   │   │   │       │       ├── overview.txt
+│   │   │   │   │       │       ├── reading_guide.txt
+│   │   │   │   │       │       └── spec
+│   │   │   │   │       │           ├── checklist_global_s61.md
+│   │   │   │   │       │           ├── memoria_decisiones_s61.md
+│   │   │   │   │       │           ├── plan_de_implementacion_s61.md
+│   │   │   │   │       │           └── summaries
+│   │   │   │   │       │               ├── contratos-instructions.md
+│   │   │   │   │       │               ├── contratos-s58-s59-s60.md
+│   │   │   │   │       │               ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       │               ├── desarrollo-y-evolucion.md
+│   │   │   │   │       │               ├── detalles-del-tema.md
+│   │   │   │   │       │               ├── elementos-especificos.md
+│   │   │   │   │       │               ├── glosario-y-convenciones.md
+│   │   │   │   │       │               ├── hipotesis.md
+│   │   │   │   │       │               ├── microsoft-support-formats.md
+│   │   │   │   │       │               ├── politica-de-memoria-activa.md
+│   │   │   │   │       │               ├── prcommits.md
+│   │   │   │   │       │               ├── principios-de-gestion.md
+│   │   │   │   │       │               ├── procedencia-epistemologica.md
+│   │   │   │   │       │               ├── protocolo-de-sesion.md
+│   │   │   │   │       │               ├── repo-y-derivados-actuales.md
+│   │   │   │   │       │               ├── sesiones.md
+│   │   │   │   │       │               └── tiddlers-sesiones.md
 │   │   │   │   │       ├── staging
 │   │   │   │   │       │   ├── ai
-│   │   │   │   │       │   │   ├── manifest.json
 │   │   │   │   │       │   │   └── reports
-│   │   │   │   │       │   │       ├── chunk_qc_report.json
-│   │   │   │   │       │   │       ├── classification_report.json
-│   │   │   │   │       │   │       ├── derivation_report.json
-│   │   │   │   │       │   │       ├── relations_qc_report.json
-│   │   │   │   │       │   │       └── retrieval_qc_report.json
 │   │   │   │   │       │   ├── enriched
-│   │   │   │   │       │   │   └── manifest.json
 │   │   │   │   │       │   ├── microsoft_copilot
 │   │   │   │   │       │   │   ├── artifacts.csv
 │   │   │   │   │       │   │   ├── bundles
@@ -1509,245 +781,122 @@
 │   │   │   │   │       │   │   │   └── recent_sessions.txt
 │   │   │   │   │       │   │   ├── copilot_agent
 │   │   │   │   │       │   │   │   ├── corpus.txt
-│   │   │   │   │       │   │   │   ├── entities.json
 │   │   │   │   │       │   │   │   └── relations.csv
 │   │   │   │   │       │   │   ├── coverage.csv
 │   │   │   │   │       │   │   ├── edges.csv
-│   │   │   │   │       │   │   ├── entities.json
-│   │   │   │   │       │   │   ├── manifest.json
-│   │   │   │   │       │   │   ├── navigation_index.json
 │   │   │   │   │       │   │   ├── nodes.csv
 │   │   │   │   │       │   │   ├── overview.txt
 │   │   │   │   │       │   │   ├── reading_guide.txt
-│   │   │   │   │       │   │   ├── source_arbitration_report.json
-│   │   │   │   │       │   │   ├── spec
-│   │   │   │   │       │   │   │   ├── checklist_global_s61.md
-│   │   │   │   │       │   │   │   ├── memoria_decisiones_s61.md
-│   │   │   │   │       │   │   │   ├── plan_de_implementacion_s61.md
-│   │   │   │   │       │   │   │   └── summaries
-│   │   │   │   │       │   │   │       ├── contratos-instructions.json
-│   │   │   │   │       │   │   │       ├── contratos-instructions.md
-│   │   │   │   │       │   │   │       ├── contratos-s58-s59-s60.json
-│   │   │   │   │       │   │   │       ├── contratos-s58-s59-s60.md
-│   │   │   │   │       │   │   │       ├── dependencia-y-superficie-externa.json
-│   │   │   │   │       │   │   │       ├── dependencia-y-superficie-externa.md
-│   │   │   │   │       │   │   │       ├── desarrollo-y-evolucion.json
-│   │   │   │   │       │   │   │       ├── desarrollo-y-evolucion.md
-│   │   │   │   │       │   │   │       ├── detalles-del-tema.json
-│   │   │   │   │       │   │   │       ├── detalles-del-tema.md
-│   │   │   │   │       │   │   │       ├── elementos-especificos.json
-│   │   │   │   │       │   │   │       ├── elementos-especificos.md
-│   │   │   │   │       │   │   │       ├── glosario-y-convenciones.json
-│   │   │   │   │       │   │   │       ├── glosario-y-convenciones.md
-│   │   │   │   │       │   │   │       ├── hipotesis.json
-│   │   │   │   │       │   │   │       ├── hipotesis.md
-│   │   │   │   │       │   │   │       ├── microsoft-support-formats.json
-│   │   │   │   │       │   │   │       ├── microsoft-support-formats.md
-│   │   │   │   │       │   │   │       ├── politica-de-memoria-activa.json
-│   │   │   │   │       │   │   │       ├── politica-de-memoria-activa.md
-│   │   │   │   │       │   │   │       ├── prcommits.json
-│   │   │   │   │       │   │   │       ├── prcommits.md
-│   │   │   │   │       │   │   │       ├── principios-de-gestion.json
-│   │   │   │   │       │   │   │       ├── principios-de-gestion.md
-│   │   │   │   │       │   │   │       ├── procedencia-epistemologica.json
-│   │   │   │   │       │   │   │       ├── procedencia-epistemologica.md
-│   │   │   │   │       │   │   │       ├── protocolo-de-sesion.json
-│   │   │   │   │       │   │   │       ├── protocolo-de-sesion.md
-│   │   │   │   │       │   │   │       ├── repo-y-derivados-actuales.json
-│   │   │   │   │       │   │   │       ├── repo-y-derivados-actuales.md
-│   │   │   │   │       │   │   │       ├── sesiones.json
-│   │   │   │   │       │   │   │       ├── sesiones.md
-│   │   │   │   │       │   │   │       ├── tiddlers-sesiones.json
-│   │   │   │   │       │   │   │       └── tiddlers-sesiones.md
-│   │   │   │   │       │   │   └── topics.json
+│   │   │   │   │       │   │   └── spec
+│   │   │   │   │       │   │       ├── checklist_global_s61.md
+│   │   │   │   │       │   │       ├── memoria_decisiones_s61.md
+│   │   │   │   │       │   │       ├── plan_de_implementacion_s61.md
+│   │   │   │   │       │   │       └── summaries
+│   │   │   │   │       │   │           ├── contratos-instructions.md
+│   │   │   │   │       │   │           ├── contratos-s58-s59-s60.md
+│   │   │   │   │       │   │           ├── dependencia-y-superficie-externa.md
+│   │   │   │   │       │   │           ├── desarrollo-y-evolucion.md
+│   │   │   │   │       │   │           ├── detalles-del-tema.md
+│   │   │   │   │       │   │           ├── elementos-especificos.md
+│   │   │   │   │       │   │           ├── glosario-y-convenciones.md
+│   │   │   │   │       │   │           ├── hipotesis.md
+│   │   │   │   │       │   │           ├── microsoft-support-formats.md
+│   │   │   │   │       │   │           ├── politica-de-memoria-activa.md
+│   │   │   │   │       │   │           ├── prcommits.md
+│   │   │   │   │       │   │           ├── principios-de-gestion.md
+│   │   │   │   │       │   │           ├── procedencia-epistemologica.md
+│   │   │   │   │       │   │           ├── protocolo-de-sesion.md
+│   │   │   │   │       │   │           ├── repo-y-derivados-actuales.md
+│   │   │   │   │       │   │           ├── sesiones.md
+│   │   │   │   │       │   │           └── tiddlers-sesiones.md
 │   │   │   │   │       │   └── semantic_text
-│   │   │   │   │       │       ├── s0174-rag-derivation-staging_semantic_text_coverage_report.json
 │   │   │   │   │       │       ├── s0174-rag-derivation-staging_semantic_text_coverage_summary.md
-│   │   │   │   │       │       ├── s0174-rag-derivation-staging_semantic_text_hashes.json
-│   │   │   │   │       │       ├── s0174-rag-derivation-staging_semantic_text_index.json
-│   │   │   │   │       │       ├── s0174-rag-derivation-staging_semantic_text_profiles.json
 │   │   │   │   │       │       └── s0174-rag-derivation-staging_semantic_text_review.csv
-│   │   │   │   │       ├── staging_derived_plan.json
-│   │   │   │   │       ├── staging_derived_plan.md
-│   │   │   │   │       ├── staging_manifest.json
-│   │   │   │   │       └── staging_summary.json
+│   │   │   │   │       └── staging_derived_plan.md
 │   │   │   │   ├── rag_filters
 │   │   │   │   │   └── s0171
-│   │   │   │   │       ├── blocked_tag_samples.json
-│   │   │   │   │       ├── preview
-│   │   │   │   │       │   ├── s0171-rag-filter-preview_semantic_text_coverage_report.json
-│   │   │   │   │       │   ├── s0171-rag-filter-preview_semantic_text_coverage_summary.md
-│   │   │   │   │       │   ├── s0171-rag-filter-preview_semantic_text_hashes.json
-│   │   │   │   │       │   ├── s0171-rag-filter-preview_semantic_text_index.json
-│   │   │   │   │       │   ├── s0171-rag-filter-preview_semantic_text_profiles.json
-│   │   │   │   │       │   └── s0171-rag-filter-preview_semantic_text_review.csv
-│   │   │   │   │       ├── rag_filter_policy_report.json
-│   │   │   │   │       ├── rag_filter_preview_summary.json
-│   │   │   │   │       ├── rag_safe_preview_manifest.json
-│   │   │   │   │       ├── semantic_text_builder_policy_report.json
-│   │   │   │   │       └── unknown_tag_review_queue.json
+│   │   │   │   │       └── preview
+│   │   │   │   │           ├── s0171-rag-filter-preview_semantic_text_coverage_summary.md
+│   │   │   │   │           └── s0171-rag-filter-preview_semantic_text_review.csv
 │   │   │   │   ├── rag_sanitation
 │   │   │   │   │   └── s0170
-│   │   │   │   │       ├── blocked_tag_samples.json
-│   │   │   │   │       ├── preview
-│   │   │   │   │       │   ├── s0170-rag-safe-preview_semantic_text_coverage_report.json
-│   │   │   │   │       │   ├── s0170-rag-safe-preview_semantic_text_coverage_summary.md
-│   │   │   │   │       │   ├── s0170-rag-safe-preview_semantic_text_hashes.json
-│   │   │   │   │       │   ├── s0170-rag-safe-preview_semantic_text_index.json
-│   │   │   │   │       │   ├── s0170-rag-safe-preview_semantic_text_profiles.json
-│   │   │   │   │       │   └── s0170-rag-safe-preview_semantic_text_review.csv
-│   │   │   │   │       ├── rag_safe_preview_manifest.json
-│   │   │   │   │       ├── rag_sanitation_after.json
-│   │   │   │   │       ├── rag_sanitation_before.json
-│   │   │   │   │       ├── rag_sanitation_delta.json
-│   │   │   │   │       ├── semantic_text_builder_policy_report.json
-│   │   │   │   │       └── unknown_tag_review_queue.json
+│   │   │   │   │       └── preview
+│   │   │   │   │           ├── s0170-rag-safe-preview_semantic_text_coverage_summary.md
+│   │   │   │   │           └── s0170-rag-safe-preview_semantic_text_review.csv
 │   │   │   │   ├── relation_admissibility
 │   │   │   │   │   └── s0132
-│   │   │   │   │       ├── s0132_relation_admissibility_report.json
 │   │   │   │   │       ├── s0132_relation_admissibility_review.csv
 │   │   │   │   │       └── s0132_relation_admissibility_summary.md
 │   │   │   │   ├── relation_admission
 │   │   │   │   │   ├── s0131
-│   │   │   │   │   │   ├── s0131_relation_admission_design.json
 │   │   │   │   │   │   ├── s0131_relation_admission_policy.md
 │   │   │   │   │   │   ├── s0131_relation_admission_review.md
-│   │   │   │   │   │   ├── s0131_relation_evidence_matrix.csv
-│   │   │   │   │   │   └── s0131_relation_state_machine.json
+│   │   │   │   │   │   └── s0131_relation_evidence_matrix.csv
 │   │   │   │   │   ├── s0137
-│   │   │   │   │   │   └── s0137_relation_admission_dry_run_report.json
 │   │   │   │   │   ├── s0140
-│   │   │   │   │   │   ├── admission_blocked.json
 │   │   │   │   │   │   ├── admission_gate_review.csv
-│   │   │   │   │   │   ├── admission_gate_summary.md
-│   │   │   │   │   │   ├── admission_patch_preview.json
-│   │   │   │   │   │   ├── admission_ready_dry_run.json
-│   │   │   │   │   │   └── s0140_relation_admission_dry_run_report.json
+│   │   │   │   │   │   └── admission_gate_summary.md
 │   │   │   │   │   ├── s0141
-│   │   │   │   │   │   ├── admission_blocked.json
 │   │   │   │   │   │   ├── admission_gate_review.csv
-│   │   │   │   │   │   ├── admission_gate_summary.md
-│   │   │   │   │   │   ├── admission_patch_preview.json
-│   │   │   │   │   │   ├── admission_ready_dry_run.json
-│   │   │   │   │   │   └── s0141_relation_admission_dry_run_report.json
+│   │   │   │   │   │   └── admission_gate_summary.md
 │   │   │   │   │   ├── s0142
-│   │   │   │   │   │   ├── admission_blocked.json
 │   │   │   │   │   │   ├── admission_gate_review.csv
-│   │   │   │   │   │   ├── admission_gate_summary.md
-│   │   │   │   │   │   ├── admission_patch_preview.json
-│   │   │   │   │   │   ├── admission_ready_dry_run.json
-│   │   │   │   │   │   └── s0142_relation_admission_dry_run_report.json
+│   │   │   │   │   │   └── admission_gate_summary.md
 │   │   │   │   │   ├── s0143
-│   │   │   │   │   │   ├── admission_blocked.json
 │   │   │   │   │   │   ├── admission_gate_review.csv
-│   │   │   │   │   │   ├── admission_gate_summary.md
-│   │   │   │   │   │   ├── admission_patch_preview.json
-│   │   │   │   │   │   ├── admission_ready_dry_run.json
-│   │   │   │   │   │   └── s0143_relation_admission_dry_run_report.json
+│   │   │   │   │   │   └── admission_gate_summary.md
 │   │   │   │   │   └── s0160
 │   │   │   │   │       ├── applied
 │   │   │   │   │       ├── inputs
-│   │   │   │   │       │   ├── s0157-blocked.json
-│   │   │   │   │       │   ├── s0157-ready-for-review.json
-│   │   │   │   │       │   ├── s0157-report.json
 │   │   │   │   │       │   ├── s0157-review.csv
 │   │   │   │   │       │   └── s0157-summary.md
 │   │   │   │   │       ├── previews
-│   │   │   │   │       │   └── relation-admission.patch-preview.json
 │   │   │   │   │       ├── rejected
-│   │   │   │   │       │   ├── blocked-candidates.json
-│   │   │   │   │       │   └── needs-manual-review.json
 │   │   │   │   │       ├── reports
-│   │   │   │   │       │   ├── no-admission-report.json
-│   │   │   │   │       │   ├── regeneration_check
-│   │   │   │   │       │   │   ├── relation_candidates_blocked.json
-│   │   │   │   │       │   │   ├── relation_candidates_ready_for_review.json
-│   │   │   │   │       │   │   ├── relation_candidates_report.json
-│   │   │   │   │       │   │   ├── relation_candidates_review.csv
-│   │   │   │   │       │   │   └── relation_candidates_summary.md
-│   │   │   │   │       │   ├── s0160_relation_admission_dry_run_report.json
-│   │   │   │   │       │   └── tmp-usage-manifest.json
+│   │   │   │   │       │   └── regeneration_check
+│   │   │   │   │       │       ├── relation_candidates_review.csv
+│   │   │   │   │       │       └── relation_candidates_summary.md
 │   │   │   │   │       └── review
-│   │   │   │   │           ├── human-review-summary.json
-│   │   │   │   │           ├── relation-review-matrix.csv
-│   │   │   │   │           └── relation-review-matrix.json
+│   │   │   │   │           └── relation-review-matrix.csv
 │   │   │   │   ├── relation_candidates
 │   │   │   │   │   ├── current
-│   │   │   │   │   │   ├── current_candidate_manifest.json
 │   │   │   │   │   │   ├── human_review.md
-│   │   │   │   │   │   ├── reconciliation_manifest.json
-│   │   │   │   │   │   ├── relation_candidates_blocked.json
-│   │   │   │   │   │   ├── relation_candidates_ready_for_review.json
-│   │   │   │   │   │   ├── relation_candidates_report.json
 │   │   │   │   │   │   ├── relation_candidates_review.csv
-│   │   │   │   │   │   ├── relation_candidates_summary.md
-│   │   │   │   │   │   ├── reviewable_candidate_manifest.json
-│   │   │   │   │   │   └── validation_report.json
+│   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── s0157
-│   │   │   │   │   │   ├── relation_candidates_blocked.json
-│   │   │   │   │   │   ├── relation_candidates_ready_for_review.json
-│   │   │   │   │   │   ├── relation_candidates_report.json
 │   │   │   │   │   │   ├── relation_candidates_review.csv
 │   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── s0161
 │   │   │   │   │   │   ├── admission_gate_validation
-│   │   │   │   │   │   │   └── s0161_relation_admission_dry_run_report.json
-│   │   │   │   │   │   ├── candidates_summary.json
-│   │   │   │   │   │   ├── comparison_with_s0157.json
-│   │   │   │   │   │   ├── generation_manifest.json
-│   │   │   │   │   │   ├── relation_candidates_blocked.json
-│   │   │   │   │   │   ├── relation_candidates_ready_for_review.json
-│   │   │   │   │   │   ├── relation_candidates_report.json
 │   │   │   │   │   │   ├── relation_candidates_review.csv
-│   │   │   │   │   │   ├── relation_candidates_summary.md
-│   │   │   │   │   │   └── validation_report.json
+│   │   │   │   │   │   └── relation_candidates_summary.md
 │   │   │   │   │   ├── s0162
-│   │   │   │   │   │   ├── candidates_summary.json
-│   │   │   │   │   │   └── generation_manifest.json
 │   │   │   │   │   ├── s0164
-│   │   │   │   │   │   ├── admission_gate_dry_run.json
-│   │   │   │   │   │   ├── human_review.md
-│   │   │   │   │   │   └── validation_report.json
+│   │   │   │   │   │   └── human_review.md
 │   │   │   │   │   ├── s0165
-│   │   │   │   │   │   ├── human_review.md
-│   │   │   │   │   │   └── validation_report.json
+│   │   │   │   │   │   └── human_review.md
 │   │   │   │   │   └── s0167
-│   │   │   │   │       ├── generation_manifest.json
 │   │   │   │   │       ├── human_review.md
 │   │   │   │   │       ├── relation_candidates.reconciliation_matrix.csv
-│   │   │   │   │       ├── relation_candidates_blocked.json
-│   │   │   │   │       ├── relation_candidates_ready_for_review.json
-│   │   │   │   │       ├── relation_candidates_report.json
 │   │   │   │   │       ├── relation_candidates_review.csv
 │   │   │   │   │       ├── relation_candidates_summary.md
-│   │   │   │   │       ├── repair_report.json
-│   │   │   │   │       ├── validation_buckets
-│   │   │   │   │       └── validation_report.json
+│   │   │   │   │       └── validation_buckets
 │   │   │   │   ├── relation_correspondence
 │   │   │   │   │   └── s0130
-│   │   │   │   │       ├── s0130_relation_correspondence_matrix.json
 │   │   │   │   │       ├── s0130_relation_correspondence_review.csv
 │   │   │   │   │       └── s0130_relation_correspondence_summary.md
 │   │   │   │   ├── relation_inventory
 │   │   │   │   │   ├── s0136
-│   │   │   │   │   │   ├── s0136_relation_inventory_audit.json
 │   │   │   │   │   │   ├── s0136_relation_inventory_review.csv
 │   │   │   │   │   │   └── s0136_relation_inventory_summary.md
 │   │   │   │   │   ├── s0166
 │   │   │   │   │   │   ├── current_human_review.md
 │   │   │   │   │   │   ├── current_validation_buckets
-│   │   │   │   │   │   ├── current_validation_report.json
-│   │   │   │   │   │   ├── s0166_admission_gate_dry_run.json
-│   │   │   │   │   │   ├── s0166_candidate_genealogy_summary.json
 │   │   │   │   │   │   ├── s0166_candidate_reconciliation.csv
-│   │   │   │   │   │   ├── s0166_relation_inventory_audit.json
-│   │   │   │   │   │   ├── s0166_relation_inventory_extension.json
 │   │   │   │   │   │   ├── s0166_relation_inventory_review.csv
 │   │   │   │   │   │   ├── s0166_relation_inventory_summary.md
-│   │   │   │   │   │   ├── s0166_relation_reconciliation_summary.json
 │   │   │   │   │   │   └── s0166_relation_reconciliation_summary.md
 │   │   │   │   │   └── s0167
-│   │   │   │   │       ├── s0167_relation_inventory_audit.json
 │   │   │   │   │       ├── s0167_relation_inventory_review.csv
 │   │   │   │   │       └── s0167_relation_inventory_summary.md
 │   │   │   │   ├── relation_menu
@@ -1758,608 +907,128 @@
 │   │   │   │   ├── relation_resolution
 │   │   │   │   │   ├── s0162
 │   │   │   │   │   │   ├── admission_gate_validation
-│   │   │   │   │   │   │   └── s0162_relation_admission_dry_run_report.json
 │   │   │   │   │   │   ├── admission_gate_validation_projection
-│   │   │   │   │   │   │   └── s0162_relation_admission_dry_run_report.json
 │   │   │   │   │   │   ├── admission_gate_validation_projection_clean
-│   │   │   │   │   │   │   └── s0162_relation_admission_dry_run_report.json
-│   │   │   │   │   │   ├── admission_gate_validation_projection_final
-│   │   │   │   │   │   │   └── s0162_relation_admission_dry_run_report.json
-│   │   │   │   │   │   ├── canonical_resolution_index.json
-│   │   │   │   │   │   ├── operator_review_manifest.json
-│   │   │   │   │   │   ├── post_src_mapping_manifest.json
-│   │   │   │   │   │   ├── resolution_summary.json
-│   │   │   │   │   │   └── validation_report.json
+│   │   │   │   │   │   └── admission_gate_validation_projection_final
 │   │   │   │   │   └── s0167
-│   │   │   │   │       ├── generation_manifest.json
-│   │   │   │   │       └── repair_report.json
 │   │   │   │   ├── relation_review
 │   │   │   │   │   ├── s0140
-│   │   │   │   │   │   ├── human_review_decisions.json
-│   │   │   │   │   │   ├── human_review_decisions.schema.json
 │   │   │   │   │   │   └── human_review_summary.md
 │   │   │   │   │   ├── s0141
-│   │   │   │   │   │   ├── human_review_decisions.json
-│   │   │   │   │   │   ├── human_review_decisions.schema.json
 │   │   │   │   │   │   └── human_review_summary.md
 │   │   │   │   │   └── s0142
-│   │   │   │   │       ├── human_review_batch_decisions.json
-│   │   │   │   │       ├── human_review_batch_summary.json
 │   │   │   │   │       └── human_review_batch_summary.md
 │   │   │   │   ├── relation_type_compatibility
 │   │   │   │   │   └── s0137
-│   │   │   │   │       ├── s0137_relation_type_compatibility_report.json
 │   │   │   │   │       ├── s0137_relation_type_compatibility_review.csv
 │   │   │   │   │       └── s0137_relation_type_compatibility_summary.md
 │   │   │   │   ├── relation_type_governance
 │   │   │   │   │   └── s0139
 │   │   │   │   │       ├── s0139_alias_map_proposal.csv
-│   │   │   │   │       ├── s0139_historical_relation_type_decisions.json
-│   │   │   │   │       ├── s0139_historical_relation_type_inventory.json
 │   │   │   │   │       ├── s0139_historical_relation_type_policy.md
-│   │   │   │   │       ├── s0139_relation_type_migration_preview.json
 │   │   │   │   │       └── s0139_relation_type_review.md
 │   │   │   │   ├── relations_admission
 │   │   │   │   │   └── s0135
-│   │   │   │   │       ├── s0135_relation_admission_patch_preview.json
-│   │   │   │   │       ├── s0135_relation_admission_plan.json
 │   │   │   │   │       ├── s0135_relation_admission_review.csv
 │   │   │   │   │       └── s0135_relation_admission_summary.md
 │   │   │   │   ├── relations_candidates
 │   │   │   │   │   ├── relations_candidates.human_review.md
-│   │   │   │   │   ├── relations_candidates.validation_report.json
 │   │   │   │   │   └── s0129
-│   │   │   │   │       ├── human_review.md
-│   │   │   │   │       └── validation_report.json
+│   │   │   │   │       └── human_review.md
 │   │   │   │   ├── repo_artifacts
 │   │   │   │   │   └── s0146
-│   │   │   │   │       ├── s0146_repo_artifact_grouped_summary.json
 │   │   │   │   │       ├── s0146_repo_artifact_grouped_summary.md
-│   │   │   │   │       ├── s0146_repo_artifact_mapping_preview.json
 │   │   │   │   │       ├── s0146_repo_artifact_metadata_contract.md
 │   │   │   │   │       ├── s0146_repo_artifact_review.csv
-│   │   │   │   │       ├── s0146_repo_artifact_rules.json
 │   │   │   │   │       ├── s0146_repo_artifact_samples.md
-│   │   │   │   │       ├── s0146_repo_lifecycle_report.json
-│   │   │   │   │       ├── s0146_repo_lifecycle_report.md
-│   │   │   │   │       ├── s0146_repo_path_mismatch_report.json
-│   │   │   │   │       └── s0146_technical_tiddler_inventory.json
+│   │   │   │   │       └── s0146_repo_lifecycle_report.md
 │   │   │   │   ├── repo_metadata_admission
-│   │   │   │   │   ├── latest_metadata_patch_manifest.json
 │   │   │   │   │   ├── s0149
-│   │   │   │   │   │   ├── s0149_metadata_admission_dry_run_report.json
 │   │   │   │   │   │   ├── s0149_metadata_admission_review.csv
 │   │   │   │   │   │   ├── s0149_metadata_admission_summary.md
-│   │   │   │   │   │   ├── s0149_metadata_apply_report.json
-│   │   │   │   │   │   ├── s0149_metadata_operator_flow_report.md
-│   │   │   │   │   │   └── s0149_selected_batches.json
+│   │   │   │   │   │   └── s0149_metadata_operator_flow_report.md
 │   │   │   │   │   ├── s0150
-│   │   │   │   │   │   ├── s0150_metadata_patch_hashes_refreshed.json
-│   │   │   │   │   │   ├── s0150_metadata_refresh_report.json
 │   │   │   │   │   │   ├── s0150_metadata_refresh_review.csv
-│   │   │   │   │   │   ├── s0150_metadata_refresh_summary.md
-│   │   │   │   │   │   └── s0150_metadata_review_batches_refreshed.json
+│   │   │   │   │   │   └── s0150_metadata_refresh_summary.md
 │   │   │   │   │   └── s0151
 │   │   │   │   │       ├── backups
 │   │   │   │   │       │   ├── canon_before_apply
-│   │   │   │   │       │   ├── rollback_manifest.json
 │   │   │   │   │       │   └── tiddlers_before_apply.sha256
-│   │   │   │   │       ├── s0151_metadata_admission_dry_run_report.json
 │   │   │   │   │       ├── s0151_metadata_admission_review.csv
 │   │   │   │   │       ├── s0151_metadata_admission_summary.md
-│   │   │   │   │       ├── s0151_metadata_apply_report.json
 │   │   │   │   │       ├── s0151_metadata_apply_summary.md
-│   │   │   │   │       ├── s0151_metadata_before_after_hashes.json
 │   │   │   │   │       ├── s0151_metadata_operator_ux_report.md
-│   │   │   │   │       ├── s0151_metadata_patch_hashes_refreshed.json
-│   │   │   │   │       ├── s0151_metadata_refresh_report.json
 │   │   │   │   │       ├── s0151_metadata_refresh_review.csv
-│   │   │   │   │       ├── s0151_metadata_refresh_summary.md
-│   │   │   │   │       ├── s0151_metadata_review_batches_refreshed.json
-│   │   │   │   │       └── s0151_selected_batches.json
+│   │   │   │   │       └── s0151_metadata_refresh_summary.md
 │   │   │   │   ├── repo_metadata_review
 │   │   │   │   │   ├── s0147
 │   │   │   │   │   │   ├── s0147_relation_opportunities_context.md
-│   │   │   │   │   │   ├── s0147_repo_metadata_dry_run_report.json
 │   │   │   │   │   │   ├── s0147_repo_metadata_menu_contract.md
 │   │   │   │   │   │   ├── s0147_repo_metadata_operator_instructions.md
-│   │   │   │   │   │   ├── s0147_repo_metadata_patch_hashes.json
-│   │   │   │   │   │   ├── s0147_repo_metadata_patch_summary.json
 │   │   │   │   │   │   ├── s0147_repo_metadata_patch_summary.md
 │   │   │   │   │   │   ├── s0147_repo_metadata_review.csv
-│   │   │   │   │   │   ├── s0147_repo_metadata_review_batches.json
-│   │   │   │   │   │   ├── s0147_repo_metadata_risk_report.json
-│   │   │   │   │   │   ├── s0147_repo_metadata_risk_report.md
-│   │   │   │   │   │   └── s0147_repo_metadata_validation_report.json
+│   │   │   │   │   │   └── s0147_repo_metadata_risk_report.md
 │   │   │   │   │   └── s0148
-│   │   │   │   │       ├── s0148_repo_metadata_batch_approvals.json
-│   │   │   │   │       ├── s0148_repo_metadata_gate_report.json
-│   │   │   │   │       ├── s0148_repo_metadata_hash_verification.json
-│   │   │   │   │       ├── s0148_repo_metadata_human_decisions.json
 │   │   │   │   │       ├── s0148_repo_metadata_next_apply_plan.md
-│   │   │   │   │       ├── s0148_repo_metadata_operator_summary.md
-│   │   │   │   │       ├── s0148_repo_metadata_rejected_or_deferred_batches.json
-│   │   │   │   │       └── s0148_repo_metadata_risk_verification.json
+│   │   │   │   │       └── s0148_repo_metadata_operator_summary.md
 │   │   │   │   ├── reversible_metadata
 │   │   │   │   │   ├── s0134
-│   │   │   │   │   │   ├── s0134_reversible_metadata_matrix.json
 │   │   │   │   │   │   ├── s0134_reversible_metadata_review.csv
 │   │   │   │   │   │   └── s0134_reversible_metadata_summary.md
 │   │   │   │   │   └── s0136
-│   │   │   │   │       ├── s0136_metadata_normalization_patch_preview.json
-│   │   │   │   │       ├── s0136_metadata_normalization_plan.json
 │   │   │   │   │       ├── s0136_metadata_normalization_review.csv
 │   │   │   │   │       └── s0136_metadata_normalization_summary.md
 │   │   │   │   ├── semantic_text
 │   │   │   │   │   └── s0144
-│   │   │   │   │       ├── s0144_semantic_text_coverage_report.json
 │   │   │   │   │       ├── s0144_semantic_text_coverage_summary.md
-│   │   │   │   │       ├── s0144_semantic_text_hashes.json
-│   │   │   │   │       ├── s0144_semantic_text_index.json
-│   │   │   │   │       ├── s0144_semantic_text_profiles.json
 │   │   │   │   │       └── s0144_semantic_text_review.csv
 │   │   │   │   ├── semantic_text_authority
 │   │   │   │   │   └── s0149
-│   │   │   │   │       ├── s0149_semantic_text_authority_coverage_report.json
-│   │   │   │   │       ├── s0149_semantic_text_authority_hashes.json
-│   │   │   │   │       ├── s0149_semantic_text_authority_index.json
 │   │   │   │   │       ├── s0149_semantic_text_authority_review.csv
 │   │   │   │   │       └── s0149_semantic_text_authority_summary.md
 │   │   │   │   ├── source_fields
 │   │   │   │   │   └── s0133
-│   │   │   │   │       ├── s0133_source_fields_contract_report.json
 │   │   │   │   │       ├── s0133_source_fields_review.csv
 │   │   │   │   │       └── s0133_source_fields_summary.md
 │   │   │   │   ├── tag_sanitation
 │   │   │   │   │   └── s0169
-│   │   │   │   │       ├── rag_tag_gate_report.json
 │   │   │   │   │       ├── rag_tag_gate_report.md
 │   │   │   │   │       ├── tag_inventory.csv
-│   │   │   │   │       ├── tag_inventory.json
-│   │   │   │   │       ├── tag_inventory_summary.md
-│   │   │   │   │       ├── tag_sanitation_plan.dry_run.json
-│   │   │   │   │       └── tag_sanitation_policy.json
+│   │   │   │   │       └── tag_inventory_summary.md
 │   │   │   │   ├── test_saneamiento
 │   │   │   │   │   └── s0150
-│   │   │   │   │       ├── s0150_legacy_test_classification.json
 │   │   │   │   │       ├── s0150_legacy_test_classification.md
 │   │   │   │   │       ├── s0150_pytest_full.log
 │   │   │   │   │       └── s0150_test_update_plan.md
 │   │   │   │   └── unknown_artifact_family
 │   │   │   │       └── s0145
-│   │   │   │           ├── s0145_artifact_family_mapping_preview.json
 │   │   │   │           ├── s0145_artifact_family_proposal.md
-│   │   │   │           ├── s0145_unknown_classification_rules.json
-│   │   │   │           ├── s0145_unknown_grouped_summary.json
 │   │   │   │           ├── s0145_unknown_grouped_summary.md
-│   │   │   │           ├── s0145_unknown_inventory.json
 │   │   │   │           ├── s0145_unknown_review.csv
 │   │   │   │           └── s0145_unknown_samples.md
 │   │   │   ├── reverse_html
-│   │   │   │   ├── reverse-report.json
-│   │   │   │   └── tiddly-data-converter.derived.html
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
-│   │   │   │   │   ├── m04-s0170-contrato-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │   │   ├── m04-s0171-contrato-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │   │   ├── m04-s0172-contrato-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0173-contrato-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │   │   ├── m04-s0174-contrato-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0175-contrato-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0176-contrato-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │   │   ├── m04-s0177-contrato-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │   │   ├── m04-s0178-contrato-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │   │   ├── m04-s0179-contrato-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │   │   ├── m04-s0180-contrato-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │   │   ├── policy
-│   │   │   │   │   │   ├── canon_policy_bundle.json
 │   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
 │   │   │   │   │   └── projections
-│   │   │   │   │       └── derived_layers_registry.json
 │   │   │   │   ├── 01_procedencia
-│   │   │   │   │   ├── m04-s0170-procedencia-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │   │   ├── m04-s0171-procedencia-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │   │   ├── m04-s0172-procedencia-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0173-procedencia-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │   │   ├── m04-s0174-procedencia-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0175-procedencia-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0176-procedencia-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │   │   ├── m04-s0177-procedencia-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │   │   ├── m04-s0178-procedencia-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │   │   ├── m04-s0179-procedencia-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │   │   └── m04-s0180-procedencia-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │   ├── 02_detalles_de_sesion
-│   │   │   │   │   ├── m04-s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │   │   ├── m04-s0171-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │   │   ├── m04-s0172-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0173-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │   │   ├── m04-s0174-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0175-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0176-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │   │   ├── m04-s0177-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │   │   ├── m04-s0178-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │   │   ├── m04-s0179-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │   │   └── m04-s0180-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │   ├── 03_hipotesis
-│   │   │   │   │   ├── m04-s0170-hipotesis-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │   │   ├── m04-s0171-hipotesis-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │   │   ├── m04-s0172-hipotesis-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0173-hipotesis-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │   │   ├── m04-s0174-hipotesis-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0175-hipotesis-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0176-hipotesis-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │   │   ├── m04-s0177-hipotesis-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │   │   ├── m04-s0178-hipotesis-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │   │   ├── m04-s0179-hipotesis-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │   │   └── m04-s0180-hipotesis-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │   ├── 04_balance_de_sesion
-│   │   │   │   │   ├── m04-s0170-balance-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │   │   ├── m04-s0171-balance-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │   │   ├── m04-s0172-balance-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0173-balance-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │   │   ├── m04-s0174-balance-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0175-balance-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0176-balance-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │   │   ├── m04-s0177-balance-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │   │   ├── m04-s0178-balance-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │   │   ├── m04-s0179-balance-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │   │   └── m04-s0180-balance-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │   ├── 05_propuesta_de_sesion
-│   │   │   │   │   ├── m04-s0170-propuesta-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │   │   ├── m04-s0171-propuesta-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │   │   ├── m04-s0172-propuesta-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0173-propuesta-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │   │   ├── m04-s0174-propuesta-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0175-propuesta-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │   │   ├── m04-s0176-propuesta-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │   │   ├── m04-s0177-propuesta-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │   │   ├── m04-s0178-propuesta-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │   │   ├── m04-s0179-propuesta-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │   │   └── m04-s0180-propuesta-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │   └── 06_diagnoses
 │   │   │   │       ├── meso-ciclo
 │   │   │   │       ├── micro-ciclo
 │   │   │   │       ├── module
 │   │   │   │       ├── proyecto
 │   │   │   │       ├── sesion
-│   │   │   │       │   ├── diagnostico-sesion-s0170-bloqueo-rag-p0-y-correccion-semantic-text-builder.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0171-promocion-metadata-minima-tech-stack-topics-y-filtros-rag.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0172-alineacion-del-productor-autoritativo-de-derivados-rag-safe.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0173-regeneracion-gobernada-de-derivados-rag-safe-y-equivalencia.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0174-integracion-final-productor-autoritativo-y-primera-admision-gobernada-rag-safe.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0175-normalizacion-flujo-operativo-admision-derivados-rag-safe.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0176-equivalencia-gobernada-ante-evolucion-canonica.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0177-resolucion-del-trial-rag-safe-y-cierre-de-rollback.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0178-verificacion-de-invariantes-p0-y-cierre-de-observabilidad-post-merge.md.json
-│   │   │   │       │   ├── diagnostico-sesion-s0179-auditoria-de-linaje-y-autoridad-relacional-en-derivados-productivos.md.json
-│   │   │   │       │   └── diagnostico-sesion-s0180-congelacion-del-baseline-pre-relacional-y-reconciliacion-de-candidatas.md.json
 │   │   │   │       └── tema
-│   │   │   │           ├── diagnostico-tematico-054-uso-efectivo-data-tmp-gobernanza-temporal.md.json
-│   │   │   │           ├── diagnostico-tematico-055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica.md.json
-│   │   │   │           ├── diagnostico-tematico-056-preparacion-human-review-relacional-s0164.md.json
-│   │   │   │           ├── diagnostico-tematico-057-higiene-repo-artifact-canon-exclusion-build-artifacts.md.json
-│   │   │   │           ├── diagnostico-tematico-058-frontera-canon-codigo-fuente-rutas-post-src.md.json
-│   │   │   │           ├── diagnostico-tematico-059-contrato-schema-relacional-review-queue-admission-gate.md.json
-│   │   │   │           ├── diagnostico-tematico-060-tests-stale-post-src-frontera-relacional.md.json
-│   │   │   │           ├── diagnostico-tematico-061-cobertura-rag-premium-canon-derivados-relaciones.md.json
-│   │   │   │           ├── diagnostico-tematico-062-arqueologia-relacional-cartografia-menu-operativo-linaje-relaciones.md.json
-│   │   │   │           ├── diagnostico-tematico-063-taxonomia-tags-metadata-relaciones-tiddlers-base.md.json
-│   │   │   │           ├── diagnostico-tematico-064-politica-proyeccion-tags-canonicos-tdc-tiddlywiki.md.json
-│   │   │   │           ├── diagnostico-tematico-065-alineacion-funcional-autoridad-codigo-arqueologia-pipelines-tdc.md.json
-│   │   │   │           ├── diagnostico-tematico-066-evaluacion-calidad-rag-ia-premium-derivados-gobernados-tdc.md.json
-│   │   │   │           ├── diagnostico-tematico-067-estado-productivo-de-relaciones-canonicas-y-brechas-previas-a-evaluacion-rag-premium.md.json
-│   │   │   │           ├── diagnostico-tematico-068-evaluacion-calidad-rag-ia-premium-post-admision-relacional.md.json
-│   │   │   │           └── diagnostico-tematico-069-auditoria-integral-suite-tests-invariantes-operativas.md.json
 │   │   │   └── tiddlers-export
 │   │   │       └── hashes_rep_export
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
-│       ├── admissions
-│       │   └── s69_unittest
-│       │       ├── admit-20260720193402-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193403-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193406-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193408-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193413-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193427-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193439-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193517-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193519-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193523-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193527-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193533-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193551-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193602-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193605-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193610-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193612-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193614-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193621-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193638-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193656-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193722-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193724-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193728-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193732-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193740-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193805-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193807-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193810-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193814-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193818-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193824-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193826-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193848-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193854-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193856-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193900-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193905-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193907-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193913-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193935-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── admit-20260720193954-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── backups
-│       │       │   ├── admit-20260720193439-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   ├── admit-20260720193612-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   ├── admit-20260720193656-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   ├── admit-20260720193824-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   ├── admit-20260720193907-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   ├── admit-20260720193954-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       │   ├── rollback-20260720193452-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   ├── rollback-20260720193630-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   ├── rollback-20260720193713-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   ├── rollback-20260720193843-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   ├── rollback-20260720193928-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       │   └── rollback-20260720194015-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
-│       │       ├── rollback-20260720193452-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260720193630-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260720193713-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260720193843-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260720193928-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── rollback-20260720194015-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260720193411-missing-source-path.json
-│       │       ├── validate-20260720193426-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260720193530-missing-source-path.json
-│       │       ├── validate-20260720193550-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260720193619-missing-source-path.json
-│       │       ├── validate-20260720193637-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260720193737-missing-source-path.json
-│       │       ├── validate-20260720193803-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260720193822-missing-source-path.json
-│       │       ├── validate-20260720193846-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       │       ├── validate-20260720193909-missing-source-path.json
-│       │       └── validate-20260720193933-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
-│       ├── canonical_quality
-│       │   └── quality-20260720183704
-│       │       ├── canonical-line-gate.json
-│       │       └── deep-node-inspect.json
-│       ├── html_export
-│       │   └── export-20260721134053
-│       │       ├── tiddlers.export.log
-│       │       └── tiddlers.export.manifest.json
-│       ├── reconstruction
-│       │   ├── diagnostic-20260721134048
-│       │   │   └── gate-report.json
-│       │   ├── export-20260721134053
-│       │   │   ├── gate-report.json
-│       │   │   └── reconstruction-report.json
-│       │   └── reverse-20260721134430
-│       │       ├── gate-report.json
-│       │       └── reconstruction-report.json
-│       ├── sanitation
-│       │   ├── backup-20260720193510
-│       │   ├── backup-20260720193648
-│       │   ├── backup-20260720193737
-│       │   ├── backup-20260720193907
-│       │   ├── backup-20260720193951
-│       │   └── backup-20260720194030
-│       ├── session_admission
-│       │   ├── admit-20260721134303-multi-session
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       └── admit-20260721134303-multi-session.reverse-report.json
-│       │   └── admit-20260721134340-multi-session
-│       │       ├── canon
-│       │       └── reverse_html
-│       │           └── admit-20260721134340-multi-session.reverse-report.json
-│       ├── session_admission_s69_unittest
-│       │   ├── admit-20260720193413-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193413-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193413-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193427-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193427-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193427-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193439-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193439-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193439-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193533-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193533-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193533-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193551-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193551-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193551-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193612-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193612-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193612-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193621-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193621-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193621-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193638-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193638-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193638-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193656-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193656-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193656-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193740-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193740-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193740-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193805-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193805-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193805-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193824-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193824-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193824-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193826-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193826-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193826-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193848-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193848-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193848-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193907-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193907-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193907-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193913-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193913-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193913-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193935-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193935-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193935-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── admit-20260720193954-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── admit-20260720193954-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── admit-20260720193954-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260720193452-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260720193452-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260720193452-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260720193630-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260720193630-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260720193630-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260720193713-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260720193713-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260720193713-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260720193843-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260720193843-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260720193843-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   ├── rollback-20260720193928-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │   │   ├── canon
-│       │   │   └── reverse_html
-│       │   │       ├── rollback-20260720193928-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │   │       └── rollback-20260720193928-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       │   └── rollback-20260720194015-m04-s98-propagacion-relacional-chunks-ai-y-rule23
-│       │       ├── canon
-│       │       └── reverse_html
-│       │           ├── rollback-20260720194015-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
-│       │           └── rollback-20260720194015-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
-│       └── session_sync
-│           ├── sync-20260717034538
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034544
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034635
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034640
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034715
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034719
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034839
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034842
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034900
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260717034903
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193347
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193349
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193455
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193457
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193545
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193548
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193730
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193733
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193821
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193824
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193951
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720193954
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720194353
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260720194355
-│           │   ├── inventory.json
-│           │   └── normalize
-│           └── sync-20260721134206
-│               ├── inventory.json
-│               └── normalize
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── plantillas
@@ -2541,6 +1210,7 @@
 │   │   ├── chunking.py
 │   │   ├── classification.py
 │   │   ├── corpus_governance.py
+│   │   ├── current_relation_human_review.py
 │   │   ├── derive_layers.py
 │   │   ├── diagnostic_governance.py
 │   │   ├── enrichment.py
@@ -2658,61 +1328,30 @@
 │   ├── fixtures
 │   │   ├── baseline
 │   │   │   └── v1
-│   │   │       ├── input
-│   │   │       │   ├── run-001.json
-│   │   │       │   ├── run-002.json
-│   │   │       │   └── run-003.json
-│   │   │       └── manifest.json
-│   │   ├── canon_policy_bundle.json
+│   │   │       └── input
 │   │   ├── minimal_tiddlywiki.html
-│   │   ├── raw_tiddlers_d1_exact_duplicate.json
-│   │   ├── raw_tiddlers_d2_same_title_diff_content.json
-│   │   ├── raw_tiddlers_d3_exact_content_diff_title.json
-│   │   ├── raw_tiddlers_d4_near_duplicate.json
-│   │   ├── raw_tiddlers_d4_near_duplicate_high_similarity.json
-│   │   ├── raw_tiddlers_empty_title.json
-│   │   ├── raw_tiddlers_invalid.json
-│   │   ├── raw_tiddlers_minimal.json
-│   │   ├── raw_tiddlers_no_title.json
-│   │   ├── raw_tiddlers_smoke_e2e.json
-│   │   ├── raw_tiddlers_timestamp_ms_from_data.json
 │   │   ├── README.md
 │   │   ├── relations_candidates
 │   │   ├── runs_for_accumulation
-│   │   │   ├── run-001.json
-│   │   │   ├── run-002.json
-│   │   │   └── run-003.json
 │   │   ├── s0117
 │   │   │   └── sessions
 │   │   │       ├── 00_contratos
-│   │   │       │   └── m04-s0117-fixture-contrato.md.json
 │   │   │       └── 01_procedencia
 │   │   ├── s33_sample
 │   │   │   └── s33_fixture.html
 │   │   ├── s34
-│   │   │   ├── identity_fixture.json
-│   │   │   └── identity_sample_output.json
 │   │   ├── s35
-│   │   │   ├── reading_mode_expected.json
-│   │   │   └── reading_mode_fixture.json
 │   │   ├── s36
-│   │   │   └── semantic_fixture.json
 │   │   ├── s37
-│   │   │   └── context_relations_fixture.json
 │   │   ├── s38
 │   │   │   └── export_contract
-│   │   │       └── contract_hardening_fixture.json
 │   │   ├── s40
-│   │   │   ├── expected_manifest_summary.json
-│   │   │   └── expected_rejection_report.json
 │   │   ├── s42
 │   │   │   └── base.html
 │   │   ├── s43
 │   │   ├── s47
-│   │   │   ├── expected_audit_findings.json
 │   │   │   └── run_audit_test.sh
 │   │   ├── s49
-│   │   │   ├── candidate_line.json
 │   │   │   └── run_canon_proposal_test.sh
 │   │   ├── s52
 │   │   │   ├── __pycache__
@@ -2739,9 +1378,7 @@
 │   │   │   ├── run_session_admission_test.sh
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
-│   │   │   │   │   └── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
 │   │   │   │   └── 01_procedencia
-│   │   │   │       └── m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json
 │   │   │   └── test_session_admission.py
 │   │   └── s77
 │   │       ├── __pycache__
@@ -2749,7 +1386,6 @@
 │   ├── golden
 │   │   ├── baseline
 │   │   │   └── v1
-│   │   │       └── batch_snapshot.json
 │   │   └── s33
 │   ├── repo_metadata_s0151_helpers.py
 │   ├── smoke
@@ -2762,6 +1398,7 @@
 │   ├── test_chunking_characterization.py
 │   ├── test_classification_characterization.py
 │   ├── test_controlled_relation_propagation.py
+│   ├── test_current_relation_human_review.py
 │   ├── test_derivation_menu.py
 │   ├── test_derive_layers_characterization.py
 │   ├── test_diagnostic_artifact_governance.py
