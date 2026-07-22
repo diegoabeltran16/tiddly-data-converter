@@ -26,6 +26,8 @@ S0180_AUDIT = LOCAL_ROOT / "audit" / "s0180"
 BASELINE = S0180_AUDIT / "pre_relational_rag_baseline_manifest.json"
 STATE_REPORT = AUDIT_DIR / "relational_operational_state.json"
 AUDIT_INDEX = AUDIT_DIR / "relational_audit_index.json"
+RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS = "RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS"
+SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS = "SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS"
 
 
 def now() -> str:
@@ -196,8 +198,10 @@ def build_state(
     reconciliation_counts = reconciliation.get("dispositions") or {}
     ready_count = int(reconciliation_counts.get("ready_for_review") or 0)
     blocked_count = max(0, int(reconciliation.get("total") or 0) - ready_count)
-    decision_counts = count_decisions(decisions)
-    decision_stale = bool(decisions and (candidate_reasons or reconciliation_reasons or reviewable_reasons))
+    legacy_decisions = [row for row in decisions if row.get("schema_version") == "relation-human-review-decision/v1"]
+    official_decisions = [row for row in decisions if row.get("schema_version") == "relation-human-review-decision/v2"]
+    decision_counts = count_decisions(official_decisions)
+    decision_stale = bool(official_decisions and (candidate_reasons or reconciliation_reasons or reviewable_reasons))
     gate_summary = gate.get("summary") or {}
     gate_items = gate.get("items") or []
     gate_decisions = Counter(str(item.get("decision") or "unknown") for item in gate_items if isinstance(item, dict))
@@ -211,6 +215,11 @@ def build_state(
         gate_reasons.append("current_run_manifest_report_hash_mismatch")
     if not run_manifest_error and run_manifest.get("log_hash") != sha256_file(log_path):
         gate_reasons.append("current_run_manifest_log_hash_mismatch")
+    if not run_manifest_error and run_manifest.get("human_review_decisions_hash") != sha256_file(decisions_path):
+        gate_reasons.append("current_run_manifest_human_review_decisions_hash_mismatch")
+    gate_contract = REPO_ROOT / "src" / "python_scripts" / "relation_admission_gate.py"
+    if not run_manifest_error and run_manifest.get("gate_contract_hash") != sha256_file(gate_contract):
+        gate_reasons.append("current_run_manifest_gate_contract_hash_mismatch")
     gate_current = bool(
         not gate_reasons
         and run_manifest.get("canon_hash") == canon["hash"]
@@ -228,15 +237,21 @@ def build_state(
     elif reconciliation_reasons or reviewable_reasons:
         verdict = "CURRENT_RELATION_CANDIDATES_REQUIRE_RECONCILIATION"
         next_action = "VALIDATE_AND_RECONCILE_CURRENT_CANDIDATES"
+    elif legacy_decisions:
+        verdict = "LEGACY_HUMAN_RELATIONAL_REVIEW_NOT_AUTHORITATIVE"
+        next_action = SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS
+    elif ready_count > 0 and decision_counts["total"] == 0:
+        verdict = "READY_FOR_HUMAN_RELATIONAL_REVIEW"
+        next_action = RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS
+    elif decision_counts["total"] < ready_count:
+        verdict = "HUMAN_RELATIONAL_REVIEW_INCOMPLETE"
+        next_action = RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS
     elif not gate_current:
         verdict = "RELATIONAL_ADMISSION_CURRENT_RUN_INCOMPLETE"
         next_action = "RUN_RELATIONAL_ADMISSION_GATE_DRY_RUN"
-    elif ready_count > 0 and decision_counts["total"] == 0:
-        verdict = "READY_FOR_HUMAN_RELATIONAL_REVIEW"
-        next_action = "OPEN_S0181_HUMAN_RELATIONAL_REVIEW"
-    elif decision_counts["total"] and decision_counts["approved"] < ready_count:
-        verdict = "HUMAN_RELATIONAL_REVIEW_INCOMPLETE"
-        next_action = "CONTINUE_HUMAN_RELATIONAL_REVIEW"
+    elif int(gate_summary.get("technically_invalid") or 0) > 0 and int(gate_summary.get("approved_for_admission") or 0) > 0:
+        verdict = "RELATIONAL_ADMISSION_PARTIALLY_READY"
+        next_action = "RESOLVE_OR_DEFER_TECHNICALLY_INVALID_APPROVALS"
     elif gate_summary.get("admission_ready_dry_run", 0):
         verdict = "READY_FOR_RELATIONAL_ADMISSION"
         next_action = "APPLY_REQUIRES_EXPLICIT_CONFIRMATION"
@@ -287,8 +302,9 @@ def build_state(
         "human_review": {
             "decisions_path": display(decisions_path),
             **decision_counts,
+            "legacy_supersession_required": len(legacy_decisions),
             "stale": len(decisions) if decision_stale else 0,
-            "current": not decisions_error and not decision_stale,
+            "current": not decisions_error and not decision_stale and not legacy_decisions,
         },
         "admission_gate": {
             "report_path": display(gate_path),
@@ -330,6 +346,37 @@ def build_state(
     return state
 
 
+def relational_apply_precondition(state: dict[str, Any]) -> dict[str, Any]:
+    """Return the single authoritative precondition used before apply prompt."""
+    reasons: list[str] = []
+    gate = state.get("admission_gate") or {}
+    review = state.get("human_review") or {}
+    reconciliation = state.get("reconciliation") or {}
+    apply = state.get("apply") or {}
+    if gate.get("current") is not True:
+        reasons.append("admission_gate_not_current")
+    if gate.get("stale_reasons"):
+        reasons.append("admission_gate_has_stale_reasons")
+    if int(review.get("total") or 0) < int(reconciliation.get("ready_for_review") or 0):
+        reasons.append("human_review_incomplete")
+    if int(gate.get("admission_ready") or 0) <= 0:
+        reasons.append("no_admission_ready_relations")
+    if int(gate.get("technically_invalid") or 0) > 0:
+        reasons.append("technically_invalid_approvals_present")
+    if apply.get("executed") is True:
+        reasons.append("apply_already_executed")
+    return {
+        "schema_version": "relational-apply-precondition/v1",
+        "allowed": not reasons,
+        "reasons": reasons,
+        "admission_ready": int(gate.get("admission_ready") or 0),
+        "gate_current": gate.get("current") is True,
+        "human_review_total": int(review.get("total") or 0),
+        "reviewable_total": int(reconciliation.get("ready_for_review") or 0),
+        "apply_executed": apply.get("executed") is True,
+    }
+
+
 def build_audit_index(local_root: Path = LOCAL_ROOT, *, checked_at: str | None = None) -> dict[str, Any]:
     state = build_state(local_root, checked_at=checked_at)
     current_dir = local_root / "pipeline" / "relation_candidates" / "current"
@@ -359,7 +406,7 @@ def build_audit_index(local_root: Path = LOCAL_ROOT, *, checked_at: str | None =
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Assemble live relational admission state")
-    parser.add_argument("command", choices=("state", "audit", "validate-currentness"))
+    parser.add_argument("command", choices=("state", "audit", "validate-currentness", "apply-preflight", "next-action"))
     parser.add_argument("--local-root", type=Path, default=LOCAL_ROOT)
     args = parser.parse_args(argv)
     audit_dir = args.local_root / "audit" / "relation_admission" / "current"
@@ -370,6 +417,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         return 0
     state = build_state(args.local_root)
+    if args.command == "next-action":
+        print(state["next_action"])
+        return 0
+    if args.command == "apply-preflight":
+        precondition = relational_apply_precondition(state)
+        print(json.dumps(precondition, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if precondition["allowed"] else 2
     if args.command == "state":
         write_json(audit_dir / "relational_operational_state.json", state)
         print(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True))

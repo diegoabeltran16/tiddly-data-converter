@@ -87,9 +87,14 @@ tdc_relations_dry_run_gate() {
         echo "o defina RELATION_REVIEWABLE_FILE."
         return 1
     fi
+    local -a decision_arg=()
+    if [[ -s "$RELATION_HUMAN_REVIEW_DECISIONS" ]]; then
+        decision_arg=(--human-review-decisions "$RELATION_HUMAN_REVIEW_DECISIONS")
+    fi
     python3 src/python_scripts/relation_admission_gate.py \
         --candidate-file "$candidate_file" \
         --canon-glob "$CANON_DIR/tiddlers_*.jsonl" \
+        "${decision_arg[@]}" \
         --dry-run \
         --session "$RELATION_SESSION" \
         --output "$AUDIT_DIR/admission_gate_dry_run.json" \
@@ -124,15 +129,71 @@ tdc_relations_show_decisions() {
     if [[ -s "$RELATION_HUMAN_REVIEW_DECISIONS" ]]; then
         sed -n '1,20p' "$RELATION_HUMAN_REVIEW_DECISIONS"
     else
-        echo "No existen decisiones humanas vigentes. Revisión reservada para S0181."
+        local next_action
+        next_action="$(python3 src/python_scripts/relation_admission_state.py next-action --local-root "$CANON_DIR")"
+        echo "No existen decisiones humanas vigentes. Acción: $next_action."
     fi
 }
 
 tdc_relations_review() {
-    echo "Revisión humana no ejecutada en S0180. Próxima acción gobernada: OPEN_S0181_HUMAN_RELATIONAL_REVIEW."
+    python3 src/python_scripts/current_relation_human_review.py \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR"
+}
+
+tdc_relations_preview_review_batches() {
+    python3 src/python_scripts/current_relation_human_review.py \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR" \
+        --gate-report "$AUDIT_DIR/admission_gate_dry_run.json" \
+        --preview-batches
+}
+
+tdc_relations_review_batches() {
+    python3 src/python_scripts/current_relation_human_review.py \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR" \
+        --gate-report "$AUDIT_DIR/admission_gate_dry_run.json" \
+        --review-batches
+}
+
+tdc_relations_review_multiple_batches() {
+    python3 src/python_scripts/current_relation_human_review.py \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR" \
+        --gate-report "$AUDIT_DIR/admission_gate_dry_run.json" \
+        --review-multiple-batches
+}
+
+tdc_relations_supersede_legacy_review() {
+    cat <<'EOF'
+Esta operación preserva decisiones, auditoría, manifests y dry-run en la ruta
+histórica S0181 antes de reinicializar atómicamente la autoridad current.
+No ejecuta apply ni modifica el canon.
+EOF
+    local actor note confirmation
+    printf "Identidad del revisor humano: "
+    read -r actor || actor=""
+    printf "Motivo documentado de supersesión: "
+    read -r note || note=""
+    printf "Escriba exactamente SUPERSEDE CURRENT HUMAN REVIEW: "
+    read -r confirmation || confirmation=""
+    python3 src/python_scripts/current_relation_human_review.py \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR" \
+        --reviewer "$actor" \
+        --supersede-current \
+        --note "$note" \
+        --confirmation "$confirmation"
 }
 
 tdc_relations_apply() {
+    if ! python3 src/python_scripts/relation_admission_state.py \
+        apply-preflight --local-root "$CANON_DIR"; then
+        echo "APPLY RELATIONS bloqueado antes de solicitar confirmación."
+        echo "No se modificó el canon."
+        return 1
+    fi
     cat <<'EOF'
 ATENCIÓN:
 Esta operación puede modificar el canon local agregando relaciones admitidas.
@@ -210,12 +271,16 @@ tdc_relations_admission_menu() {
   Canon: PROTEGIDO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1) Abrir revisión humana (S0181; no ejecutada aquí)
+1) Abrir revisión individual v2 (S0181; sin apply)
 2) Ver decisiones humanas vigentes
 3) Ejecutar admission gate dry-run
 4) Ver estado de compuerta relacional
 5) APPLY RELATIONS protegido
 6) Ver reportes relacionales
+7) Previsualizar lotes homogéneos v2 (no escribe)
+8) Revisar y confirmar un lote v2
+9) Superseder revisión legacy con respaldo histórico
+10) Revisar múltiples lotes homogéneos v2
 0) Volver
 EOF
         printf "> "
@@ -228,6 +293,10 @@ EOF
             4) tdc_relations_show_summary; tdc_pause ;;
             5) tdc_relations_apply; tdc_pause ;;
             6) find "$RELATION_OUT_DIR" "$AUDIT_DIR" -maxdepth 1 -type f -printf '%p\n' | sort; tdc_pause ;;
+            7) tdc_relations_preview_review_batches; tdc_pause ;;
+            8) tdc_relations_review_batches; tdc_pause ;;
+            9) tdc_relations_supersede_legacy_review; tdc_pause ;;
+            10) tdc_relations_review_multiple_batches; tdc_pause ;;
             0|"") return 0 ;;
             *) echo "Opción inválida." ;;
         esac

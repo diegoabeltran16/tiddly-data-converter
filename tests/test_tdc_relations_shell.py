@@ -79,6 +79,9 @@ def test_tdc_governed_admission_bridges_to_canonical_relations_without_duplicate
     assert "Relaciones candidatas" not in result.stdout
     assert "Revisión humana / admisión relacional" in result.stdout
     assert "Ejecutar admission gate dry-run" in result.stdout
+    assert "Previsualizar lotes homogéneos v2" in result.stdout
+    assert "Superseder revisión legacy con respaldo histórico" in result.stdout
+    assert "Revisar múltiples lotes homogéneos v2" in result.stdout
 
 
 def test_tdc_relations_summary_uses_current_operational_state() -> None:
@@ -106,6 +109,114 @@ def test_tdc_relations_dry_run_missing_reviewable_queue_gives_exact_guidance(tmp
     assert "RELATION_CANDIDATE_FILE" not in result.stdout
 
 
+def _fake_python(tmp_path: Path) -> tuple[Path, Path]:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    args_file = tmp_path / "python-args.txt"
+    executable = bin_dir / "python3"
+    executable.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$TDC_TEST_ARGS"\n', encoding="utf-8")
+    executable.chmod(0o755)
+    return bin_dir, args_file
+
+
+def test_batch_preview_menu_routes_to_non_writing_v2_surface(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python(tmp_path)
+    result = _run_tdc_with_env("7\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "RELATION_OUT_DIR": str(tmp_path / "current"), "CANON_DIR": str(tmp_path / "local"),
+        "AUDIT_DIR": str(tmp_path / "audit"),
+    }, "relations-admission")
+    assert result.returncode == 0
+    args = args_file.read_text(encoding="utf-8").splitlines()
+    assert "--preview-batches" in args
+    assert "--review-batches" not in args
+
+
+def test_multiple_batch_menu_preserves_a_distinct_governed_route(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python(tmp_path)
+    result = _run_tdc_with_env("10\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "RELATION_OUT_DIR": str(tmp_path / "current"), "CANON_DIR": str(tmp_path / "local"),
+        "AUDIT_DIR": str(tmp_path / "audit"),
+    }, "relations-admission")
+    assert result.returncode == 0
+    args = args_file.read_text(encoding="utf-8").splitlines()
+    assert "--review-multiple-batches" in args
+    assert "--review-batches" not in args
+
+
+def test_legacy_supersession_menu_forwards_explicit_actor_note_and_token(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python(tmp_path)
+    result = _run_tdc_with_env(
+        "9\nNaveen\nJustificación libre no auditable.\nSUPERSEDE CURRENT HUMAN REVIEW\n0\n",
+        {
+            "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+            "RELATION_OUT_DIR": str(tmp_path / "current"), "CANON_DIR": str(tmp_path / "local"),
+            "AUDIT_DIR": str(tmp_path / "audit"),
+        },
+        "relations-admission",
+    )
+    assert result.returncode == 0
+    args = args_file.read_text(encoding="utf-8").splitlines()
+    assert "--supersede-current" in args
+    assert "Naveen" in args
+    assert "SUPERSEDE CURRENT HUMAN REVIEW" in args
+
+
+def _fake_python_preflight(tmp_path: Path, *, allowed: bool) -> tuple[Path, Path]:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    args_file = tmp_path / "python-args.txt"
+    executable = bin_dir / "python3"
+    exit_code = 0 if allowed else 2
+    executable.write_text(
+        "#!/usr/bin/env bash\n"
+        'printf "%s\\n" "$*" >> "$TDC_TEST_ARGS"\n'
+        'if [[ "$*" == *"relation_admission_state.py apply-preflight"* ]]; then\n'
+        f'  printf \'{{"allowed": {str(allowed).lower()}, "reasons": ["stale"]}}\\n\'\n'
+        f"  exit {exit_code}\n"
+        "fi\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    return bin_dir, args_file
+
+
+def test_dry_run_omits_empty_human_decisions_flag(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python(tmp_path)
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "ready_for_human_review.jsonl").write_text("", encoding="utf-8")
+    decisions = current / "human_review_decisions.jsonl"
+    decisions.write_text("", encoding="utf-8")
+    result = _run_tdc_with_env("3\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "RELATION_OUT_DIR": str(current), "RELATION_HUMAN_REVIEW_DECISIONS": str(decisions),
+        "AUDIT_DIR": str(tmp_path / "audit"), "CANON_DIR": str(tmp_path / "local"),
+    }, "relations-admission")
+    assert result.returncode == 0
+    assert "--human-review-decisions" not in args_file.read_text(encoding="utf-8")
+
+
+def test_dry_run_passes_nonempty_human_decisions_flag(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python(tmp_path)
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "ready_for_human_review.jsonl").write_text("{}\n", encoding="utf-8")
+    decisions = current / "human_review_decisions.jsonl"
+    decisions.write_text("{}\n", encoding="utf-8")
+    result = _run_tdc_with_env("3\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "RELATION_OUT_DIR": str(current), "RELATION_HUMAN_REVIEW_DECISIONS": str(decisions),
+        "AUDIT_DIR": str(tmp_path / "audit"), "CANON_DIR": str(tmp_path / "local"),
+    }, "relations-admission")
+    assert result.returncode == 0
+    args = args_file.read_text(encoding="utf-8").splitlines()
+    assert "--human-review-decisions" in args
+    assert str(decisions) in args
+
+
 def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
     before = {
         path: path.stat().st_mtime
@@ -114,13 +225,15 @@ def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
     result = _run_tdc("5\nNO\n0\n", "relations-admission")
     after = {path: path.stat().st_mtime for path in before}
 
-    assert result.returncode == 0
-    assert "ATENCIÓN:" in result.stdout
-    assert "Operación cancelada. No se modificó el canon." in result.stdout
+    assert result.returncode == 1
+    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "Escribe exactamente:" not in result.stdout
+    assert "ATENCIÓN:" not in result.stdout
+    assert "No se modificó el canon." in result.stdout
     assert after == before
 
 
-def test_tdc_relations_apply_exact_confirmation_blocks_without_ready_candidates(tmp_path: Path) -> None:
+def test_tdc_relations_apply_zero_ready_does_not_request_confirmation(tmp_path: Path) -> None:
     audit_dir = tmp_path / "audit"
     audit_dir.mkdir()
     candidate_file = tmp_path / "candidates.jsonl"
@@ -150,12 +263,12 @@ def test_tdc_relations_apply_exact_confirmation_blocks_without_ready_candidates(
     )
 
     assert result.returncode == 1
-    assert "APPLY RELATIONS bloqueado." in result.stdout
-    assert "Motivo: no existe human_review_decision=approved_for_admission." in result.stdout
+    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "Escribe exactamente:" not in result.stdout
     assert "No se modificó el canon." in result.stdout
 
 
-def test_tdc_relations_apply_routes_to_safe_engine_and_blocks_missing_review(tmp_path: Path) -> None:
+def test_tdc_relations_apply_blocks_incomplete_review_before_safe_engine(tmp_path: Path) -> None:
     audit_dir = tmp_path / "audit"
     audit_dir.mkdir()
     candidate_file = tmp_path / "candidates.jsonl"
@@ -191,6 +304,37 @@ def test_tdc_relations_apply_routes_to_safe_engine_and_blocks_missing_review(tmp
     )
 
     assert result.returncode == 1
-    assert "APPLY RELATIONS bloqueado." in result.stdout
-    assert "Motivo: no existe human_review_decision=approved_for_admission." in result.stdout
-    assert (audit_dir / "relation_apply_plan.json").exists()
+    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "Escribe exactamente:" not in result.stdout
+    assert not (audit_dir / "relation_apply_plan.json").exists()
+
+
+def test_tdc_relations_apply_stale_gate_does_not_request_confirmation(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python_preflight(tmp_path, allowed=False)
+    result = _run_tdc_with_env("5\nAPPLY RELATIONS\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "CANON_DIR": str(tmp_path / "local"),
+    }, "relations-admission")
+    assert result.returncode == 1
+    assert '"allowed": false' in result.stdout
+    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "Escribe exactamente:" not in result.stdout
+
+
+def test_tdc_relations_apply_current_ready_state_preserves_exact_prompt(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python_preflight(tmp_path, allowed=True)
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "ready_for_human_review.jsonl").write_text("{}\n", encoding="utf-8")
+    decisions = current / "human_review_decisions.jsonl"
+    decisions.write_text("{}\n", encoding="utf-8")
+    result = _run_tdc_with_env("5\nNO\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "CANON_DIR": str(tmp_path / "local"), "RELATION_OUT_DIR": str(current),
+        "RELATION_HUMAN_REVIEW_DECISIONS": str(decisions),
+        "AUDIT_DIR": str(tmp_path / "audit"),
+    }, "relations-admission")
+    assert result.returncode == 0
+    assert '"allowed": true' in result.stdout
+    assert "Escribe exactamente:\nAPPLY RELATIONS\npara continuar." in result.stdout
+    assert "Operación cancelada. No se modificó el canon." in result.stdout
