@@ -213,6 +213,121 @@ def test_structured_final_mix_reports_140_ready_and_17_deferred_without_invalid(
     assert summary["awaiting_human_review"] == 0
 
 
+def _report_result(candidate_id: str, *, gate_status: str = BLOCKED,
+                   decision: str = "blocked_missing_human_review") -> dict:
+    return {
+        "candidate_id": candidate_id,
+        "gate_status": gate_status,
+        "decision": decision,
+        "relation_type": "depende_de",
+        "blocking_reasons": [],
+        "ok_reasons": [],
+        "human_review_status": "(absent)",
+    }
+
+
+def _scoped_report(results: list[dict], decisions: dict[str, dict]) -> dict:
+    return build_dry_run_report(
+        results,
+        session="current",
+        candidates_file=Path("queue.jsonl"),
+        canon_glob="tiddlers_*.jsonl",
+        persistent_human_decisions=decisions,
+    )
+
+
+def test_report_scopes_persistent_decisions_to_evaluated_candidates() -> None:
+    results = [_report_result("A"), _report_result("B")]
+    persistent = {
+        "A": {"human_review_decision": "approved_for_admission"},
+        "B": {"human_review_decision": "deferred"},
+        "X": {"human_review_decision": "approved_for_admission"},
+    }
+
+    report = _scoped_report(results, persistent)
+    summary = report["summary"]
+
+    assert persistent["X"]["human_review_decision"] == "approved_for_admission"
+    assert summary["evaluated"] == 2
+    assert summary["approved_for_admission"] == 1
+    assert summary["human_deferred"] == 1
+    assert summary["human_rejected"] == 0
+    assert summary["awaiting_human_review"] == 0
+    assert summary["admission_ready"] == 0
+
+
+def test_report_human_dispositions_partition_current_results_and_ignore_external_rejections() -> None:
+    results = [_report_result(candidate_id) for candidate_id in ("A", "B", "C", "D")]
+    persistent = {
+        "A": {"human_review_decision": "approved_for_admission"},
+        "B": {"human_review_decision": "deferred"},
+        "C": {"human_review_decision": "rejected"},
+        "external-rejected": {"human_review_decision": "rejected"},
+    }
+
+    summary = _scoped_report(results, persistent)["summary"]
+
+    assert summary["approved_for_admission"] == 1
+    assert summary["human_deferred"] == 1
+    assert summary["human_rejected"] == 1
+    assert summary["awaiting_human_review"] == 1
+    assert (
+        summary["approved_for_admission"]
+        + summary["human_deferred"]
+        + summary["human_rejected"]
+        + summary["awaiting_human_review"]
+        == summary["evaluated"]
+    )
+
+
+def test_report_is_order_independent_and_external_decisions_do_not_change_verdict_inputs() -> None:
+    results = [
+        _report_result("A", gate_status=ADMISSION_READY, decision=ADMISSION_READY),
+        _report_result("B"),
+    ]
+    current = {
+        "A": {"human_review_decision": "approved_for_admission"},
+        "B": {"human_review_decision": "deferred"},
+    }
+    with_external = {
+        "external": {"human_review_decision": "approved_for_admission"},
+        **current,
+    }
+
+    baseline = _scoped_report(results, current)["summary"]
+    reordered = _scoped_report(list(reversed(results)), dict(reversed(list(with_external.items()))))["summary"]
+
+    assert reordered == baseline
+
+
+def test_report_all_external_decisions_leave_current_candidates_awaiting_and_is_idempotent() -> None:
+    results = [_report_result("A"), _report_result("B")]
+    persistent = {
+        "X": {"human_review_decision": "approved_for_admission"},
+        "Y": {"human_review_decision": "deferred"},
+        "Z": {"human_review_decision": "rejected"},
+    }
+
+    first = _scoped_report(results, persistent)["summary"]
+    second = _scoped_report(results, persistent)["summary"]
+
+    assert first == second
+    assert first["approved_for_admission"] == 0
+    assert first["human_deferred"] == 0
+    assert first["human_rejected"] == 0
+    assert first["awaiting_human_review"] == 2
+    assert persistent == {
+        "X": {"human_review_decision": "approved_for_admission"},
+        "Y": {"human_review_decision": "deferred"},
+        "Z": {"human_review_decision": "rejected"},
+    }
+
+
+def test_report_rejects_duplicate_evaluated_candidate_ids() -> None:
+    with pytest.raises(ValueError, match="duplicate candidate_id"):
+        _scoped_report([_report_result("A"), _report_result("A")], {})
+
+
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 def _approved_hr() -> dict:
