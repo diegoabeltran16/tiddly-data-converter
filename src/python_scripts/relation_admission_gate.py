@@ -1169,18 +1169,48 @@ def build_dry_run_report(
     canon_glob: str,
     persistent_human_decisions: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """Build a report from the exact candidate domain evaluated in this run.
+
+    Persistent human decisions are durable authority, not proof that their
+    candidate belongs to this particular run.  Every aggregate human
+    disposition below is therefore derived only from decisions whose
+    ``candidate_id`` appears in ``results``.  A duplicate result ID would make
+    that one-decision-per-candidate domain ambiguous, so fail closed instead
+    of silently double-counting it.
+    """
+    current_result_ids = [str(result.get("candidate_id") or "") for result in results]
+    duplicate_result_ids = sorted(
+        candidate_id
+        for candidate_id, count in Counter(current_result_ids).items()
+        if count > 1
+    )
+    if duplicate_result_ids:
+        raise ValueError(
+            "duplicate candidate_id in evaluated results: "
+            + ", ".join(repr(candidate_id) for candidate_id in duplicate_result_ids)
+        )
+
+    current_result_id_set = set(current_result_ids)
+    scoped_human_decisions = {
+        candidate_id: decision
+        for candidate_id, decision in (persistent_human_decisions or {}).items()
+        if candidate_id in current_result_id_set
+    }
     ready = [r for r in results if r["gate_status"] == ADMISSION_READY]
     blocked = [r for r in results if r["gate_status"] == BLOCKED]
     decisions = Counter(str(r.get("decision") or BLOCKED) for r in results)
     human_decisions = Counter(
         str(row.get("human_review_decision") or row.get("decision") or "")
-        for row in (persistent_human_decisions or {}).values()
+        for row in scoped_human_decisions.values()
     )
     missing_or_deferred = decisions.get("blocked_missing_human_review", 0)
-    rejected = decisions.get("rejected_by_human", 0)
     deferred = human_decisions.get("deferred", 0)
-    awaiting = max(0, missing_or_deferred - deferred)
-    technically_invalid = max(0, len(blocked) - missing_or_deferred - rejected)
+    rejected = human_decisions.get("rejected", 0)
+    approved = human_decisions.get("approved_for_admission", 0)
+    awaiting = len(results) - approved - deferred - rejected
+    if awaiting < 0:
+        raise AssertionError("human decision partition exceeds evaluated results")
+    technically_invalid = len(blocked) - missing_or_deferred - decisions.get("rejected_by_human", 0)
     return {
         "schema": SCHEMA_REPORT,
         "session": session.upper(),
@@ -1197,7 +1227,7 @@ def build_dry_run_report(
             "awaiting_human_review": awaiting,
             "human_rejected": rejected,
             "human_deferred": deferred,
-            "approved_for_admission": human_decisions.get("approved_for_admission", 0),
+            "approved_for_admission": approved,
             "admission_ready": len(ready),
             "admission_ready_dry_run": len(ready),
             "applied_to_canon": False,

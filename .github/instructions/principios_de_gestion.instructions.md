@@ -29,6 +29,34 @@
 **Cohesión:**
 - Mantener visible la familia normativa reutilizable del sistema sin duplicar innecesariamente su contenido.
 
+## Principio de evolución canónica gobernada
+
+El canon de TDC es evolutivo por diseño. A medida que el proyecto desarrolla
+funciones, tests, contratos, documentación y sesiones, el canon debe
+acompañar esa evolución como representación estructurada, trazable y
+computacionalmente recuperable de su estado.
+
+Su estabilidad no consiste en conservar inmutablemente el conteo o el hash,
+sino en cambiar mediante mecanismos gobernados, trazables, validables y
+reversibles. La creación de artefactos puede incorporar registros nuevos y la
+modificación de artefactos ya representados puede actualizar registros sin
+aumentar el conteo; ambos casos pueden cambiar el hash global.
+
+Por tanto, un cambio de conteo o de hash no constituye por sí mismo una
+anomalía. El crecimiento canónico aumenta el número de registros; la evolución
+canónica cambia contenido, estructura, procedencia o hash, con o sin
+crecimiento.
+
+Todo consumidor ligado a una versión concreta del canon —por ejemplo,
+candidatas relacionales, manifests, bindings o reportes de currentness— debe
+reconciliarse, regenerarse o revalidarse contra el canon vigente antes de una
+escritura gobernada. Un cambio legítimo mantiene esa obligación: evolución
+canónica gobernada no equivale a reutilización automática de dependencias.
+
+Solo un cambio sin mecanismo autorizado, procedencia suficiente o coherencia
+con el flujo operativo esperado se clasifica como deriva canónica no
+explicada y justifica una investigación específica.
+
 ## No hacer
 - No convertir este nodo en bitácora de sesión.
 - No llenarlo de detalles tácticos o pasajeros.

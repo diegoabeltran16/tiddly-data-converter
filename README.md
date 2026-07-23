@@ -7,7 +7,17 @@
 
 # tiddly-data-converter (TDC)
 
-TDC es una infraestructura de ingeniería del conocimiento, de escritorio local-first, que prepara una memoria semántica para sistemas RAG. Lo logra mediante la transformación y conversión de información fragmentada (TiddlyWiki) en un corpus canónico, organizado y consultable. Este proceso se basa en un pipeline de extracción, canonización, derivación y auditoría, diseñado para garantizar la máxima trazabilidad del linaje de los datos y la reversibilidad de sus estados.
+TDC es una infraestructura local-first de ingeniería del conocimiento, agnóstica respecto al dominio, diseñada para transformar información fragmentada en una memoria semántica canónica, organizada, auditable y consultable.
+
+Puede utilizarse para estudiar, desarrollar y estructurar cualquier área del saber mediante enfoques metodológicos cuantitativos, cualitativos o mixtos. El sistema preserva no solo el contenido, sino también sus relaciones, procedencia, estados epistemológicos, decisiones, cambios y contexto de producción.
+
+La superficie humana de trabajo es [TiddlyWiki](https://github.com/TiddlyWiki), mientras que el convertidor formaliza ese conocimiento para su uso en sistemas RAG, inteligencia artificial, análisis de datos, grafos de conocimiento y otros consumidores computacionales.
+
+Este proceso se articula mediante un pipeline de extracción, canonización, derivación y auditoría, diseñado para garantizar la trazabilidad del linaje de los datos, la reversibilidad de sus estados y la autoridad explícita de cada artefacto.
+
+El canon de TDC es evolutivo por diseño. A medida que el conocimiento sobre un tema se amplía, se corrige, se relaciona o se formaliza mediante nuevas fuentes, conceptos, hipótesis, evidencias, procedimientos, documentos o sesiones de trabajo, el canon debe crecer o actualizarse con él.
+
+Su estabilidad no consiste en permanecer inmutable, sino en evolucionar mediante mecanismos gobernados, trazables, validables y reversibles. Cuando el canon cambia, sus derivados y demás superficies dependientes deben reconciliarse, revalidarse o regenerarse contra el estado canónico vigente antes de continuar con operaciones de escritura, admisión o promoción.
 
 ## Ejecución
 
