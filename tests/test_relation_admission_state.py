@@ -254,3 +254,83 @@ def test_apply_precondition_allows_only_current_complete_ready_state() -> None:
     result = relation_state.relational_apply_precondition(state)
     assert result["allowed"] is True
     assert result["reasons"] == []
+
+
+def test_postapply_reconciliation_projects_authority_receipt_and_expected_staleness(
+    tmp_path: Path,
+) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    canon_path = local / "tiddlers_1.jsonl"
+    canon_path.write_text(json.dumps({
+        "id": "fixture",
+        "title": "Fixture",
+        "relations": [{
+            "relation_schema_version": "canonical-relation/v1",
+            "relation_id": "cr1_fixture",
+            "source_id": "fixture",
+            "target_id": "target",
+            "relation_type": "references",
+        }],
+    }) + "\n", encoding="utf-8")
+    post_hash = _sha256(canon_path)
+    audit = local / "audit/relation_admission/current"
+    snapshot = audit / "rollback_snapshots/apply_exec_fixture/snapshot_manifest.json"
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text("{}\n", encoding="utf-8")
+    apply_report = {
+        "status": "applied",
+        "apply_id": "apply_exec_fixture",
+        "applied_count": 1,
+        "canon_modified": True,
+        "canon_after_hash": post_hash,
+        "rollback_snapshot": str(snapshot),
+        "rollback_snapshot_hash": _sha256(snapshot),
+    }
+    (audit / "relation_apply_report.json").write_text(
+        json.dumps(apply_report), encoding="utf-8",
+    )
+    (audit / "relation_apply_receipt.json").write_text(json.dumps({
+        "apply_id": "apply_exec_fixture",
+        "rollback_snapshot": str(snapshot),
+        "rollback_snapshot_hash": _sha256(snapshot),
+    }), encoding="utf-8")
+    gate_g = local / "audit/s0183/gate-g"
+    gate_g.mkdir(parents=True)
+    (gate_g / "gate_g_authorization.json").write_text(json.dumps({
+        "schema_version": "gate-g-authorization/v1",
+        "authorization_id": "auth_fixture",
+        "decision": "authorized",
+        "consumed": True,
+        "consumed_by_apply_id": "apply_exec_fixture",
+    }), encoding="utf-8")
+    reconciliation = local / "audit/s0183/reconciliation"
+    reconciliation.mkdir(parents=True)
+    (reconciliation / "authorization_consumption_reconciliation.json").write_text(
+        json.dumps({
+            "authorization": {"valid_at_execution": True},
+            "consumption": {"consumed_once": True},
+        }),
+        encoding="utf-8",
+    )
+    (reconciliation / "productive_apply_reconciliation.json").write_text(
+        json.dumps({
+            "status": "reconciled",
+            "apply_id": "apply_exec_fixture",
+            "canon": {"post_hash": post_hash},
+        }),
+        encoding="utf-8",
+    )
+
+    state = relation_state.build_state(local)
+
+    assert state["canonical_relation_v1"] == 1
+    assert state["apply"]["executed"] is True
+    assert state["apply"]["authorized_at_execution"] is True
+    assert state["apply"]["authorization_consumed"] is True
+    assert state["apply"]["receipt_path"].endswith("relation_apply_receipt.json")
+    assert state["apply"]["reconciled"] is True
+    assert state["rollback"]["receipt_bound"] is True
+    assert state["expected_postapply_staleness"]["recognized"] is True
+    assert state["blocking_reasons"] == []
+    assert state["verdict"] == "RELATIONAL_PRODUCTIVE_APPLY_RECONCILED"
+    assert state["next_action"] == "START_POSTIMPACT_CLOSURE"

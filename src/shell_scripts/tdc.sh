@@ -10,6 +10,9 @@ AUDIT_DIR="${AUDIT_DIR:-data/out/local/audit/relation_admission/current}"
 RELATION_HUMAN_REVIEW_DECISIONS="${RELATION_HUMAN_REVIEW_DECISIONS:-$RELATION_OUT_DIR/human_review_decisions.jsonl}"
 RELATION_SESSION="${RELATION_SESSION:-current}"
 RELATION_RUN_ID="${RELATION_RUN_ID:-current}"
+RELATION_ROLLBACK_SNAPSHOT="${RELATION_ROLLBACK_SNAPSHOT:-}"
+RELATION_GATE_G_AUTHORIZATION="${RELATION_GATE_G_AUTHORIZATION:-data/out/local/audit/s0183/gate-g/gate_g_authorization.json}"
+RELATION_GATE_G_PLAN="${RELATION_GATE_G_PLAN:-data/out/local/audit/s0183/gate-g/relation_apply_plan.json}"
 
 tdc_pause() {
     if [[ -t 0 ]]; then
@@ -187,11 +190,88 @@ EOF
         --confirmation "$confirmation"
 }
 
+tdc_relations_apply_cli_guard() {
+    local report="$AUDIT_DIR/admission_gate_dry_run.json"
+    local guard_output
+    if guard_output="$(python3 - "$report" "$RELATION_HUMAN_REVIEW_DECISIONS" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+
+report_path = Path(sys.argv[1])
+decisions_path = Path(sys.argv[2])
+
+
+def block(reason_code, *messages):
+    print(reason_code)
+    for message in messages:
+        print(message)
+    raise SystemExit(1)
+
+
+try:
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError):
+    block(
+        "RELATION_APPLY_PREFLIGHT_BLOCKED",
+        "Apply bloqueado: el reporte dry-run current no es válido para preparar admisión.",
+    )
+
+summary = report.get("summary") if isinstance(report, dict) else None
+items = report.get("items") if isinstance(report, dict) else None
+if not isinstance(summary, dict) or not isinstance(items, list):
+    block(
+        "RELATION_APPLY_PREFLIGHT_BLOCKED",
+        "Apply bloqueado: el reporte dry-run current no es válido para preparar admisión.",
+    )
+if summary.get("dry_run") is not True or summary.get("canon_modified") is not False:
+    block(
+        "RELATION_APPLY_PREFLIGHT_BLOCKED",
+        "Apply bloqueado: el reporte no representa un dry-run inmutable.",
+    )
+
+try:
+    evaluated = int(summary.get("evaluated", summary.get("total_evaluated", len(items))) or 0)
+    admission_ready = int(
+        summary.get("admission_ready", summary.get("admission_ready_dry_run", 0)) or 0
+    )
+    awaiting = int(summary.get("awaiting_human_review") or 0)
+except (TypeError, ValueError):
+    block(
+        "RELATION_APPLY_PREFLIGHT_BLOCKED",
+        "Apply bloqueado: los conteos del dry-run current no son válidos.",
+    )
+
+if awaiting > 0 or (evaluated > 0 and not decisions_path.is_file()):
+    block(
+        "HUMAN_REVIEW_INCOMPLETE",
+        "Apply bloqueado: la revisión humana del lote current está incompleta.",
+        "Resuelva las candidatas awaiting antes de preparar una admisión.",
+    )
+if admission_ready <= 0:
+    block(
+        "NO_ADMISSION_READY_CANDIDATES",
+        "Apply bloqueado: no existen candidatas admission-ready.",
+    )
+PY
+)"; then
+        return 0
+    fi
+    printf '%s\n' "$guard_output"
+    echo "No se solicitará confirmación y no se modificó el canon."
+    return 1
+}
+
 tdc_relations_apply() {
     if ! python3 src/python_scripts/relation_admission_state.py \
         apply-preflight --local-root "$CANON_DIR"; then
+        echo "RELATION_APPLY_PREFLIGHT_BLOCKED"
         echo "APPLY RELATIONS bloqueado antes de solicitar confirmación."
         echo "No se modificó el canon."
+        return 1
+    fi
+    if ! tdc_relations_apply_cli_guard; then
         return 1
     fi
     cat <<'EOF'
@@ -211,8 +291,10 @@ EOF
     local confirmation
     read -r confirmation || confirmation=""
     if [[ "$confirmation" != "APPLY RELATIONS" ]]; then
-        echo "Operación cancelada. No se modificó el canon."
-        return 0
+        echo "RELATION_APPLY_CANCELLED"
+        echo "Apply cancelado: no se recibió la confirmación exacta requerida."
+        echo "No se modificó el canon."
+        return 1
     fi
 
     local report="$AUDIT_DIR/admission_gate_dry_run.json"
@@ -224,10 +306,35 @@ EOF
         --canon-glob "$CANON_DIR/tiddlers_*.jsonl" \
         --human-review-decisions "$RELATION_HUMAN_REVIEW_DECISIONS" \
         --dry-run-report "$report" \
+        --authorization-file "$RELATION_GATE_G_AUTHORIZATION" \
+        --authorized-plan "$RELATION_GATE_G_PLAN" \
         --out-dir "$AUDIT_DIR" \
         --session "$RELATION_SESSION" \
         --terminal-confirmation "$confirmation" \
         --apply 2>&1
+}
+
+tdc_relations_rollback() {
+    if [[ -z "$RELATION_ROLLBACK_SNAPSHOT" || ! -f "$RELATION_ROLLBACK_SNAPSHOT" ]]; then
+        echo "ROLLBACK RELATIONS bloqueado: defina RELATION_ROLLBACK_SNAPSHOT con un snapshot verificable."
+        return 1
+    fi
+    cat <<'EOF'
+Esta operación restaura exactamente los shards vinculados al snapshot.
+Escriba exactamente:
+ROLLBACK RELATIONS
+para continuar.
+EOF
+    local confirmation
+    read -r confirmation || confirmation=""
+    if [[ "$confirmation" != "ROLLBACK RELATIONS" ]]; then
+        echo "Rollback cancelado. No se modificó el canon."
+        return 0
+    fi
+    python3 src/python_scripts/relation_admission_gate.py \
+        --rollback-snapshot "$RELATION_ROLLBACK_SNAPSHOT" \
+        --rollback-confirmation "$confirmation" \
+        --out-dir "$AUDIT_DIR"
 }
 
 tdc_relations_menu() {
@@ -281,6 +388,7 @@ tdc_relations_admission_menu() {
 8) Revisar y confirmar un lote v2
 9) Superseder revisión legacy con respaldo histórico
 10) Revisar múltiples lotes homogéneos v2
+11) ROLLBACK RELATIONS protegido
 0) Volver
 EOF
         printf "> "
@@ -297,6 +405,7 @@ EOF
             8) tdc_relations_review_batches; tdc_pause ;;
             9) tdc_relations_supersede_legacy_review; tdc_pause ;;
             10) tdc_relations_review_multiple_batches; tdc_pause ;;
+            11) tdc_relations_rollback; tdc_pause ;;
             0|"") return 0 ;;
             *) echo "Opción inválida." ;;
         esac

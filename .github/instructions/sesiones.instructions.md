@@ -1,285 +1,314 @@
-# Plantilla de instruccion de sesion para agentes
-
-## tiddly-data-converter — cierre por `data/out/local/sessions/`, candidatos canonicos y admision local reversible
-
+---
+description: >
+  Dueño normativo de la unidad operativa de una sesión TDC, sus entregables,
+  compuertas comunes, condiciones de intervención, validación y transferencia
+  documental entre instrucciones.
 ---
 
-## 0. Contexto minimo de la sesion
+# Ejecución operativa de sesiones
 
-- **Sesion:** `mXX-sNN-<slug-de-la-sesion>`
-- **Modo:** `local`
-- **Repositorio:** `tiddly-data-converter`
-- **Objetivo principal:** `<describir aqui el objetivo puntual de la sesion>`
-- **Restriccion principal:** `<anotar aqui la restriccion mas importante si existe>`
+## Alcance
 
-Frase rectora por defecto:
+Esta instrucción gobierna las reglas operativas compartidas por todas las
+instrucciones de una sesión TDC:
 
-> `data/out/local/sessions/` registra y ordena la memoria operativa de cada sesion; el canon conserva la autoridad final. El agente puede producir lineas candidatas, pero solo la validacion local, el strict check, el reverse sin rechazo y las pruebas de validacion JSONL y de estructura canonica permiten absorberlas al canon.
+- unidad de trabajo;
+- familia obligatoria de entregables;
+- continuidad documental;
+- compuerta común de entrada;
+- atribución de cambios;
+- condiciones generales de intervención;
+- validación;
+- transferencia entre instrucciones;
+- salida común.
 
----
+No gobierna:
 
-## 1. Layout operativo vigente
+- metodología conceptual de las macrofases;
+- selección de la instrucción activa;
+- transiciones, veredictos o detención;
+- definición de cambio material;
+- pasos particulares de cada instrucción;
+- rutas y títulos canónicos;
+- schema `.md.json`;
+- compuertas detalladas de admisión.
 
-La sesion debe asumir como verdad operativa este layout:
+Aplicar:
 
-- `data/out/local/sessions/` = superficie versionable de entrega, trazabilidad, staging y cierre operativo de sesiones.
-- `data/in/` = entradas locales, incluido el HTML vivo.
-- `data/out/local/` = canon local, derivados locales y reverse.
-- `data/out/remote/` = proyeccion o intercambio remoto preparado, no autoritativo.
-- `data/out/local/reverse_html/` = salida HTML de reverse y sus reportes.
+- `protocolo_de_sesion.instructions.md` para metodología;
+- `.agents/skills/tdc-session/SKILL.md` para selección, transición, veredictos,
+  cambio material y detención;
+- la referencia activa de la skill para ejecución detallada;
+- `canonical_session_family.instructions.md` para familia, rutas, títulos,
+  identidad, candidatas y S66;
+- `tiddlers_sesiones.instructions.md` para schema y validación `.md.json`.
 
-Reglas centrales:
+## Unidad de trabajo
 
-| Categoria | Ruta | Rol |
-|---|---|---|
-| Canon (fuente de verdad) | `data/out/local/tiddlers_*.jsonl` | Fuente de verdad local cuando existe en la maquina |
-| Staging de sesion | `data/out/local/sessions/` | No es canon paralelo; no compite con el canon |
-| Artefacto legado | `data/out/local/proposals.jsonl` | Solo extraordinario; no es ruta diaria de cierre |
-| Capas derivadas | `enriched/`, `ai/`, `audit/`, `export/`, `microsoft_copilot/` | Derivadas del canon; no son fuente de verdad |
-| Reverse | `data/out/local/reverse_html/` | Salida de reverse; no es canon |
-| Remoto | `data/out/remote/` | No habilita integracion cloud productiva por si sola |
+Una sesión corresponde a:
 
----
+- una identidad de sesión;
+- una rama, cuando aplique;
+- una familia de siete entregables;
+- una secuencia de instrucciones gobernada por la skill;
+- un conjunto trazable de decisiones, acciones y resultados.
 
-## 2. Capa normativa activa minima
+La skill ejecuta una sola instrucción por solicitud.
 
-Antes de ejecutar cambios, leer integramente, respetar y usar como normativa activa de la sesion:
+Todas las instrucciones pertenecen a la misma sesión y deben conservar su
+identidad documental.
 
-- `.github/instructions/contratos.instructions.md`
-- `.github/instructions/PRcommits.instructions.md`, si la sesion toca commits o PR
-- `.github/instructions/canonical_session_family.instructions.md`
-- `.github/instructions/tiddlers_sesiones.instructions.md`
-- `esquemas/canon/canon_guarded_session_rules.md`
-- `esquemas/canon/derived_field_rules.md`
-- `README.md`
-- `data/README.md`, si existe en local
-- contratos, artefactos de `data/out/local/sessions/` o reportes previos directamente relevantes al objetivo
-- shards canonicos pertinentes dentro de `data/out/local/tiddlers_*.jsonl`, solo cuando el objetivo requiera leer canon
+Una instrucción no constituye una sesión independiente.
 
-Tratamiento obligatorio:
+## Familia obligatoria
 
-- considerar estos artefactos normativa activa;
-- priorizar la lectura situada sobre la lectura indiscriminada;
-- expandirse solo hacia contexto con impacto real sobre el objetivo local.
+Toda sesión ordinaria mantiene exactamente estos siete entregables:
 
-Si la sesion toca dependencias, toolchains, CI/CD, supply chain, librerias, seguridad o superficie externa, leer ademas los nodos y contratos de dependencias que ya existan y sean pertinentes.
+1. `Contrato de sesión`;
+2. `Procedencia de sesión`;
+3. `Sesión`;
+4. `Hipótesis de sesión`;
+5. `Balance de sesión`;
+6. `Propuesta de sesión`;
+7. `Diagnóstico de sesión`.
 
----
+`Sesión` es el nombre canónico del entregable operativo conocido
+contextualmente como detalles de sesión.
 
-## 3. Autoridad del canon y responsabilidad del agente
+Los siete entregables deben:
 
-El canon local sigue mandando, pero el agente no escribe directamente en el canon final por defecto.
+- pertenecer a la misma sesión;
+- conservar identidad coherente;
+- ocupar sus rutas oficiales;
+- usar sus títulos canónicos;
+- serializarse como objetos `.md.json`;
+- cumplir el schema vigente;
+- conservar contenido suficiente para la instrucción siguiente;
+- ser canonizables.
 
-Permitido por defecto:
+Canonizable no significa candidato ni admitido.
 
-- leer `data/out/local/tiddlers_*.jsonl`;
-- derivar diagnostico desde canon;
-- producir artefactos de sesion bajo `data/out/local/sessions/`;
-- producir lineas candidatas en formato canon bajo `data/out/local/sessions/`.
+Las definiciones exactas pertenecen a
+`canonical_session_family.instructions.md` y
+`tiddlers_sesiones.instructions.md`.
 
-Prohibido por defecto:
+## Maduración operativa
 
-- modificar directamente `data/out/local/tiddlers_*.jsonl`;
-- declarar admitida una linea candidata que no paso validacion local suficiente;
-- usar `git add`, `git commit` o `git push` como mecanismo de admision canonica.
+Los entregables maduran progresivamente dentro de la misma familia.
 
-Excepcion:
+| Instrucción | Producción principal |
+|---|---|
+| Reconocimiento | `Procedencia de sesión` y `Diagnóstico de sesión` |
+| Formulación | `Hipótesis de sesión` y `Contrato de sesión` |
+| Implementación | `Sesión`, implementación y validaciones |
+| Cierre | `Balance de sesión`, `Propuesta de sesión` y consolidación familiar |
 
-- una sesion puede modificar canon final solo si el usuario autoriza explicitamente admision local y si pasan las compuertas requeridas. Si algo falla, no se modifica el canon.
+Una instrucción puede actualizar entregables producidos anteriormente cuando
+aparezca evidencia nueva.
 
----
+No debe crear una versión paralela.
 
-## 4. Nota de cumplimiento S66
+La existencia física de un entregable no demuestra que su contenido esté
+suficientemente maduro para habilitar la instrucción siguiente.
 
-La familia mínima, rutas oficiales, convención `#### 🌀`, numeración de 4 dígitos,
-líneas candidatas y compuertas de admisión se definen en
-`.github/instructions/canonical_session_family.instructions.md`.
+## Identidad documental
 
-Este archivo solo gobierna cómo conducir la sesión: leer lo necesario, actuar
-sobre el objetivo local, registrar evidencia y cerrar sin inventar familias,
-rutas, numeración ni formatos alternos.
+Durante toda la sesión:
 
----
+- actualiza los mismos siete archivos;
+- conserva `session_id`;
+- conserva título y ruta;
+- conserva `canonical_slug`;
+- preserva `created`;
+- actualiza `modified`;
+- reconcilia el contenido existente;
+- conserva la trayectoria de correcciones relevantes.
 
-## 5. Balance de sesion
+No crees variantes como:
 
-El balance de sesion no es comentario informal. Es memoria operativa de aprendizaje del proyecto.
-
-Debe contener esta estructura base:
-
-```md
-## Balance de sesion
-
-- aciertos:
-  - ...
-
-- errores:
-  - ...
-
-- decisiones_a_conservar:
-  - ...
-
-- riesgos_detectados:
-  - ...
-
-- ajustes_sugeridos:
-  - ...
-
-- impacto_en_proxima_sesion:
-  - ...
+```text
+inicial
+final
+v2
+revisado
+corregido
+nuevo
 ```
 
-Su funcion es reducir errores repetidos, conservar decisiones correctas y preparar la siguiente sesion.
+Una actualización no crea una nueva identidad.
 
----
+Un cambio real de identidad requiere una nueva sesión o una migración
+explícitamente autorizada.
 
-## 6. Diagnosticos
+## Compuerta común de entrada
 
-El diagnostico de sesion es obligatorio por defecto.
+Antes de ejecutar cualquier instrucción:
 
-Diagnosticos especializados posibles, solo bajo solicitud explicita o cuando la instruccion de sesion lo requiera:
+1. identifica la sesión activa;
+2. confirma la rama, cuando aplique;
+3. inspecciona el estado de Git;
+4. identifica cambios preexistentes;
+5. lee los entregables requeridos;
+6. comprueba que pertenecen a la misma sesión;
+7. confirma el último veredicto válido;
+8. verifica las precondiciones de la instrucción activa.
 
-- diagnostico de canon;
-- diagnostico de derivados;
-- diagnostico de hipotesis;
-- diagnostico de modulo;
-- diagnostico de proyecto;
-- diagnostico de repositorio;
-- diagnostico de reverse;
-- diagnostico de tema.
+No atribuyas a la sesión cambios preexistentes sin evidencia.
 
-No inflar el cierre con diagnosticos especializados si no aportan al objetivo declarado.
+No sobrescribas modificaciones ajenas o no comprendidas.
 
----
+No continúes cuando:
 
-## 7. Lineas candidatas en formato canon
+- falta un entregable requerido;
+- existe una contradicción de identidad;
+- el estado real difiere materialmente del estado autorizado;
+- una precondición crítica no puede verificarse;
+- el último veredicto no habilita la instrucción solicitada.
 
-Usar la definición completa de `.github/instructions/canonical_session_family.instructions.md`.
-Durante la conducción de sesión, registrar si se produjeron candidatas, dónde
-quedaron y qué validación se ejecutó o quedó pendiente.
+La skill determina el veredicto y la transición resultante.
 
----
+## Reglas comunes de ejecución
 
-## 8. Admision local al canon
+Durante cualquier instrucción:
 
-La admisión local se define en `.github/instructions/canonical_session_family.instructions.md`.
-En esta plantilla, el agente solo debe dejar evidencia de si la sesión quedó en
-staging, si hubo candidatos y si la admisión fue explícitamente autorizada o no.
+- limita el trabajo al objetivo activo;
+- actualiza solo artefactos habilitados;
+- registra evidencia verificable;
+- distingue observación, inferencia, decisión y propuesta;
+- conserva errores y resultados adversos;
+- respeta superficies autorizadas y protegidas;
+- evita cambios incidentales;
+- no avances automáticamente a la instrucción siguiente.
 
----
+Toda afirmación sobre una acción, prueba o validación debe corresponder a una
+operación realmente ejecutada.
 
-## 9. Validacion
+No presentes una intención, simulación o recomendación como resultado
+observado.
 
-Las compuertas de admisión pertenecen a `.github/instructions/canonical_session_family.instructions.md`.
-Aquí solo aplica la regla operativa: ejecutar comandos reales cuando existan y
-registrar en el diagnóstico qué pasó, qué no se ejecutó, por qué y qué falta.
+## Operaciones mutantes
 
----
+Las operaciones mutantes solo pueden ejecutarse durante la instrucción de
+implementación y cuando:
 
-## 10. Flujo operativo cuando la sesion toca export o reverse
+- el contrato vigente las autoriza;
+- las precondiciones continúan siendo válidas;
+- las superficies afectadas están identificadas;
+- existe evidencia suficiente;
+- se ejecutaron los preflights aplicables;
+- existe autorización humana cuando sea obligatoria;
+- existe respaldo o rollback cuando corresponda.
 
-### 10.1 Exportacion
+No reutilices una autorización vinculada a un estado anterior.
 
-Flujo correcto:
+Cuando aparezca un cambio material, aplica la regresión definida en
+`.agents/skills/tdc-session/SKILL.md`.
 
-1. `export_tiddlers` desde `go/bridge` para producir un JSONL temporal.
-2. `shard_canon` desde `go/canon` para escribir una copia canonica local cuando la operacion este autorizada.
-3. `canon_preflight --mode strict` para validar el canon local o temporal.
+No amplíes silenciosamente el contrato.
 
-### 10.2 Reverse
+## Diagnósticos
 
-Flujo correcto:
+El `Diagnóstico de sesión` es obligatorio para toda sesión ordinaria.
 
-1. `canon_preflight --mode reverse-preflight` sobre canon local o temporal.
-2. `reverse_tiddlers` desde `go/bridge`.
-3. salida en `data/out/local/reverse_html/` cuando se trabaja sobre canon local autorizado, o `/tmp` cuando se valida una copia temporal.
+Debe reflejar el estado observado relevante para la sesión y actualizarse
+cuando aparezca evidencia que cambie esa lectura.
 
-Regla:
+Los diagnósticos especializados se producen únicamente cuando:
 
-- `reverse_tiddlers` nunca debe tratarse como escritor del canon.
+- el usuario los solicita;
+- constituyen el objetivo explícito del trabajo;
+- su alcance excede el diagnóstico ordinario.
 
----
+Se gobiernan en `diagnosticos_no_sesionales.instructions.md`.
 
-## 11. Lo que el agente debe hacer
+No sustituyen el `Diagnóstico de sesión`.
 
-1. entender el objetivo puntual de la sesion;
-2. inspeccionar el estado real del repositorio;
-3. detectar rutas y artefactos implicados;
-4. modificar, mover o crear solo lo necesario;
-5. respetar la arquitectura vigente;
-6. producir la familia minima bajo `data/out/local/sessions/`;
-7. producir diagnostico de sesion;
-8. producir lineas candidatas si la sesion genera memoria que debe poder entrar al canon;
-9. validar con comandos reales cuando existan;
-10. dejar evidencia clara de lo que paso, lo que no paso y lo pendiente.
+## Validación común
 
----
+Después de modificar entregables:
 
-## 12. Lo que el agente no debe hacer
+- valida los `.md.json` afectados;
+- verifica identidad;
+- comprueba títulos y rutas;
+- confirma ausencia de variantes paralelas;
+- revisa el diff;
+- ejecuta las validaciones técnicas del frente modificado;
+- registra comandos, resultados y fallos.
 
-1. reabrir decisiones cerradas sin razon tecnica fuerte;
-2. crear archivo acumulativo global de sesiones;
-3. convertir `data/out/local/sessions/` en canon paralelo;
-4. usar `data/out/local/proposals.jsonl` como cierre diario;
-5. insertar lineas en canon final por defecto;
-6. declarar lineas admitidas sin `strict`, `reverse-preflight` y reverse autoritativo sin rechazo;
-7. inventar rutas, relaciones o clasificaciones no sustentadas;
-8. declarar integracion cloud productiva viva si no existe;
-9. tratar `data/out/remote/` como fuente de verdad;
-10. declarar exito sin familia minima, diagnostico y evidencia de validacion.
+Durante el cierre debe validarse la familia completa.
 
----
+No declares válida una comprobación que:
 
-## 13. Contenido minimo del contrato
+- no fue ejecutada;
+- falló;
+- produjo un resultado ambiguo;
+- fue sustituida por una inferencia.
 
-El contrato en `data/out/local/sessions/00_contratos/` debe contener como minimo:
+La validación del schema no equivale a cierre ni admisión canónica.
 
-- identidad de la sesion;
-- objetivo real;
-- alcance;
-- archivos o rutas implicadas;
-- restricciones y riesgos;
+## Transferencia entre instrucciones
+
+Los artefactos de sesión son el medio estructurado de transferencia entre
+instrucciones.
+
+Cada instrucción debe dejar explícitos:
+
+- estado recibido;
+- evidencia consumida;
 - decisiones tomadas;
-- validaciones esperadas;
-- resultado final esperado;
-- lo que no se hizo o quedo fuera, si aplica.
+- artefactos actualizados;
+- validaciones ejecutadas;
+- bloqueos;
+- pendientes;
+- estado dejado para continuidad.
 
-Seleccionar la familia documental correcta:
+La conversación puede aportar contexto, pero no debe ser la única fuente para
+reconstruir el trabajo.
 
-- contrato operativo;
-- registro o reporte operativo;
-- reporte de politica o decision tecnica.
+La instrucción siguiente debe consumir el estado documental vigente, no una
+reconstrucción informal de la conversación.
 
----
+## Salida común
 
-## 14. Salida final obligatoria del agente
+Al terminar una instrucción:
 
-### A. Trabajo realizado
+- aplica la salida definida por `SKILL.md`;
+- informa los paths consumidos;
+- informa los paths actualizados;
+- declara las validaciones ejecutadas;
+- conserva bloqueos y resultados parciales;
+- emite el veredicto correspondiente;
+- indica la instrucción habilitada, cuando exista;
+- detente.
 
-- que hizo exactamente.
+No ejecutes la instrucción siguiente dentro de la misma solicitud.
 
-### B. Archivos afectados
+## Prohibiciones
 
-- que archivos modifico;
-- que archivos creo;
-- que archivos no toco por restriccion.
+- No mezcles varias instrucciones en una sola ejecución.
+- No implementes fuera de la instrucción autorizada.
+- No omitas entregables obligatorios.
+- No crees familias o archivos paralelos.
+- No produzcas Markdown libre como sustituto del `.md.json`.
+- No atribuyas cambios preexistentes a la sesión.
+- No declares éxito sin evidencia.
+- No uses Git como mecanismo de admisión canónica.
+- No confundas validación, canonizabilidad, candidatura y admisión.
+- No dupliques reglas completas de otros dueños normativos.
 
-### C. Validacion
+## Criterio de cumplimiento
 
-- que tests ejecuto;
-- que verificaciones corrio;
-- si pasaron o no;
-- que quedo pendiente y por que.
+La ejecución operativa es correcta cuando:
 
-### D. Cierre de sesion
-
-- path del contrato de sesion;
-- path de procedencia, detalles, hipotesis, balance, propuesta y diagnostico;
-- path de lineas candidatas si existen.
-
-### E. Estado canonico
-
-- confirmar si hubo o no lineas candidatas;
-- confirmar si hubo o no absorcion local al canon;
-- confirmar si el reverse autoritativo reporto `Rejected: 0` cuando se ejecuto admision temporal o canonica;
-- no declarar admision canonica si no hubo validacion suficiente.
+- mantiene una sola sesión;
+- conserva exactamente siete entregables;
+- preserva sus identidades;
+- separa las instrucciones;
+- atribuye correctamente los cambios;
+- limita las mutaciones al alcance autorizado;
+- registra evidencia y validaciones reales;
+- transfiere estado mediante artefactos;
+- no confunde staging con canon;
+- no avanza sin veredicto;
+- permite reconstruir el trabajo sin depender de memoria conversacional.
+````

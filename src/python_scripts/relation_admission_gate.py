@@ -36,9 +36,11 @@ import csv
 import glob
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
+import tempfile
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -86,6 +88,10 @@ SCHEMA_HUMAN_QUEUE = "relation-human-review-queue/v1"
 SCHEMA_PATCH_PREVIEW = "relation-admission-patch-preview/v1"
 SCHEMA_APPLY_PLAN = "relation-admission-apply-plan/v1"
 SCHEMA_APPLY_REPORT = "relation-admission-apply-report/v1"
+SCHEMA_SNAPSHOT = "relation-admission-rollback-snapshot/v1"
+SCHEMA_RECEIPT = "relation-admission-apply-receipt/v1"
+SCHEMA_CANDIDATE_JOURNAL = "relation-apply-candidate-journal/v1"
+SCHEMA_ROLLBACK = "relation-admission-rollback-report/v1"
 SCHEMA_CANONICAL_RELATION = "canonical-relation/v1"
 
 # Types blocked for new candidates (historical types from S0136/S0137 analysis)
@@ -1370,6 +1376,7 @@ def write_current_run_manifest(
         raise RuntimeError("current run manifest requires published report and log")
     candidate_dir = candidates_file.parent
     candidate_manifest = candidate_dir / "current_candidate_manifest.json"
+    reconciliation_manifest = candidate_dir / "reconciliation_manifest.json"
     reviewable_manifest = candidate_dir / "reviewable_candidate_manifest.json"
     generated_at = datetime.now(tz=timezone.utc).isoformat()
     run_id = "current-" + hashlib.sha256(
@@ -1382,6 +1389,8 @@ def write_current_run_manifest(
         "canon_hash": aggregate_canon_hash(canon_glob),
         "candidate_manifest_path": str(candidate_manifest),
         "candidate_manifest_hash": sha256_path(candidate_manifest),
+        "reconciliation_manifest_path": str(reconciliation_manifest),
+        "reconciliation_manifest_hash": sha256_path(reconciliation_manifest),
         "reviewable_manifest_path": str(reviewable_manifest),
         "reviewable_manifest_hash": sha256_path(reviewable_manifest),
         "human_review_decisions_path": str(human_decisions_path) if human_decisions_path else None,
@@ -1424,9 +1433,13 @@ def load_dry_run_report(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def dry_run_p0_block_reasons(report: dict[str, Any]) -> list[str]:
+def dry_run_p0_block_reasons(
+    report: dict[str, Any], *, candidate_ids: set[str] | None = None,
+) -> list[str]:
     reasons: list[str] = []
     for item in report.get("items") or []:
+        if candidate_ids is not None and str(item.get("candidate_id") or "") not in candidate_ids:
+            continue
         for reason in item.get("all_block_reasons") or item.get("blocking_reasons") or []:
             reasons.append(str(reason))
     return reasons
@@ -1515,6 +1528,7 @@ def build_apply_plan(
     dry_run_report_path: Path,
     dry_run_recent: bool,
     dry_run_recent_reason: str = "",
+    binding_paths: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
     approved_ids = {
         cid for cid, decision in human_review_decisions.items()
@@ -1529,8 +1543,24 @@ def build_apply_plan(
         if item.get("gate_status") == ADMISSION_READY
         or item.get("admission_ready_dry_run") is True
     }
-    p0_reasons = dry_run_p0_block_reasons(dry_run_report)
-    would_apply_ids = sorted(approved_ids & ready_ids) if dry_run_recent and not p0_reasons else []
+    p0_reasons = dry_run_p0_block_reasons(dry_run_report, candidate_ids=approved_ids)
+    selected_approved_ids = sorted(approved_ids & ready_ids) if dry_run_recent and not p0_reasons else []
+    candidates_by_id = {str(candidate.get("candidate_id") or ""): candidate for candidate in candidates}
+    would_apply_ids: list[str] = []
+    omitted_duplicate_ids: list[str] = []
+    seen_signatures: set[tuple[str, str, str]] = set()
+    for candidate_id in selected_approved_ids:
+        candidate = candidates_by_id.get(candidate_id) or {}
+        signature = (
+            endpoint_id(candidate.get("source") or {}),
+            endpoint_id(candidate.get("target") or {}),
+            relation_type_for(candidate),
+        )
+        if signature in seen_signatures:
+            omitted_duplicate_ids.append(candidate_id)
+            continue
+        seen_signatures.add(signature)
+        would_apply_ids.append(candidate_id)
     block_reasons: list[str] = []
     if not human_review_decisions:
         block_reasons.append("missing_human_review")
@@ -1543,12 +1573,23 @@ def build_apply_plan(
     if not would_apply_ids and approved_ids and ready_ids and not block_reasons:
         block_reasons.append("no_candidates_selected_for_apply")
     canon_before_count = count_canon_records(canon_glob)
+    canon_before_hash = aggregate_canon_hash(canon_glob)
+    bindings = {
+        name: {"path": str(path), "sha256": sha256_path(path)}
+        for name, path in sorted((binding_paths or {}).items())
+    }
+    missing_bindings = sorted(name for name, binding in bindings.items() if binding["sha256"] is None)
+    if missing_bindings:
+        block_reasons.extend(f"missing_exact_binding:{name}" for name in missing_bindings)
+        would_apply_ids = []
     apply_plan_id = "apply_" + hashlib.sha256(
         json.dumps({
             "approved_ids": sorted(approved_ids),
             "ready_ids": sorted(ready_ids),
             "canon_before_count": canon_before_count,
+            "canon_before_hash": canon_before_hash,
             "dry_run_report": str(dry_run_report_path),
+            "bindings": bindings,
         }, sort_keys=True).encode()
     ).hexdigest()[:16]
     return {
@@ -1556,15 +1597,19 @@ def build_apply_plan(
         "apply_plan_id": apply_plan_id,
         "generated_at": utc_now(),
         "canon_before_count": canon_before_count,
+        "canon_before_hash": canon_before_hash,
         "candidate_count": len(candidates),
         "approved_count": len(approved_ids),
-        "blocked_count": len(candidates) - len(would_apply_ids),
+        "blocked_count": len(candidates) - len(selected_approved_ids),
+        "omitted_planned_count": len(omitted_duplicate_ids),
+        "omitted_planned_candidate_ids": omitted_duplicate_ids,
         "would_apply_count": len(would_apply_ids),
         "would_apply_candidate_ids": would_apply_ids,
         "block_reasons": block_reasons,
         "dry_run_report": str(dry_run_report_path),
         "dry_run_recent": dry_run_recent,
         "p0_block_reason_count": len(p0_reasons),
+        "exact_bindings": bindings,
         "canon_modified": False,
     }
 
@@ -1574,6 +1619,750 @@ def write_apply_plan(plan: dict[str, Any], out_dir: Path) -> Path:
     path = out_dir / "relation_apply_plan.json"
     path.write_text(json.dumps(plan, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
+
+
+def _canon_inventory(canon_glob: str) -> list[dict[str, Any]]:
+    inventory: list[dict[str, Any]] = []
+    for name in sorted(glob.glob(canon_glob)):
+        path = Path(name)
+        payload = path.read_bytes()
+        inventory.append({
+            "path": str(path.resolve()),
+            "name": path.name,
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "bytes": len(payload),
+            "records": sum(1 for line in payload.splitlines() if line.strip()),
+        })
+    return inventory
+
+
+def _atomic_write_bytes(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("wb", dir=path.parent, delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _atomic_write_json(path: Path, value: dict[str, Any]) -> None:
+    _atomic_write_bytes(
+        path,
+        (
+            json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        ).encode("utf-8"),
+    )
+
+
+def _append_transaction_event(path: Path, event: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _future_apply_id(
+    *,
+    apply_plan_id: str,
+    authorization_id: str | None,
+    started_at: str,
+) -> str:
+    material = {
+        "apply_plan_id": apply_plan_id,
+        "authorization_id": authorization_id,
+        "started_at": started_at,
+    }
+    digest = hashlib.sha256(
+        json.dumps(
+            material, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"apply_exec_{digest[:24]}"
+
+
+def _validate_authorized_plan(
+    *,
+    authorization_path: Path,
+    authorized_plan_path: Path,
+    observed_plan: dict[str, Any],
+    canon_glob: str,
+) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    errors: list[str] = []
+    authorization = load_json(authorization_path, default={}) or {}
+    authorized_plan = load_json(authorized_plan_path, default={}) or {}
+    bindings = authorization.get("bindings") or {}
+    if authorization.get("schema_version") != "gate-g-authorization/v1":
+        errors.append("invalid_authorization_schema")
+    if authorization.get("decision") != "authorized":
+        errors.append("authorization_not_authorized")
+    if authorization.get("authorized_operation") != APPLY_CONFIRMATION:
+        errors.append("authorization_operation_mismatch")
+    if authorization.get("single_use") is not True:
+        errors.append("authorization_not_single_use")
+    if authorization.get("consumed") is True:
+        errors.append("authorization_already_consumed")
+    if authorization.get("superseded") is True:
+        errors.append("authorization_superseded")
+    if authorization.get("authorization_current") is not True:
+        errors.append("authorization_not_current")
+    if authorization.get("single_use_exhausted") is True:
+        errors.append("authorization_single_use_exhausted")
+    if authorized_plan.get("schema") != SCHEMA_APPLY_PLAN:
+        errors.append("invalid_authorized_plan_schema")
+    if bindings.get("apply_plan_id") != authorized_plan.get("apply_plan_id"):
+        errors.append("authorization_plan_id_mismatch")
+    if bindings.get("apply_plan_hash") != sha256_path(authorized_plan_path):
+        errors.append("authorization_plan_hash_mismatch")
+    if authorized_plan.get("canon_before_hash") != aggregate_canon_hash(canon_glob):
+        errors.append("authorized_plan_canon_hash_mismatch")
+    if int(authorized_plan.get("canon_before_count") or -1) != count_canon_records(canon_glob):
+        errors.append("authorized_plan_canon_count_mismatch")
+    for name, binding in sorted((authorized_plan.get("exact_bindings") or {}).items()):
+        path = Path(str((binding or {}).get("path") or ""))
+        if not path.is_file() or sha256_path(path) != (binding or {}).get("sha256"):
+            errors.append(f"authorized_plan_binding_mismatch:{name}")
+    comparable_fields = (
+        "candidate_count",
+        "approved_count",
+        "blocked_count",
+        "omitted_planned_count",
+        "omitted_planned_candidate_ids",
+        "would_apply_count",
+        "would_apply_candidate_ids",
+        "canon_before_count",
+        "canon_before_hash",
+    )
+    for field in comparable_fields:
+        if authorized_plan.get(field) != observed_plan.get(field):
+            errors.append(f"authorized_plan_observed_mismatch:{field}")
+    return authorization, authorized_plan, errors
+
+
+def _mark_authorization_in_progress(
+    path: Path,
+    authorization: dict[str, Any],
+    *,
+    apply_id: str,
+    apply_plan_id: str,
+    started_at: str,
+) -> None:
+    updated = dict(authorization)
+    updated.update({
+        "consumption_state": "in_progress",
+        "consumption_started_at": started_at,
+        "consumption_apply_id": apply_id,
+        "consumption_apply_plan_id": apply_plan_id,
+        "single_use_exhausted": True,
+        "authorization_current": False,
+    })
+    _atomic_write_json(path, updated)
+
+
+def _mark_authorization_failed(
+    path: Path,
+    *,
+    apply_id: str,
+    failure: str,
+) -> None:
+    authorization = load_json(path, default={}) or {}
+    authorization.update({
+        "consumed": False,
+        "consumption_state": "failed_rolled_back_requires_reauthorization",
+        "failed_apply_id": apply_id,
+        "failure": failure,
+        "failed_at": utc_now(),
+        "single_use_exhausted": True,
+        "authorization_current": False,
+        "production_apply_executed": False,
+        "canon_modified": False,
+    })
+    _atomic_write_json(path, authorization)
+
+
+def _mark_authorization_consumed(
+    path: Path,
+    *,
+    apply_id: str,
+    receipt_path: Path,
+    canon_before_hash: str,
+    canon_after_hash: str,
+    relations_written: int,
+) -> None:
+    authorization = load_json(path, default={}) or {}
+    authorization.update({
+        "consumed": True,
+        "consumed_once": True,
+        "consumed_by_apply_id": apply_id,
+        "consumed_at": utc_now(),
+        "consumption_state": "consumed",
+        "single_use_exhausted": True,
+        "authorization_current": False,
+        "production_apply_executed": True,
+        "canon_modified": relations_written > 0,
+        "production_effect": {
+            "relations_written": relations_written,
+            "pre_canon_hash": canon_before_hash,
+            "post_canon_hash": canon_after_hash,
+        },
+        "receipt_path": str(receipt_path),
+        "receipt_hash": sha256_path(receipt_path),
+    })
+    _atomic_write_json(path, authorization)
+
+
+def create_rollback_snapshot(
+    *,
+    canon_glob: str,
+    snapshot_root: Path,
+    apply_plan_path: Path,
+    apply_plan: dict[str, Any],
+    target_scope: str,
+    apply_id: str | None = None,
+    authorization_id: str | None = None,
+) -> Path:
+    """Create or verify a byte-exact snapshot before the first shard mutation."""
+    inventory = _canon_inventory(canon_glob)
+    if not inventory:
+        raise ValueError("cannot snapshot an empty canon target")
+    snapshot_dir = snapshot_root / str(apply_id or apply_plan["apply_plan_id"])
+    backup_dir = snapshot_dir / "canon"
+    manifest_path = snapshot_dir / "snapshot_manifest.json"
+    if manifest_path.exists():
+        existing = load_json(manifest_path, default={}) or {}
+        if existing.get("apply_plan_hash") != sha256_path(apply_plan_path):
+            raise ValueError("existing snapshot is bound to a different apply plan")
+        for item in existing.get("files") or []:
+            backup = snapshot_dir / str(item.get("backup_path") or "")
+            if sha256_path(backup) != item.get("sha256"):
+                raise ValueError("existing rollback snapshot failed hash verification")
+        return manifest_path
+
+    backup_dir.mkdir(parents=True, exist_ok=False)
+    files: list[dict[str, Any]] = []
+    for item in inventory:
+        source = Path(item["path"])
+        backup = backup_dir / item["name"]
+        shutil.copyfile(source, backup)
+        if sha256_path(backup) != item["sha256"]:
+            raise RuntimeError(f"snapshot copy hash mismatch: {source}")
+        files.append(item | {"backup_path": str(backup.relative_to(snapshot_dir))})
+    manifest = {
+        "schema_version": SCHEMA_SNAPSHOT,
+        "created_at": utc_now(),
+        "apply_plan_id": apply_plan["apply_plan_id"],
+        "apply_id": apply_id,
+        "authorization_id": authorization_id,
+        "apply_plan_path": str(apply_plan_path),
+        "apply_plan_hash": sha256_path(apply_plan_path),
+        "target_scope": target_scope,
+        "canon_before_hash": apply_plan["canon_before_hash"],
+        "canon_before_count": apply_plan["canon_before_count"],
+        "exact_bindings": apply_plan.get("exact_bindings") or {},
+        "files": files,
+        "snapshot_complete": True,
+        "canon_modified": False,
+    }
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
+def _validate_canon_files(paths: list[Path]) -> None:
+    seen_ids: set[str] = set()
+    for path in paths:
+        for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if not raw.strip():
+                continue
+            row = json.loads(raw)
+            if not isinstance(row, dict) or not str(row.get("id") or ""):
+                raise ValueError(f"{path}:{line_no}: canonical object with id required")
+            candidate_id = str(row["id"])
+            if candidate_id in seen_ids:
+                raise ValueError(f"duplicate canonical id after apply: {candidate_id}")
+            seen_ids.add(candidate_id)
+
+
+def rollback_relational_apply(
+    *,
+    snapshot_manifest_path: Path,
+    out_dir: Path,
+) -> dict[str, Any]:
+    """Restore a snapshot byte for byte; a repeated rollback is idempotent."""
+    manifest = load_json(snapshot_manifest_path, default={}) or {}
+    if manifest.get("schema_version") != SCHEMA_SNAPSHOT or manifest.get("snapshot_complete") is not True:
+        raise ValueError("invalid or incomplete rollback snapshot")
+    snapshot_dir = snapshot_manifest_path.parent
+    files = manifest.get("files") or []
+    already_restored = all(
+        sha256_path(Path(str(item["path"]))) == item.get("sha256")
+        for item in files
+    )
+    restored = 0
+    if not already_restored:
+        for item in files:
+            destination = Path(str(item["path"]))
+            backup = snapshot_dir / str(item["backup_path"])
+            if sha256_path(backup) != item.get("sha256"):
+                raise ValueError(f"rollback backup hash mismatch: {backup}")
+            _atomic_write_bytes(destination, backup.read_bytes())
+            restored += 1
+    exact = all(sha256_path(Path(str(item["path"]))) == item.get("sha256") for item in files)
+    report = {
+        "schema_version": SCHEMA_ROLLBACK,
+        "rolled_back_at": utc_now(),
+        "apply_id": manifest.get("apply_id"),
+        "authorization_id": manifest.get("authorization_id"),
+        "apply_plan_id": manifest.get("apply_plan_id"),
+        "snapshot_manifest_path": str(snapshot_manifest_path),
+        "snapshot_manifest_hash": sha256_path(snapshot_manifest_path),
+        "status": "already_restored" if already_restored else ("restored" if exact else "failed"),
+        "restored_shards": restored,
+        "byte_exact": exact,
+        "canon_modified": not exact,
+    }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "rollback_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    if not exact:
+        raise RuntimeError("rollback did not restore the snapshot byte for byte")
+    return report
+
+
+def _transactional_apply(
+    *,
+    canon_glob: str,
+    selected_by_source: dict[str, list[dict[str, Any]]],
+    plan: dict[str, Any],
+    plan_path: Path,
+    out_dir: Path,
+    target_scope: str,
+    inject_failure_after_shards: int | None,
+    apply_id: str,
+    authorization_id: str | None = None,
+    omitted_equivalent_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    snapshot_path = create_rollback_snapshot(
+        canon_glob=canon_glob,
+        snapshot_root=out_dir / "rollback_snapshots",
+        apply_plan_path=plan_path,
+        apply_plan=plan,
+        target_scope=target_scope,
+        apply_id=apply_id,
+        authorization_id=authorization_id,
+    )
+    journal_path = out_dir / "relation_apply_journal.jsonl"
+    journal_path.unlink(missing_ok=True)
+    event_identity = {
+        "apply_id": apply_id,
+        "authorization_id": authorization_id,
+        "apply_plan_id": plan["apply_plan_id"],
+    }
+    _append_transaction_event(journal_path, {
+        "event": "transaction_started",
+        "at": utc_now(),
+        "snapshot_manifest_hash": sha256_path(snapshot_path),
+        **event_identity,
+    })
+    prepared: dict[Path, bytes] = {}
+    applied_count = 0
+    omitted_existing = 0
+    changed_shards: list[str] = []
+    source_shards: dict[str, str] = {}
+    candidate_results: list[dict[str, Any]] = []
+    for name in sorted(glob.glob(canon_glob)):
+        path = Path(name)
+        shard_before_hash = sha256_path(path)
+        lines: list[str] = []
+        changed = False
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            if not raw.strip():
+                continue
+            record = json.loads(raw)
+            relations = selected_by_source.get(str(record.get("id") or ""))
+            if relations:
+                source_shards[str(record.get("id") or "")] = str(path)
+                current = record.get("relations")
+                if not isinstance(current, list):
+                    current = []
+                existing = {
+                    (
+                        str(relation.get("source_id") or record.get("id") or ""),
+                        str(relation.get("target_id") or ""),
+                        str(relation.get("relation_type") or relation.get("type") or ""),
+                    )
+                    for relation in current
+                    if (
+                        isinstance(relation, dict)
+                        and (
+                            relation.get("relation_schema_version")
+                            or relation.get("schema_version")
+                            or relation.get("relation_schema")
+                        ) == SCHEMA_CANONICAL_RELATION
+                    )
+                }
+                for relation in relations:
+                    key = (relation["source_id"], relation["target_id"], relation["relation_type"])
+                    candidate_event = {
+                        "schema_version": SCHEMA_CANDIDATE_JOURNAL,
+                        "event": "candidate_result",
+                        "candidate_id": str(
+                            (relation.get("evidence") or {}).get("candidate_id") or ""
+                        ),
+                        "source": relation["source_id"],
+                        "predicate": relation["relation_type"],
+                        "target": relation["target_id"],
+                        "relation_schema_version": relation["relation_schema_version"],
+                        "relation_id": relation["relation_id"],
+                        "shard": str(path),
+                        "shard_before_hash": shard_before_hash,
+                        **event_identity,
+                    }
+                    if key in existing:
+                        omitted_existing += 1
+                        candidate_results.append(candidate_event | {
+                            "result": "omitted_existing_equivalent",
+                        })
+                        continue
+                    current.append(relation)
+                    existing.add(key)
+                    applied_count += 1
+                    changed = True
+                    candidate_results.append(candidate_event | {"result": "written"})
+                record["relations"] = current
+            lines.append(json.dumps(record, ensure_ascii=False))
+        if changed:
+            prepared[path] = ("\n".join(lines) + "\n").encode()
+            changed_shards.append(str(path))
+
+    staging_dir = Path(tempfile.mkdtemp(prefix="relation-apply-", dir=out_dir))
+    try:
+        staged_paths: list[Path] = []
+        for index, (destination, payload) in enumerate(sorted(prepared.items(), key=lambda item: str(item[0]))):
+            staged = staging_dir / destination.name
+            staged.write_bytes(payload)
+            staged_paths.append(staged)
+            _append_transaction_event(journal_path, {
+                "event": "shard_prepared", "index": index, "destination": str(destination),
+                "sha256": sha256_path(staged),
+                **event_identity,
+            })
+        _validate_canon_files(
+            [next((staging_dir / path.name for path in prepared if path == original), original) for original in map(Path, sorted(glob.glob(canon_glob)))]
+        )
+        promoted = 0
+        for destination in sorted(prepared, key=str):
+            staged = staging_dir / destination.name
+            _atomic_write_bytes(destination, staged.read_bytes())
+            promoted += 1
+            _append_transaction_event(journal_path, {
+                "event": "shard_promoted", "index": promoted, "destination": str(destination),
+                "sha256": sha256_path(destination),
+                **event_identity,
+            })
+            if inject_failure_after_shards is not None and promoted >= inject_failure_after_shards:
+                raise RuntimeError(f"injected failure after {promoted} shard promotions")
+        _validate_canon_files([Path(name) for name in sorted(glob.glob(canon_glob))])
+        for candidate_event in candidate_results:
+            candidate_event["shard_after_hash"] = sha256_path(Path(candidate_event["shard"]))
+            _append_transaction_event(journal_path, candidate_event)
+        for omitted in omitted_equivalent_records or []:
+            _append_transaction_event(journal_path, {
+                "schema_version": SCHEMA_CANDIDATE_JOURNAL,
+                "event": "candidate_result",
+                "candidate_id": omitted.get("candidate_id"),
+                "source": omitted.get("source"),
+                "predicate": omitted.get("predicate"),
+                "target": omitted.get("target"),
+                "relation_schema_version": SCHEMA_CANONICAL_RELATION,
+                "result": "omitted_equivalent_representation",
+                "representative_candidate_id": omitted.get("representative_candidate_id"),
+                "physical_edge_written": False,
+                "shard": source_shards.get(str(omitted.get("source") or "")),
+                **event_identity,
+            })
+        _append_transaction_event(journal_path, {
+            "event": "transaction_committed", "at": utc_now(), "applied_count": applied_count,
+            "omitted_equivalent_count": len(omitted_equivalent_records or []),
+            **event_identity,
+        })
+    except Exception as error:
+        _append_transaction_event(journal_path, {
+            "event": "transaction_failed",
+            "at": utc_now(),
+            "failure": str(error),
+            **event_identity,
+        })
+        rollback = rollback_relational_apply(
+            snapshot_manifest_path=snapshot_path, out_dir=out_dir,
+        )
+        for candidate_event in candidate_results:
+            _append_transaction_event(journal_path, candidate_event | {
+                "event": "candidate_rollback",
+                "result": "rolled_back_after_failure",
+                "failure": str(error),
+            })
+        _append_transaction_event(journal_path, {
+            "event": "rollback_completed",
+            "at": utc_now(),
+            "byte_exact": rollback.get("byte_exact"),
+            **event_identity,
+        })
+        raise
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+    return {
+        "applied_count": applied_count,
+        "failed_count": 0,
+        "omitted_existing_count": omitted_existing,
+        "omitted_equivalent_count": len(omitted_equivalent_records or []),
+        "changed_shards": changed_shards,
+        "apply_id": apply_id,
+        "authorization_id": authorization_id,
+        "rollback_snapshot": str(snapshot_path),
+        "rollback_snapshot_hash": sha256_path(snapshot_path),
+        "journal_path": str(journal_path),
+        "journal_hash": sha256_path(journal_path),
+    }
+
+
+def prepare_gate_g_package(
+    *,
+    candidates_file: Path,
+    canon_glob: str,
+    human_review_decisions_file: Path,
+    dry_run_report_path: Path,
+    out_dir: Path,
+    binding_paths: dict[str, Path],
+    safety_verification_report: Path,
+    max_dry_run_age_minutes: int = 1440,
+) -> dict[str, Any]:
+    """Prepare an exact, non-authorizing Gate G package without applying."""
+    candidates = load_jsonl(candidates_file)
+    decisions, decision_errors = load_persistent_human_review_decisions(human_review_decisions_file)
+    if decision_errors:
+        raise ValueError("invalid human review decisions: " + "; ".join(decision_errors))
+    dry_run_report = load_dry_run_report(dry_run_report_path)
+    recent, reason = dry_run_report_is_recent(
+        dry_run_report_path, max_age_minutes=max_dry_run_age_minutes,
+    )
+    all_bindings = dict(binding_paths)
+    all_bindings.update({
+        "human_review_decisions": human_review_decisions_file,
+        "dry_run_report": dry_run_report_path,
+        "safety_verification_report": safety_verification_report,
+    })
+    plan = build_apply_plan(
+        candidates=candidates,
+        canon_glob=canon_glob,
+        human_review_decisions=decisions,
+        dry_run_report=dry_run_report,
+        dry_run_report_path=dry_run_report_path,
+        dry_run_recent=recent,
+        dry_run_recent_reason=reason,
+        binding_paths=all_bindings,
+    )
+    if plan["block_reasons"]:
+        raise ValueError("Gate G apply plan is blocked: " + "; ".join(plan["block_reasons"]))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    plan_path = write_apply_plan(plan, out_dir)
+    snapshot_path = create_rollback_snapshot(
+        canon_glob=canon_glob,
+        snapshot_root=out_dir / "rollback_snapshots",
+        apply_plan_path=plan_path,
+        apply_plan=plan,
+        target_scope="production_preapply_snapshot",
+    )
+    readiness = {
+        "schema_version": "s0183-gate-g-readiness/v1",
+        "session_id": "m04-s0183",
+        "prepared_at": utc_now(),
+        "canon_hash": plan["canon_before_hash"],
+        "canon_records": plan["canon_before_count"],
+        "would_apply_count": plan["would_apply_count"],
+        "would_apply_candidate_ids": plan["would_apply_candidate_ids"],
+        "omitted_planned_count": plan.get("omitted_planned_count", 0),
+        "omitted_planned_candidate_ids": plan.get("omitted_planned_candidate_ids", []),
+        "apply_plan_path": str(plan_path),
+        "apply_plan_hash": sha256_path(plan_path),
+        "snapshot_path": str(snapshot_path),
+        "snapshot_hash": sha256_path(snapshot_path),
+        "safety_verification_report_path": str(safety_verification_report),
+        "safety_verification_report_hash": sha256_path(safety_verification_report),
+        "exact_bindings": plan["exact_bindings"],
+        "apply_authorized": False,
+        "apply_executed": False,
+        "production_apply_authorized_by_contract": False,
+        "rollback_ready": True,
+        "canon_modified": False,
+        "verdict": "IMPACT_REQUIRES_REAUTHORIZATION",
+        "next_action": "REQUEST_EXPLICIT_REAUTHORIZATION_FOR_APPLY_RELATIONS",
+    }
+    readiness_path = out_dir / "gate_g_readiness.json"
+    readiness_path.write_text(
+        json.dumps(readiness, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return readiness | {"readiness_path": str(readiness_path)}
+
+
+def verify_apply_safety_on_temp_copy(
+    *,
+    source_canon_glob: str,
+    temp_work_root: Path,
+    candidates_file: Path,
+    human_review_decisions_file: Path,
+    dry_run_report_path: Path,
+    binding_paths: dict[str, Path],
+    report_path: Path,
+) -> dict[str, Any]:
+    """Exercise apply, idempotency, rollback, and recovery on isolated copies."""
+    source_files = [Path(name) for name in sorted(glob.glob(source_canon_glob))]
+    if not source_files:
+        raise ValueError("source canon is empty")
+    if temp_work_root.exists():
+        raise ValueError(f"temporary safety root already exists: {temp_work_root}")
+    source_hash = aggregate_canon_hash(source_canon_glob)
+    source_inventory = {path.name: sha256_path(path) for path in source_files}
+
+    def copy_canon(destination: Path) -> str:
+        destination.mkdir(parents=True, exist_ok=False)
+        for source in source_files:
+            shutil.copyfile(source, destination / source.name)
+        target_glob = str(destination / "tiddlers_*.jsonl")
+        if aggregate_canon_hash(target_glob) != source_hash:
+            raise RuntimeError("temporary canon copy does not match production input")
+        return target_glob
+
+    success_glob = copy_canon(temp_work_root / "success" / "canon")
+    success_out = temp_work_root / "success" / "audit"
+    code, first = guarded_apply_relations(
+        candidates_file=candidates_file,
+        canon_glob=success_glob,
+        human_review_decisions_file=human_review_decisions_file,
+        dry_run_report_path=dry_run_report_path,
+        out_dir=success_out,
+        terminal_confirmation=APPLY_CONFIRMATION,
+        perform_write=True,
+        target_scope="tmp_path",
+        binding_paths=binding_paths,
+    )
+    if code != 0 or first.get("status") != "applied":
+        raise RuntimeError(f"temporary positive apply failed: {first.get('status')}")
+    retry_out = temp_work_root / "success" / "retry-audit"
+    retry_code, retry = guarded_apply_relations(
+        candidates_file=candidates_file,
+        canon_glob=success_glob,
+        human_review_decisions_file=human_review_decisions_file,
+        dry_run_report_path=dry_run_report_path,
+        out_dir=retry_out,
+        terminal_confirmation=APPLY_CONFIRMATION,
+        perform_write=True,
+        target_scope="tmp_path",
+        binding_paths=binding_paths,
+    )
+    if retry_code != 0 or int(retry.get("applied_count") or 0) != 0:
+        raise RuntimeError("second temporary apply was not idempotent")
+    rollback = rollback_relational_apply(
+        snapshot_manifest_path=Path(str(first["rollback_snapshot"])),
+        out_dir=success_out,
+    )
+    repeated_rollback = rollback_relational_apply(
+        snapshot_manifest_path=Path(str(first["rollback_snapshot"])),
+        out_dir=success_out,
+    )
+    success_restored = aggregate_canon_hash(success_glob) == source_hash
+
+    failure_glob = copy_canon(temp_work_root / "failure" / "canon")
+    failure_out = temp_work_root / "failure" / "audit"
+    failure_code, failure = guarded_apply_relations(
+        candidates_file=candidates_file,
+        canon_glob=failure_glob,
+        human_review_decisions_file=human_review_decisions_file,
+        dry_run_report_path=dry_run_report_path,
+        out_dir=failure_out,
+        terminal_confirmation=APPLY_CONFIRMATION,
+        perform_write=True,
+        target_scope="tmp_path",
+        binding_paths=binding_paths,
+        inject_failure_after_shards=1,
+    )
+    failure_restored = aggregate_canon_hash(failure_glob) == source_hash
+    production_unchanged = (
+        aggregate_canon_hash(source_canon_glob) == source_hash
+        and all(sha256_path(path) == digest for path, digest in (
+            (path, source_inventory[path.name]) for path in source_files
+        ))
+    )
+    passed = all((
+        int(first.get("applied_count") or 0) > 0,
+        int(first.get("applied_count") or 0) == int((first.get("apply_plan") or {}).get("would_apply_count") or 0),
+        int(retry.get("applied_count") or 0) == 0,
+        rollback.get("byte_exact") is True,
+        repeated_rollback.get("status") == "already_restored",
+        success_restored,
+        failure_code != 0,
+        failure.get("status") == "rolled_back_after_failure",
+        failure_restored,
+        production_unchanged,
+    ))
+    report = {
+        "schema_version": "s0183-transactional-apply-safety-verification/v1",
+        "session_id": "m04-s0183",
+        "verified_at": utc_now(),
+        "source_canon_glob": source_canon_glob,
+        "source_canon_hash": source_hash,
+        "source_shards": len(source_files),
+        "positive_apply": {
+            "status": first.get("status"),
+            "applied_count": first.get("applied_count"),
+            "approved_count": (first.get("apply_plan") or {}).get("approved_count"),
+            "would_apply_count": (first.get("apply_plan") or {}).get("would_apply_count"),
+            "omitted_planned_count": (first.get("apply_plan") or {}).get("omitted_planned_count"),
+            "omitted_planned_candidate_ids": (first.get("apply_plan") or {}).get("omitted_planned_candidate_ids"),
+            "receipt_path": str(success_out / "relation_apply_receipt.json"),
+            "receipt_hash": sha256_path(success_out / "relation_apply_receipt.json"),
+            "snapshot_path": first.get("rollback_snapshot"),
+            "snapshot_hash": first.get("rollback_snapshot_hash"),
+            "journal_path": first.get("journal_path"),
+            "journal_hash": first.get("journal_hash"),
+        },
+        "second_apply": {
+            "status": retry.get("status"),
+            "applied_count": retry.get("applied_count"),
+            "omitted_existing_count": retry.get("omitted_existing_count"),
+        },
+        "rollback": rollback,
+        "repeated_rollback": repeated_rollback,
+        "injected_failure": {
+            "status": failure.get("status"),
+            "failure": failure.get("failure"),
+            "rollback_report": failure.get("rollback_report"),
+            "restored_exactly": failure_restored,
+        },
+        "success_copy_restored_exactly": success_restored,
+        "production_canon_unchanged": production_unchanged,
+        "passed": passed,
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    if not passed:
+        raise RuntimeError("temporary transactional safety verification failed")
+    return report | {"report_path": str(report_path)}
 
 
 def guarded_apply_relations(
@@ -1587,8 +2376,12 @@ def guarded_apply_relations(
     max_dry_run_age_minutes: int = 1440,
     perform_write: bool = False,
     target_scope: str = "unspecified",
+    binding_paths: dict[str, Path] | None = None,
+    inject_failure_after_shards: int | None = None,
+    authorization_path: Path | None = None,
+    authorized_plan_path: Path | None = None,
 ) -> tuple[int, dict[str, Any]]:
-    """Build an apply plan and optionally mutate canon only after all guards pass."""
+    """Apply an exact authorized plan, or exercise the same engine on a temp fixture."""
     candidates = load_jsonl(candidates_file) if candidates_file.exists() else []
     decisions, decision_errors = load_persistent_human_review_decisions(human_review_decisions_file)
     dry_run_report = load_dry_run_report(dry_run_report_path)
@@ -1596,7 +2389,7 @@ def guarded_apply_relations(
         dry_run_report_path,
         max_age_minutes=max_dry_run_age_minutes,
     )
-    plan = build_apply_plan(
+    observed_plan = build_apply_plan(
         candidates=candidates,
         canon_glob=canon_glob,
         human_review_decisions=decisions,
@@ -1604,18 +2397,48 @@ def guarded_apply_relations(
         dry_run_report_path=dry_run_report_path,
         dry_run_recent=dry_run_recent,
         dry_run_recent_reason=dry_run_recent_reason,
+        binding_paths=binding_paths,
     )
     if decision_errors:
-        plan["block_reasons"].extend(f"invalid_human_review: {err}" for err in decision_errors)
-        plan["would_apply_count"] = 0
-        plan["would_apply_candidate_ids"] = []
-        plan["blocked_count"] = len(candidates)
+        observed_plan["block_reasons"].extend(
+            f"invalid_human_review: {err}" for err in decision_errors
+        )
+        observed_plan["would_apply_count"] = 0
+        observed_plan["would_apply_candidate_ids"] = []
+        observed_plan["blocked_count"] = len(candidates)
     if terminal_confirmation != APPLY_CONFIRMATION:
-        plan["block_reasons"].append("missing_exact_terminal_confirmation")
-        plan["would_apply_count"] = 0
-        plan["would_apply_candidate_ids"] = []
-        plan["blocked_count"] = len(candidates)
-    plan_path = write_apply_plan(plan, out_dir)
+        observed_plan["block_reasons"].append("missing_exact_terminal_confirmation")
+        observed_plan["would_apply_count"] = 0
+        observed_plan["would_apply_candidate_ids"] = []
+        observed_plan["blocked_count"] = len(candidates)
+
+    authorization: dict[str, Any] = {}
+    plan = observed_plan
+    exact_authorized_plan_reused = False
+    authorization_required = target_scope == "production_path"
+    if authorization_required and (authorization_path is None or authorized_plan_path is None):
+        observed_plan["block_reasons"].append("missing_gate_g_authorization_or_authorized_plan")
+    elif authorization_path is not None or authorized_plan_path is not None:
+        if authorization_path is None or authorized_plan_path is None:
+            observed_plan["block_reasons"].append("incomplete_authorization_binding")
+        else:
+            authorization, authorized_plan, authorization_errors = _validate_authorized_plan(
+                authorization_path=authorization_path,
+                authorized_plan_path=authorized_plan_path,
+                observed_plan=observed_plan,
+                canon_glob=canon_glob,
+            )
+            observed_plan["block_reasons"].extend(authorization_errors)
+            if not observed_plan["block_reasons"]:
+                plan = authorized_plan
+                exact_authorized_plan_reused = True
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    plan_path = out_dir / "relation_apply_plan.json"
+    if exact_authorized_plan_reused and authorized_plan_path is not None:
+        _atomic_write_bytes(plan_path, authorized_plan_path.read_bytes())
+    else:
+        plan_path = write_apply_plan(observed_plan, out_dir)
 
     report = {
         "schema": SCHEMA_APPLY_REPORT,
@@ -1625,15 +2448,21 @@ def guarded_apply_relations(
         "apply_executed": False,
         "apply_plan_path": str(plan_path),
         "apply_plan": plan,
+        "exact_authorized_plan_reused": exact_authorized_plan_reused,
+        "authorization_id": authorization.get("authorization_id"),
         "would_apply_count": plan["would_apply_count"],
         "blocked_count": plan["blocked_count"],
+        "omitted_planned_count": plan.get("omitted_planned_count", 0),
         "applied_count": 0,
         "canon_before_count": plan["canon_before_count"],
         "canon_after_count": plan["canon_before_count"],
         "canon_modified": False,
         "status": "blocked",
     }
-    if plan["block_reasons"]:
+    if observed_plan["block_reasons"]:
+        report["apply_plan"] = observed_plan
+        report["would_apply_count"] = observed_plan["would_apply_count"]
+        report["blocked_count"] = observed_plan["blocked_count"]
         (out_dir / "relation_apply_report.json").write_text(
             json.dumps(report, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
@@ -1653,6 +2482,7 @@ def guarded_apply_relations(
     candidates_by_id = {str(c.get("candidate_id") or ""): c for c in candidates}
     selected = [candidates_by_id[cid] for cid in plan["would_apply_candidate_ids"] if cid in candidates_by_id]
     selected_by_source: dict[str, list[dict[str, Any]]] = {}
+    representative_by_signature: dict[tuple[str, str, str], str] = {}
     for candidate in selected:
         review = decisions[str(candidate.get("candidate_id"))]
         relation = build_admitted_relation(candidate, review)
@@ -1666,43 +2496,77 @@ def guarded_apply_relations(
             )
             return 1, report
         selected_by_source.setdefault(relation["source_id"], []).append(relation)
+        representative_by_signature[
+            (relation["source_id"], relation["target_id"], relation["relation_type"])
+        ] = str(candidate.get("candidate_id") or "")
 
-    applied_count = 0
-    for fpath in sorted(glob.glob(canon_glob)):
-        path = Path(fpath)
-        lines: list[str] = []
-        changed = False
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            rec = json.loads(line)
-            relations = selected_by_source.get(str(rec.get("id") or ""))
-            if relations:
-                current = rec.get("relations")
-                if not isinstance(current, list):
-                    current = []
-                existing = {
-                    (
-                        str(r.get("source_id") or rec.get("id") or ""),
-                        str(r.get("target_id") or ""),
-                        str(r.get("relation_type") or r.get("type") or ""),
-                    )
-                    for r in current
-                    if isinstance(r, dict)
-                }
-                for relation in relations:
-                    key = (relation["source_id"], relation["target_id"], relation["relation_type"])
-                    if key not in existing:
-                        current.append(relation)
-                        existing.add(key)
-                        applied_count += 1
-                        changed = True
-                rec["relations"] = current
-            lines.append(json.dumps(rec, ensure_ascii=False))
-        if changed:
-            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    omitted_equivalent_records: list[dict[str, Any]] = []
+    for candidate_id in plan.get("omitted_planned_candidate_ids") or []:
+        candidate = candidates_by_id.get(str(candidate_id)) or {}
+        source = endpoint_id(candidate.get("source") or {})
+        target = endpoint_id(candidate.get("target") or {})
+        predicate = relation_type_for(candidate)
+        omitted_equivalent_records.append({
+            "candidate_id": candidate_id,
+            "source": source,
+            "predicate": predicate,
+            "target": target,
+            "representative_candidate_id": representative_by_signature.get(
+                (source, target, predicate),
+            ),
+        })
+
+    started_at = utc_now()
+    apply_id = _future_apply_id(
+        apply_plan_id=str(plan["apply_plan_id"]),
+        authorization_id=authorization.get("authorization_id"),
+        started_at=started_at,
+    )
+    report["apply_id"] = apply_id
+    report["started_at"] = started_at
+    if authorization_path is not None:
+        _mark_authorization_in_progress(
+            authorization_path,
+            authorization,
+            apply_id=apply_id,
+            apply_plan_id=str(plan["apply_plan_id"]),
+            started_at=started_at,
+        )
+
+    try:
+        transaction = _transactional_apply(
+            canon_glob=canon_glob,
+            selected_by_source=selected_by_source,
+            plan=plan,
+            plan_path=plan_path,
+            out_dir=out_dir,
+            target_scope=target_scope,
+            inject_failure_after_shards=inject_failure_after_shards,
+            apply_id=apply_id,
+            authorization_id=authorization.get("authorization_id"),
+            omitted_equivalent_records=omitted_equivalent_records,
+        )
+    except Exception as error:
+        if authorization_path is not None:
+            _mark_authorization_failed(
+                authorization_path, apply_id=apply_id, failure=str(error),
+            )
+        report.update({
+            "status": "rolled_back_after_failure",
+            "report_kind": "failed_apply_rollback_report",
+            "failure": str(error),
+            "rollback_report": str(out_dir / "rollback_report.json"),
+            "canon_after_hash": aggregate_canon_hash(canon_glob),
+            "completed_at": utc_now(),
+        })
+        (out_dir / "relation_apply_report.json").write_text(
+            json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        return 1, report
 
     canon_after_count = count_canon_records(canon_glob)
+    applied_count = int(transaction["applied_count"])
     report.update({
         "status": "applied",
         "report_kind": (
@@ -1713,13 +2577,118 @@ def guarded_apply_relations(
         "apply_executed": applied_count > 0,
         "applied_count": applied_count,
         "canon_after_count": canon_after_count,
+        "canon_before_hash": plan["canon_before_hash"],
+        "canon_after_hash": aggregate_canon_hash(canon_glob),
         "canon_modified": applied_count > 0,
+        **transaction,
     })
-    report["apply_plan"]["canon_modified"] = applied_count > 0
+    report["completed_at"] = utc_now()
+    report["apply_plan"] = plan | {"canon_modified": applied_count > 0}
     (out_dir / "relation_apply_report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+    receipt = {
+        "schema_version": SCHEMA_RECEIPT,
+        "apply_id": apply_id,
+        "authorization_id": authorization.get("authorization_id"),
+        "authorization_path": str(authorization_path) if authorization_path else None,
+        "apply_plan_id": plan["apply_plan_id"],
+        "apply_plan_hash": sha256_path(plan_path),
+        "status": report["status"],
+        "attempted_count": plan["approved_count"],
+        "applied_count": applied_count,
+        "failed_count": transaction["failed_count"],
+        "omitted_planned_count": plan.get("omitted_planned_count", 0),
+        "omitted_planned_candidate_ids": plan.get("omitted_planned_candidate_ids", []),
+        "omitted_existing_count": transaction["omitted_existing_count"],
+        "omitted_count": (
+            int(plan.get("omitted_planned_count") or 0)
+            + int(transaction["omitted_existing_count"])
+        ),
+        "blocked_count": plan["blocked_count"],
+        "canon_before_hash": plan["canon_before_hash"],
+        "canon_after_hash": report["canon_after_hash"],
+        "canon_before_count": plan["canon_before_count"],
+        "canon_after_count": canon_after_count,
+        "canon_before_shards": len(_canon_inventory(canon_glob)),
+        "canon_after_shards": len(_canon_inventory(canon_glob)),
+        "rollback_snapshot": transaction["rollback_snapshot"],
+        "rollback_snapshot_hash": transaction["rollback_snapshot_hash"],
+        "journal_path": transaction["journal_path"],
+        "journal_hash": transaction["journal_hash"],
+        "exact_bindings": plan.get("exact_bindings") or {},
+        "target_scope": target_scope,
+        "exact_authorized_plan_reused": exact_authorized_plan_reused,
+    }
+    receipt_path = out_dir / "relation_apply_receipt.json"
+    try:
+        _atomic_write_json(receipt_path, receipt)
+        if authorization_path is not None:
+            _mark_authorization_consumed(
+                authorization_path,
+                apply_id=apply_id,
+                receipt_path=receipt_path,
+                canon_before_hash=str(plan["canon_before_hash"]),
+                canon_after_hash=str(report["canon_after_hash"]),
+                relations_written=applied_count,
+            )
+    except Exception as error:
+        rollback = rollback_relational_apply(
+            snapshot_manifest_path=Path(str(transaction["rollback_snapshot"])),
+            out_dir=out_dir,
+        )
+        for candidate in selected:
+            _append_transaction_event(
+                Path(str(transaction["journal_path"])),
+                {
+                    "schema_version": SCHEMA_CANDIDATE_JOURNAL,
+                    "event": "candidate_rollback",
+                    "candidate_id": candidate.get("candidate_id"),
+                    "result": "rolled_back_after_receipt_or_consumption_failure",
+                    "failure": str(error),
+                    "apply_id": apply_id,
+                    "authorization_id": authorization.get("authorization_id"),
+                    "apply_plan_id": plan["apply_plan_id"],
+                },
+            )
+        _append_transaction_event(
+            Path(str(transaction["journal_path"])),
+            {
+                "event": "postcommit_rollback_completed",
+                "at": utc_now(),
+                "failure": str(error),
+                "byte_exact": rollback.get("byte_exact"),
+                "apply_id": apply_id,
+                "authorization_id": authorization.get("authorization_id"),
+                "apply_plan_id": plan["apply_plan_id"],
+            },
+        )
+        if authorization_path is not None:
+            _mark_authorization_failed(
+                authorization_path, apply_id=apply_id, failure=str(error),
+            )
+        report.update({
+            "status": "rolled_back_after_receipt_or_consumption_failure",
+            "apply_executed": False,
+            "canon_modified": False,
+            "canon_after_hash": aggregate_canon_hash(canon_glob),
+            "failure": str(error),
+            "rollback_report": str(out_dir / "rollback_report.json"),
+            "completed_at": utc_now(),
+        })
+        _atomic_write_json(out_dir / "relation_apply_report.json", report)
+        if receipt_path.exists():
+            receipt.update({
+                "status": report["status"],
+                "applied_count": 0,
+                "failed_count": len(selected),
+                "canon_after_hash": report["canon_after_hash"],
+                "journal_hash": sha256_path(Path(str(transaction["journal_path"]))),
+                "rolled_back": True,
+            })
+            _atomic_write_json(receipt_path, receipt)
+        return 1, report
     return 0, report
 
 
@@ -2088,6 +3057,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--human-review-batch", type=Path, default=None)
     p.add_argument("--dry-run-report", type=Path, default=None)
     p.add_argument("--terminal-confirmation", default="")
+    p.add_argument("--authorization-file", type=Path)
+    p.add_argument("--authorized-plan", type=Path)
+    p.add_argument("--rollback-snapshot", type=Path)
+    p.add_argument("--rollback-confirmation", default="")
+    p.add_argument("--prepare-gate-g", action="store_true")
+    p.add_argument("--binding", action="append", default=[], metavar="NAME=PATH")
+    p.add_argument("--safety-verification-report", type=Path)
+    p.add_argument("--verify-safety-temp", action="store_true")
+    p.add_argument("--temp-work-root", type=Path)
+    p.add_argument("--safety-report", type=Path)
     p.add_argument("--max-dry-run-age-minutes", type=int, default=1440)
     p.add_argument("--type-policy-dir", type=Path, default=S0140_TYPE_POLICY_DIR)
     p.add_argument("--review-dir", type=Path, default=S0140_REVIEW_DIR)
@@ -2120,6 +3099,91 @@ def main(argv: list[str] | None = None) -> int:
     session_tag = infer_session_tag(args)
     session_label = session_tag.upper()
     out = args.output.parent if args.output else args.out_dir
+    if args.verify_safety_temp:
+        if (
+            not args.human_review_decisions
+            or not args.dry_run_report
+            or not args.temp_work_root
+            or not args.safety_report
+        ):
+            print(
+                "Gate F requiere decisiones, dry-run, --temp-work-root y --safety-report.",
+                file=sys.stderr,
+            )
+            return 2
+        safety_bindings: dict[str, Path] = {}
+        for raw_binding in args.binding:
+            if "=" not in raw_binding:
+                print(f"Binding inválido: {raw_binding!r}; use NAME=PATH.", file=sys.stderr)
+                return 2
+            name, raw_path = raw_binding.split("=", 1)
+            if not name.strip() or not raw_path.strip() or name in safety_bindings:
+                print(f"Binding inválido o duplicado: {raw_binding!r}.", file=sys.stderr)
+                return 2
+            safety_bindings[name] = Path(raw_path)
+        try:
+            verification = verify_apply_safety_on_temp_copy(
+                source_canon_glob=args.canon_glob,
+                temp_work_root=args.temp_work_root,
+                candidates_file=args.candidates_file,
+                human_review_decisions_file=args.human_review_decisions,
+                dry_run_report_path=args.dry_run_report,
+                binding_paths=safety_bindings,
+                report_path=args.safety_report,
+            )
+        except (OSError, ValueError, RuntimeError) as error:
+            print(f"Gate F bloqueado: {error}", file=sys.stderr)
+            return 3
+        print(json.dumps(verification, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.prepare_gate_g:
+        if not args.human_review_decisions or not args.dry_run_report or not args.safety_verification_report:
+            print(
+                "Gate G requiere --human-review-decisions, --dry-run-report y "
+                "--safety-verification-report.",
+                file=sys.stderr,
+            )
+            return 2
+        bindings: dict[str, Path] = {}
+        for raw_binding in args.binding:
+            if "=" not in raw_binding:
+                print(f"Binding inválido: {raw_binding!r}; use NAME=PATH.", file=sys.stderr)
+                return 2
+            name, raw_path = raw_binding.split("=", 1)
+            if not name.strip() or not raw_path.strip() or name in bindings:
+                print(f"Binding inválido o duplicado: {raw_binding!r}.", file=sys.stderr)
+                return 2
+            bindings[name] = Path(raw_path)
+        try:
+            readiness = prepare_gate_g_package(
+                candidates_file=args.candidates_file,
+                canon_glob=args.canon_glob,
+                human_review_decisions_file=args.human_review_decisions,
+                dry_run_report_path=args.dry_run_report,
+                out_dir=out,
+                binding_paths=bindings,
+                safety_verification_report=args.safety_verification_report,
+                max_dry_run_age_minutes=args.max_dry_run_age_minutes,
+            )
+        except (OSError, ValueError, RuntimeError) as error:
+            print(f"Gate G bloqueado: {error}", file=sys.stderr)
+            return 3
+        print(json.dumps(readiness, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    if args.rollback_snapshot:
+        if args.rollback_confirmation != "ROLLBACK RELATIONS":
+            print("ROLLBACK RELATIONS bloqueado: falta confirmación exacta.", file=sys.stderr)
+            return 1
+        try:
+            rollback = rollback_relational_apply(
+                snapshot_manifest_path=args.rollback_snapshot,
+                out_dir=out,
+            )
+        except (OSError, ValueError, RuntimeError) as error:
+            print(f"ROLLBACK RELATIONS falló: {error}", file=sys.stderr)
+            return 1
+        print(json.dumps(rollback, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
 
     # Forbid ambiguous apply-like flags. The single supported mutating flag is
     # --apply, guarded below by persistent review + dry-run + terminal confirmation.
@@ -2135,6 +3199,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.apply:
         dry_run_report = args.dry_run_report or args.output or (out / "admission_gate_dry_run.json")
+        exact_bindings = {
+            "candidate_manifest": args.candidates_file.parent / "current_candidate_manifest.json",
+            "reconciliation_manifest": args.candidates_file.parent / "reconciliation_manifest.json",
+            "reviewable_manifest": args.candidates_file.parent / "reviewable_candidate_manifest.json",
+            "human_review_decisions": args.human_review_decisions,
+            "dry_run_report": dry_run_report,
+            "current_run_manifest": out / "current_run_manifest.json",
+        }
         code, report = guarded_apply_relations(
             candidates_file=args.candidates_file,
             canon_glob=args.canon_glob,
@@ -2144,6 +3216,12 @@ def main(argv: list[str] | None = None) -> int:
             terminal_confirmation=args.terminal_confirmation,
             max_dry_run_age_minutes=args.max_dry_run_age_minutes,
             perform_write=True,
+            target_scope="production_path",
+            binding_paths={
+                name: path for name, path in exact_bindings.items() if path is not None
+            },
+            authorization_path=args.authorization_file,
+            authorized_plan_path=args.authorized_plan,
         )
         plan = report["apply_plan"]
         if code != 0:

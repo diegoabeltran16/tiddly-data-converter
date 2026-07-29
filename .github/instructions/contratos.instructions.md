@@ -1,213 +1,608 @@
-## Instrucción de contratos de sesión
+---
+applyTo: "data/out/local/sessions/00_contratos/**/*.md.json"
+description: >
+  Dueño normativo del contenido contractual de las sesiones TDC: objetivo,
+  alcance, superficies autorizadas, invariantes, riesgos, validaciones,
+  detención, aceptación y contraste final.
+---
 
-Para toda propuesta técnica, cambio estructural, ajuste de implementación, corrección relevante, bootstrap, validación operativa, triage, decisión semántica o refinamiento documental generado en el repositorio `tiddly-data-converter`, debes producir y dejar explícito un **contrato de sesión** versionable. Sigue este orden:
+# Contratos de sesión
 
-1. Identifica el tipo de cambio y selecciona la familia documental correcta (ver §Tipos válidos).
-2. Produce el contrato bajo `data/out/local/sessions/00_contratos/`, coherente con la familia de artefactos ya existente.
-3. Serializa el resultado como al menos un `.md.json` importable, no solo markdown libre.
-4. Verifica trazabilidad: sesión, milestone, componente, alcance, límites, pendientes y riesgos deben quedar explícitos.
+## Alcance
 
-Nota de cumplimiento S66: la familia completa de sesión, rutas oficiales,
-títulos, líneas candidatas y admisión local se definen en
-`.github/instructions/canonical_session_family.instructions.md`. Este archivo
-solo gobierna el contrato y sus familias contractuales.
+Esta instrucción gobierna:
 
-Actúa como asistente contractual de desarrollo para `tiddly-data-converter`.
-
-No operes como conversación libre cuando el objetivo esté explícitamente definido en términos de alcance, límites y resultados esperados. Opera como sesión dirigida por objetivo, con lectura situada, expansión contextual guiada, inferencia conservadora y cierre en artefactos estructurados compatibles con la arquitectura, el vocabulario y el Canon. Los contratos históricos compartidos muestran familias documentales distintas, pero todos conservan estructura técnica trazable y serialización compatible con TiddlyWiki.
-
-### Fuente estructural obligatoria
-
-Debes tomar como referencia estructural los contratos y reportes de sesión ya existentes en el sistema, especialmente los artefactos equivalentes a:
-- contratos operativos de componente;
-- registros operativos de validación;
-- reportes estructurados de ejecución;
-- reportes de política o decisión técnica.
-
-Tu tarea no es inventar una plantilla nueva en cada sesión, sino producir un contrato nuevo compatible con esas familias ya estabilizadas en el repositorio. Los ejemplos previos incluyen contratos operativos como `m01-s01-extractor-contract` e `m01-s05-ingesta-contract`, registros operativos como `m01-s06-ingesta-go-env-wsl`, y reportes de política o ejecución como `m01-s08-ingesta-data-triage` y `m01-s09-ingesta-timestamp-policy`.
-
-### Regla principal
-
-Cada vez que el agente proponga cambios sustantivos en un pull request, debe existir **1 contrato de sesión** en `data/out/local/sessions/00_contratos/` que documente esa propuesta o ese cambio de forma estructurada.
-
-Ese contrato de sesión debe:
-- corresponder al objetivo real de la sesión;
-- usar la familia documental correcta;
-- quedar redactado con vocabulario técnico compatible con el sistema;
-- ser trazable respecto del milestone, sesión, componente y alcance;
-- dejar explícitos el alcance, los límites, lo realizado, lo no realizado, los riesgos y los pendientes cuando aplique.
-
-### Qué se entiende por contrato de sesión
-
-Un contrato de sesión es el artefacto estructurado que deja constancia técnica de una sesión de trabajo o de una propuesta concreta de cambio.
-
-No todos los contratos de sesión tienen exactamente los mismos encabezados, pero sí deben respetar la lógica estructural ya consolidada en el repositorio.
-
-### Tipos válidos de contrato de sesión
-
-Cuando redactes el contrato, debes seleccionar explícitamente la familia correcta según la naturaleza del cambio.
-
-#### 1. Contrato operativo
-Úsalo cuando la sesión define o refina un componente, una frontera, una responsabilidad, una entrada/salida, un contrato técnico o una compuerta del sistema.
-
-Debe incluir, cuando aplique:
-- nombre del componente;
-- rol dentro del sistema;
-- objetivo;
-- entradas;
-- salidas;
-- responsabilidades;
-- límites;
+- qué autoriza una sesión;
+- su objetivo y alcance;
+- las superficies permitidas y protegidas;
+- entradas y salidas;
+- responsabilidades y límites;
 - invariantes;
-- fallos bloqueantes o decisiones de error;
+- riesgos;
+- validaciones;
+- condiciones de detención;
 - criterios de aceptación;
-- pendientes o decisiones abiertas;
-- scaffold o proyección mínima, si corresponde.
+- el contenido del entregable `Contrato de sesión`.
 
-#### 2. Registro o reporte operativo
-Úsalo cuando la sesión documenta validaciones de entorno, bootstrap técnico, ejecución real, pruebas operativas, acciones realizadas o evidencia reproducible.
+No gobierna:
 
-Debe incluir, cuando aplique:
-- nombre del registro o reporte;
-- objetivo real de la sesión;
-- contexto y restricciones;
-- acciones ejecutadas;
-- resultados observados;
-- evidencia mínima o salidas verificables;
-- artefactos creados o modificados;
-- qué quedó explícitamente fuera;
-- pendientes, próximos pasos o cierre operativo.
+- la procedencia de la evidencia;
+- la formulación epistemológica de hipótesis;
+- la ejecución detallada de una fase;
+- las rutas, títulos o identidad documental;
+- el schema `.md.json`;
+- las líneas candidatas;
+- la admisión al canon;
+- commits o pull requests.
 
-#### 3. Reporte de política o decisión técnica
-Úsalo cuando la sesión cierra una política local, una decisión semántica, una regla de transformación, un criterio de clasificación o una apertura observacional.
+Aplicar:
 
-Debe incluir, cuando aplique:
-- decisión elegida;
-- justificación técnica;
-- evidencia mínima usada;
-- razón de coherencia con la arquitectura y el carácter del componente;
-- cambios aplicados o propuestos;
-- límites explícitos;
-- riesgos de implementar más de la cuenta;
-- siguiente paso sugerido o criterio de cierre.
+- `procedencia_epistemologica.instructions.md` para origen y evidencia;
+- `hipotesis.instructions.md` para afirmaciones contrastables;
+- `.agents/skills/tdc-session/SKILL.md` para transiciones y cambios materiales;
+- `canonical_session_family.instructions.md` para nombre, título, ruta,
+  identidad y canonizabilidad;
+- `tiddlers_sesiones.instructions.md` para formato y validación `.md.json`;
+- `PRcommits.instructions.md` solo cuando el usuario solicite commit o PR.
 
-### Regla de selección
+## Rol contractual
 
-No fuerces un contrato operativo si la sesión fue realmente un registro operativo.
-No fuerces un reporte de ejecución si la sesión cerró una política.
-No mezcles arbitrariamente familias documentales distintas si el objetivo local no lo exige.
+El contrato responde:
 
-Selecciona el tipo documental que mejor corresponda al objetivo real de la sesión usando esta tabla:
+```text
+¿Qué trabajo queda autorizado,
+sobre qué superficies,
+bajo qué condiciones,
+con qué límites
+y cómo se determinará su resultado?
+````
 
-| Si la sesión... | Usa este tipo |
-|---|---|
-| Define o refina un componente, frontera, responsabilidad, contrato técnico o compuerta | **Contrato operativo** |
-| Documenta validaciones de entorno, bootstrap, ejecución real, pruebas o evidencia reproducible | **Registro o reporte operativo** |
-| Cierra una política local, decisión semántica, regla de transformación o criterio de clasificación | **Reporte de política o decisión técnica** |
+El contrato transforma una intención en una frontera operativa verificable.
 
-### Contrato activo de sesión
+No demuestra que una hipótesis sea correcta.
 
-Cuando el usuario declare tiddlers contractuales activos de sesión, debes tratarlos como marco rector de lectura, inferencia y cierre.
+No reemplaza la autorización humana exigida por una operación gobernada.
 
-Antes de producir el contrato de sesión, debes respetar:
-- el objetivo local;
-- el nivel de trabajo declarado;
-- la lectura mínima obligatoria;
-- la política de memoria activa;
-- la arquitectura, vocabulario y Canon;
-- la inferencia conservadora;
-- la atomicidad del cambio;
-- los quality gates mínimos.
+No convierte una propuesta en implementación ejecutada.
 
-### Obligación de lectura situada
+## Cuándo aplica
 
-Antes de redactar el contrato de sesión:
-- lee primero los bloques contractuales mínimos ya definidos por el usuario para esa sesión;
-- expándete solo hacia los bloques estructurales necesarios;
-- no leas indiscriminadamente todo el sistema;
-- no traigas contexto por acumulación;
-- recupera solo lo que tenga incidencia directa sobre el objetivo local.
+Toda sesión ordinaria debe mantener un `Contrato de sesión`, incluso cuando su
+objetivo sea teórico, documental o diagnóstico.
 
-### Regla de trazabilidad
+El contrato puede autorizar:
 
-El contrato de sesión debe dejar trazable, de forma explícita:
-- el nombre de la sesión;
-- el milestone;
-- la fecha;
-- el estado;
-- el componente o frente afectado;
-- el alcance real;
-- la frontera de responsabilidades;
-- lo que sí cambió;
-- lo que no cambió;
-- lo que queda pendiente;
-- la razón técnica de las decisiones tomadas.
+* análisis no mutante;
+* formulación conceptual;
+* inspección o diagnóstico;
+* modificación documental;
+* implementación técnica;
+* validación operativa;
+* una operación gobernada;
+* cierre sin implementación.
 
-### Regla de conservadurismo estructural
+El nivel de detalle debe corresponder al riesgo y a la superficie afectada.
 
-No inventes secciones porque sí.
-No impongas headings nuevos sin necesidad fuerte.
-No sustituyas la estructura del repositorio por una plantilla genérica.
-No estabilices hipótesis como hechos.
-No promociones una observación local a verdad del sistema sin base contractual suficiente.
+Una sesión de bajo riesgo puede usar un contrato breve, pero no puede omitir:
 
-Si falta información crítica, deja explícita la provisionalidad.
+* objetivo;
+* alcance;
+* límites;
+* validación;
+* criterio de cierre.
 
-### Requisito no negociable de serialización para TiddlyWiki
+## `Contrato de sesión`
 
-El cierre mínimo de toda sesión que respalde cambios sustantivos de un pull request debe incluir **al menos 1 archivo `.md.json`** listo para importar en TiddlyWiki bajo `data/out/local/sessions/00_contratos/`.
+El entregable canónico se denomina exactamente:
 
-No basta con entregar solo markdown plano, solo análisis conversacional o solo una propuesta de contrato en texto libre.
-
-El archivo `.md.json` debe seguir la misma lógica estructural observable en los contratos versionados del repositorio:
-- un artefacto JSON fuente importable/compatible;
-- un objeto tiddler principal;
-- un campo `text` que contenga el contrato completo en markdown estructurado;
-- metadata mínima coherente con la línea documental activa del sistema.
-
-### Regla adicional de staging canonico
-
-Cuando una sesión cree o actualice su contrato `.md.json`, ese artefacto debe
-quedar en la ruta de contratos definida por
-`.github/instructions/canonical_session_family.instructions.md`.
-
-Si el contrato debe poder ingresar al canon, conservarlo como candidato no
-admitido hasta que el proceso local autorizado aplique las compuertas de S66.
-Los contratos reales compartidos muestran la lógica de artefacto JSON fuente con
-metadata de tiddler y contenido contractual dentro de `text`, lo que permite
-importarlos directamente a TiddlyWiki.
-
-### Forma mínima obligatoria del `.md.json`
-
-Cuando se produzca un contrato nuevo, debe serializarse como artefacto fuente
-`.md.json` compatible con el schema vigente de
-`.github/instructions/tiddlers_sesiones.instructions.md`. La forma mínima es un
-objeto JSON, no un array de exportación TiddlyWiki:
-
-```json
-{
-  "title": "#### 🌀 Contrato de sesión <NNNN> = <slug>",
-  "type": "text/markdown",
-  "created": "YYYYMMDDHHmmssSSS",
-  "modified": "YYYYMMDDHHmmssSSS",
-  "session_id": "mXX-sNNNN",
-  "module": "mXX",
-  "session": "SNNNN",
-  "status": "delivered",
-  "canonical_slug": "mXX-sNNNN-contrato-<slug>",
-  "tags": ["sesion", "contrato", "mXX", "sNNNN"],
-  "text": "# ... contrato de sesión en markdown ..."
-}
+```text
+Contrato de sesión
 ```
 
-No usar aquí `title: "mXX-sNN-<slug>.md"`, `tags` como string TiddlyWiki,
-`tmap.id` ni array `[{...}]`; esas formas pertenecen a exportación o a
-formatos históricos y producen fricción con la validación actual.
+No uses sinónimos ni variantes para sustituir este nombre.
 
-### Familia minima asociada al contrato
+Debe conservar durante toda la sesión:
 
-El contrato no cierra por sí solo una sesión sustantiva. La familia completa y
-sus rutas oficiales se definen en
-`.github/instructions/canonical_session_family.instructions.md`.
+* una sola identidad;
+* un solo archivo `.md.json`;
+* su título y ruta canónicos;
+* su `session_id`;
+* su `canonical_slug`;
+* su fecha `created`.
 
-No crear archivo acumulativo global de contratos ni de sesiones.
+Las reglas exactas pertenecen a
+`canonical_session_family.instructions.md`.
+
+## Precondiciones de formulación
+
+Antes de formular o renovar el contrato:
+
+1. consume `Procedencia de sesión`;
+2. consume `Diagnóstico de sesión`;
+3. consume `Hipótesis de sesión`;
+4. verifica que pertenecen a la misma sesión;
+5. confirma que reflejan el estado vigente;
+6. identifica incertidumbres y bloqueos;
+7. delimita qué trabajo puede autorizarse con la evidencia disponible.
+
+No construyas un contrato desde una especificación ideal desconectada del
+repositorio.
+
+No autorices superficies no inspeccionadas.
+
+Cuando la evidencia sea insuficiente, formula un contrato limitado a:
+
+* investigación;
+* validación;
+* producción de evidencia;
+* resolución de bloqueos.
+
+## Perfiles contractuales
+
+Todo archivo sigue siendo un `Contrato de sesión`.
+
+El perfil interno puede variar según el trabajo autorizado.
+
+### Contrato operativo
+
+Úsalo cuando la sesión define o modifica:
+
+* componentes;
+* fronteras;
+* productores o consumidores;
+* entradas y salidas;
+* responsabilidades;
+* pipelines;
+* compuertas;
+* comportamiento runtime.
+
+Debe priorizar:
+
+* superficie técnica;
+* invariantes;
+* fallos bloqueantes;
+* pruebas;
+* rollback;
+* criterios de aceptación.
+
+### Contrato de verificación
+
+Úsalo cuando la sesión se concentra en:
+
+* diagnóstico;
+* bootstrap;
+* preflight;
+* validación de entorno;
+* reproducción de un fallo;
+* inspección;
+* auditoría;
+* comprobación de una condición.
+
+Debe priorizar:
+
+* estado de entrada;
+* método;
+* evidencia esperada;
+* operaciones permitidas;
+* prohibición de mutaciones no autorizadas;
+* criterio de suficiencia.
+
+### Contrato de política o decisión
+
+Úsalo cuando la sesión busca estabilizar:
+
+* una regla;
+* una clasificación;
+* una convención;
+* una decisión semántica;
+* un criterio arquitectónico;
+* una política documental.
+
+Debe priorizar:
+
+* alternativas consideradas;
+* decisión autorizada;
+* evidencia;
+* alcance normativo;
+* compatibilidad;
+* consecuencias;
+* límites de aplicación.
+
+No crees familias documentales diferentes para estos perfiles.
+
+El entregable continúa llamándose `Contrato de sesión`.
+
+## Contenido mínimo
+
+El contrato debe permitir identificar:
+
+* sesión;
+* objetivo;
+* estado de entrada relevante;
+* hipótesis que se contrastarán;
+* alcance incluido;
+* asuntos fuera de alcance;
+* entradas;
+* salidas esperadas;
+* archivos o superficies autorizadas;
+* archivos o superficies protegidas;
+* responsabilidades;
+* invariantes;
+* restricciones;
+* riesgos;
+* operaciones permitidas;
+* operaciones prohibidas;
+* validaciones;
+* criterios de aceptación;
+* condiciones de detención;
+* pendientes conocidos;
+* autorización humana requerida;
+* estado final del contrato.
+
+Cuando corresponda, debe incluir también:
+
+* comportamiento `fail-closed`;
+* snapshot;
+* backup;
+* receipt o journal;
+* rollback;
+* conteos esperados;
+* hashes o manifests;
+* preflights;
+* condiciones que invalidan una autorización.
+
+Esta lista gobierna el contenido del campo `text`.
+
+No modifica el schema `.md.json`.
+
+## Objetivo y alcance
+
+El objetivo debe expresar el resultado que la sesión busca dejar, no solo la
+actividad que ejecutará.
+
+Evita objetivos como:
+
+```text
+actualizar archivos
+hacer pruebas
+revisar el código
+realizar ajustes
+```
+
+Prefiere una formulación verificable:
+
+```text
+Delimitar y validar el admission gate para impedir que candidatas
+desactualizadas compitan con el canon vigente.
+```
+
+El alcance debe distinguir:
+
+* incluido;
+* excluido;
+* protegido;
+* condicionado a evidencia;
+* condicionado a autorización humana.
+
+No uses expresiones abiertas como:
+
+```text
+y cualquier otro archivo necesario
+ajustes relacionados
+cambios adicionales
+lo que resulte conveniente
+```
+
+Si una superficie no está identificada, no queda autorizada por defecto.
+
+## Frontera de autorización
+
+El contrato autoriza únicamente las acciones descritas dentro de su alcance.
+
+La implementación debe poder responder:
+
+```text
+¿Esta acción está autorizada por el contrato vigente?
+```
+
+Cuando la respuesta sea desconocida, detente.
+
+El contrato no sustituye una autorización humana explícita cuando la operación
+afecte:
+
+* canon;
+* dependencias de producción;
+* servicios externos;
+* credenciales;
+* publicación remota;
+* datos irreversibles;
+* commits o pull requests;
+* operaciones declaradas como gobernadas.
+
+Una autorización humana debe vincularse al estado exacto validado.
+
+## Invariantes
+
+Una invariante es una condición que debe conservarse durante la intervención.
+
+Puede referirse a:
+
+* identidad;
+* formato;
+* compatibilidad;
+* conteos;
+* determinismo;
+* idempotencia;
+* procedencia;
+* autoridad;
+* reversibilidad;
+* aislamiento;
+* comportamiento `fail-closed`.
+
+Cada invariante debe ser comprobable.
+
+Evita invariantes vagas como:
+
+```text
+mantener la calidad
+no romper nada
+conservar la arquitectura
+```
+
+Declara qué propiedad concreta debe mantenerse y cómo será validada.
+
+## Riesgos
+
+Registra riesgos con incidencia real sobre el trabajo autorizado.
+
+Cada riesgo debe permitir identificar:
+
+* condición que lo activa;
+* impacto;
+* señal de detección;
+* mitigación;
+* efecto sobre el cierre.
+
+No conviertas el contrato en una lista genérica de riesgos posibles.
+
+Prioriza los que puedan:
+
+* invalidar evidencia;
+* ampliar alcance;
+* producir pérdida;
+* comprometer autoridad;
+* impedir rollback;
+* dejar resultados no reproducibles;
+* hacer ambigua la aceptación.
+
+## Validaciones y aceptación
+
+Toda obligación relevante debe asociarse con una comprobación.
+
+Las validaciones pueden incluir:
+
+* inspección;
+* test focal;
+* regresión;
+* validación de schema;
+* análisis de diff;
+* preflight;
+* dry-run;
+* comprobación de determinismo;
+* comprobación de idempotencia;
+* rollback check;
+* revisión humana.
+
+El contrato debe distinguir:
+
+```text
+validación
+→ comprobación que debe ejecutarse
+
+criterio de aceptación
+→ resultado necesario para considerar cumplida una obligación
+```
+
+No declares aceptación cuando la validación correspondiente:
+
+* no se ejecutó;
+* falló;
+* produjo evidencia ambigua;
+* fue sustituida por una inferencia.
+
+## Condiciones de detención
+
+Declara cuándo debe detenerse el trabajo.
+
+Como mínimo, detente cuando:
+
+* falta una precondición;
+* aparece evidencia contradictoria material;
+* la acción requerida queda fuera de alcance;
+* una superficie protegida debe modificarse;
+* falla una validación bloqueante;
+* una autorización deja de corresponder al estado actual;
+* no puede garantizarse rollback cuando es obligatorio;
+* el resultado amenaza una invariante.
+
+Ante un cambio material, aplica la regresión definida en `SKILL.md`.
+
+No redefinas aquí la lista completa de cambios materiales.
+
+## Maduración durante la sesión
+
+### Reconocimiento
+
+Durante el reconocimiento no se formula todavía el contrato ejecutable.
+
+Pueden identificarse:
+
+* restricciones preliminares;
+* superficies probables;
+* operaciones que deben permanecer bloqueadas;
+* evidencia faltante para contratar.
+
+### Formulación
+
+Durante la formulación:
+
+* consume procedencia, diagnóstico e hipótesis;
+* delimita objetivo y alcance;
+* identifica superficies autorizadas y protegidas;
+* declara invariantes;
+* define riesgos y validaciones;
+* establece detención y aceptación;
+* fija el contrato vigente.
+
+La implementación solo se habilita cuando el contrato es suficiente y el
+veredicto correspondiente lo autoriza.
+
+### Impacto
+
+Durante la implementación, el contrato funciona como frontera.
+
+Contrasta continuamente:
+
+* acciones realizadas;
+* archivos modificados;
+* invariantes;
+* validaciones;
+* desviaciones;
+* bloqueos;
+* operaciones omitidas.
+
+Un ajuste no material puede precisar el contrato sin ampliar la intervención.
+
+Un cambio material obliga a detenerse y regresar al preimpacto.
+
+### Postimpacto
+
+Durante el cierre, contrasta el contrato con la evidencia real.
+
+Registra:
+
+* obligaciones cumplidas;
+* obligaciones parcialmente cumplidas;
+* obligaciones no cumplidas;
+* desviaciones;
+* validaciones ejecutadas;
+* validaciones pendientes;
+* criterios alcanzados;
+* riesgos materializados;
+* estado final.
+
+Estados finales permitidos:
+
+* `cumplido`;
+* `cumplido_con_reservas`;
+* `parcial`;
+* `bloqueado`;
+* `no_ejecutado`.
+
+El contrato no se reemplaza por el `Balance de sesión`.
+
+El balance evalúa el aprendizaje y el resultado global; el contrato registra
+el cumplimiento de obligaciones autorizadas.
+
+## Trazabilidad de ajustes
+
+Cuando el contrato sea ajustado, conserva:
+
+* formulación anterior;
+* evidencia nueva;
+* cambio realizado;
+* razón;
+* impacto sobre alcance;
+* impacto sobre riesgos;
+* impacto sobre validaciones;
+* necesidad o no de nueva autorización.
+
+No reescribas el contrato como si la formulación final hubiera sido siempre la
+original.
+
+## Relación con los entregables
+
+```text
+Procedencia de sesión
+→ identifica la evidencia de origen
+
+Diagnóstico de sesión
+→ establece el estado observado
+
+Hipótesis de sesión
+→ define qué debe contrastarse
+
+Contrato de sesión
+→ delimita qué puede hacerse
+
+Sesión
+→ registra qué se hizo realmente
+
+Balance de sesión
+→ evalúa el resultado y el aprendizaje
+
+Propuesta de sesión
+→ deriva continuidad posible
+```
+
+El contrato no reemplaza los detalles de ejecución.
+
+Los detalles no amplían el contrato.
+
+La propuesta no modifica retroactivamente lo autorizado.
+
+## Canonizabilidad
+
+El `Contrato de sesión` debe ser canonizable.
+
+Esto requiere:
+
+* nombre canónico exacto;
+* ruta y título gobernados;
+* `.md.json` válido;
+* identidad estable;
+* alcance verificable;
+* límites explícitos;
+* validaciones y aceptación trazables;
+* contraste final;
+* compatibilidad con el productor autoritativo.
+
+La canonizabilidad no equivale a admisión.
+
+Para candidatas y S66, aplica
+`canonical_session_family.instructions.md`.
+
+## Prohibiciones
+
+* No implementes sin contrato vigente.
+* No formules el contrato antes de contar con evidencia suficiente.
+* No autorices superficies no inspeccionadas.
+* No uses alcance abierto o implícito.
+* No conviertas hipótesis en obligaciones demostradas.
+* No estabilices observaciones provisionales como hechos.
+* No amplíes el contrato durante el impacto.
+* No reutilices autorizaciones después de un cambio material.
+* No ocultes incumplimientos o desviaciones.
+* No uses el contrato como bitácora de ejecución.
+* No crees variantes `inicial`, `final`, `v2` o equivalentes.
+* No copies aquí el schema `.md.json`.
+* No copies las compuertas completas de S66.
+* No uses esta instrucción para gobernar commits o PR.
+
+## Criterio de cumplimiento
+
+El contrato es suficiente cuando:
+
+* deriva de procedencia, diagnóstico e hipótesis vigentes;
+* expresa un objetivo verificable;
+* delimita incluido, excluido y protegido;
+* identifica superficies autorizadas;
+* declara invariantes y riesgos;
+* asocia obligaciones con validaciones;
+* define aceptación y detención;
+* distingue autorización contractual y autorización humana;
+* puede contrastarse contra evidencia real;
+* conserva la trayectoria de sus ajustes;
+* tiene estado final explícito;
+* el entregable conserva identidad única;
+* el `.md.json` es válido y canonizable.

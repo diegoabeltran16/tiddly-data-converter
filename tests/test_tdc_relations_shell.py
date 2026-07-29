@@ -171,6 +171,9 @@ def _fake_python_preflight(tmp_path: Path, *, allowed: bool) -> tuple[Path, Path
     exit_code = 0 if allowed else 2
     executable.write_text(
         "#!/usr/bin/env bash\n"
+        'if [[ "${1:-}" == "-" ]]; then\n'
+        '  exec /usr/bin/python3 "$@"\n'
+        "fi\n"
         'printf "%s\\n" "$*" >> "$TDC_TEST_ARGS"\n'
         'if [[ "$*" == *"relation_admission_state.py apply-preflight"* ]]; then\n'
         f'  printf \'{{"allowed": {str(allowed).lower()}, "reasons": ["stale"]}}\\n\'\n'
@@ -226,14 +229,14 @@ def test_tdc_relations_apply_cancel_does_not_modify_canon() -> None:
     after = {path: path.stat().st_mtime for path in before}
 
     assert result.returncode == 1
-    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "RELATION_APPLY_PREFLIGHT_BLOCKED" in result.stdout
     assert "Escribe exactamente:" not in result.stdout
-    assert "ATENCIÓN:" not in result.stdout
     assert "No se modificó el canon." in result.stdout
     assert after == before
 
 
 def test_tdc_relations_apply_zero_ready_does_not_request_confirmation(tmp_path: Path) -> None:
+    bin_dir, _ = _fake_python_preflight(tmp_path, allowed=True)
     audit_dir = tmp_path / "audit"
     audit_dir.mkdir()
     candidate_file = tmp_path / "candidates.jsonl"
@@ -241,6 +244,9 @@ def test_tdc_relations_apply_zero_ready_does_not_request_confirmation(tmp_path: 
     (audit_dir / "admission_gate_dry_run.json").write_text(
         json.dumps({
             "summary": {
+                "total_evaluated": 0,
+                "evaluated": 0,
+                "awaiting_human_review": 0,
                 "admission_ready_dry_run": 0,
                 "blocked": 1,
                 "canon_modified": False,
@@ -257,18 +263,21 @@ def test_tdc_relations_apply_zero_ready_does_not_request_confirmation(tmp_path: 
             "AUDIT_DIR": str(audit_dir),
             "RELATION_CANDIDATE_FILE": str(candidate_file),
             "RELATION_HUMAN_REVIEW_DECISIONS": str(tmp_path / "missing-review.jsonl"),
-            "PATH": "/usr/bin:/bin",
+                "PATH": f"{bin_dir}:/usr/bin:/bin",
         },
         "relations-admission",
     )
 
     assert result.returncode == 1
-    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "NO_ADMISSION_READY_CANDIDATES" in result.stdout
+    assert "Apply bloqueado: no existen candidatas admission-ready." in result.stdout
     assert "Escribe exactamente:" not in result.stdout
-    assert "No se modificó el canon." in result.stdout
+    assert "No se solicitará confirmación y no se modificó el canon." in result.stdout
+    assert not (audit_dir / "relation_apply_plan.json").exists()
 
 
 def test_tdc_relations_apply_blocks_incomplete_review_before_safe_engine(tmp_path: Path) -> None:
+    bin_dir, _ = _fake_python_preflight(tmp_path, allowed=True)
     audit_dir = tmp_path / "audit"
     audit_dir.mkdir()
     candidate_file = tmp_path / "candidates.jsonl"
@@ -276,16 +285,19 @@ def test_tdc_relations_apply_blocks_incomplete_review_before_safe_engine(tmp_pat
     (audit_dir / "admission_gate_dry_run.json").write_text(
         json.dumps({
             "summary": {
-                "admission_ready_dry_run": 1,
-                "blocked": 0,
+                "total_evaluated": 1,
+                "evaluated": 1,
+                "awaiting_human_review": 1,
+                "admission_ready_dry_run": 0,
+                "blocked": 1,
                 "canon_modified": False,
                 "dry_run": True,
             },
             "items": [
                 {
-                    "gate_status": "admission_ready_dry_run",
-                    "human_review_decision": "approved_for_admission",
-                    "all_block_reasons": [],
+                    "gate_status": "blocked",
+                    "human_review_decision": "",
+                    "all_block_reasons": ["GATE-008: falta revisión humana"],
                 }
             ],
         }),
@@ -298,14 +310,17 @@ def test_tdc_relations_apply_blocks_incomplete_review_before_safe_engine(tmp_pat
             "AUDIT_DIR": str(audit_dir),
             "RELATION_CANDIDATE_FILE": str(candidate_file),
             "RELATION_HUMAN_REVIEW_DECISIONS": str(tmp_path / "missing-review.jsonl"),
-            "PATH": "/usr/bin:/bin",
+                "PATH": f"{bin_dir}:/usr/bin:/bin",
         },
         "relations-admission",
     )
 
     assert result.returncode == 1
-    assert "APPLY RELATIONS bloqueado antes de solicitar confirmación." in result.stdout
+    assert "HUMAN_REVIEW_INCOMPLETE" in result.stdout
+    assert "Apply bloqueado: la revisión humana del lote current está incompleta." in result.stdout
+    assert "Resuelva las candidatas awaiting antes de preparar una admisión." in result.stdout
     assert "Escribe exactamente:" not in result.stdout
+    assert "No se solicitará confirmación y no se modificó el canon." in result.stdout
     assert not (audit_dir / "relation_apply_plan.json").exists()
 
 
@@ -328,13 +343,86 @@ def test_tdc_relations_apply_current_ready_state_preserves_exact_prompt(tmp_path
     (current / "ready_for_human_review.jsonl").write_text("{}\n", encoding="utf-8")
     decisions = current / "human_review_decisions.jsonl"
     decisions.write_text("{}\n", encoding="utf-8")
+    audit = tmp_path / "audit"
+    audit.mkdir()
+    (audit / "admission_gate_dry_run.json").write_text(
+        json.dumps({
+            "summary": {
+                "total_evaluated": 1,
+                "awaiting_human_review": 0,
+                "admission_ready_dry_run": 1,
+                "canon_modified": False,
+                "dry_run": True,
+            },
+            "items": [{"human_review_decision": "approved_for_admission"}],
+        }),
+        encoding="utf-8",
+    )
     result = _run_tdc_with_env("5\nNO\n0\n", {
         "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
         "CANON_DIR": str(tmp_path / "local"), "RELATION_OUT_DIR": str(current),
         "RELATION_HUMAN_REVIEW_DECISIONS": str(decisions),
+        "AUDIT_DIR": str(audit),
+    }, "relations-admission")
+    assert result.returncode == 1
+    assert '"allowed": true' in result.stdout
+    assert "Escribe exactamente:\nAPPLY RELATIONS\npara continuar." in result.stdout
+    assert "RELATION_APPLY_CANCELLED" in result.stdout
+    assert "Apply cancelado: no se recibió la confirmación exacta requerida." in result.stdout
+
+
+def test_tdc_relations_apply_exact_confirmation_invokes_safe_engine_on_fixture(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python_preflight(tmp_path, allowed=True)
+    current = tmp_path / "current"
+    current.mkdir()
+    (current / "ready_for_human_review.jsonl").write_text("{}\n", encoding="utf-8")
+    decisions = current / "human_review_decisions.jsonl"
+    decisions.write_text("{}\n", encoding="utf-8")
+    audit = tmp_path / "audit"
+    audit.mkdir()
+    (audit / "admission_gate_dry_run.json").write_text(
+        json.dumps({
+            "summary": {
+                "total_evaluated": 1,
+                "awaiting_human_review": 0,
+                "admission_ready_dry_run": 1,
+                "canon_modified": False,
+                "dry_run": True,
+            },
+            "items": [{"human_review_decision": "approved_for_admission"}],
+        }),
+        encoding="utf-8",
+    )
+
+    result = _run_tdc_with_env("5\nAPPLY RELATIONS\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin", "TDC_TEST_ARGS": str(args_file),
+        "CANON_DIR": str(tmp_path / "local"), "RELATION_OUT_DIR": str(current),
+        "RELATION_HUMAN_REVIEW_DECISIONS": str(decisions),
+        "AUDIT_DIR": str(audit),
+    }, "relations-admission")
+
+    assert result.returncode == 0
+    calls = args_file.read_text(encoding="utf-8")
+    assert "relation_admission_gate.py" in calls
+    assert "--terminal-confirmation APPLY RELATIONS" in calls
+    assert "--authorization-file data/out/local/audit/s0183/gate-g/gate_g_authorization.json" in calls
+    assert "--authorized-plan data/out/local/audit/s0183/gate-g/relation_apply_plan.json" in calls
+    assert "--apply" in calls
+
+
+def test_tdc_relations_rollback_requires_snapshot_and_exact_confirmation(tmp_path: Path) -> None:
+    bin_dir, args_file = _fake_python(tmp_path)
+    snapshot = tmp_path / "snapshot_manifest.json"
+    snapshot.write_text("{}\n", encoding="utf-8")
+    result = _run_tdc_with_env("11\nROLLBACK RELATIONS\n0\n", {
+        "PATH": f"{bin_dir}:/usr/bin:/bin",
+        "TDC_TEST_ARGS": str(args_file),
+        "RELATION_ROLLBACK_SNAPSHOT": str(snapshot),
         "AUDIT_DIR": str(tmp_path / "audit"),
     }, "relations-admission")
     assert result.returncode == 0
-    assert '"allowed": true' in result.stdout
-    assert "Escribe exactamente:\nAPPLY RELATIONS\npara continuar." in result.stdout
-    assert "Operación cancelada. No se modificó el canon." in result.stdout
+    args = args_file.read_text(encoding="utf-8").splitlines()
+    assert "--rollback-snapshot" in args
+    assert str(snapshot) in args
+    assert "--rollback-confirmation" in args
+    assert "ROLLBACK RELATIONS" in args

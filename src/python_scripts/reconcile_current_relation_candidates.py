@@ -17,7 +17,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
-from relation_candidate_contract import ALLOWED_RELATION_TYPES
+from relation_candidate_contract import ALLOWED_RELATION_TYPES, CANDIDATE_ID_RE
 from repair_relation_resolution_post_src import (
     CanonNode,
     build_indexes,
@@ -48,6 +48,14 @@ DISPOSITIONS = (
     "insufficient_evidence",
     "out_of_scope",
     "malformed",
+)
+S0183_RECONCILIATION_CLASSES = (
+    "equivalent",
+    "modified",
+    "disappeared",
+    "new",
+    "ambiguous",
+    "invalid",
 )
 
 
@@ -183,6 +191,405 @@ def lineage_relation_counts(local_root: Path) -> dict[str, int]:
 def evidence_key(candidate: dict[str, Any]) -> tuple[Any, ...]:
     evidence = candidate.get("evidence") or {}
     return (evidence.get("evidence_kind"), evidence.get("file"), evidence.get("line"), evidence.get("raw_observation"))
+
+
+def _normalized_text(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _endpoint_semantic_identity(endpoint: Any) -> str:
+    if not isinstance(endpoint, dict):
+        return ""
+    return _normalized_text(
+        endpoint.get("canonical_id")
+        or endpoint.get("tiddler_id")
+        or endpoint.get("repo_path")
+        or endpoint.get("canonical_title")
+    )
+
+
+def candidate_semantic_payload(candidate: Any, *, include_evidence: bool = True) -> dict[str, Any] | None:
+    """Return decision-relevant semantics, deliberately excluding volatile IDs.
+
+    Candidate IDs, line numbers, timestamps, file hashes, and current-manifest
+    bindings are regeneration details.  Reusing a human decision is allowed
+    only when the resolved endpoints, predicate, evidence kind, observed text,
+    and lifecycle semantics remain equal.
+    """
+    if not isinstance(candidate, dict):
+        return None
+    candidate_id = str(candidate.get("candidate_id") or "")
+    source = candidate.get("source")
+    target = candidate.get("target")
+    predicate = _normalized_text(
+        candidate.get("relation_type") or (candidate.get("relation") or {}).get("type")
+    )
+    source_id = _endpoint_semantic_identity(source)
+    target_id = _endpoint_semantic_identity(target)
+    if (
+        not candidate_id
+        or CANDIDATE_ID_RE.fullmatch(candidate_id) is None
+        or not isinstance(source, dict)
+        or not isinstance(target, dict)
+        or not source_id
+        or not target_id
+        or not predicate
+    ):
+        return None
+    payload: dict[str, Any] = {
+        "source": source_id,
+        "target": target_id,
+        "predicate": predicate,
+        "source_lifecycle": _normalized_text(source.get("repo_lifecycle_state") or source.get("lifecycle_state")),
+        "target_lifecycle": _normalized_text(target.get("repo_lifecycle_state") or target.get("lifecycle_state")),
+    }
+    if include_evidence:
+        evidence = candidate.get("evidence")
+        if not isinstance(evidence, dict):
+            return None
+        evidence_kind = _normalized_text(evidence.get("evidence_kind"))
+        raw_observation = _normalized_text(evidence.get("raw_observation"))
+        if not evidence_kind or not raw_observation:
+            return None
+        payload["evidence"] = {
+            "kind": evidence_kind,
+            "parser": _normalized_text(evidence.get("parser")),
+            "technical_kind": _normalized_text(
+                evidence.get("technical_evidence_kind") or evidence.get("technical_kind")
+            ),
+            "raw_observation": raw_observation,
+        }
+    return payload
+
+
+def _payload_hash(payload: dict[str, Any] | None) -> str | None:
+    if payload is None:
+        return None
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def build_cross_batch_reconciliation(
+    historical_candidates: list[dict[str, Any]],
+    current_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Classify every old and current candidate under S0183's closed taxonomy."""
+    sides = {"historical": historical_candidates, "current": current_candidates}
+    prepared: dict[str, list[dict[str, Any]]] = {}
+    duplicate_ids: dict[str, set[str]] = {}
+    for side, candidates in sides.items():
+        id_counts = Counter(str(row.get("candidate_id") or "") for row in candidates if isinstance(row, dict))
+        duplicate_ids[side] = {candidate_id for candidate_id, count in id_counts.items() if candidate_id and count > 1}
+        prepared[side] = []
+        for row in candidates:
+            candidate_id = str(row.get("candidate_id") or "") if isinstance(row, dict) else ""
+            semantic = candidate_semantic_payload(row)
+            base = candidate_semantic_payload(row, include_evidence=False)
+            prepared[side].append({
+                "candidate_id": candidate_id or None,
+                "semantic": semantic,
+                "semantic_fingerprint": _payload_hash(semantic),
+                "base_fingerprint": _payload_hash(base),
+                "invalid": semantic is None or candidate_id in duplicate_ids[side],
+            })
+
+    semantic_index: dict[str, dict[str, list[int]]] = {
+        side: defaultdict(list) for side in sides
+    }
+    base_index: dict[str, dict[str, list[int]]] = {
+        side: defaultdict(list) for side in sides
+    }
+    for side, rows in prepared.items():
+        for index, row in enumerate(rows):
+            if row["invalid"]:
+                continue
+            semantic_index[side][str(row["semantic_fingerprint"])].append(index)
+            base_index[side][str(row["base_fingerprint"])].append(index)
+
+    pairings: dict[tuple[str, int], tuple[str, int, str, str]] = {}
+    used_current: set[int] = set()
+    current_by_id = {
+        str(row["candidate_id"]): index
+        for index, row in enumerate(prepared["current"])
+        if not row["invalid"]
+    }
+    for old_index, old in enumerate(prepared["historical"]):
+        current_index = current_by_id.get(str(old["candidate_id"]))
+        if (
+            not old["invalid"]
+            and current_index is not None
+            and old["semantic_fingerprint"] == prepared["current"][current_index]["semantic_fingerprint"]
+        ):
+            pairings[("historical", old_index)] = (
+                "current", current_index, "equivalent",
+                "stable candidate_id and decision-relevant semantics are equal",
+            )
+            pairings[("current", current_index)] = (
+                "historical", old_index, "equivalent",
+                "stable candidate_id and decision-relevant semantics are equal",
+            )
+            used_current.add(current_index)
+
+    for old_index, old in enumerate(prepared["historical"]):
+        if old["invalid"] or ("historical", old_index) in pairings:
+            continue
+        semantic_matches = [
+            index for index in semantic_index["current"].get(str(old["semantic_fingerprint"]), [])
+            if index not in used_current
+        ]
+        reverse_semantic = [
+            index for index in semantic_index["historical"].get(str(old["semantic_fingerprint"]), [])
+            if ("historical", index) not in pairings
+        ]
+        if len(semantic_matches) == 1 and len(reverse_semantic) == 1:
+            current_index = semantic_matches[0]
+            pairings[("historical", old_index)] = ("current", current_index, "equivalent", "decision-relevant semantics are equal")
+            pairings[("current", current_index)] = ("historical", old_index, "equivalent", "decision-relevant semantics are equal")
+            used_current.add(current_index)
+
+    for old_index, old in enumerate(prepared["historical"]):
+        if old["invalid"] or ("historical", old_index) in pairings:
+            continue
+        base_matches = [
+            index for index in base_index["current"].get(str(old["base_fingerprint"]), [])
+            if index not in used_current
+        ]
+        reverse_base = base_index["historical"].get(str(old["base_fingerprint"]), [])
+        if len(base_matches) == 1 and len(reverse_base) == 1:
+            current_index = base_matches[0]
+            pairings[("historical", old_index)] = ("current", current_index, "modified", "same endpoints and predicate but evidence semantics changed")
+            pairings[("current", current_index)] = ("historical", old_index, "modified", "same endpoints and predicate but evidence semantics changed")
+            used_current.add(current_index)
+
+    def classify(side: str, index: int, row: dict[str, Any]) -> dict[str, Any]:
+        other = "current" if side == "historical" else "historical"
+        if row["invalid"]:
+            classification, reason, counterpart = "invalid", "candidate is malformed or has a duplicate candidate_id", None
+        elif (side, index) in pairings:
+            _other, other_index, classification, reason = pairings[(side, index)]
+            counterpart = prepared[other][other_index]["candidate_id"]
+        else:
+            semantic_matches = semantic_index[other].get(str(row["semantic_fingerprint"]), [])
+            base_matches = base_index[other].get(str(row["base_fingerprint"]), [])
+            if semantic_matches or base_matches:
+                classification, reason, counterpart = "ambiguous", "multiple or non-bijective semantic matches", None
+            elif side == "historical":
+                classification, reason, counterpart = "disappeared", "no current candidate shares the semantic or endpoint-predicate identity", None
+            else:
+                classification, reason, counterpart = "new", "no historical candidate shares the semantic or endpoint-predicate identity", None
+        return {
+            "candidate_id": row["candidate_id"],
+            "counterpart_candidate_id": counterpart,
+            "classification": classification,
+            "reason": reason,
+            "semantic_fingerprint": row["semantic_fingerprint"],
+            "base_fingerprint": row["base_fingerprint"],
+            "decision_reusable": classification == "equivalent",
+        }
+
+    old_rows = [classify("historical", index, row) for index, row in enumerate(prepared["historical"])]
+    current_rows = [classify("current", index, row) for index, row in enumerate(prepared["current"])]
+    old_rows.sort(key=lambda row: str(row.get("candidate_id") or ""))
+    current_rows.sort(key=lambda row: str(row.get("candidate_id") or ""))
+    old_counts = Counter(str(row["classification"]) for row in old_rows)
+    current_counts = Counter(str(row["classification"]) for row in current_rows)
+    return {
+        "old_to_current": old_rows,
+        "current_to_old": current_rows,
+        "old_counts": {name: old_counts.get(name, 0) for name in S0183_RECONCILIATION_CLASSES},
+        "current_counts": {name: current_counts.get(name, 0) for name in S0183_RECONCILIATION_CLASSES},
+    }
+
+
+def write_cross_batch_reconciliation(
+    *,
+    historical_candidates_file: Path,
+    current_candidates_file: Path,
+    out_dir: Path,
+) -> Path:
+    historical, historical_malformed = read_jsonl(historical_candidates_file)
+    current, current_malformed = read_jsonl(current_candidates_file)
+    if historical_malformed or current_malformed:
+        raise ValueError("cross-batch reconciliation requires valid JSONL candidate batches")
+    result = build_cross_batch_reconciliation(historical, current)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    old_path = out_dir / "old_to_current_reconciliation.jsonl"
+    current_path = out_dir / "current_to_old_reconciliation.jsonl"
+    write_jsonl(old_path, result["old_to_current"])
+    write_jsonl(current_path, result["current_to_old"])
+    manifest = {
+        "schema_version": "s0183-cross-batch-reconciliation/v1",
+        "session_id": "m04-s0183",
+        "taxonomy": list(S0183_RECONCILIATION_CLASSES),
+        "historical_candidates_path": repo_path(historical_candidates_file),
+        "historical_candidates_hash": sha256_file(historical_candidates_file),
+        "current_candidates_path": repo_path(current_candidates_file),
+        "current_candidates_hash": sha256_file(current_candidates_file),
+        "old_to_current_path": repo_path(old_path),
+        "old_to_current_hash": sha256_file(old_path),
+        "current_to_old_path": repo_path(current_path),
+        "current_to_old_hash": sha256_file(current_path),
+        "old_counts": result["old_counts"],
+        "current_counts": result["current_counts"],
+        "coverage_complete": (
+            sum(result["old_counts"].values()) == len(historical)
+            and sum(result["current_counts"].values()) == len(current)
+        ),
+        "decision_reuse_rule": "equivalent_only",
+        "human_authority_created": False,
+        "canon_modified": False,
+    }
+    path = out_dir / "cross_batch_reconciliation_manifest.json"
+    write_json(path, manifest)
+    return path
+
+
+def write_s0183_entry_baseline(
+    *,
+    canon_root: Path,
+    preservation_dir: Path,
+    output_path: Path,
+    contract_path: Path,
+    git_branch: str,
+    git_head: str,
+) -> Path:
+    """Bind S0183's entry state and its byte-preserved historical authority."""
+    if not preservation_dir.is_dir():
+        raise ValueError(f"entry preservation directory does not exist: {preservation_dir}")
+    files = []
+    for path in sorted(item for item in preservation_dir.rglob("*") if item.is_file()):
+        files.append({
+            "path": repo_path(path),
+            "relative_path": path.relative_to(preservation_dir).as_posix(),
+            "sha256": sha256_file(path),
+            "bytes": path.stat().st_size,
+        })
+    historical_candidates = preservation_dir / "pipeline_current" / "relation_candidates.jsonl"
+    historical_decisions = preservation_dir / "pipeline_current" / "human_review_decisions.jsonl"
+    candidates, candidate_errors = read_jsonl(historical_candidates)
+    decisions, decision_errors = read_jsonl(historical_decisions)
+    if candidate_errors or decision_errors:
+        raise ValueError("preserved candidate or decision JSONL is malformed")
+    snapshot = canon_snapshot(canon_root)
+    manifest = {
+        "schema_version": "s0183-impact-entry-baseline/v1",
+        "session_id": "m04-s0183",
+        "git": {"branch": git_branch, "head": git_head},
+        "canon": snapshot,
+        "contract_path": repo_path(contract_path),
+        "contract_hash": sha256_file(contract_path),
+        "preservation_dir": repo_path(preservation_dir),
+        "preserved_file_count": len(files),
+        "preserved_files": files,
+        "historical_candidates": {
+            "path": repo_path(historical_candidates),
+            "sha256": sha256_file(historical_candidates),
+            "records": len(candidates),
+        },
+        "historical_decisions": {
+            "path": repo_path(historical_decisions),
+            "sha256": sha256_file(historical_decisions),
+            "records": len(decisions),
+            "counts": dict(sorted(Counter(
+                str(row.get("human_review_decision") or "unknown") for row in decisions
+            ).items())),
+            "byte_preservation_required": True,
+        },
+        "entry_currentness": "stale_expected",
+        "production_apply_authorized": False,
+        "canon_modified": False,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(output_path, manifest)
+    return output_path
+
+
+def write_isolated_run_determinism_report(
+    *,
+    run_a: Path,
+    run_b: Path,
+    output_path: Path,
+) -> Path:
+    """Compare isolated runs while excluding timestamps, paths, and run labels."""
+    exact_relative_paths = (
+        "current/relation_candidates.jsonl",
+        "current/valid_candidates.jsonl",
+        "current/invalid_candidates.jsonl",
+        "current/unresolved_candidates.jsonl",
+        "current/duplicate_candidates.jsonl",
+        "current/candidate_reconciliation_matrix.jsonl",
+        "current/ready_for_human_review.jsonl",
+        "audit/old_to_current_reconciliation.jsonl",
+        "audit/current_to_old_reconciliation.jsonl",
+    )
+    exact = []
+    for relative in exact_relative_paths:
+        left, right = run_a / relative, run_b / relative
+        exact.append({
+            "relative_path": relative,
+            "run_a_hash": sha256_file(left),
+            "run_b_hash": sha256_file(right),
+            "equal": left.read_bytes() == right.read_bytes(),
+        })
+
+    generation_keys = ("session", "candidate_count", "ready_for_review_count", "blocked_count", "dry_run")
+    generation_a = read_json(run_a / "current" / "relation_candidates_report.json")
+    generation_b = read_json(run_b / "current" / "relation_candidates_report.json")
+    validation_a = read_json(run_a / "current" / "validation_report.json")
+    validation_b = read_json(run_b / "current" / "validation_report.json")
+    reconciliation_a = read_json(run_a / "current" / "reconciliation_manifest.json")
+    reconciliation_b = read_json(run_b / "current" / "reconciliation_manifest.json")
+    cross_a = read_json(run_a / "audit" / "cross_batch_reconciliation_manifest.json")
+    cross_b = read_json(run_b / "audit" / "cross_batch_reconciliation_manifest.json")
+    semantic = {
+        "generation": {
+            "run_a": {key: generation_a.get(key) for key in generation_keys},
+            "run_b": {key: generation_b.get(key) for key in generation_keys},
+        },
+        "validation": {
+            "run_a": validation_a.get("summary") or {},
+            "run_b": validation_b.get("summary") or {},
+        },
+        "reconciliation": {
+            "run_a": {
+                key: reconciliation_a.get(key)
+                for key in ("canon_hash", "total", "unclassified", "dispositions")
+            },
+            "run_b": {
+                key: reconciliation_b.get(key)
+                for key in ("canon_hash", "total", "unclassified", "dispositions")
+            },
+        },
+        "cross_batch": {
+            "run_a": {
+                key: cross_a.get(key)
+                for key in ("taxonomy", "old_counts", "current_counts", "coverage_complete")
+            },
+            "run_b": {
+                key: cross_b.get(key)
+                for key in ("taxonomy", "old_counts", "current_counts", "coverage_complete")
+            },
+        },
+    }
+    semantic_equal = all(
+        values["run_a"] == values["run_b"] for values in semantic.values()
+    )
+    report = {
+        "schema_version": "s0183-isolated-run-determinism/v1",
+        "session_id": "m04-s0183",
+        "run_a": repo_path(run_a),
+        "run_b": repo_path(run_b),
+        "exact_artifacts": exact,
+        "exact_artifacts_equal": all(item["equal"] for item in exact),
+        "semantic_summaries": semantic,
+        "semantic_summaries_equal": semantic_equal,
+        "equivalent": semantic_equal and all(item["equal"] for item in exact),
+        "excluded_volatile_fields": ["generated_at", "run_id", "out_dir", "artifact_paths"],
+        "canon_modified": False,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(output_path, report)
+    return output_path
 
 
 def candidate_signature(candidate: dict[str, Any], source_id: str | None, target_id: str | None) -> tuple[str, str, str] | None:
@@ -421,7 +828,44 @@ def main() -> int:
     parser.add_argument("--current-dir", type=Path, default=DEFAULT_CURRENT_DIR)
     parser.add_argument("--out-dir", "--audit-dir", dest="audit_dir", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--productive-manifest", type=Path, default=DEFAULT_PRODUCTIVE_MANIFEST)
+    parser.add_argument("--historical-candidates", type=Path)
+    parser.add_argument("--cross-batch-out-dir", type=Path)
+    parser.add_argument("--write-entry-baseline-only", action="store_true")
+    parser.add_argument("--entry-preservation-dir", type=Path)
+    parser.add_argument("--entry-baseline-output", type=Path)
+    parser.add_argument("--preimpact-contract", type=Path)
+    parser.add_argument("--git-branch", default="")
+    parser.add_argument("--git-head", default="")
+    parser.add_argument("--compare-runs-a", type=Path)
+    parser.add_argument("--compare-runs-b", type=Path)
+    parser.add_argument("--determinism-output", type=Path)
     args = parser.parse_args()
+    if args.compare_runs_a or args.compare_runs_b:
+        if not args.compare_runs_a or not args.compare_runs_b or not args.determinism_output:
+            raise SystemExit("--compare-runs-a, --compare-runs-b, and --determinism-output are required")
+        path = write_isolated_run_determinism_report(
+            run_a=args.compare_runs_a,
+            run_b=args.compare_runs_b,
+            output_path=args.determinism_output,
+        )
+        report = read_json(path)
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if report["equivalent"] else 3
+    if args.write_entry_baseline_only:
+        if not args.entry_preservation_dir or not args.entry_baseline_output or not args.preimpact_contract:
+            raise SystemExit(
+                "--entry-preservation-dir, --entry-baseline-output, and --preimpact-contract are required"
+            )
+        path = write_s0183_entry_baseline(
+            canon_root=args.canon_root,
+            preservation_dir=args.entry_preservation_dir,
+            output_path=args.entry_baseline_output,
+            contract_path=args.preimpact_contract,
+            git_branch=args.git_branch,
+            git_head=args.git_head,
+        )
+        print(json.dumps({"entry_baseline": repo_path(path), "canon_modified": False}, indent=2))
+        return 0
 
     current_file = args.current_dir / "relation_candidates.jsonl"
     baseline_path = args.audit_dir / "pre_relational_rag_baseline_manifest.json"
@@ -676,6 +1120,13 @@ def main() -> int:
         "captured_payload": current_manifest,
     })
     (args.audit_dir / "candidate_reconciliation_summary.md").write_text("\n".join(summary), encoding="utf-8")
+    cross_batch_path = None
+    if args.historical_candidates:
+        cross_batch_path = write_cross_batch_reconciliation(
+            historical_candidates_file=args.historical_candidates,
+            current_candidates_file=current_file,
+            out_dir=args.cross_batch_out_dir or args.audit_dir,
+        )
     if sha256_file(baseline_path) != baseline_hash_before:
         raise SystemExit("immutable S0180 baseline changed during reconciliation")
     print(json.dumps({
@@ -689,6 +1140,7 @@ def main() -> int:
         "current_dir": repo_path(args.current_dir),
         "audit_dir": repo_path(args.audit_dir),
         "baseline_unchanged": True,
+        "cross_batch_reconciliation": repo_path(cross_batch_path) if cross_batch_path else None,
     }, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 

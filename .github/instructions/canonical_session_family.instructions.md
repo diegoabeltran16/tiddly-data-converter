@@ -1,118 +1,92 @@
 ---
 description: >
-  Dueño normativo de la familia canónica de sesión, rutas oficiales,
-  títulos, líneas candidatas y compuertas de admisión local para
-  tiddly-data-converter.
+  Dueño normativo de la familia canónica de sesión, sus rutas, títulos,
+  identidad documental, líneas candidatas y admisión local gobernada.
 ---
 
-# Familia Canónica de Sesión
+# Familia canónica de sesión
 
-## Modelo de conjuntos
+## Alcance
 
-Universo:
+Este archivo gobierna:
 
-```text
-I = conjunto total de archivos de instrucciones
-R = conjunto total de reglas, obligaciones, prohibiciones y criterios de salida
-```
+- la familia obligatoria de siete entregables;
+- sus nombres, rutas y títulos exactos;
+- su identidad documental;
+- su maduración y cierre;
+- su capacidad de producir líneas candidatas;
+- la admisión local gobernada por S66.
 
-Regla de propiedad:
+No gobierna:
 
-```text
-owner(r) = archivo o conjunto normativo responsable de definir r
-uses(f, r) != owns(f, r)
-forall r in R, existe exactamente un owner(r)
-```
+- la metodología de sesión;
+- la selección de la instrucción ejecutable;
+- el contenido epistemológico de cada entregable;
+- el schema interno de los archivos `.md.json`;
+- la ejecución de commits o pull requests.
 
-Principio rector:
+Estas responsabilidades pertenecen a sus instrucciones especializadas.
 
-```text
-One source of truth + repeated short enforcement references.
-```
+## Principio rector
 
-Una regla vive completa en un solo lugar. Los demás archivos solo la invocan
-cuando necesitan hacerla cumplir. Una regla crítica puede repetirse como señal
-corta de cumplimiento, pero no como definición completa divergente.
-
-## Conjuntos normativos
-
-| Conjunto | Dueño | Responsabilidad |
-|---|---|---|
-| `G` | gobernanza global del sistema | Reglas globales y autoridad general |
-| `S` | `protocolo_de_sesion.instructions.md` | Apertura, conducción y cierre conceptual |
-| `F` | `canonical_session_family.instructions.md` | Familia mínima, rutas, títulos, candidatos y admisión |
-| `A` | `canonical_session_family.instructions.md` | Admisión canónica y líneas candidatas de sesión |
-| `T` | `tiddlers_sesiones.instructions.md` | Schema y validación de artefactos `.md.json`; diagnósticos no sesionales |
-| `P` | `procedencia_epistemologica.instructions.md` | Origen, actor, método, fuente e inferencia |
-| `H` | `hipotesis.instructions.md` | Formulación tentativa, estatuto y validación |
-| `M` | `politica_de_memoria_activa.instructions.md` | Memoria, TTL, relevancia, recencia y recuperabilidad |
-| `E` | `elementos_especificos.instructions.md` | Recursos, referencias y materiales concretos |
-| `L` | `glosario_y_convenciones.instructions.md` | Vocabulario, alias y convenciones semánticas |
-| `N` | `principios_de_gestion.instructions.md` | Principios transversales y conflictos normativos |
-| `X` | `dependencia_y_superficie_externa.instructions.md` | Dependencias, CI/CD, supply chain y toolchains |
-| `K` | `contratos.instructions.md` | Contratos de sesión y familias contractuales |
-| `RPR` | `PRcommits.instructions.md` | Commits, PRs y contrato JSON de PR |
-| `D` | `detalles_del_tema.instructions.md` | Detalles del tema y despliegue temático |
-
-## Regla transversal S66
-
-S66 es la regla de cierre gobernado de sesión:
-
-- `data/out/local/sessions/` registra memoria operativa, evidencia de cierre,
-  trazabilidad y staging.
-- `data/out/local/tiddlers_*.jsonl` conserva la autoridad de canon local cuando
-  existe en la máquina.
-- El agente no escribe directamente al canon por defecto.
-- Las salidas que deban poder entrar al canon comienzan como líneas candidatas
-  bajo `data/out/local/sessions/`.
-- La admisión al canon es un proceso local posterior y autorizado, no un efecto
-  de conversación, Git, commit, PR o generación de archivos.
-
-## Familia mínima obligatoria
-
-Toda sesión ordinaria debe cerrar con un archivo propio por sesión y por familia
-de artefacto:
+Una sesión ordinaria conserva:
 
 ```text
-{contrato, procedencia, detalles, hipótesis, balance, propuesta, diagnóstico}
-```
+una sesión
+→ una identidad
+→ una familia
+→ siete entregables
+````
 
-Rutas oficiales:
+Cada regla tiene un único dueño.
 
-```text
-data/out/local/sessions/00_contratos/<session>.md.json
-data/out/local/sessions/01_procedencia/<session>.md.json
-data/out/local/sessions/02_detalles_de_sesion/<session>.md.json
-data/out/local/sessions/03_hipotesis/<session>.md.json
-data/out/local/sessions/04_balance_de_sesion/<session>.md.json
-data/out/local/sessions/05_propuesta_de_sesion/<session>.md.json
-data/out/local/sessions/06_diagnoses/sesion/<session>.md.json
-```
+Los archivos dependientes pueden invocar esta instrucción, pero no deben copiar
+ni redefinir la familia, los títulos, las rutas o las compuertas de admisión.
 
-El diagnóstico de sesión de familia `sesion` es obligatorio. Diagnósticos
-especializados (`tema`, `canon`, `derivados`, `reverse`, `proyecto`, `modulo`,
-`micro_ciclo`, `meso_ciclo`) solo se producen si el operador lo pide o si una
-sesión diagnóstica lo declara como objetivo explícito.
+## Familia obligatoria
 
-No crear archivos acumulativos globales de sesión. No inventar familias, rutas,
-numeración ni formatos alternos.
+Toda sesión ordinaria debe producir exactamente estos siete entregables:
 
-## Convención de títulos
+| Orden | Entregable canónico     | Ruta oficial                                                       |
+| ----: | ----------------------- | ------------------------------------------------------------------ |
+|     1 | `Contrato de sesión`    | `data/out/local/sessions/00_contratos/<session>.md.json`           |
+|     2 | `Procedencia de sesión` | `data/out/local/sessions/01_procedencia/<session>.md.json`         |
+|     3 | `Sesión`                | `data/out/local/sessions/02_detalles_de_sesion/<session>.md.json`  |
+|     4 | `Hipótesis de sesión`   | `data/out/local/sessions/03_hipotesis/<session>.md.json`           |
+|     5 | `Balance de sesión`     | `data/out/local/sessions/04_balance_de_sesion/<session>.md.json`   |
+|     6 | `Propuesta de sesión`   | `data/out/local/sessions/05_propuesta_de_sesion/<session>.md.json` |
+|     7 | `Diagnóstico de sesión` | `data/out/local/sessions/06_diagnoses/sesion/<session>.md.json`    |
 
-Todo tiddler producido como resultado de una sesión debe tener un `title` que
-empiece por `#### 🌀`.
-
-La numeración universal de sesión usa exactamente 4 dígitos con ceros a la
-izquierda y sin prefijo `S` en el campo `title`:
+`<session>` usa el patrón:
 
 ```text
-n -> f'{int(n):04d}'
+mXX-sNNNN-<slug>
 ```
 
-El prefijo `S` puede usarse en campos técnicos como `"session": "S0163"` o en
-rutas de archivo, pero no dentro del título canónico.
+Ejemplo:
 
-Títulos por familia:
+```text
+m04-s0183-admision-relacional-canonica-gobernada.md.json
+```
+
+El mismo nombre base debe usarse en las siete rutas.
+
+No inventes:
+
+* familias adicionales;
+* carpetas alternativas;
+* nombres abreviados;
+* archivos acumulativos globales;
+* extensiones distintas de `.md.json`.
+
+El `Diagnóstico de sesión` es obligatorio.
+
+Los diagnósticos especializados no sustituyen este entregable y se gobiernan
+en `tiddlers_sesiones.instructions.md`.
+
+## Títulos canónicos
+
+Todo entregable debe usar exactamente el título correspondiente:
 
 ```text
 #### 🌀 Contrato de sesión <NNNN> = <slug>
@@ -124,77 +98,336 @@ Títulos por familia:
 #### 🌀 Diagnóstico de sesión <NNNN> = <slug>
 ```
 
-`<NNNN>` se extrae de `mXX-sNNNN-...`. `<slug>` es el resto del identificador
-sin el prefijo `mXX-sNNNN-` y sin `session-` cuando aparezca como prefijo
-operativo inmediato.
+Reglas:
 
-## Sesión, candidato, canon local y derivado
+* `<NNNN>` usa exactamente cuatro dígitos.
+* El número se obtiene de `mXX-sNNNN`.
+* El título no incluye el prefijo `S`.
+* `<slug>` corresponde al tema estable de la sesión.
+* No agregues anotaciones entre `<NNNN>` y `=`.
+* No sustituyas los nombres canónicos por sinónimos.
 
-- `sesión`: familia de artefactos `.md.json` bajo `data/out/local/sessions/`
-  que documenta trabajo situado y evidencia.
-- `línea candidata`: JSONL en formato canon producido durante una sesión y
-  todavía no admitido.
-- `canon local`: `data/out/local/tiddlers_*.jsonl`, fuente de verdad local
-  validada cuando existe.
-- `derivado`: capa computada a partir del canon, como `enriched/`, `ai/`,
-  `audit/`, `export/` o `reverse_html/`; no es autoridad canónica por sí misma.
+El nombre operativo `detalles de sesión` corresponde al entregable cuyo título
+canónico es `Sesión`.
 
-`data/out/local/sessions/` no es canon paralelo.
+## Identidad documental
+
+Los siete entregables comparten:
+
+* `session_id`;
+* módulo;
+* número de sesión;
+* slug temático base.
+
+Cada entregable conserva:
+
+* su ruta;
+* su título;
+* su `canonical_slug` propio;
+* su fecha `created`;
+* su identidad documental.
+
+Durante la sesión:
+
+* actualiza el mismo archivo;
+* preserva `created`;
+* actualiza `modified`;
+* reconcilia el contenido existente;
+* evita reemplazos destructivos.
+
+No crees variantes como:
+
+```text
+-inicial
+-final
+-v2
+-revisado
+-corregido
+-nuevo
+```
+
+Una modificación no crea una nueva identidad.
+
+Un cambio de identidad requiere una nueva sesión o una decisión explícita de
+migración.
+
+## Maduración de la familia
+
+La familia madura progresivamente durante:
+
+```text
+preimpacto
+→ impacto
+→ postimpacto
+```
+
+La macrofase no cambia la identidad del artefacto.
+
+Distribución principal:
+
+| Instrucción    | Entregables principales                          |
+| -------------- | ------------------------------------------------ |
+| Reconocimiento | `Procedencia de sesión`, `Diagnóstico de sesión` |
+| Formulación    | `Hipótesis de sesión`, `Contrato de sesión`      |
+| Implementación | `Sesión`                                         |
+| Cierre         | `Balance de sesión`, `Propuesta de sesión`       |
+
+Cualquier entregable puede actualizarse después cuando aparezca evidencia
+relevante.
+
+La existencia física de un archivo no significa que esté completo o cerrado.
+
+## Cierre de la familia
+
+La familia solo se considera cerrada después del postimpacto.
+
+Para cerrar deben cumplirse todas estas condiciones:
+
+* existen los siete entregables;
+* pertenecen a la misma sesión;
+* usan los nombres y rutas oficiales;
+* usan títulos canónicos;
+* conservan identidad coherente;
+* no existen variantes paralelas;
+* el schema de los siete archivos es válido;
+* el diagnóstico refleja el estado final;
+* las hipótesis tienen estado explícito;
+* el contrato fue contrastado;
+* los detalles contienen evidencia operativa;
+* el balance evalúa el resultado;
+* la propuesta deriva de la evidencia real.
+
+Una implementación terminada no cierra por sí sola la familia.
+
+Un commit, push o pull request tampoco la cierra.
+
+## Canonizabilidad
+
+Todos los entregables deben ser canonizables.
+
+Un entregable es canonizable cuando:
+
+* es un objeto `.md.json` válido;
+* usa el título canónico;
+* conserva una identidad estable;
+* contiene texto estructurado suficiente;
+* declara sesión y procedencia verificables;
+* puede transformarse mediante el productor autoritativo;
+* puede producir una línea candidata compatible con el canon vigente.
+
+Canonizable no significa admitido.
+
+La ausencia de una candidata no invalida automáticamente el entregable, pero
+la sesión debe declarar si:
+
+* no era necesaria;
+* quedó pendiente;
+* fue producida;
+* fue validada;
+* fue admitida.
+
+## Superficies de autoridad
+
+```text
+data/out/local/sessions/
+```
+
+Es:
+
+* memoria operativa;
+* superficie de entrega;
+* evidencia de sesión;
+* staging de candidatas.
+
+No es canon paralelo.
+
+```text
+data/out/local/tiddlers_*.jsonl
+```
+
+Es el canon local autoritativo cuando existe en la máquina.
+
+Son derivados no autoritativos por sí mismos:
+
+* `enriched/`;
+* `ai/`;
+* `audit/`;
+* `export/`;
+* `reverse_html/`;
+* `data/out/remote/`.
+
+Una superficie derivada puede aportar evidencia, pero no reemplaza al canon.
 
 ## Líneas candidatas
 
-Cuando una sesión produzca memoria que deba poder entrar al canon, debe dejar
-líneas candidatas en formato canon bajo `data/out/local/sessions/`.
+Cuando un entregable deba poder ingresar al canon, genera una línea candidata
+bajo la superficie de sesión gobernada.
 
-Toda línea candidata debe:
+Toda candidata debe:
 
-- ser JSONL válido;
-- respetar la estructura canónica vigente;
-- declarar sesión de origen;
-- declarar familia de artefacto;
-- declarar procedencia suficiente;
-- apuntar al archivo fuente bajo `data/out/local/sessions/`;
-- conservar estado de candidata no admitida;
-- evitar campos reservados por reverse dentro de `source_fields`;
-- no reclamar autoridad final antes de admisión.
+* ser JSONL válido;
+* respetar la estructura canónica vigente;
+* declarar la sesión de origen;
+* declarar la familia del artefacto;
+* apuntar al archivo fuente;
+* declarar procedencia verificable;
+* conservar estado no admitido;
+* evitar campos reservados por reverse;
+* no reclamar autoridad final.
 
-Campos de trazabilidad recomendados en `source_fields`: `session_origin`,
-`artifact_family`, `source_path`, `provenance_ref`, `canonical_status` y claves
-específicas con prefijo `x_`.
+Trazabilidad mínima:
+
+* `session_origin`;
+* `artifact_family`;
+* `source_path`;
+* `provenance_ref`;
+* `canonical_status`.
+
+Los campos auxiliares específicos deben usar el prefijo `x_` cuando
+corresponda.
+
+Si cambia el artefacto fuente, la candidata relacionada debe regenerarse o
+revalidarse.
+
+Una candidata no debe asumirse vigente solo porque ya existe.
+
+## Regla S66
+
+S66 gobierna el cierre documental y la admisión local:
+
+```text
+sesión
+→ entregable canonizable
+→ línea candidata
+→ validación
+→ autorización
+→ admisión local
+→ reverse verificable
+```
+
+La admisión es posterior, local, explícita y reversible.
+
+No ocurre como consecuencia automática de:
+
+* conversación;
+* generación de archivos;
+* validación de schema;
+* commit;
+* push;
+* pull request;
+* sincronización remota.
 
 ## Compuertas de admisión
 
-Ninguna línea candidata debe considerarse admitida al canon hasta pasar, como
-mínimo:
+Una candidata solo puede admitirse después de superar, cuando correspondan:
 
-1. validación local de JSON/JSONL;
-2. validación de estructura canónica;
+1. validación JSON y JSONL;
+2. validación de schema canónico;
 3. validación de campos obligatorios;
 4. validación de identificadores;
 5. validación de procedencia;
-6. validación de relaciones, si aplica;
-7. `strict`;
+6. validación de relaciones;
+7. preflight `strict`;
 8. `reverse-preflight`;
 9. reverse autoritativo con `Rejected: 0`;
-10. tests pertinentes para canon, reverse, derivados o el frente afectado.
+10. tests del canon, reverse, derivados o frente afectado.
 
-La admisión se ejecuta sobre una copia temporal o mediante proceso local
-autorizado. Si cualquier compuerta falla, no se modifica
-`data/out/local/tiddlers_*.jsonl`.
+La operación debe:
 
-`git add`, `git commit`, `git push`, PRs y conversación no son mecanismos de
-admisión canónica.
+* usar una copia temporal o proceso local gobernado;
+* registrar el lote exacto;
+* reconciliar conteos;
+* conservar respaldo;
+* disponer de rollback cuando aplique;
+* producir evidencia o receipt;
+* contar con autorización humana explícita.
 
-## Señal corta permitida para archivos dependientes
+Si una compuerta falla, no modifiques:
 
-Los archivos que usan esta regla pueden conservar una señal de cumplimiento como:
-
-```md
-Nota de cumplimiento S66:
-para cierre de sesión, títulos canónicos, líneas candidatas y admisión local,
-seguir `.github/instructions/canonical_session_family.instructions.md`.
-No inventar familias, rutas, numeración ni formatos alternos.
+```text
+data/out/local/tiddlers_*.jsonl
 ```
 
-No deben copiar nuevamente la definición completa de familia mínima, rutas,
-títulos, candidatos y compuertas.
+## Vigencia de la autorización
+
+Toda autorización queda vinculada al estado exacto validado.
+
+Debe renovarse si cambia alguno de estos elementos:
+
+* canon;
+* hash;
+* lote;
+* manifest;
+* candidatas;
+* decisiones humanas;
+* conteos esperados;
+* archivos de destino;
+* operación;
+* snapshot;
+* rollback;
+* gate report.
+
+No reutilices una autorización vinculada a un estado anterior.
+
+## Evolución canónica
+
+El canon puede cambiar legítimamente en:
+
+* contenido;
+* estructura;
+* procedencia;
+* relaciones;
+* conteo;
+* hash.
+
+Un cambio de conteo o hash no constituye por sí mismo deriva.
+
+Es gobernado cuando:
+
+* existe un productor autorizado;
+* la procedencia es suficiente;
+* las compuertas aprueban;
+* los consumidores vinculados fueron reconciliados;
+* el cambio es reversible y verificable.
+
+Es deriva no explicada cuando falta mecanismo, evidencia o coherencia con el
+flujo autorizado.
+
+## Prohibiciones
+
+* No omitas uno de los siete entregables.
+* No cambies sus nombres canónicos.
+* No cambies las rutas oficiales.
+* No crees archivos paralelos para una misma identidad.
+* No trates `sessions/` como canon.
+* No escribas directamente en el canon por defecto.
+* No declares una candidata como admitida por existir.
+* No promociones derivados como fuente de verdad.
+* No uses Git como mecanismo de admisión.
+* No absorbas una candidata después de una compuerta fallida.
+* No copies esta definición completa en otras instrucciones.
+
+## Referencia corta permitida
+
+Los archivos dependientes pueden usar:
+
+```text
+Para familia, títulos, identidad, canonizabilidad, candidatas y admisión local,
+aplica canonical_session_family.instructions.md.
+```
+
+No deben redefinir estas reglas.
+
+## Criterio de cumplimiento
+
+Esta instrucción se cumple cuando:
+
+* existe exactamente una familia de siete entregables;
+* sus nombres, rutas y títulos son canónicos;
+* cada artefacto conserva una identidad estable;
+* los siete archivos son `.md.json` válidos y canonizables;
+* no existen variantes paralelas;
+* la familia solo se cierra después del postimpacto;
+* toda candidata conserva estado no admitido hasta superar S66;
+* toda admisión es local, autorizada, verificable y reversible.
+
