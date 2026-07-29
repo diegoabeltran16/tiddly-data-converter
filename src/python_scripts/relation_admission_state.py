@@ -35,7 +35,7 @@ def now() -> str:
 
 
 def sha256_file(path: Path) -> str | None:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def read_json(path: Path) -> tuple[dict[str, Any], str | None]:
@@ -107,7 +107,11 @@ def canonical_relation_v1_count(local_root: Path) -> int:
                 continue
             row = json.loads(raw)
             for relation in row.get("relations") or []:
-                if isinstance(relation, dict) and (relation.get("schema_version") or relation.get("relation_schema")) == "canonical-relation/v1":
+                if isinstance(relation, dict) and (
+                    relation.get("relation_schema_version")
+                    or relation.get("schema_version")
+                    or relation.get("relation_schema")
+                ) == "canonical-relation/v1":
                     total += 1
     return total
 
@@ -129,6 +133,20 @@ def build_state(
     gate_path = audit_dir / "admission_gate_dry_run.json"
     run_manifest_path = audit_dir / "current_run_manifest.json"
     apply_path = audit_dir / "relation_apply_report.json"
+    apply_receipt_path = audit_dir / "relation_apply_receipt.json"
+    s0183_dir = local_root / "audit" / "s0183" / "current"
+    cross_batch_path = s0183_dir / "cross_batch_reconciliation_manifest.json"
+    preservation_path = s0183_dir / "human_decision_preservation_manifest.json"
+    gate_g_path = local_root / "audit" / "s0183" / "gate-g" / "gate_g_readiness.json"
+    authorization_path = local_root / "audit" / "s0183" / "gate-g" / "gate_g_authorization.json"
+    productive_reconciliation_path = (
+        local_root / "audit" / "s0183" / "reconciliation"
+        / "productive_apply_reconciliation.json"
+    )
+    authorization_reconciliation_path = (
+        local_root / "audit" / "s0183" / "reconciliation"
+        / "authorization_consumption_reconciliation.json"
+    )
 
     canon = canon_snapshot(local_root)
     baseline, baseline_error = read_json(baseline_path)
@@ -140,6 +158,17 @@ def build_state(
     gate, gate_error = read_json(gate_path)
     run_manifest, run_manifest_error = read_json(run_manifest_path)
     apply_report, apply_error = read_json(apply_path)
+    apply_receipt, apply_receipt_error = read_json(apply_receipt_path)
+    cross_batch, cross_batch_error = read_json(cross_batch_path)
+    preservation, preservation_error = read_json(preservation_path)
+    gate_g, gate_g_error = read_json(gate_g_path)
+    authorization, authorization_error = read_json(authorization_path)
+    productive_reconciliation, productive_reconciliation_error = read_json(
+        productive_reconciliation_path,
+    )
+    authorization_reconciliation, authorization_reconciliation_error = read_json(
+        authorization_reconciliation_path,
+    )
 
     generator = REPO_ROOT / "src" / "python_scripts" / "generate_technical_relation_candidates.py"
     contract = REPO_ROOT / "src" / "python_scripts" / "relation_candidate_contract.py"
@@ -217,6 +246,12 @@ def build_state(
         gate_reasons.append("current_run_manifest_log_hash_mismatch")
     if not run_manifest_error and run_manifest.get("human_review_decisions_hash") != sha256_file(decisions_path):
         gate_reasons.append("current_run_manifest_human_review_decisions_hash_mismatch")
+    if (
+        not run_manifest_error
+        and "reconciliation_manifest_hash" in run_manifest
+        and run_manifest.get("reconciliation_manifest_hash") != reconciliation_hash
+    ):
+        gate_reasons.append("current_run_manifest_reconciliation_manifest_hash_mismatch")
     gate_contract = REPO_ROOT / "src" / "python_scripts" / "relation_admission_gate.py"
     if not run_manifest_error and run_manifest.get("gate_contract_hash") != sha256_file(gate_contract):
         gate_reasons.append("current_run_manifest_gate_contract_hash_mismatch")
@@ -226,9 +261,89 @@ def build_state(
         and run_manifest.get("candidate_manifest_hash") == candidate_manifest_hash
         and run_manifest.get("reviewable_manifest_hash") == reviewable_hash
     )
+    evaluated = int(gate_summary.get("evaluated", gate_summary.get("total_evaluated", 0)) or 0)
+    partition_total = sum(
+        int(gate_summary.get(name) or 0)
+        for name in ("approved_for_admission", "human_deferred", "human_rejected", "awaiting_human_review")
+    )
+    partition_complete = evaluated == partition_total
+    if gate_current and not partition_complete:
+        gate_reasons.append("gate_human_partition_incomplete")
+        gate_current = False
 
-    blocking_reasons = candidate_reasons + reconciliation_reasons + reviewable_reasons
-    if candidate_error == "missing":
+    s0183_reasons: list[str] = []
+    if cross_batch_path.exists() or preservation_path.exists():
+        if cross_batch_error:
+            s0183_reasons.append(f"cross_batch_manifest_{cross_batch_error}")
+        else:
+            if cross_batch.get("current_candidates_hash") != sha256_file(current_dir / "relation_candidates.jsonl"):
+                s0183_reasons.append("cross_batch_current_candidates_hash_mismatch")
+            for key, filename in (
+                ("old_to_current_hash", "old_to_current_reconciliation.jsonl"),
+                ("current_to_old_hash", "current_to_old_reconciliation.jsonl"),
+            ):
+                if cross_batch.get(key) != sha256_file(s0183_dir / filename):
+                    s0183_reasons.append(f"cross_batch_{key}_mismatch")
+            if cross_batch.get("coverage_complete") is not True:
+                s0183_reasons.append("cross_batch_coverage_incomplete")
+        if preservation_error:
+            s0183_reasons.append(f"decision_preservation_manifest_{preservation_error}")
+        else:
+            if preservation.get("current_decisions_hash") != sha256_file(decisions_path):
+                s0183_reasons.append("decision_preservation_current_hash_mismatch")
+            if preservation.get("cross_batch_manifest_hash") != sha256_file(cross_batch_path):
+                s0183_reasons.append("decision_preservation_cross_batch_hash_mismatch")
+            if preservation.get("pending_reviewable_candidate_ids"):
+                s0183_reasons.append("decision_preservation_pending_human_review")
+
+    gate_g_reasons: list[str] = []
+    snapshot_path = Path(str(gate_g.get("snapshot_path") or ""))
+    plan_path = Path(str(gate_g.get("apply_plan_path") or ""))
+    safety_path = Path(str(gate_g.get("safety_verification_report_path") or ""))
+    productive_apply_current = bool(
+        not apply_error
+        and apply_report.get("status") == "applied"
+        and apply_report.get("canon_after_hash") == canon["hash"]
+    )
+    productive_apply_reconciled = bool(
+        productive_apply_current
+        and not productive_reconciliation_error
+        and productive_reconciliation.get("status") == "reconciled"
+        and (productive_reconciliation.get("canon") or {}).get("post_hash") == canon["hash"]
+    )
+    if gate_g_path.exists() and not productive_apply_current:
+        if gate_g_error:
+            gate_g_reasons.append(f"gate_g_readiness_{gate_g_error}")
+        else:
+            if gate_g.get("canon_hash") != canon["hash"]:
+                gate_g_reasons.append("gate_g_canon_hash_mismatch")
+            if gate_g.get("apply_authorized") is not False or gate_g.get("apply_executed") is not False:
+                gate_g_reasons.append("gate_g_must_remain_unauthorized_and_unexecuted")
+            if gate_g.get("apply_plan_hash") != sha256_file(plan_path):
+                gate_g_reasons.append("gate_g_apply_plan_hash_mismatch")
+            if gate_g.get("snapshot_hash") != sha256_file(snapshot_path):
+                gate_g_reasons.append("gate_g_snapshot_hash_mismatch")
+            if gate_g.get("safety_verification_report_hash") != sha256_file(safety_path):
+                gate_g_reasons.append("gate_g_safety_report_hash_mismatch")
+            snapshot, snapshot_error = read_json(snapshot_path)
+            if snapshot_error or snapshot.get("canon_before_hash") != canon["hash"]:
+                gate_g_reasons.append("gate_g_snapshot_not_bound_to_current_canon")
+            safety, safety_error = read_json(safety_path)
+            if safety_error or safety.get("passed") is not True or safety.get("production_canon_unchanged") is not True:
+                gate_g_reasons.append("gate_g_safety_verification_not_passed")
+    gate_g_current = bool(
+        gate_g_path.exists() and not gate_g_reasons and not productive_apply_current
+    )
+
+    preapply_stale_reasons = (
+        candidate_reasons + reconciliation_reasons + reviewable_reasons
+        + s0183_reasons + gate_g_reasons
+    )
+    blocking_reasons = [] if productive_apply_reconciled else preapply_stale_reasons
+    if productive_apply_reconciled:
+        verdict = "RELATIONAL_PRODUCTIVE_APPLY_RECONCILED"
+        next_action = "START_POSTIMPACT_CLOSURE"
+    elif candidate_error == "missing":
         verdict = "NO_CURRENT_RELATION_CANDIDATE_MANIFEST"
         next_action = "GENERATE_CURRENT_RELATION_CANDIDATES"
     elif candidate_reasons:
@@ -237,6 +352,9 @@ def build_state(
     elif reconciliation_reasons or reviewable_reasons:
         verdict = "CURRENT_RELATION_CANDIDATES_REQUIRE_RECONCILIATION"
         next_action = "VALIDATE_AND_RECONCILE_CURRENT_CANDIDATES"
+    elif s0183_reasons:
+        verdict = "IMPACT_BLOCKED"
+        next_action = "RESOLVE_S0183_RECONCILIATION_OR_REVIEW"
     elif legacy_decisions:
         verdict = "LEGACY_HUMAN_RELATIONAL_REVIEW_NOT_AUTHORITATIVE"
         next_action = SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS
@@ -252,6 +370,9 @@ def build_state(
     elif int(gate_summary.get("technically_invalid") or 0) > 0 and int(gate_summary.get("approved_for_admission") or 0) > 0:
         verdict = "RELATIONAL_ADMISSION_PARTIALLY_READY"
         next_action = "RESOLVE_OR_DEFER_TECHNICALLY_INVALID_APPROVALS"
+    elif gate_summary.get("admission_ready_dry_run", 0) and gate_g_current:
+        verdict = "IMPACT_REQUIRES_REAUTHORIZATION"
+        next_action = "REQUEST_EXPLICIT_REAUTHORIZATION_FOR_APPLY_RELATIONS"
     elif gate_summary.get("admission_ready_dry_run", 0):
         verdict = "READY_FOR_RELATIONAL_ADMISSION"
         next_action = "APPLY_REQUIRES_EXPLICIT_CONFIRMATION"
@@ -299,12 +420,25 @@ def build_state(
             "current": not reconciliation_reasons,
             "stale_reasons": reconciliation_reasons,
         },
+        "cross_batch_reconciliation": {
+            "manifest_path": display(cross_batch_path),
+            "manifest_hash": sha256_file(cross_batch_path),
+            "taxonomy": cross_batch.get("taxonomy") or [],
+            "old_counts": cross_batch.get("old_counts") or {},
+            "current_counts": cross_batch.get("current_counts") or {},
+            "coverage_complete": cross_batch.get("coverage_complete") is True,
+            "current": bool(cross_batch_path.exists() and not s0183_reasons),
+            "stale_reasons": s0183_reasons,
+        },
         "human_review": {
             "decisions_path": display(decisions_path),
             **decision_counts,
             "legacy_supersession_required": len(legacy_decisions),
             "stale": len(decisions) if decision_stale else 0,
             "current": not decisions_error and not decision_stale and not legacy_decisions,
+            "preservation_manifest_path": display(preservation_path) if preservation_path.exists() else None,
+            "preserved_equivalent": preservation.get("migrated_equivalent_count", 0),
+            "pending_after_preservation": len(preservation.get("pending_reviewable_candidate_ids") or []),
         },
         "admission_gate": {
             "report_path": display(gate_path),
@@ -316,25 +450,89 @@ def build_state(
             "approved_for_admission": gate_summary.get("approved_for_admission", 0),
             "admission_ready": gate_summary.get("admission_ready_dry_run", 0),
             "current": gate_current,
+            "partition_complete": partition_complete,
+            "partition_total": partition_total,
             "stale_reasons": gate_reasons,
         },
         "apply": {
             "executed": bool(apply_report.get("status") == "applied"),
+            "apply_id": (
+                apply_report.get("apply_id")
+                or productive_reconciliation.get("apply_id")
+            ),
             "applied_count": apply_report.get("applied_count", 0),
-            "receipt_path": display(apply_path) if not apply_error else None,
+            "receipt_path": (
+                display(apply_receipt_path) if not apply_receipt_error else None
+            ),
+            "receipt_hash": sha256_file(apply_receipt_path),
             "canon_modified": bool(apply_report.get("canon_modified") is True),
-            "current": bool(not apply_error and gate_current),
+            "current": productive_apply_current,
+            "authorized": bool(
+                authorization.get("decision") == "authorized"
+                or (authorization_reconciliation.get("authorization") or {}).get(
+                    "valid_at_execution"
+                ) is True
+            ),
+            "authorized_at_execution": bool(
+                (not authorization_error and authorization.get("decision") == "authorized")
+                or (
+                    not authorization_reconciliation_error
+                    and (authorization_reconciliation.get("authorization") or {}).get(
+                        "valid_at_execution"
+                    ) is True
+                )
+            ),
+            "authorization_consumed": bool(
+                authorization.get("consumed") is True
+                or (authorization_reconciliation.get("consumption") or {}).get(
+                    "consumed_once"
+                ) is True
+            ),
+            "authorization_path": (
+                display(authorization_path) if not authorization_error else None
+            ),
+            "authorization_reconciliation_path": (
+                display(authorization_reconciliation_path)
+                if not authorization_reconciliation_error else None
+            ),
+            "productive_reconciliation_path": (
+                display(productive_reconciliation_path)
+                if not productive_reconciliation_error else None
+            ),
+            "reconciled": productive_apply_reconciled,
+            "gate_g_ready": gate_g_current,
+            "gate_g_readiness_path": display(gate_g_path) if gate_g_path.exists() else None,
+            "plan_path": gate_g.get("apply_plan_path"),
         },
         "rollback": {
-            "available": bool(apply_report.get("canon_modified") is True and apply_report.get("rollback_snapshot")),
-            "receipt_bound": False,
-            "snapshot_path": apply_report.get("rollback_snapshot"),
-            "current": False,
+            "available": bool(
+                gate_g_current
+                or (apply_report.get("canon_modified") is True and apply_report.get("rollback_snapshot"))
+            ),
+            "receipt_bound": bool(
+                not apply_receipt_error
+                and apply_receipt.get("rollback_snapshot") == apply_report.get("rollback_snapshot")
+                and apply_receipt.get("rollback_snapshot_hash")
+                == apply_report.get("rollback_snapshot_hash")
+            ),
+            "snapshot_path": gate_g.get("snapshot_path") if gate_g_current else apply_report.get("rollback_snapshot"),
+            "current": bool(
+                productive_apply_current
+                and apply_report.get("rollback_snapshot")
+                and Path(str(apply_report.get("rollback_snapshot"))).is_file()
+            ) or gate_g_current,
+            "stale_reasons": gate_g_reasons,
         },
         "canonical_relation_v1": canonical_relation_v1_count(local_root),
         "verdict": verdict,
         "next_action": next_action,
         "blocking_reasons": sorted(set(blocking_reasons)),
+        "expected_postapply_staleness": {
+            "recognized": productive_apply_reconciled,
+            "historical_preapply_artifacts_invalidated_by_authorized_mutation": (
+                sorted(set(preapply_stale_reasons)) if productive_apply_reconciled else []
+            ),
+        },
         "warnings": [
             warning for warning in (
                 "baseline_is_historical_not_operational" if baseline else None,
@@ -357,6 +555,8 @@ def relational_apply_precondition(state: dict[str, Any]) -> dict[str, Any]:
         reasons.append("admission_gate_not_current")
     if gate.get("stale_reasons"):
         reasons.append("admission_gate_has_stale_reasons")
+    if "partition_complete" in gate and gate.get("partition_complete") is not True:
+        reasons.append("admission_gate_partition_incomplete")
     if int(review.get("total") or 0) < int(reconciliation.get("ready_for_review") or 0):
         reasons.append("human_review_incomplete")
     if int(gate.get("admission_ready") or 0) <= 0:
@@ -371,6 +571,7 @@ def relational_apply_precondition(state: dict[str, Any]) -> dict[str, Any]:
         "reasons": reasons,
         "admission_ready": int(gate.get("admission_ready") or 0),
         "gate_current": gate.get("current") is True,
+        "gate_partition_complete": gate.get("partition_complete", True) is True,
         "human_review_total": int(review.get("total") or 0),
         "reviewable_total": int(reconciliation.get("ready_for_review") or 0),
         "apply_executed": apply.get("executed") is True,
@@ -390,6 +591,14 @@ def build_audit_index(local_root: Path = LOCAL_ROOT, *, checked_at: str | None =
         audit_dir / "current_run_manifest.json",
         audit_dir / "admission_gate_dry_run.json",
         audit_dir / "relation_apply_report.json",
+        audit_dir / "relation_apply_receipt.json",
+        local_root / "audit" / "s0183" / "current" / "cross_batch_reconciliation_manifest.json",
+        local_root / "audit" / "s0183" / "current" / "human_decision_preservation_manifest.json",
+        local_root / "audit" / "s0183" / "gate-f-safety-verification.json",
+        local_root / "audit" / "s0183" / "gate-g" / "gate_g_readiness.json",
+        local_root / "audit" / "s0183" / "gate-g" / "gate_g_authorization.json",
+        local_root / "audit" / "s0183" / "reconciliation" / "productive_apply_reconciliation.json",
+        local_root / "audit" / "s0183" / "gate-h" / "gate_h_revalidation.json",
     ]
     return {
         "schema_version": "relational-audit-index/v1",

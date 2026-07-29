@@ -58,6 +58,43 @@ def _setup(tmp_path: Path, rows: list[dict], canon_rows: list[dict] | None = Non
     return canon, current, productive
 
 
+def test_cross_batch_reconciliation_uses_closed_semantic_taxonomy() -> None:
+    old_equivalent = _candidate("rc_current_" + "1" * 24, "src/source.py", "src/target.py")
+    old_modified = _candidate("rc_current_" + "2" * 24, "src/source.py", "src/other.py")
+    old_disappeared = _candidate("rc_current_" + "3" * 24, "src/gone.py", "src/target.py")
+    old_ambiguous = _candidate("rc_current_" + "4" * 24, "src/ambiguous.py", "src/target.py")
+    invalid = {"candidate_id": "invalid"}
+
+    current_equivalent = json.loads(json.dumps(old_equivalent))
+    current_equivalent["candidate_id"] = "rc_current_" + "a" * 24
+    current_equivalent["evidence"]["line"] = 999
+    current_modified = json.loads(json.dumps(old_modified))
+    current_modified["candidate_id"] = "rc_current_" + "b" * 24
+    current_modified["evidence"]["raw_observation"] = "meaningfully changed evidence"
+    current_new = _candidate("rc_current_" + "c" * 24, "src/new.py", "src/target.py")
+    ambiguous_one = json.loads(json.dumps(old_ambiguous))
+    ambiguous_one["candidate_id"] = "rc_current_" + "d" * 24
+    ambiguous_two = json.loads(json.dumps(old_ambiguous))
+    ambiguous_two["candidate_id"] = "rc_current_" + "e" * 24
+
+    result = reconcile.build_cross_batch_reconciliation(
+        [old_equivalent, old_modified, old_disappeared, old_ambiguous, invalid],
+        [current_equivalent, current_modified, current_new, ambiguous_one, ambiguous_two, invalid],
+    )
+    old_classes = {row["candidate_id"]: row["classification"] for row in result["old_to_current"]}
+    current_classes = {row["candidate_id"]: row["classification"] for row in result["current_to_old"]}
+    assert old_classes[old_equivalent["candidate_id"]] == "equivalent"
+    assert old_classes[old_modified["candidate_id"]] == "modified"
+    assert old_classes[old_disappeared["candidate_id"]] == "disappeared"
+    assert old_classes[old_ambiguous["candidate_id"]] == "ambiguous"
+    assert old_classes["invalid"] == "invalid"
+    assert current_classes[current_equivalent["candidate_id"]] == "equivalent"
+    assert current_classes[current_modified["candidate_id"]] == "modified"
+    assert current_classes[current_new["candidate_id"]] == "new"
+    assert current_classes[ambiguous_one["candidate_id"]] == "ambiguous"
+    assert current_classes[ambiguous_two["candidate_id"]] == "ambiguous"
+
+
 def _run(canon: Path, current: Path, productive: Path, out: Path) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     baseline = out / "pre_relational_rag_baseline_manifest.json"

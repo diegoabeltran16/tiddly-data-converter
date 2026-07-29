@@ -1,106 +1,199 @@
-# 🧭🧱 Protocolo de Sesión
-`## 🧭🧱 Protocolo de Sesión` funciona como el **núcleo madre** que orienta la apertura, conducción y registro de las sesiones dentro del sistema. No desarrolla el tema por sí mismo: ofrece una forma estable de trabajo para que cada sesión produzca conocimiento situado sin quedar desconectada de la arquitectura ya declarada.
+# Protocolo de sesión
 
-## Propósito
-- `rol_principal`: `procedimiento`.
-- Abrir sesiones con marco local, propósito, modo activo y producción esperable.
-- Convertir conversación y trabajo situado en artefactos integrables al sistema.
-- Mantener trazabilidad suficiente para revisión, continuidad y canonización posterior.
+## Alcance
 
-## Cuándo aplica
-- Al abrir, conducir y cerrar cualquier sesión.
-- Cuando una sesión va a crear o modificar hipótesis, procedencias, elementos específicos, definiciones, contratos, parches o líneas canónicas.
-- Cuando la sesión se desarrolla con asistencia de IA.
-- Antes de actuar, para decidir qué lectura mínima (como mínimo: `# 1_tiddly-data-converter`, `## 🧭🧱 Protocolo de Sesión` y `## 🧠🧱 Política de Memoria Activa`) y qué expansión contextual (limitada a los bloques que el objetivo local necesite realmente) son necesarias.
+Gobierna la metodología conceptual de las sesiones TDC:
 
-## Obligaciones
+- apertura situada;
+- secuencia de trabajo;
+- separación entre decisión, intervención y evaluación;
+- continuidad entre sesiones.
 
-**Apertura:**
-- Abrir la sesión como trabajo situado, no como conversación difusa.
-- Declarar al menos `local_frame`, `purpose`, `mode` y `expected_output`.
-- Revisar, antes de actuar, las hipótesis abiertas relevantes, las definiciones estabilizadas pertinentes, los elementos específicos recientes, las tensiones no resueltas y las decisiones previas que afectan el objetivo local.
+No gobierna:
 
-**Conducción:**
-- Registrar durante la sesión qué se produjo, qué se confirmó, qué se contradijo, qué se refinó y qué quedó pendiente.
+- selección de la instrucción ejecutable;
+- rutas o títulos de entregables;
+- schema `.md.json`;
+- admisión canónica;
+- contenido especializado de cada artefacto.
 
-**Cierre:**
-- Cerrar la sesión según `.github/instructions/canonical_session_family.instructions.md`.
-- Cuando la sesión genere memoria que deba poder entrar al canon, dejarla como candidata no admitida y no escribir directamente en el canon final por defecto.
+Esas responsabilidades pertenecen a la skill y a sus dueños normativos.
 
-**Gobernanza:**
-- Mantener la autoridad semántica en el humano: la IA sugiere, estructura y facilita, pero no decide por sí sola las relaciones o estados finales.
+## Modelo metodológico
 
-### Modos de operación
-- `teórico`: comprensión, análisis, lectura, distinción conceptual, formulación e interpretación.
-- `desarrollo_pragmatico`: construcción, diseño operativo, decisión estructural, implementación, prueba y ajuste.
+Toda sesión se desarrolla mediante tres macrofases:
 
-### Organización mínima de una sesión
-- `session_title`: título corto y legible.
-- `session_id` o `session_tag`: identificador humano-canónico de la sesión.
-- `session_date`: fecha y hora de apertura.
-- `local_frame`: ámbito temático trabajado.
-- `purpose`: propósito local.
-- `mode`: `teorico` | `desarrollo_pragmatico`.
-- `expected_output`: tipo de producto esperado.
-- `produced_nodes`: lista de nodos producidos o modificados.
-- `notes_summary`: resumen breve de decisiones y pendientes.
+1. preimpacto;
+2. impacto;
+3. postimpacto.
 
-### Preferencias de memoria declarables desde la sesión
-- `memory_policy`.
-- `memory_ttl`.
-- `memory_tags`.
+El preimpacto contiene dos instrucciones ejecutables. Por tanto, la ejecución
+asistida usa cuatro instrucciones en total.
 
-Estas preferencias son opcionales y su significado está gobernado por `## 🧠🧱 Política de Memoria Activa`.
+La selección, transición y detención de esas instrucciones se gobierna en:
 
-### Plantilla recomendada para tiddler de sesión
-```yaml
-title: "🌀 Sesión — Título breve"
-tags: ["session:2026-04-01-s07", "session", "topic:mi-tema"]
-session_id: "session:2026-04-01-s07"
-session_date: "2026-04-01T10:00:00Z"
-local_frame: "Ámbito específico sobre X"
-purpose: "Reformular hipótesis Y y decidir next-steps"
-mode: "desarrollo_pragmatico"
-expected_output: ["tiddler:hipotesis", "tiddler:procedimiento"]
-produced_nodes: []
-notes_summary: "Puntos clave y decisiones tomadas"
-memory_policy: "active"
-memory_ttl: "P30D"
-memory_tags: ["project-x", "hypothesis"]
----
-# Notas de la sesión
+`.agents/skills/tdc-session/SKILL.md`
 
-- Registro de acciones, decisiones y resultados.
-- Para cada tiddler creado, añadir tag `session:2026-04-01-s07` y, si procede, `provisional_id: <slug>`.
-```
+Las macrofases pertenecen a una sola sesión y conservan la misma identidad
+documental.
 
-### Contrato operativo de sesión asistida por IA
-Toda sesión asistida debe declarar objetivo local, salida estructural esperada, lectura mínima de apertura y política de expansión contextual. La lectura mínima debe comenzar por `# 1_tiddly-data-converter`, `## 🧭🧱 Protocolo de Sesión` y `## 🧠🧱 Política de Memoria Activa`, y expandirse solo hacia los bloques que el objetivo local necesite realmente.
+## Apertura situada
 
-La sesión asistida se considera cumplida cuando produce el artefacto estructural esperado para su nivel de trabajo y el cierre definido por `.github/instructions/canonical_session_family.instructions.md`. Si recae sobre canon, la salida normal del agente son candidatas no admitidas; la admisión pertenece a S66.
+Antes de actuar:
+
+- identifica la sesión y su objetivo local;
+- inspecciona el estado real;
+- recupera solo la continuidad pertinente;
+- declara el producto esperado;
+- distingue evidencia, inferencia y decisión;
+- comienza por el preimpacto.
+
+No reconstruyas el contexto desde memoria informal cuando exista evidencia
+verificable.
+
+La apertura debe declarar, cuando corresponda:
+
+- `local_frame`;
+- `purpose`;
+- `mode`;
+- `expected_output`.
+
+## Preimpacto
+
+El preimpacto reúne las decisiones anteriores a la intervención.
+
+### Reconocimiento
+
+Debe:
+
+- reconstruir la procedencia relevante;
+- diagnosticar el estado actual;
+- identificar superficies, riesgos y bloqueos;
+- distinguir observación e inferencia;
+- delimitar qué necesita verificarse.
+
+Produce o actualiza procedencia y diagnóstico.
+
+No implementa ni ejecuta operaciones mutantes.
+
+### Formulación
+
+Debe:
+
+- formular hipótesis contrastables;
+- delimitar objetivo y alcance;
+- definir límites, invariantes y validaciones;
+- establecer condiciones de detención y cierre;
+- producir o actualizar hipótesis y contrato.
+
+No habilita implementación con evidencia insuficiente.
+
+## Impacto
+
+El impacto ejecuta la intervención autorizada.
+
+Debe:
+
+- respetar el alcance contratado;
+- modificar solo superficies autorizadas;
+- ejecutar validaciones reales;
+- registrar acciones, resultados y errores;
+- contrastar hipótesis y contrato;
+- producir evidencia reproducible;
+- actualizar los detalles de sesión;
+- aplicar microajustes no materiales cuando proceda.
+
+Ante un cambio material, aplica la regresión definida en `SKILL.md`.
+
+No amplíes el contrato silenciosamente.
+
+## Postimpacto
+
+El postimpacto evalúa y consolida la sesión.
+
+Debe:
+
+- fijar el estado final de las hipótesis;
+- contrastar el contrato con el resultado;
+- consolidar procedencia y diagnóstico cuando sea necesario;
+- producir balance y propuesta;
+- validar la coherencia documental;
+- declarar limitaciones, riesgos y deuda residual.
+
+No implementa cambios nuevos.
+
+Un hallazgo técnico surgido durante el cierre se registra como bloqueo,
+pendiente o continuidad futura.
+
+## Modos de operación
+
+Una sesión puede declarar:
+
+- `teorico`: análisis, comprensión, formulación o interpretación;
+- `desarrollo_pragmatico`: diseño, implementación, prueba o ajuste.
+
+El modo no reemplaza las macrofases.
+
+Toda sesión, independientemente del modo, mantiene la secuencia:
+
+```text
+preimpacto
+→ impacto
+→ postimpacto
+````
+
+## Continuidad
+
+Usa los artefactos de sesión como memoria estructurada entre instrucciones.
+
+* No reconstruyas toda la conversación.
+* No repitas análisis sin evidencia nueva.
+* Actualiza los mismos entregables.
+* Conserva decisiones previas todavía vigentes.
+* Declara contradicciones y refinamientos.
+* No presentes una propuesta futura como estado ya alcanzado.
+
+La continuidad temática se gobierna en
+`desarrollo_y_evolucion.instructions.md`.
+
+La recuperabilidad entre sesiones se gobierna en
+`politica_de_memoria_activa.instructions.md`.
+
+## Autoridad y límites
+
+* El humano conserva la autoridad semántica final.
+* La IA puede analizar, proponer, estructurar y validar.
+* La conversación no equivale a autorización operativa.
+* Git no equivale a admisión canónica.
+* Una implementación terminada no equivale a cierre de sesión.
+* Una propuesta no abre automáticamente otra sesión.
+
+Para familia, identidad y admisión, aplica
+`canonical_session_family.instructions.md`.
+
+Para schema, aplica `tiddlers_sesiones.instructions.md`.
 
 ## No hacer
-- No iniciar una sesión como si el tema partiera de cero.
-- No usar memoria libre o reconstrucción informal cuando hay contexto rastreable disponible.
-- No expandir la lectura de forma indiscriminada.
-- No cerrar una sesión sin dejar claro qué produjo y qué quedó pendiente.
-- No cerrar una sesión sin diagnóstico de sesión.
-- No crear archivo acumulativo global de sesiones.
-- No declarar admisión canónica si solo existen candidatos sin validación suficiente.
-- No confundir protocolo de sesión con política de memoria, contenido temático o motor de canonización.
 
-## Interacción con otros nodos
-- Requiere `## 🎯🧱 Detalles del tema` para situar la sesión dentro del marco del tema.
-- Requiere `## 🌀🧱 Desarrollo y Evolución` para que la sesión quede integrada a la historia del proceso.
-- Usa `## 🧪🧱 Hipótesis`, `## 🧾🧱 Procedencia epistemológica`, `## 🧰🧱 Elementos específicos` y `## 📚🧱 Glosario y Convenciones` según la naturaleza de lo producido.
-- Se articula con `## 🧠🧱 Política de Memoria Activa`, que define cómo se interpretan las preferencias de memoria declaradas en sesión.
-- Orienta nodos como `#### 🌀 Sesión ##`, `#### 🌀🧪 Hipótesis de sesión ##`, `#### 🌀🧾 Procedencia de sesión ##`, `#### 📚 Diccionario 🌀` y `#### referencias específicas 🌀`, pero no los reemplaza.
-- `tiddly-data-converter` formaliza, valida y reporta; el protocolo solo gobierna cómo la sesión entra, trabaja y sale del sistema.
+* No iniciar la sesión como si el proyecto partiera de cero.
+* No cargar contexto por acumulación.
+* No implementar durante el preimpacto.
+* No cerrar durante el impacto.
+* No implementar durante el postimpacto.
+* No tratar macrofases como sesiones independientes.
+* No avanzar automáticamente entre instrucciones.
+* No ocultar cambios, errores o evidencia contradictoria.
+* No duplicar reglas pertenecientes a otros dueños normativos.
 
-## Criterio de salida
-- Debe quedar trazable qué se leyó, qué se trabajó, qué se produjo y qué quedó abierto.
-- Debe quedar explícito el artefacto estructural esperado y si efectivamente se obtuvo.
-- Debe quedar explícito si hubo líneas candidatas, si fueron validadas y si fueron o no absorbidas al canon local.
-- Un agente debe poder continuar la sesión o auditarla sin depender de conversación implícita ni de reconstrucción informal.
+## Criterio de cumplimiento
 
-El protocolo de sesión no sustituye la evolución del tema, pero hace posible que esa evolución pueda registrarse con orden y continuidad.
+El protocolo se cumple cuando:
+
+* la sesión conserva una identidad única;
+* la secuencia metodológica es trazable;
+* cada intervención deriva de evidencia previa suficiente;
+* los resultados pueden contrastarse con hipótesis y contrato;
+* los cambios y pendientes quedan explícitos;
+* la continuidad no depende de conversación implícita;
+* cada instrucción se detiene antes de la siguiente transición.
+

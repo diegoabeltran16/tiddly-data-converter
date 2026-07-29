@@ -1,87 +1,302 @@
-## 🧠🧱 Política de Memoria Activa
+---
+description: >
+  Dueño normativo de la memoria activa en TDC: recuperabilidad, open loops,
+  relevancia, recencia, TTL, preferencias humanas, señales computadas y
+  acciones operativas de memoria.
+---
 
-Este núcleo define qué significa memoria activa en el sistema, qué debe mantenerse recuperable entre sesiones y qué semántica gobierna los campos canónicos de memoria. No abre ni conduce sesiones: gobierna la continuidad contextual entre ellas.
+# Política de memoria activa
 
-## Propósito
+## Alcance
+
+Esta instrucción gobierna:
+
+- memoria activa y recuperabilidad entre sesiones;
+- `open_loop`;
+- `relevance`;
+- `recency`;
+- preferencias de memoria;
+- TTL;
+- señales computadas;
+- estados y acciones operativas de memoria;
+- selección situada del contexto que vuelve a entrar en foco.
+
+No gobierna:
+
+- apertura o conducción de sesiones;
+- contenido de hipótesis, procedencia, glosario o evolución;
+- algoritmos concretos de scoring;
+- ejecución automática de políticas de retención;
+- schema general del canon;
+- candidatas o admisión canónica.
+
+Aplicar:
+
+- `protocolo_de_sesion.instructions.md` para apertura situada;
+- `desarrollo_y_evolucion.instructions.md` para continuidad histórica;
+- `canonical_session_family.instructions.md` para candidatas y S66.
+
+## Rol semántico
+
 - `rol_principal`: `procedimiento`.
-- Definir la semántica de memoria activa, `open_loop`, `relevance`, `recency` y recuperabilidad.
-- Establecer qué señales permiten que un nodo vuelva a entrar en contexto entre sesiones.
-- Separar preferencias humanas, cómputo técnico y decisión operativa sobre memoria.
 
-## Cuándo aplica
+La memoria activa responde:
 
-Aplicar en este orden de prioridad:
-
-1. Cuando una sesión declara `memory_policy`, `memory_ttl` o `memory_tags` (preferencia humana explícita — prioridad máxima).
-2. Cuando el convertidor o un gestor de memoria computan señales de reactivación, prioridad o decaimiento (cómputo técnico).
-3. Cuando hay que decidir qué contexto reaparece entre sesiones (decisión operativa).
-4. Cuando confirmaciones, contradicciones o refinamientos alteran la relevancia futura de un nodo (actualización de estado).
-
-## Obligaciones
-- Mantener la diferencia entre `open_loop`, `relevance`, `recency`, prioridad contextual y recuperabilidad, aplicando la siguiente precedencia cuando entren en conflicto: preferencia humana declarada > relevancia contextual para el objetivo local > recencia > recuperabilidad general.
-- Exigir recuperación situada: reentra lo que ayuda al objetivo local, no todo el historial disponible.
-- Tratar `memory_policy`, `memory_ttl` y `memory_tags` como preferencias declarables, no como decisión final automática.
-- Hacer trazable cualquier cambio de estado o acción de memoria.
-- Mantener visibles los campos canónicos y su semántica.
-
-### Campos canónicos y recomendaciones
-- `meta.memory_policy`: `active` | `ephemeral` | `archive`.
-- `meta.memory_ttl`: duración ISO8601 opcional.
-- `meta.memory_tags`: lista de strings para indexación y búsqueda.
-- `memory.last_used`: fecha ISO8601 computada.
-- `memory.times_referenced`: contador computado.
-- `memory.relevance_score`: puntaje normalizado computado.
-- `memory.related_sessions`: lista de `session_id` computada.
-- `memory.status`: `active` | `dormant` | `archived`.
-- `memory_action`: `keep` | `demote` | `archive` | `delete` | `review` como señal derivada y revisable.
-
-### Responsabilidades técnicas
-- Humano: declarar, si hace falta, `memory_policy`, `memory_ttl` y `memory_tags` como preferencias.
-- `tiddly-data-converter`: computar y reportar métricas básicas de memoria sin aplicar por sí mismo políticas de retención.
-- Gestor de memoria: aplicar TTLs, promover, degradar, archivar y solicitar revisión humana cuando corresponda.
-
-### Ejemplo canónico mínimo
-```json
-"meta": {
-	"memory_policy": "active",
-	"memory_ttl": "P30D",
-	"memory_tags": ["project-x", "hypothesis"]
-},
-"memory": {
-	"last_used": "2026-04-01T10:12:00Z",
-	"times_referenced": 3,
-	"relevance_score": 0.78,
-	"related_sessions": ["session:2026-04-01-s07"],
-	"status": "active"
-}
+```text
+¿Qué contenido debe permanecer recuperable,
+por qué puede volver a ser relevante
+y bajo qué condiciones debe reactivarse?
 ```
 
-## No hacer
-- No reinyectar contexto por inercia o acumulación indiscriminada.
-- No confundir política semántica con algoritmo de scoring o con motor de retención.
-- No aplicar acciones irreversibles sin trazabilidad y revisión suficiente.
-- No usar esta política como sustituto del registro explícito en hipótesis, procedencia, glosario o desarrollo.
+Recuperable no significa cargado permanentemente.
 
-## Nota de cumplimiento S66
-- La familia de cierre, candidaturas y admisión local se gobiernan en `.github/instructions/canonical_session_family.instructions.md`.
-- Este archivo solo define memoria activa, TTL, relevancia, recencia, recuperabilidad y señales de reentrada.
-- La recuperabilidad futura no equivale a admisión canónica.
+```text
+memoria disponible
+≠ memoria relevante
+≠ memoria seleccionada
+≠ contexto cargado
+```
 
-## Interacción con otros nodos
-- `## 🧭🧱 Protocolo de Sesión` permite declarar preferencias de memoria y define la apertura informada de cada sesión.
-- `## 🧠🧱 Política de Memoria Activa` define qué significan esas preferencias y cómo se interpretan.
-- `## 🧪🧱 Hipótesis`, `## 📚🧱 Glosario y Convenciones`, `## 🌀🧱 Desarrollo y Evolución`, `## 🧾🧱 Procedencia epistemológica` y `## 🧰🧱 Elementos específicos` aportan el contenido que puede volver a entrar en foco.
-- El convertidor registra, computa y reporta señales; el gestor de memoria decide y aplica.
+## Principios de selección
 
-### Interfaz entre memoria activa y sesiones asistidas por IA
-Antes de una sesión asistida, la memoria activa debe orientar la selección de lo que reaparece, no inflar el contexto de forma indiscriminada. Debe priorizar hipótesis abiertas, definiciones recientemente estabilizadas, contradicciones pendientes, refinamientos recientes, nodos frecuentemente referenciados y resultados de alta incidencia sobre el objetivo local declarado.
+La recuperación debe ser situada: reentra el contexto que ayuda al objetivo
+local, no todo el historial disponible.
 
-Los resultados de una sesión asistida deben alimentar la recuperabilidad futura cuando abren bucles de seguimiento, cambian la prioridad contextual de un nodo, estabilizan definiciones antes abiertas, introducen señales de contradicción o confirmación, o generan dependencias con incidencia conocida sobre el trabajo posterior. Las referencias específicas solo deben reactivarse cuando el objetivo local de la sesión siguiente lo requiera de forma explícita.
+Cuando existan señales en conflicto, aplica esta precedencia:
 
-## Criterio de salida
-- Debe quedar claro por qué un nodo permanece recuperable entre sesiones y qué señales justifican esa decisión (relevancia contextual para el objetivo local, frecuencia de referencia, bucles abiertos de seguimiento, o preferencia humana declarada explícitamente).
-- Cuando un nodo presenta señales en conflicto (por ejemplo, alta relevancia pero baja recencia), debe priorizarse la relevancia contextual para el objetivo local de la sesión siguiente; si no hay objetivo local declarado, priorizar recencia.
-- Debe poder distinguirse entre preferencia declarada, señal computada y acción operativa.
-- Un agente debe saber qué contexto reentra, por qué reentra y bajo qué revisión humana sigue siendo modificable.
+1. preferencia humana explícita;
+2. relevancia para el objetivo local;
+3. bucles abiertos y dependencias pendientes;
+4. vigencia;
+5. recencia;
+6. frecuencia de referencia;
+7. recuperabilidad general.
 
-Fin de `## 🧠🧱 Política de Memoria Activa`.
+La preferencia humana tiene prioridad operativa, pero no convierte contenido
+obsoleto o incorrecto en evidencia vigente.
+
+## Conceptos canónicos
+
+### `open_loop`
+
+Asunto que conserva una condición concreta de seguimiento.
+
+Puede originarse en:
+
+- hipótesis abierta;
+- contradicción pendiente;
+- validación incompleta;
+- bloqueo;
+- riesgo no resuelto;
+- deuda con incidencia conocida;
+- autorización pendiente;
+- propuesta condicionada.
+
+No toda idea futura constituye un `open_loop`.
+
+Debe existir una condición cuya resolución pueda cambiar una decisión
+posterior.
+
+### `relevance`
+
+Incidencia del contenido sobre el objetivo local.
+
+Es contextual y puede cambiar entre sesiones.
+
+### `recency`
+
+Proximidad temporal de creación, modificación, validación o uso.
+
+Es una señal secundaria: contenido reciente puede ser irrelevante y contenido
+antiguo puede seguir siendo crítico.
+
+### Recuperabilidad
+
+Capacidad de encontrar nuevamente un contenido con identidad, procedencia y
+contexto suficientes para evaluarlo.
+
+### TTL
+
+Horizonte temporal para revisar utilidad o vigencia.
+
+El vencimiento de un TTL no implica borrado automático. Activa revisión,
+degradación o archivado según la política aplicable.
+
+## Campos canónicos
+
+Preferencias humanas declarables:
+
+- `meta.memory_policy`: `active` | `ephemeral` | `archive`;
+- `meta.memory_ttl`: duración ISO 8601 opcional;
+- `meta.memory_tags`: lista de strings.
+
+Señales computadas:
+
+- `memory.last_used`: fecha ISO 8601;
+- `memory.times_referenced`: contador;
+- `memory.relevance_score`: valor normalizado;
+- `memory.related_sessions`: lista de `session_id`;
+- `memory.status`: `active` | `dormant` | `archived`.
+
+Acción derivada y revisable:
+
+- `memory_action`: `keep` | `demote` | `archive` | `delete` | `review`.
+
+Las preferencias humanas, señales computadas y acciones operativas son capas
+distintas.
+
+```text
+preferencia declarada
+→ señal computada
+→ decisión operativa revisable
+```
+
+## Semántica de políticas
+
+### `active`
+
+Mantener disponible para reactivación cuando sea relevante.
+
+No implica cargarlo en toda sesión.
+
+### `ephemeral`
+
+Mantener temporalmente y revisar al vencer su TTL o condición de utilidad.
+
+No implica eliminación automática.
+
+### `archive`
+
+Conservar para historia o auditoría, fuera de la recuperación ordinaria salvo
+necesidad explícita.
+
+## Responsabilidades
+
+### Humano
+
+Puede declarar:
+
+- `memory_policy`;
+- `memory_ttl`;
+- `memory_tags`;
+- prioridades;
+- exclusiones;
+- autorización para acciones irreversibles.
+
+### TDC
+
+Puede:
+
+- preservar campos;
+- computar métricas;
+- relacionar sesiones;
+- reportar señales.
+
+No debe aplicar por sí mismo políticas irreversibles de retención.
+
+### Gestor de memoria
+
+Puede:
+
+- seleccionar contexto;
+- aplicar TTL;
+- degradar prioridad;
+- archivar;
+- solicitar revisión;
+- proponer acciones.
+
+Debe conservar trazabilidad y autoridad humana.
+
+## Reactivación entre sesiones
+
+Antes de una sesión asistida, prioriza:
+
+- hipótesis abiertas;
+- contradicciones pendientes;
+- definiciones recientemente estabilizadas;
+- bloqueos;
+- deuda con incidencia;
+- resultados relevantes para el objetivo;
+- recursos o dependencias directamente afectados;
+- preferencias humanas explícitas.
+
+Cada contenido reactivado debe poder explicar:
+
+- por qué reentra;
+- qué objetivo afecta;
+- qué autoridad conserva;
+- cuál es su vigencia;
+- qué decisión puede modificar.
+
+Las referencias específicas solo deben reactivarse cuando el objetivo local lo
+requiera.
+
+## Actualización después de una sesión
+
+Una sesión puede cambiar la memoria futura cuando:
+
+- abre o cierra un `open_loop`;
+- confirma, refina o contradice una hipótesis;
+- estabiliza una definición;
+- introduce deuda;
+- resuelve un bloqueo;
+- cambia vigencia o autoridad;
+- crea una dependencia futura;
+- deja continuidad condicionada.
+
+No toda salida de sesión debe permanecer activa.
+
+## Acciones irreversibles
+
+`memory_action: delete` nunca debe ejecutarse automáticamente.
+
+Requiere:
+
+- decisión humana explícita;
+- revisión de referencias y consumidores;
+- comprobación de autoridad;
+- preservación de evidencia necesaria;
+- trazabilidad de la acción.
+
+## Relación con el canon
+
+```text
+recuperabilidad
+≠ relevancia
+≠ vigencia
+≠ autoridad
+≠ admisión canónica
+```
+
+Un contenido puede ser recuperable sin estar admitido, o estar admitido y no
+ser relevante para la sesión actual.
+
+Para candidatas y admisión aplica
+`canonical_session_family.instructions.md`.
+
+## Prohibiciones
+
+- No reinyectes contexto por acumulación.
+- No confundas recencia con relevancia.
+- No confundas relevancia con verdad.
+- No confundas recuperabilidad con admisión.
+- No uses frecuencia como única señal.
+- No borres contenido al vencer un TTL.
+- No ejecutes `delete` automáticamente.
+- No conviertas propuestas vagas en `open_loop`.
+- No copies aquí algoritmos de scoring.
+- No uses esta política como sustituto de hipótesis, procedencia, glosario o
+  evolución.
+
+## Criterio de cumplimiento
+
+La política se cumple cuando:
+
+- puede explicarse por qué un contenido permanece recuperable;
+- el contexto seleccionado responde al objetivo local;
+- `open_loop`, relevancia, recencia y recuperabilidad permanecen separados;
+- los TTL activan revisión y no borrado automático;
+- se distingue preferencia humana, señal computada y acción operativa;
+- toda acción irreversible requiere autorización;
+- la continuidad puede recuperarse sin cargar todo el historial.
+````

@@ -1,87 +1,375 @@
-# 🧾🧱 Procedencia epistemológica
-**`## 🧾🧱 Procedencia epistemológica`** funciona como el **núcleo madre** que orienta la declaración de procedencia dentro del sistema. No conserva el recurso concreto ni desarrolla el contenido del tema: mantiene explícito de dónde surge una idea, un nodo, una interpretación o un material incorporado al trabajo.
+---
+description: >
+  Dueño normativo del contenido epistemológico de la procedencia: origen,
+  actor, método, fuentes, autoridad, inferencias, participación de IA y
+  limitaciones.
+---
 
-## Propósito
+# Procedencia epistemológica
+
+## Alcance
+
+Esta instrucción gobierna:
+
+- el origen de la evidencia;
+- los actores que la producen o aportan;
+- el método mediante el cual se obtiene;
+- las fuentes y referencias utilizadas;
+- la distinción entre observación e inferencia;
+- la participación humana y de IA;
+- las limitaciones de reconstrucción;
+- el contenido del entregable `Procedencia de sesión`.
+
+No gobierna:
+
+- el recurso concreto;
+- la interpretación diagnóstica;
+- la formulación de hipótesis;
+- la autorización contractual;
+- rutas, títulos o identidad documental;
+- schema `.md.json`;
+- diagnósticos especializados;
+- candidatas o admisión al canon.
+
+Aplicar:
+
+- `elementos_especificos.instructions.md` para recursos concretos;
+- `diagnosticos_no_sesionales.instructions.md` para procedencia de diagnósticos
+  especializados;
+- `canonical_session_family.instructions.md` para nombre, título, ruta,
+  identidad y canonizabilidad;
+- `tiddlers_sesiones.instructions.md` para formato y validación `.md.json`.
+
+## Rol semántico
+
 - `rol_principal`: `procedimiento`.
-- Hacer visible la genealogía del conocimiento trabajado.
-- Distinguir entre producción humana, asistencia de IA, fuente externa y combinaciones mixtas.
-- Registrar origen, método y referencia suficiente para revisión, validación y explotación posterior.
+- `rol_secundario`: `evidencia`.
+
+La procedencia responde:
+
+```text
+¿De dónde proviene la evidencia y cómo llegó al trabajo?
+````
+
+No responde:
+
+```text
+¿Qué significa esa evidencia para el estado del sistema?
+```
+
+Esa interpretación pertenece al diagnóstico.
 
 ## Cuándo aplica
-- Cuando el origen de un contenido no es obvio o no debe quedar implícito.
-- Cuando una idea, decisión, nodo o recurso entra al sistema.
-- Cuando hubo intervención humana, de IA, externa o combinada.
-- Cuando una sesión necesita dejar trazable de dónde surgió una formulación relevante.
+
+Registra procedencia cuando:
+
+* una fuente, idea, decisión o recurso entra al trabajo;
+* el origen no es evidente;
+* una conclusión depende de evidencia verificable;
+* participan humano, IA o fuentes externas;
+* una sesión reconstruye continuidad previa;
+* aparece evidencia nueva durante la implementación;
+* una fuente cambia, contradice o limita el diagnóstico;
+* el origen no puede verificarse completamente.
+
+No documentes procedencia irrelevante para el objetivo local.
+
+## Clasificación de fuentes
+
+Cuando sea pertinente, distingue:
+
+* `fuente_primaria`: evidencia directa del objeto estudiado;
+* `fuente_auxiliar`: aporta contexto o apoyo;
+* `fuente_derivada`: resultado calculado o transformado;
+* `decision_humana`: instrucción, autorización o confirmación del operador;
+* `inferencia_del_agente`: conclusión construida por razonamiento;
+* `proyeccion_remota`: copia o representación externa no autoritativa;
+* `fuente_no_verificada`: referencia conocida cuyo contenido no pudo comprobarse.
+
+Estas categorías describen el contenido epistemológico. No introducen campos
+nuevos en el schema `.md.json`.
 
 ## Obligaciones
 
-**Declaración de origen:**
-- Declarar, cuando corresponda, origen, actor, método y referencia rastreable.
-- Distinguir entre observación, inferencia, generación, compilación, estimación y otras mediaciones relevantes.
+Para cada fuente relevante, registra cuando corresponda:
 
-**Trazabilidad:**
-- Separar con claridad el recurso concreto de la explicación sobre su entrada al sistema.
-- Mantener trazabilidad suficiente para que una decisión importante no dependa de memoria tácita.
+* origen;
+* actor;
+* método de obtención;
+* referencia o ruta;
+* fecha o estado observado;
+* autoridad;
+* vigencia;
+* propósito de consulta;
+* modo de acceso;
+* evidencia aportada;
+* limitaciones;
+* relación con la conclusión sustentada.
 
-**Participación de IA:**
-- Registrar de forma suficiente el papel de la IA cuando participe, sin inflar el nodo con transcripciones innecesarias.
+Toda conclusión importante debe poder vincularse con evidencia identificable.
 
-**Escalas específicas:**
-- Usar `# 2_🧾 Procedencia inicial` y `#### 🌀🧾 Procedencia de sesión <NNNN>` cuando la procedencia pertenezca a esas escalas.
+No declares consultada una fuente que solo fue:
 
-## No hacer
-- No confundir procedencia con contenido temático.
-- No usar este nodo como contenedor del recurso concreto.
-- No presentar como observación directa lo que en realidad es inferencia o síntesis.
-- No ocultar contribuciones mixtas humano-IA cuando afectan el contenido.
+* mencionada;
+* inferida;
+* enlazada indirectamente;
+* esperada;
+* recordada sin verificación.
 
-## Nota de cumplimiento S66
-- La familia, ruta, título y admisión de la procedencia de sesión se gobiernan en `.github/instructions/canonical_session_family.instructions.md`.
-- Este archivo solo define qué cuenta como procedencia suficiente: origen, actor, método, fuente, inferencia y verificabilidad.
-- No admitir candidatos cuya procedencia, sesión de origen o fuente local no sean verificables.
+## Observación e inferencia
 
-## Gobernanza de procedencia diagnóstica
+Distingue explícitamente:
 
-Cuando una sesión produce diagnósticos por ciclos, la procedencia debe separar
-fuente primaria, fuente auxiliar e inferencia del agente.
+```text
+observación
+→ contenido comprobado directamente
 
-Jerarquía operativa:
+inferencia
+→ interpretación construida desde observaciones
 
-1. **Diagnósticos previos específicos**: un mesociclo consume primero
-   microdiagnósticos ya producidos y válidos.
-2. **Sessions local**: `data/out/local/sessions/` conserva staging y memoria
-   reciente cuando existe.
-3. **Canon local**: `data/out/local/tiddlers_*.jsonl` sostiene memoria durable
-   cuando `sessions/` fue depurado.
-4. **Auditorías y derivados**: `data/out/local/audit/`, `enriched/` y `ai/`
-   se consultan solo para hipótesis concretas.
-5. **Repositorio**: código, tests, workflows e instrucciones validan el estado
-   arquitectónico actual.
-6. **Espejo remoto**: OneDrive o superficies remotas son paridad operativa, no
-   autoridad superior al canon local por defecto.
+decisión
+→ selección o autorización confirmada por el humano
+```
 
-Todo diagnóstico de ciclo debe declarar:
+No presentes una inferencia como observación.
 
-- completitud en staging local;
-- completitud canónica;
-- fuente usada para cada conclusión importante;
-- si hubo consulta remota, si fue dry-run, estática o real.
+No atribuyas a una fuente una conclusión producida por síntesis del agente.
 
-Si `sessions/` está ausente o depurado, no se debe concluir pérdida histórica
-sin revisar canon local. La ausencia de staging y la ausencia de evidencia
-histórica son estados distintos.
+Cuando una inferencia sea necesaria, declara:
 
-## Interacción con otros nodos
-- Requiere `## 🎯🧱 Detalles del tema` para situar la procedencia dentro del marco del tema.
-- Se articula con `## 🧰🧱 Elementos específicos` cuando existe un recurso concreto que también debe preservarse.
-- Se articula con `## 🌀🧱 Desarrollo y Evolución` porque la genealogía del conocimiento se despliega en el tiempo.
-- Se articula con `## 🧭🧱 Protocolo de Sesión` cuando la procedencia local aparece durante una sesión concreta.
-- Puede acompañar a `## 🧪🧱 Hipótesis`, pero no la reemplaza.
+* observaciones de partida;
+* razonamiento resumido;
+* nivel de certeza;
+* limitaciones;
+* evidencia que permitiría verificarla.
 
-## Criterio de salida
-- Debe quedar claro de dónde surge el contenido, cómo fue obtenido y qué referencia permite rastrearlo.
-- Si el origen no puede determinarse, debe declararse explícitamente esa situación y registrar cualquier contexto disponible que ayude a una futura reconstrucción.
-- Debe poder distinguirse recurso, contenido, hipótesis y procedencia como capas distintas.
-- Un agente debe poder reconstruir origen suficiente sin recurrir a memoria informal.
+## Participación de IA
 
-La procedencia no reemplaza el contenido, pero evita que su origen se vuelva opaco.
+Cuando la IA participe de forma relevante, distingue:
+
+* información recuperada por la IA;
+* transformación o resumen realizado por la IA;
+* inferencia propuesta por la IA;
+* decisión confirmada por el humano;
+* contenido no verificado independientemente.
+
+No es necesario conservar transcripciones completas.
+
+Registra solo la intervención necesaria para reconstruir la procedencia de una
+decisión o conclusión relevante.
+
+## Autoridad y vigencia
+
+Evalúa las fuentes según:
+
+* autoridad;
+* currentness;
+* completitud;
+* proximidad al objeto observado;
+* propósito de la superficie;
+* reproducibilidad.
+
+La ubicación o fecha de un archivo no demuestra por sí sola que sea vigente.
+
+Por defecto:
+
+* el canon local tiene autoridad sobre sus derivados;
+* staging conserva memoria operativa, no autoridad canónica;
+* auditorías y derivados aportan evidencia, no verdad final;
+* remoto representa proyección o intercambio;
+* una decisión humana explícita debe quedar distinguida de evidencia técnica.
+
+Si dos fuentes se contradicen:
+
+1. registra la contradicción;
+2. identifica autoridad y vigencia;
+3. declara qué conclusión permanece abierta;
+4. evita selección silenciosa;
+5. actualiza el diagnóstico cuando la contradicción cambie su interpretación.
+
+La ausencia de staging no demuestra ausencia histórica.
+
+```text
+ausencia de staging
+≠ ausencia de evidencia
+```
+
+## `Procedencia de sesión`
+
+El entregable canónico se denomina exactamente:
+
+```text
+Procedencia de sesión
+```
+
+No uses sinónimos ni variantes para sustituir este nombre.
+
+Debe conservar durante toda la sesión:
+
+* una sola identidad;
+* un solo archivo `.md.json`;
+* su título y ruta canónicos;
+* su `session_id`;
+* su `canonical_slug`;
+* su fecha `created`.
+
+Las reglas exactas pertenecen a
+`canonical_session_family.instructions.md`.
+
+### Reconocimiento
+
+Durante el reconocimiento, produce o actualiza la procedencia para:
+
+* identificar el origen de la sesión;
+* recuperar decisiones y sesiones previas pertinentes;
+* declarar las fuentes del diagnóstico;
+* distinguir evidencia directa e inferencia;
+* registrar vacíos y fuentes pendientes;
+* establecer qué evidencia sostiene el preimpacto.
+
+La procedencia debe ser suficiente antes de formular hipótesis y contrato.
+
+Suficiente no significa completa de forma definitiva. Significa capaz de
+sostener las decisiones actuales con evidencia rastreable.
+
+### Impacto
+
+Actualiza el mismo entregable cuando:
+
+* aparece una fuente no identificada;
+* una prueba produce evidencia nueva;
+* una observación contradice la reconstrucción inicial;
+* se consulta un reporte, manifest, receipt, journal o auditoría adicional;
+* interviene una decisión humana relevante;
+* un microajuste depende de evidencia nueva.
+
+Relaciona cada incorporación con el hallazgo o decisión que produjo.
+
+### Postimpacto
+
+Durante el cierre:
+
+* consolida las fuentes realmente utilizadas;
+* elimina afirmaciones falsas de consulta;
+* distingue evidencia inicial y evidencia surgida durante el impacto;
+* conserva inferencias y limitaciones abiertas;
+* permite reconstruir el fundamento del diagnóstico, balance y propuesta.
+
+No conviertas inferencias en observaciones durante la consolidación.
+
+## Contenido mínimo
+
+La `Procedencia de sesión` debe permitir identificar:
+
+* origen de la sesión;
+* continuidad previa relevante;
+* fuentes consultadas;
+* clasificación de cada fuente;
+* método de obtención;
+* autoridad y vigencia;
+* observaciones sustentadas;
+* inferencias del agente;
+* decisiones humanas relevantes;
+* participación de IA;
+* contradicciones;
+* fuentes no disponibles;
+* limitaciones;
+* evidencia nueva surgida durante el impacto;
+* conjunto final de fuentes utilizadas.
+
+Esta lista gobierna el contenido del campo `text`.
+
+No modifica el schema `.md.json`.
+
+## Relación con otros entregables
+
+```text
+Procedencia de sesión
+→ identifica la evidencia
+
+Diagnóstico de sesión
+→ interpreta el estado observado
+
+Hipótesis de sesión
+→ formula expectativas contrastables
+
+Contrato de sesión
+→ delimita la intervención autorizada
+
+Sesión
+→ registra acciones y evidencia producida
+
+Balance de sesión
+→ evalúa los resultados
+
+Propuesta de sesión
+→ deriva continuidad posible
+```
+
+La procedencia no reemplaza ninguno de estos entregables.
+
+## Canonizabilidad
+
+La `Procedencia de sesión` debe ser canonizable.
+
+Esto requiere:
+
+* nombre canónico exacto;
+* ruta y título gobernados;
+* `.md.json` válido;
+* identidad estable;
+* contenido verificable;
+* referencias suficientes;
+* compatibilidad con el productor autoritativo.
+
+La canonizabilidad no equivale a admisión.
+
+Para candidatas y S66, aplica
+`canonical_session_family.instructions.md`.
+
+## Prohibiciones
+
+* No confundas procedencia con recurso concreto.
+* No confundas fuente con interpretación.
+* No presentes inferencias como hechos observados.
+* No ocultes contribuciones humano-IA relevantes.
+* No declares consultada una fuente no verificada.
+* No copies todo el historial del proyecto.
+* No acumules referencias sin relación con el objetivo.
+* No crees versiones `inicial`, `final`, `v2` o equivalentes.
+* No reescribas silenciosamente errores de reconstrucción.
+* No trates staging, derivados o remoto como canon.
+* No copies aquí reglas completas de schema o S66.
+* No mezcles gobernanza de diagnósticos no sesionales.
+
+## Criterio de cumplimiento
+
+La procedencia es suficiente cuando:
+
+* cada conclusión importante tiene una fuente rastreable;
+* puede distinguirse observación, inferencia y decisión;
+* las fuentes tienen autoridad y vigencia declaradas;
+* la participación humana y de IA es comprensible;
+* las contradicciones y limitaciones permanecen visibles;
+* el diagnóstico puede reconstruirse desde la evidencia citada;
+* el entregable conserva identidad única;
+* el `.md.json` es válido y canonizable;
+* la revisión no depende de memoria informal.
+
+````
+
+### Cambio estructural
+
+La instrucción queda como dueño exclusivo de:
+
+```text
+origen
++ actor
++ método
++ fuente
++ autoridad
++ observación
++ inferencia
++ participación humano-IA
++ limitaciones
+````

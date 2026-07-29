@@ -1,280 +1,356 @@
 ---
-applyTo: "data/out/local/sessions/**"
+applyTo: "data/out/local/sessions/**/*.md.json"
 description: >
-  Instruccion local-first para validar artefactos .md.json de sesion,
-  diagnosticos no sesionales y evidencia de cierre sin escribir directamente
-  en el canon final por defecto.
+  Dueño normativo del formato, actualización y validación de los artefactos
+  de sesión .md.json compatibles con TiddlyWiki y canonizables por TDC.
 ---
 
-## Instruccion: tiddlers de sesion y schema de artefactos
+# Tiddlers de sesión y schema `.md.json`
 
-Nota de cumplimiento S66: la familia minima, rutas oficiales, convencion
-`#### 🌀`, numeracion de 4 digitos, lineas candidatas y compuertas de admision
-se definen en `.github/instructions/canonical_session_family.instructions.md`.
-Este archivo no redefine F; solo gobierna el schema de artefactos `.md.json`,
-la validacion local de esos artefactos y los diagnosticos no sesionales.
+## Alcance
 
-## Lectura previa obligatoria
+Este archivo gobierna:
 
-Antes de documentar una sesion que toque canon, reverse o artefactos de sesion,
-leer como minimo:
+- la forma técnica de los artefactos `.md.json`;
+- sus campos obligatorios y prohibidos;
+- su actualización determinista;
+- su validación local;
+- su compatibilidad con TiddlyWiki;
+- su capacidad de producir líneas candidatas.
 
-1. `.github/instructions/canonical_session_family.instructions.md`
-2. `.github/instructions/sesiones.instructions.md`
-3. `esquemas/canon/canon_guarded_session_rules.md`, si hay candidatos o canon
-4. `docs/Informe_Tecnico_de_Tiddler (Esp).md`, si hay reverse o TiddlyWiki
-5. shards canonicos pertinentes dentro de `data/out/local/tiddlers_*.jsonl`, si existen y si el objetivo lo requiere
-6. capas derivadas pertinentes cuando ayuden al analisis
+No gobierna:
 
-Si el trabajo toca una linea existente, leer el shard y el nodo objetivo antes
-de proponer admision o reparacion.
+- metodología o instrucciones de sesión;
+- nombres, rutas y títulos canónicos;
+- contenido epistemológico de los entregables;
+- diagnósticos no sesionales;
+- publicación remota;
+- líneas candidatas o admisión al canon.
 
-## Destinos de escritura permitidos para agentes
+Aplicar:
 
-### Siempre permitido
+- `canonical_session_family.instructions.md` para familia, rutas, títulos,
+  identidad, candidatas y S66;
+- la instrucción especializada de cada entregable para su contenido;
+- `diagnosticos_no_sesionales.instructions.md` para diagnósticos especializados
+  y publicación remota.
 
-- `data/out/local/sessions/**`
-- documentacion y scripts del repositorio relacionados con el objetivo
+## Artefactos sujetos al schema
 
-### Permitido como staging canonico
+El schema aplica exactamente a:
 
-- archivos JSONL candidatos bajo la ruta gobernada por S66, con nombre propio de sesion
+- `Contrato de sesión`;
+- `Procedencia de sesión`;
+- `Sesión`;
+- `Hipótesis de sesión`;
+- `Balance de sesión`;
+- `Propuesta de sesión`;
+- `Diagnóstico de sesión`.
 
-### Prohibido por defecto
+Cada entregable debe:
 
-- `data/out/local/tiddlers_*.jsonl`
+- usar extensión `.md.json`;
+- contener un único objeto JSON;
+- ser importable como tiddler;
+- conservar contenido Markdown en `text`;
+- cumplir el schema antes de generar candidatas;
+- poder transformarse mediante el productor autoritativo.
 
-### Extraordinario
+Un archivo válido y canonizable no está admitido automáticamente en el canon.
 
-- `data/out/local/proposals.jsonl`
+## Schema obligatorio
 
-`proposals.jsonl` queda reservado para recuperacion manual o candidate storage
-historico. No debe ser la ruta diaria de cierre.
+Todo artefacto debe contener exactamente los campos requeridos por el schema
+vigente.
 
-## Schema canonico de artefactos `.md.json`
+| Campo | Restricción |
+|---|---|
+| `title` | Título exacto gobernado por la familia canónica |
+| `type` | `"text/markdown"` |
+| `created` | Timestamp TiddlyWiki de 17 dígitos |
+| `modified` | Timestamp TiddlyWiki de 17 dígitos |
+| `session_id` | Patrón `mXX-sNNNN` |
+| `module` | Patrón `mXX` |
+| `session` | Patrón `SNNNN` |
+| `status` | `"delivered"` |
+| `canonical_slug` | Kebab-case estable y propio del entregable |
+| `tags` | Array de strings |
+| `text` | Markdown no vacío |
 
-Todo archivo `.md.json` bajo `data/out/local/sessions/` debe seguir este schema
-estricto. La familia y los titulos se definen en S66; este apartado define la
-forma tecnica del archivo fuente.
+Ejemplo mínimo:
 
-### Herramienta oficial de autoria
+```json
+{
+  "title": "#### 🌀 Contrato de sesión 0183 = admision-relacional-canonica-gobernada",
+  "type": "text/markdown",
+  "created": "20260726090000000",
+  "modified": "20260726113000000",
+  "session_id": "m04-s0183",
+  "module": "m04",
+  "session": "S0183",
+  "status": "delivered",
+  "canonical_slug": "m04-s0183-contrato-admision-relacional-canonica-gobernada",
+  "tags": ["sesion", "contrato", "m04", "s0183"],
+  "text": "# Contrato de sesión\n\nContenido estructurado."
+}
+````
 
-Usar el generador canonico cuando se produzcan los entregables ordinarios de
-sesion:
+`status: "delivered"` representa la disponibilidad técnica del artefacto.
+
+No demuestra por sí mismo que:
+
+* el entregable esté cerrado;
+* la familia esté completa;
+* la sesión haya terminado;
+* exista una línea candidata;
+* el artefacto haya sido admitido al canon.
+
+## Reglas de formato
+
+* El archivo debe contener `{...}`, no `[{...}]`.
+* El JSON debe ser válido y estar codificado en UTF-8.
+* No uses comentarios ni comas finales.
+* `type` debe ser exactamente `"text/markdown"`.
+* `created` y `modified` deben cumplir `^\d{17}$`.
+* `tags` debe ser un array, no un string.
+* `text` debe contener Markdown estructurado.
+* `title` debe coincidir exactamente con la familia correspondiente.
+* `canonical_slug` debe permanecer estable durante la sesión.
+* Cada familia debe tener su propio `canonical_slug`.
+* No uses valores `null` para reemplazar campos obligatorios.
+
+Los números de sesión y títulos se gobiernan únicamente en
+`canonical_session_family.instructions.md`.
+
+## Campos prohibidos
+
+No incluyas en los artefactos fuente:
+
+| Campo             | Razón                                   |
+| ----------------- | --------------------------------------- |
+| `created_at`      | Sustituye incorrectamente a `created`   |
+| `updated_at`      | Sustituye incorrectamente a `modified`  |
+| `artifact_family` | Pertenece a la representación candidata |
+| `role_primary`    | Es información derivada                 |
+| `source_type`     | Es información derivada                 |
+| `tmap.id`         | No pertenece al schema de sesión        |
+
+No introduzcas aliases para campos existentes.
+
+Una modificación del schema requiere actualizar de forma coordinada:
+
+* generador;
+* validadores;
+* consumidores;
+* fixtures;
+* documentación;
+* migración de artefactos existentes cuando corresponda.
+
+## Autoría
+
+Usa por defecto el generador oficial:
 
 ```bash
 python3 src/python_scripts/generate_session_deliverables.py generate \
   --session-id mXX-sNNNN \
-  --topic <slug-del-tema> \
+  --topic <slug> \
   --sessions-dir data/out/local/sessions/
 ```
 
-Si los archivos ya existen y la sesion autoriza regeneracion, usar `--force`.
-Si el generador falla, corregir el error reportado; si el fallo es
-irrecuperable, registrarlo en el diagnostico y detener el cierre.
+El generador debe producir los siete entregables con:
 
-### Campos obligatorios
+* rutas oficiales;
+* títulos canónicos;
+* identidad coherente;
+* timestamps válidos;
+* tags estructurados;
+* schema compatible.
 
-| Campo | Formato | Ejemplo |
-|---|---|---|
-| `title` | Titulo canonico definido por S66 | `#### 🌀 Contrato de sesión 0128 = normalizacion-titulos` |
-| `type` | Tipo MIME con `/` | `"text/markdown"` |
-| `created` | 17 digitos TiddlyWiki: `YYYYMMDDHHmmSSmmm` | `"20260516000000000"` |
-| `modified` | 17 digitos TiddlyWiki: `YYYYMMDDHHmmSSmmm` | `"20260516000000000"` |
-| `session_id` | `mXX-sNNNN` | `"m04-s0128"` |
-| `module` | `mXX` | `"m04"` |
-| `session` | `SNNNN` como identificador tecnico | `"S0128"` |
-| `status` | `"delivered"` | `"delivered"` |
-| `canonical_slug` | kebab-case estable | `"m04-s0128-contrato-normalizacion-titulos"` |
-| `tags` | array de strings | `["sesion", "contrato", "m04", "s0128"]` |
-| `text` | string de contenido markdown | `"Contenido del artefacto..."` |
+Antes de usar `--force`:
 
-### Campos prohibidos
+1. confirma que la sesión autoriza regeneración;
+2. lee los archivos existentes;
+3. preserva contenido válido;
+4. evita reemplazos destructivos;
+5. revisa el diff resultante.
 
-Los siguientes campos nunca deben aparecer en un artefacto `.md.json`:
+Si el generador falla:
 
-| Campo prohibido | Motivo | Campo correcto |
-|---|---|---|
-| `created_at` | Formato ISO, no TiddlyWiki | `created` |
-| `updated_at` | Formato ISO, no TiddlyWiki | `modified` |
-| `artifact_family` | Campo interno de candidatos canon, no de artefactos fuente | - |
-| `role_primary` | Campo derivado del canon | - |
-| `source_type` | Campo derivado de la admision | - |
+* corrige la causa;
+* registra el error;
+* no sustituyas el proceso con un formato improvisado;
+* detén el cierre si no puede garantizarse el schema.
 
-### Reglas de formato
+La edición manual solo es válida cuando conserva el schema y supera la
+validación oficial.
 
-- `type` debe ser un MIME valido; valores como `"contrato"` o `"diagnostico"` son invalidos.
-- `created` y `modified` deben tener exactamente 17 digitos TiddlyWiki.
-- El campo `title` sigue la regla S66: el numero de sesion no lleva prefijo `S`.
-- El archivo debe ser un objeto JSON `{...}`, no un array `[{...}]`.
+## Actualización determinista
 
-### Clasificacion `schema_invalid`
+Al actualizar un entregable:
 
-`session_sync scan` ejecuta validacion de schema en cada archivo `.md.json` antes
-de construir el candidato. Un archivo con errores de schema recibe la
-clasificacion `schema_invalid` y queda excluido del candidato.
+* modifica el mismo archivo;
+* conserva `title`;
+* conserva `session_id`;
+* conserva `canonical_slug`;
+* conserva `created`;
+* actualiza `modified`;
+* reconcilia `tags`;
+* actualiza `text`;
+* valida el resultado.
 
-### Validacion obligatoria antes de `session_sync scan`
+No crees copias `inicial`, `final`, `v2`, `revisado` o equivalentes.
+
+No reemplaces un artefacto válido sin leer y reconciliar su contenido.
+
+## Validación obligatoria
+
+Después de crear o modificar artefactos, ejecuta:
 
 ```bash
 python3 src/python_scripts/generate_session_deliverables.py validate-dir \
   --sessions-dir data/out/local/sessions/
 ```
 
-No continuar al paso de `session_sync scan` hasta que `validate-dir` reporte que
-los archivos son validos.
+La validación debe comprobar, como mínimo:
 
-## Flujo de cierre por defecto
+* JSON válido;
+* objeto único;
+* campos obligatorios;
+* ausencia de campos prohibidos;
+* formatos de timestamp;
+* identificadores;
+* títulos;
+* rutas;
+* tags;
+* contenido `text`;
+* coherencia de identidad.
 
-1. Leer canon, derivados e instrucciones pertinentes.
-2. Analizar el cambio necesario.
-3. Emitir la familia minima siguiendo S66 y el generador cuando aplique.
-4. Validar schema de los artefactos emitidos.
-5. Emitir candidatas solo si la sesion deja memoria que deba poder entrar al canon.
-6. Validar candidatos o copia temporal con comandos reales cuando corresponda.
-7. Registrar en el diagnostico que paso, que no paso y que queda pendiente.
+No continúes hacia generación de candidatas cuando `validate-dir` reporte
+errores.
 
-La sesion no queda cerrada solo por la conversacion. La admision local es un
-proceso separado y autorizado; este archivo no la redefine.
+Cuando `session_sync scan` encuentre un archivo inválido:
 
-## Gobernanza de diagnósticos no sesionales
+* clasifícalo como `schema_invalid`;
+* exclúyelo del candidato;
+* registra el motivo;
+* corrige el artefacto fuente;
+* repite la validación.
 
-### Diferencia entre sesión normal y diagnóstico no sesional
+No modifiques el validador para aceptar un artefacto incorrecto sin una
+decisión explícita de cambio de schema.
 
-| Tipo | Patrón de nombre | Destino | Llega al canon |
-|---|---|---|---|
-| Sesión normal | `mXX-sNNNN-slug.md.json` | `data/out/local/sessions/00_contratos/` … `05_propuesta_de_sesion/` | Sí, via admission gate |
-| Diagnóstico no sesional | Ver patrones por familia | `data/out/local/sessions/06_diagnoses/<familia>/` | No directamente |
+## Canonizabilidad
 
-Los diagnósticos no sesionales son artefactos de análisis del ciclo de trabajo.
-No son tiddlers canon. Viven en `06_diagnoses/` y se sincronizan a OneDrive
-via publicación puntual o, en mantenimiento controlado, via mirror completo.
+El schema válido es una condición necesaria para canonizar un entregable.
 
-### Familias válidas y nombres esperados
+También se requiere:
 
-Todos los números en nombres de archivo también usan 4 dígitos sin prefijo `S`.
+* título canónico;
+* identidad estable;
+* contenido suficiente;
+* procedencia verificable;
+* productor autorizado;
+* compatibilidad con el canon vigente.
 
-| Familia | Subfolder | Patrón de nombre | Ejemplo |
-|---|---|---|---|
-| `tema` | `06_diagnoses/tema/` | `diagnostico-tematico-XXXX-slug.md.json` | `diagnostico-tematico-0008-chunks-ai.md.json` |
-| `micro_ciclo` | `06_diagnoses/micro-ciclo/` | `mXX-micro-ciclo-XXXX-YYYY-diagnostico.md.json` | `m04-micro-ciclo-0085-0094-diagnostico.md.json` |
-| `meso_ciclo` | `06_diagnoses/meso-ciclo/` | `mXX-meso-ciclo-XXXX-YYYY-diagnostico.md.json` | `m04-meso-ciclo-0065-0094-diagnostico.md.json` |
-| `proyecto` | `06_diagnoses/proyecto/` | `diagnostico-proyecto-slug.md.json` o `mXX-diagnostico-proyecto-slug.md.json` | `m04-diagnostico-proyecto-estado-post-0097.md.json` |
-| `sesion` | `06_diagnoses/sesion/` | `diagnostico-sesion-sNNNN-slug.md.json` | `diagnostico-sesion-s0124-normalizacion-titulos.md.json` |
+Secuencia:
 
-Solo estas cinco familias son válidas. Cualquier otro subdirectorio bajo `06_diagnoses/`
-es inválido y debe rechazarse.
-
-La extensión obligatoria es `.md.json`. Archivos con extensión `.json`, `.md` o `.txt` son rechazados.
-
-### Títulos por familia de diagnóstico no sesional
-
-Formato canónico de título para cada familia. En todos los casos los números
-siguen la regla universal: 4 dígitos, sin prefijo `S`.
-
-| Familia | Patrón de título canónico |
-|---|---|
-| `tema` | `#### 🌀 Diagnóstico temático XXXX = <slug>` |
-| `micro_ciclo` | `#### 🌀 Diagnóstico de microciclo = sesiones XXXX-YYYY` |
-| `micro_ciclo` (parcial) | `#### 🌀 Diagnóstico de microciclo parcial = sesiones XXXX-YYYY` |
-| `meso_ciclo` | `#### 🌀 Diagnóstico de mesociclo = microciclos XXXX-YYYY` |
-| `proyecto` | `#### 🌀 Diagnóstico de proyecto = <slug>` |
-| `sesion` | `#### 🌀 Diagnóstico de sesión NNNN = <slug>` |
-
-Donde `XXXX` y `YYYY` son números de 4 dígitos obtenidos con `f'{int(n):04d}'`.
-
-**No agregar texto entre el número y el `=`** como `(siguiente tras ...)`,
-`(post-sesión ...)` u otras anotaciones. El campo `text` del tiddler es el
-lugar para esa información, no el `title`.
-
-### Cómo llega un diagnóstico a OneDrive
-
-```
-1. El agente produce el diagnóstico local:
-   data/out/local/sessions/06_diagnoses/<familia>/<nombre>.md.json
-
-2. La publicación puntual lo envía a OneDrive (requiere dry_run=false):
-   remote_publish_diagnostic.py → OneDrive approot:/tiddly-data-converter/sessions/06_diagnoses/<familia>/
-
-3. Para traer un diagnóstico remoto al local (pull):
-   El agente remoto deposita el archivo en OneDrive _remote_outbox/sessions/
-   remote_pull_sessions.py lo baja a data/tmp/remote_inbox/
-   El operador mueve manualmente al subfolder correcto de 06_diagnoses/
+```text
+.md.json válido
+→ productor autoritativo
+→ línea candidata
+→ validación S66
+→ autorización
+→ admisión local
 ```
 
-**Crear un archivo en el runner remoto NO equivale automáticamente a verlo en OneDrive.**
-El workflow de publicación puntual debe ejecutarse con `dry_run=false` para que
-los archivos lleguen. El mirror completo (`remote_mirror_out_local.py`) no debe
-ser la ruta normal para diagnósticos no sesionales producidos en un workspace
-remoto que puede tener `data/out/local/` vacío o incompleto.
+No escribas directamente desde el `.md.json` al canon.
 
-Equivalencia obligatoria:
+No confundas:
 
-```txt
-Local:
-data/out/local/sessions/06_diagnoses/tema/
-
-OneDrive:
-sessions/06_diagnoses/tema/
+```text
+schema válido
+≠ candidato válido
+≠ artefacto admitido
 ```
 
-En OneDrive no debe esperarse `data/out/local/`; esa raíz solo existe como
-origen local gitignoreado.
+Para candidatas y admisión aplica
+`canonical_session_family.instructions.md`.
 
-### SYNC_DRY_RUN y dry_run
+## Diagnósticos
 
-Cuando `SYNC_DRY_RUN=true` (valor por defecto):
-- El mirror simula las operaciones pero no escribe en OneDrive.
-- El pull no puede autenticar sin credenciales, por lo que solo muestra la política.
-- Ningún diagnóstico llega a OneDrive por mirror completo.
+Este archivo gobierna únicamente el `Diagnóstico de sesión` que forma parte de
+la familia obligatoria.
 
-Para publicación diagnóstica puntual real, el operador debe ejecutar
-`remote_publish_diagnostic.yml` con input `dry_run=false`. Para mirror completo
-real, el operador debe ejecutar `remote_mirror_out_local.yml` con
-`SYNC_DRY_RUN=false` y confirmación explícita. **No cambiar estos valores por
-defecto en el repositorio.**
+No gobierna:
 
-### Cómo verificar que un diagnóstico remoto llegó realmente
+* diagnósticos temáticos;
+* microdiagnósticos;
+* diagnósticos de microciclo;
+* diagnósticos de mesociclo;
+* diagnósticos de proyecto;
+* publicación o recuperación desde OneDrive.
 
-```bash
-# Verificar en el inbox local después de un pull real:
-ls data/tmp/remote_inbox/
+Esas reglas deben vivir en
+`diagnosticos_no_sesionales.instructions.md`.
 
-# Verificar en OneDrive después de una publicación puntual real:
-# Revisar via Microsoft Graph Explorer o el cliente OneDrive sincronizado.
-```
+Los diagnósticos especializados no sustituyen el `Diagnóstico de sesión`.
 
-### Publicación puntual segura
+## Superficies de escritura
 
-Ejemplo dry-run:
+Permitido:
 
-```bash
-src/python_scripts/remote_publish_diagnostic.py \
-  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
-  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
-  --dry-run
-```
+* artefactos `.md.json` bajo las rutas oficiales de sesión;
+* modificaciones de productores y validadores autorizadas por el contrato.
 
-Ejemplo live:
+Prohibido por defecto:
 
-```bash
-src/python_scripts/remote_publish_diagnostic.py \
-  --local-file data/out/local/sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json \
-  --remote-relative-path sessions/06_diagnoses/tema/diagnostico-tematico-0008-chunks-ai-estructurados-relacion-propagada-a-chunks.md.json
-```
+* escribir directamente en `data/out/local/tiddlers_*.jsonl`;
+* usar `proposals.jsonl` como ruta ordinaria;
+* crear artefactos fuera de las rutas gobernadas;
+* usar extensiones alternativas.
 
-Este flujo usa Microsoft Graph, `ONEDRIVE_ROOT_MODE=approot`,
-`ONEDRIVE_PROJECT_ROOT_NAME=tiddly-data-converter`, crea carpetas faltantes
-cuando `REMOTE_CREATE_MISSING_DIRS=true`, respeta
-`REMOTE_CONFLICT_BEHAVIOR=replace|skip`, y nunca borra archivos remotos.
+La superficie de sesión es staging, no canon paralelo.
 
-### Gobernanza de rutas
+## Prohibiciones
 
-- **Permitida:** `data/out/local/sessions/06_diagnoses/<familia>/`
-- **Prohibida:** cualquier ruta fuera de esa raíz
-- **Prohibida:** `data/sessions/`, `data/out/sessions/`, `sessions/` en raíz
-- **Rechazada:** ruta con `..` (path traversal)
-- **Rechazada:** ruta absoluta
+* No uses Markdown libre como sustituto del `.md.json`.
+* No serialices el tiddler como array.
+* No cambies los nombres de los campos.
+* No agregues campos derivados al artefacto fuente.
+* No cambies títulos o rutas desde esta instrucción.
+* No declares cierre por superar el schema.
+* No declares admisión por generar una candidata.
+* No publiques diagnósticos remotos desde esta instrucción.
+* No copies aquí las compuertas completas de S66.
 
-La lógica centralizada está en `src/python_scripts/diagnostic_governance.py`.
-El allowlist del pull está en `src/python_scripts/remote_pull_sessions.py::_is_allowed_outbox_file`.
+## Criterio de cumplimiento
+
+Esta instrucción se cumple cuando:
+
+* los siete entregables usan objetos `.md.json` válidos;
+* todos respetan el mismo schema técnico;
+* mantienen nombres, títulos, rutas e identidades canónicas;
+* conservan timestamps y actualización determinista;
+* superan `validate-dir`;
+* pueden producir candidatas mediante el productor autoritativo;
+* no se confunde validación, canonizabilidad y admisión.
+
+````
+
+## Extracción necesaria
+
+La sección retirada sobre:
+
+- familias de diagnósticos especializados;
+- nombres y títulos de diagnósticos;
+- `diagnostic_governance.py`;
+- publicación puntual;
+- OneDrive;
+- `SYNC_DRY_RUN`;
+- pull remoto;
+
+no debe eliminarse definitivamente. Debe convertirse en un dueño independiente:
+
+```text
+.github/instructions/diagnosticos_no_sesionales.instructions.md
+````

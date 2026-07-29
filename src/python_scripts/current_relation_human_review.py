@@ -254,6 +254,114 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
             temporary.unlink(missing_ok=True)
 
 
+def migrate_equivalent_decisions(
+    *,
+    historical_decisions_file: Path,
+    current_dir: Path,
+    canon_root: Path,
+    cross_batch_manifest_path: Path,
+    audit_dir: Path,
+) -> dict[str, Any]:
+    """Rebind only semantically equivalent decisions; never invent authority."""
+    manifest = load_json(cross_batch_manifest_path)
+    if manifest.get("schema_version") != "s0183-cross-batch-reconciliation/v1":
+        raise ValueError("unsupported cross-batch reconciliation manifest")
+    old_matrix_path = REPO_ROOT / str(manifest.get("old_to_current_path") or "")
+    if not old_matrix_path.exists():
+        old_matrix_path = cross_batch_manifest_path.parent / "old_to_current_reconciliation.jsonl"
+    if sha256_file(old_matrix_path) != manifest.get("old_to_current_hash"):
+        raise ValueError("old-to-current reconciliation matrix hash mismatch")
+    if sha256_file(Path(manifest["historical_candidates_path"]) if Path(str(manifest["historical_candidates_path"])).is_absolute()
+                   else REPO_ROOT / str(manifest["historical_candidates_path"])) != manifest.get("historical_candidates_hash"):
+        raise ValueError("historical candidate batch hash mismatch")
+    if sha256_file(current_dir / "relation_candidates.jsonl") != manifest.get("current_candidates_hash"):
+        raise ValueError("current candidate batch hash mismatch")
+
+    historical_rows = load_jsonl(historical_decisions_file)
+    historical: dict[str, dict[str, Any]] = {}
+    for line_no, row in enumerate(historical_rows, start=1):
+        errors = validate_human_review_decision_record(row)
+        candidate_id = str(row.get("candidate_id") or "")
+        if candidate_id in historical:
+            errors.append("duplicate candidate_id")
+        if errors:
+            raise ValueError(f"{historical_decisions_file}:{line_no}: {'; '.join(errors)}")
+        historical[candidate_id] = row
+
+    queue = load_jsonl(current_dir / QUEUE_FILE)
+    queue_by_id = {str(row.get("candidate_id") or ""): row for row in queue}
+    bindings = current_bindings(current_dir, canon_root)
+    mappings = {
+        str(row.get("candidate_id") or ""): row
+        for row in load_jsonl(old_matrix_path)
+    }
+    migrated: dict[str, dict[str, Any]] = {}
+    not_reused: list[dict[str, Any]] = []
+    for old_id, old_decision in sorted(historical.items()):
+        mapping = mappings.get(old_id)
+        current_id = str((mapping or {}).get("counterpart_candidate_id") or "")
+        candidate = queue_by_id.get(current_id)
+        if not mapping or mapping.get("classification") != "equivalent" or candidate is None:
+            not_reused.append({
+                "historical_candidate_id": old_id,
+                "classification": (mapping or {}).get("classification") or "not_equivalent_or_not_reviewable",
+            })
+            continue
+        rebound = dict(old_decision)
+        rebound.update({
+            "session_id": "S0183",
+            "candidate_id": current_id,
+            "source_canon_id": candidate_endpoint(candidate, "source"),
+            "target_canon_id": candidate_endpoint(candidate, "target"),
+            "predicate": str(candidate.get("relation_type") or ""),
+            "relation_schema_version": str(candidate.get("candidate_schema_version") or candidate.get("schema_version") or ""),
+            "evidence": candidate.get("evidence") or {},
+            "reviewed_evidence_paths": list(old_decision.get("reviewed_evidence_paths") or []) + [
+                str(cross_batch_manifest_path),
+            ],
+            "preserved_from_candidate_id": old_id,
+            "preserved_from_decision_hash": decision_hash(old_decision),
+            "preservation_classification": "equivalent",
+            "preservation_manifest_hash": sha256_file(cross_batch_manifest_path),
+            **bindings,
+        })
+        errors = validate_human_review_decision_record(rebound)
+        if errors:
+            raise ValueError(f"cannot rebind {old_id} to {current_id}: {'; '.join(errors)}")
+        migrated[current_id] = rebound
+
+    if len(migrated) != len(set(migrated)):
+        raise ValueError("decision migration is not one-to-one")
+    ordered = {candidate_id: migrated[candidate_id] for candidate_id in sorted(migrated)}
+    destination = current_dir / DECISIONS_FILE
+    atomic_write_jsonl(destination, ordered)
+    counts = Counter(str(row.get("human_review_decision") or "") for row in ordered.values())
+    pending_reviewable = sorted(set(queue_by_id) - set(ordered))
+    report = {
+        "schema_version": "s0183-human-decision-preservation/v1",
+        "session_id": "m04-s0183",
+        "historical_decisions_path": str(historical_decisions_file),
+        "historical_decisions_hash": sha256_file(historical_decisions_file),
+        "historical_decision_count": len(historical),
+        "cross_batch_manifest_path": str(cross_batch_manifest_path),
+        "cross_batch_manifest_hash": sha256_file(cross_batch_manifest_path),
+        "current_decisions_path": str(destination),
+        "current_decisions_hash": sha256_file(destination),
+        "migrated_equivalent_count": len(ordered),
+        "approved": counts.get("approved_for_admission", 0),
+        "deferred": counts.get("deferred", 0),
+        "rejected": counts.get("rejected", 0),
+        "not_reused": not_reused,
+        "pending_reviewable_candidate_ids": pending_reviewable,
+        "human_reauthorization_performed": False,
+        "canon_modified": False,
+    }
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    audit_path = audit_dir / "human_decision_preservation_manifest.json"
+    atomic_write_json(audit_path, report)
+    return report | {"manifest_path": str(audit_path)}
+
+
 def repo_path_status(path: str, repo_root: Path = REPO_ROOT) -> str:
     if not path:
         return "not_available"
@@ -1101,7 +1209,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--note", default="")
     parser.add_argument("--confirmation", default="")
     parser.add_argument("--audit-root", type=Path, default=DEFAULT_S0181_AUDIT_ROOT)
+    parser.add_argument("--migrate-equivalent", action="store_true")
+    parser.add_argument("--historical-decisions", type=Path)
+    parser.add_argument("--cross-batch-manifest", type=Path)
+    parser.add_argument("--migration-audit-dir", type=Path)
     args = parser.parse_args(argv)
+    if args.migrate_equivalent:
+        if not args.historical_decisions or not args.cross_batch_manifest:
+            print("[ERROR] --historical-decisions and --cross-batch-manifest are required")
+            return 2
+        try:
+            report = migrate_equivalent_decisions(
+                historical_decisions_file=args.historical_decisions,
+                current_dir=args.current_dir,
+                canon_root=args.canon_root,
+                cross_batch_manifest_path=args.cross_batch_manifest,
+                audit_dir=args.migration_audit_dir or args.audit_root,
+            )
+        except ValueError as error:
+            print(f"[ERROR] {error}")
+            return 2
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if not report["pending_reviewable_candidate_ids"] else 3
     if args.status:
         bindings = current_bindings(args.current_dir, args.canon_root)
         queue = load_jsonl(args.current_dir / QUEUE_FILE)

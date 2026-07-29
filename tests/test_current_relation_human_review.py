@@ -98,6 +98,58 @@ def test_v2_record_is_structured_and_bound(tmp_path: Path) -> None:
     ).hexdigest()
 
 
+def test_migrate_equivalent_decisions_preserves_authority_and_rebinds(tmp_path: Path) -> None:
+    old_candidate = _candidate("rc_current_" + "1" * 24)
+    current_candidate = json.loads(json.dumps(old_candidate))
+    current_candidate["candidate_id"] = "rc_current_" + "2" * 24
+    current_candidate["evidence"]["line"] = 40
+    current, canon, _ = _fixture(tmp_path, [current_candidate])
+    (current / "relation_candidates.jsonl").write_text(
+        json.dumps(current_candidate) + "\n", encoding="utf-8",
+    )
+    historical_candidates = tmp_path / "historical_candidates.jsonl"
+    historical_candidates.write_text(json.dumps(old_candidate) + "\n", encoding="utf-8")
+    historical_decisions = tmp_path / "historical_decisions.jsonl"
+    old_decision = _decision(current, canon, old_candidate)
+    historical_decisions.write_text(json.dumps(old_decision) + "\n", encoding="utf-8")
+    historical_bytes = historical_decisions.read_bytes()
+
+    audit = tmp_path / "audit"
+    audit.mkdir()
+    matrix = audit / "old_to_current_reconciliation.jsonl"
+    matrix.write_text(json.dumps({
+        "candidate_id": old_candidate["candidate_id"],
+        "counterpart_candidate_id": current_candidate["candidate_id"],
+        "classification": "equivalent",
+        "decision_reusable": True,
+    }) + "\n", encoding="utf-8")
+    cross_manifest = audit / "cross_batch_reconciliation_manifest.json"
+    _write(cross_manifest, {
+        "schema_version": "s0183-cross-batch-reconciliation/v1",
+        "historical_candidates_path": str(historical_candidates),
+        "historical_candidates_hash": hashlib.sha256(historical_candidates.read_bytes()).hexdigest(),
+        "current_candidates_hash": hashlib.sha256((current / "relation_candidates.jsonl").read_bytes()).hexdigest(),
+        "old_to_current_path": str(matrix),
+        "old_to_current_hash": hashlib.sha256(matrix.read_bytes()).hexdigest(),
+    })
+
+    report = review.migrate_equivalent_decisions(
+        historical_decisions_file=historical_decisions,
+        current_dir=current,
+        canon_root=canon,
+        cross_batch_manifest_path=cross_manifest,
+        audit_dir=audit,
+    )
+    migrated = review.load_jsonl(current / review.DECISIONS_FILE)
+    assert report["migrated_equivalent_count"] == 1
+    assert report["pending_reviewable_candidate_ids"] == []
+    assert migrated[0]["candidate_id"] == current_candidate["candidate_id"]
+    assert migrated[0]["human_review_actor"] == old_decision["human_review_actor"]
+    assert migrated[0]["human_review_timestamp"] == old_decision["human_review_timestamp"]
+    assert migrated[0]["candidate_manifest_hash"] == review.current_bindings(current, canon)["candidate_manifest_hash"]
+    assert historical_decisions.read_bytes() == historical_bytes
+
+
 @pytest.mark.parametrize("reason", ["NA", "na", "N/A", "ok", "approved", ""])
 def test_free_text_placeholders_are_not_reason_codes(tmp_path: Path, reason: str) -> None:
     current, canon, (candidate,) = _fixture(tmp_path)

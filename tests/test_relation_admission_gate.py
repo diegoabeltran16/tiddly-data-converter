@@ -30,10 +30,12 @@ from relation_admission_gate import (
     guarded_apply_relations,
     append_to_log,
     build_dry_run_report,
+    build_apply_plan,
     ADMISSION_READY,
     BLOCKED,
     HISTORICAL_BLOCKED_TYPES,
     rotate_current_run,
+    rollback_relational_apply,
 )
 
 
@@ -52,6 +54,40 @@ def test_current_rotation_archives_previous_mixed_log(tmp_path: Path) -> None:
     assert not (current / "current_relation_admission_log.jsonl").exists()
     archived = Path(rotation["history_path"])
     assert (archived / "current_relation_admission_log.jsonl").exists()
+
+
+def test_apply_plan_deduplicates_same_canonical_edge_with_distinct_evidence(tmp_path: Path) -> None:
+    first = _technical_candidate(candidate_id="rc1_" + "1" * 16)
+    second = json.loads(json.dumps(first))
+    second["candidate_id"] = "rc1_" + "2" * 16
+    second["evidence"]["raw_observation"] = "same edge, second evidence"
+    decisions = {
+        candidate["candidate_id"]: {
+            "human_review_decision": "approved_for_admission",
+            "approval_scope": "canonical_admission",
+            "human_review_reason_code": "EVIDENCE_AND_ENDPOINTS_VERIFIED",
+        }
+        for candidate in (first, second)
+    }
+    report_path = tmp_path / "dry-run.json"
+    report_path.write_text("{}\n", encoding="utf-8")
+    plan = build_apply_plan(
+        candidates=[first, second],
+        canon_glob=str(tmp_path / "tiddlers_*.jsonl"),
+        human_review_decisions=decisions,
+        dry_run_report={
+            "items": [
+                {"candidate_id": first["candidate_id"], "gate_status": ADMISSION_READY},
+                {"candidate_id": second["candidate_id"], "gate_status": ADMISSION_READY},
+            ],
+        },
+        dry_run_report_path=report_path,
+        dry_run_recent=True,
+    )
+    assert plan["approved_count"] == 2
+    assert plan["would_apply_count"] == 1
+    assert plan["omitted_planned_count"] == 1
+    assert plan["blocked_count"] == 0
 
 
 def _write_current_run_artifacts(current: Path, run_id: str = "run-previous") -> dict[str, str]:
@@ -1000,7 +1036,11 @@ class TestS0165SafeApplyEngine:
             "text": "Source text with fixture evidence.",
             "source_fields": {"lifecycle_state": "current_repo_artifact"},
             "lifecycle_state": "current_repo_artifact",
-            "relations": [],
+            "relations": [{
+                "type": "references",
+                "target_id": "tgt-002",
+                "relation_schema": "legacy/pre-v1",
+            }],
         }
         target = {
             "id": "tgt-002",
@@ -1016,6 +1056,7 @@ class TestS0165SafeApplyEngine:
             json.dumps(source) + "\n" + json.dumps(target) + "\n",
             encoding="utf-8",
         )
+        original_canon = canon_path.read_bytes()
 
         candidate = _technical_candidate(
             source={
@@ -1081,6 +1122,8 @@ class TestS0165SafeApplyEngine:
         assert report["apply_plan"]["would_apply_count"] == 1
         assert (audit_dir / "relation_apply_plan.json").exists()
         assert (audit_dir / "relation_apply_report.json").exists()
+        assert (audit_dir / "relation_apply_receipt.json").exists()
+        assert Path(report["rollback_snapshot"]).exists()
 
         records = [
             json.loads(line)
@@ -1088,7 +1131,7 @@ class TestS0165SafeApplyEngine:
             if line.strip()
         ]
         assert len(records) == 2
-        relation = records[0]["relations"][0]
+        relation = records[0]["relations"][-1]
         assert validate_admitted_relation_schema(relation) == []
         assert relation["relation_schema_version"] == "canonical-relation/v1"
         assert relation["artifact_family"] == "canonical_relation"
@@ -1118,4 +1161,219 @@ class TestS0165SafeApplyEngine:
         ]
         assert retry_code == 0
         assert retry_report["applied_count"] == 0
-        assert len(retry_records[0]["relations"]) == 1
+        assert len(retry_records[0]["relations"]) == 2
+
+        rollback = rollback_relational_apply(
+            snapshot_manifest_path=Path(report["rollback_snapshot"]),
+            out_dir=audit_dir,
+        )
+        assert rollback["status"] == "restored"
+        assert rollback["byte_exact"] is True
+        assert canon_path.read_bytes() == original_canon
+        repeated = rollback_relational_apply(
+            snapshot_manifest_path=Path(report["rollback_snapshot"]),
+            out_dir=audit_dir,
+        )
+        assert repeated["status"] == "already_restored"
+        assert canon_path.read_bytes() == original_canon
+
+    def test_productive_apply_reuses_exact_plan_and_consumes_authorization_once(
+        self, tmp_path: Path,
+    ):
+        canon_dir = tmp_path / "canon"
+        inputs_dir = tmp_path / "inputs"
+        audit_dir = tmp_path / "audit"
+        canon_dir.mkdir()
+        inputs_dir.mkdir()
+        canon_path = canon_dir / "tiddlers_1.jsonl"
+        canon_path.write_text(
+            json.dumps({"id": "src-001", "relations": []}) + "\n"
+            + json.dumps({"id": "tgt-002", "relations": []}) + "\n",
+            encoding="utf-8",
+        )
+        candidate = _technical_candidate(
+            source={"canonical_id": "src-001", "repo_path": "source.py"},
+            target={"canonical_id": "tgt-002", "repo_path": "target.py"},
+            policy={"human_review_required": True, "canonical_admission_allowed": True},
+            session_resolution={"classification": "resolved_for_human_review"},
+        )
+        candidates_file = self._write_candidates(inputs_dir, [candidate])
+        review_file = self._write_review(inputs_dir, [{
+            "candidate_id": candidate["candidate_id"],
+            "human_review_decision": "approved_for_admission",
+            "human_review_actor": "operator",
+            "human_review_timestamp": "2026-07-28T00:00:00Z",
+            "approval_scope": "canonical_admission",
+            "reviewed_evidence_paths": [],
+            "session_id": "S0183",
+        }])
+        dry_run = self._write_dry_run_report(
+            inputs_dir,
+            [{
+                "candidate_id": candidate["candidate_id"],
+                "gate_status": "admission_ready_dry_run",
+                "all_block_reasons": [],
+            }],
+            ready=1,
+        )
+        decisions, errors = relation_gate.load_persistent_human_review_decisions(review_file)
+        assert errors == []
+        plan = relation_gate.build_apply_plan(
+            candidates=[candidate],
+            canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+            human_review_decisions=decisions,
+            dry_run_report=relation_gate.load_dry_run_report(dry_run),
+            dry_run_report_path=dry_run,
+            dry_run_recent=True,
+            binding_paths={},
+        )
+        authorized_plan_path = inputs_dir / "authorized_plan.json"
+        authorized_plan_path.write_text(
+            json.dumps(plan, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        authorization_path = inputs_dir / "authorization.json"
+        authorization_path.write_text(json.dumps({
+            "schema_version": "gate-g-authorization/v1",
+            "authorization_id": "auth_fixture",
+            "decision": "authorized",
+            "authorized_operation": "APPLY RELATIONS",
+            "single_use": True,
+            "consumed": False,
+            "superseded": False,
+            "authorization_current": True,
+            "bindings": {
+                "apply_plan_id": plan["apply_plan_id"],
+                "apply_plan_hash": relation_gate.sha256_path(authorized_plan_path),
+            },
+        }) + "\n", encoding="utf-8")
+        authorized_bytes = authorized_plan_path.read_bytes()
+
+        code, report = guarded_apply_relations(
+            candidates_file=candidates_file,
+            canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+            human_review_decisions_file=review_file,
+            dry_run_report_path=dry_run,
+            out_dir=audit_dir,
+            terminal_confirmation="APPLY RELATIONS",
+            perform_write=True,
+            target_scope="production_path",
+            authorization_path=authorization_path,
+            authorized_plan_path=authorized_plan_path,
+        )
+
+        assert code == 0
+        assert report["exact_authorized_plan_reused"] is True
+        assert (audit_dir / "relation_apply_plan.json").read_bytes() == authorized_bytes
+        assert report["apply_id"].startswith("apply_exec_")
+        receipt = json.loads((audit_dir / "relation_apply_receipt.json").read_text())
+        snapshot = json.loads(Path(report["rollback_snapshot"]).read_text())
+        journal = [
+            json.loads(line)
+            for line in (audit_dir / "relation_apply_journal.jsonl").read_text().splitlines()
+        ]
+        consumed = json.loads(authorization_path.read_text())
+        assert receipt["apply_id"] == report["apply_id"] == snapshot["apply_id"]
+        assert receipt["authorization_id"] == "auth_fixture"
+        assert receipt["exact_authorized_plan_reused"] is True
+        assert [row["candidate_id"] for row in journal if row.get("result") == "written"] == [
+            candidate["candidate_id"]
+        ]
+        assert all(row.get("apply_id") == report["apply_id"] for row in journal)
+        assert consumed["consumed"] is True
+        assert consumed["consumed_once"] is True
+        assert consumed["consumed_by_apply_id"] == report["apply_id"]
+
+        retry_code, retry = guarded_apply_relations(
+            candidates_file=candidates_file,
+            canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+            human_review_decisions_file=review_file,
+            dry_run_report_path=dry_run,
+            out_dir=tmp_path / "retry",
+            terminal_confirmation="APPLY RELATIONS",
+            perform_write=True,
+            target_scope="production_path",
+            authorization_path=authorization_path,
+            authorized_plan_path=authorized_plan_path,
+        )
+        assert retry_code == 1
+        assert "authorization_already_consumed" in retry["apply_plan"]["block_reasons"]
+
+    def test_transaction_failure_between_shards_rolls_back_exactly(self, tmp_path: Path):
+        canon_dir = tmp_path / "canon"
+        audit_dir = tmp_path / "audit"
+        canon_dir.mkdir()
+        audit_dir.mkdir()
+        first = canon_dir / "tiddlers_1.jsonl"
+        second = canon_dir / "tiddlers_2.jsonl"
+        first.write_text(json.dumps({"id": "src", "relations": []}) + "\n", encoding="utf-8")
+        second.write_text(json.dumps({"id": "other", "relations": []}) + "\n", encoding="utf-8")
+        before = {path: path.read_bytes() for path in (first, second)}
+        plan = {
+            "apply_plan_id": "apply_" + "a" * 16,
+            "canon_before_hash": relation_gate.aggregate_canon_hash(str(canon_dir / "tiddlers_*.jsonl")),
+            "canon_before_count": 2,
+            "exact_bindings": {},
+        }
+        plan_path = audit_dir / "relation_apply_plan.json"
+        plan_path.write_text(json.dumps(plan) + "\n", encoding="utf-8")
+        relation = {
+            "source_id": "src",
+            "target_id": "other",
+            "relation_type": "references",
+            "relation_schema_version": "canonical-relation/v1",
+            "relation_id": "cr1_fixture",
+            "evidence": {"candidate_id": "rc_fixture"},
+        }
+        with pytest.raises(RuntimeError, match="injected failure"):
+            relation_gate._transactional_apply(
+                canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+                selected_by_source={"src": [relation]},
+                plan=plan,
+                plan_path=plan_path,
+                out_dir=audit_dir,
+                target_scope="tmp_path",
+                inject_failure_after_shards=1,
+                apply_id="apply_exec_fixture",
+            )
+        assert all(path.read_bytes() == payload for path, payload in before.items())
+        rollback = json.loads((audit_dir / "rollback_report.json").read_text(encoding="utf-8"))
+        assert rollback["byte_exact"] is True
+        journal = (audit_dir / "relation_apply_journal.jsonl").read_text(encoding="utf-8")
+        assert "transaction_failed" in journal
+        assert "rollback_completed" in journal
+
+    def test_failed_authorization_attempt_is_exhausted_without_false_consumption(
+        self, tmp_path: Path,
+    ):
+        authorization_path = tmp_path / "authorization.json"
+        authorization = {
+            "schema_version": "gate-g-authorization/v1",
+            "authorization_id": "auth_failure_fixture",
+            "decision": "authorized",
+            "authorized_operation": "APPLY RELATIONS",
+            "single_use": True,
+            "consumed": False,
+            "authorization_current": True,
+        }
+        authorization_path.write_text(json.dumps(authorization) + "\n", encoding="utf-8")
+
+        relation_gate._mark_authorization_in_progress(
+            authorization_path,
+            authorization,
+            apply_id="apply_exec_failed_fixture",
+            apply_plan_id="apply_fixture",
+            started_at="2026-07-28T00:00:00Z",
+        )
+        relation_gate._mark_authorization_failed(
+            authorization_path,
+            apply_id="apply_exec_failed_fixture",
+            failure="injected failure",
+        )
+
+        failed = json.loads(authorization_path.read_text())
+        assert failed["consumed"] is False
+        assert failed["single_use_exhausted"] is True
+        assert failed["authorization_current"] is False
+        assert failed["production_apply_executed"] is False
+        assert failed["consumption_state"] == "failed_rolled_back_requires_reauthorization"
