@@ -28,6 +28,14 @@ STATE_REPORT = AUDIT_DIR / "relational_operational_state.json"
 AUDIT_INDEX = AUDIT_DIR / "relational_audit_index.json"
 RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS = "RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS"
 SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS = "SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS"
+CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON = (
+    "CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON"
+)
+PREPARE_CURRENT_RELATIONAL_GENERATION = "PREPARE_CURRENT_RELATIONAL_GENERATION"
+CURRENT_CANON_AUTHORITY_REASONS = frozenset({
+    "current_bundle_canon_stale",
+    "current_bundle_missing",
+})
 
 
 def now() -> str:
@@ -169,6 +177,30 @@ def build_state(
     authorization_reconciliation, authorization_reconciliation_error = read_json(
         authorization_reconciliation_path,
     )
+    try:
+        from prepare_current_relational_generation import (
+            Paths as CurrentGenerationPaths,
+            inspect_review_coverage,
+            read_current_bundle_status,
+        )
+
+        current_bundle = read_current_bundle_status(local_root)
+        review_coverage = inspect_review_coverage(
+            CurrentGenerationPaths.from_local_root(local_root)
+        )
+    except (ImportError, OSError, ValueError) as error:
+        current_bundle = {
+            "valid": False,
+            "reason_codes": ["current_bundle_status_failed"],
+            "error": str(error),
+        }
+        review_coverage = {
+            "valid": False,
+            "technical_reviewable": None,
+            "effective_decision_covered": None,
+            "effective_pending": None,
+            "coverage_source": None,
+        }
 
     generator = REPO_ROOT / "src" / "python_scripts" / "generate_technical_relation_candidates.py"
     contract = REPO_ROOT / "src" / "python_scripts" / "relation_candidate_contract.py"
@@ -305,11 +337,68 @@ def build_state(
         and apply_report.get("status") == "applied"
         and apply_report.get("canon_after_hash") == canon["hash"]
     )
-    productive_apply_reconciled = bool(
+
+    current_apply_receipt_bound = bool(
+        productive_apply_current
+        and not apply_receipt_error
+        and apply_receipt.get("status") == "applied"
+        and apply_receipt.get("apply_id") == apply_report.get("apply_id")
+        and apply_receipt.get("canon_after_hash") == canon["hash"]
+        and apply_receipt.get("rollback_snapshot")
+        == apply_report.get("rollback_snapshot")
+        and apply_receipt.get("rollback_snapshot_hash")
+        == apply_report.get("rollback_snapshot_hash")
+    )
+
+    current_apply_readiness_id = str(
+        apply_receipt.get("readiness_id") or ""
+    )
+    current_apply_authorization_id = str(
+        apply_receipt.get("current_relational_authorization_id") or ""
+    )
+    current_apply_authorization_path = (
+        local_root / "audit" / "relation_admission" / "authorizations"
+        / current_apply_readiness_id / "authorization.json"
+        if current_apply_readiness_id else Path()
+    )
+    current_apply_authorization, current_apply_authorization_error = (
+        read_json(current_apply_authorization_path)
+        if current_apply_readiness_id else ({}, "missing")
+    )
+
+    current_generational_apply_reconciled = bool(
+        current_apply_receipt_bound
+        and current_apply_authorization_id
+        and not current_apply_authorization_error
+        and current_apply_authorization.get("schema_version")
+        == "current-relational-authorization/v1"
+        and current_apply_authorization.get("authorization_id")
+        == current_apply_authorization_id
+        and current_apply_authorization.get("readiness_id")
+        == current_apply_readiness_id
+        and current_apply_authorization.get("bundle_manifest_hash")
+        == apply_receipt.get("bundle_manifest_hash")
+        and current_apply_authorization.get("apply_plan_hash")
+        == apply_receipt.get("sealed_apply_plan_hash")
+        and current_apply_authorization.get("consumed") is True
+        and current_apply_authorization.get("receipt_hash")
+        == sha256_file(apply_receipt_path)
+        and current_apply_authorization.get("relations_written") is not None
+        and apply_receipt.get("applied_count") is not None
+        and int(current_apply_authorization.get("relations_written"))
+        == int(apply_receipt.get("applied_count"))
+    )
+
+    legacy_productive_apply_reconciled = bool(
         productive_apply_current
         and not productive_reconciliation_error
         and productive_reconciliation.get("status") == "reconciled"
-        and (productive_reconciliation.get("canon") or {}).get("post_hash") == canon["hash"]
+        and (productive_reconciliation.get("canon") or {}).get("post_hash")
+        == canon["hash"]
+    )
+    productive_apply_reconciled = bool(
+        current_generational_apply_reconciled
+        or legacy_productive_apply_reconciled
     )
     if gate_g_path.exists() and not productive_apply_current:
         if gate_g_error:
@@ -339,10 +428,67 @@ def build_state(
         candidate_reasons + reconciliation_reasons + reviewable_reasons
         + s0183_reasons + gate_g_reasons
     )
-    blocking_reasons = [] if productive_apply_reconciled else preapply_stale_reasons
+    current_bundle_valid = current_bundle.get("valid") is True
+    current_bundle_terminal = str(current_bundle.get("terminal_state") or "")
+    current_bundle_human = bool(
+        current_bundle_valid
+        and current_bundle_terminal == "READY_FOR_HUMAN_DELTA_REVIEW"
+    )
+    current_bundle_authorization = bool(
+        current_bundle_valid
+        and current_bundle_terminal == "READY_FOR_AUTHORIZATION"
+    )
+    current_bundle_pending = int(
+        (current_bundle.get("planning") or {}).get("pending_human_review") or 0
+    )
+    current_bundle_reasons = sorted(set(current_bundle.get("reason_codes") or []))
+    authority_missing_for_current_canon = bool(
+        not current_bundle_valid
+        and current_bundle_reasons
+        and set(current_bundle_reasons).issubset(CURRENT_CANON_AUTHORITY_REASONS)
+        and not candidate_reasons
+        and not reconciliation_reasons
+        and not reviewable_reasons
+    )
+    current_planning = current_bundle.get("planning") or {}
+    technical_reviewable = current_planning.get("technical_reviewable")
+    effective_decision_covered = current_planning.get(
+        "effective_decision_covered"
+    )
+    effective_pending: int | None = current_planning.get("effective_pending")
+    if current_bundle_valid:
+        technical_reviewable = (
+            ready_count if technical_reviewable is None else technical_reviewable
+        )
+        effective_pending = (
+            current_bundle_pending
+            if current_bundle_terminal in {
+                "READY_FOR_HUMAN_DELTA_REVIEW",
+                "REVIEW_COMPLETE_PENDING_READINESS_RECOMPOSITION",
+            }
+            else 0 if current_bundle_terminal == "READY_FOR_AUTHORIZATION" else None
+        )
+    elif review_coverage.get("valid") is True:
+        technical_reviewable = review_coverage.get("technical_reviewable")
+        effective_decision_covered = review_coverage.get(
+            "effective_decision_covered"
+        )
+        effective_pending = review_coverage.get("effective_pending")
+    historical_stale_reasons = sorted(set(s0183_reasons + gate_g_reasons))
+    blocking_reasons = (
+        [] if productive_apply_reconciled or current_bundle_valid
+        else preapply_stale_reasons
+    )
+    if authority_missing_for_current_canon:
+        # Historical S0183 staleness is provenance here, not the operational
+        # cause.  Preserve the exact current-authority reason for the operator.
+        blocking_reasons = current_bundle_reasons
     if productive_apply_reconciled:
         verdict = "RELATIONAL_PRODUCTIVE_APPLY_RECONCILED"
         next_action = "START_POSTIMPACT_CLOSURE"
+    elif current_bundle_valid:
+        verdict = str(current_bundle.get("terminal_state") or "READY_FOR_AUTHORIZATION")
+        next_action = str(current_bundle.get("next_action") or "AUTHORIZE_CURRENT_RELATIONAL_APPLY")
     elif candidate_error == "missing":
         verdict = "NO_CURRENT_RELATION_CANDIDATE_MANIFEST"
         next_action = "GENERATE_CURRENT_RELATION_CANDIDATES"
@@ -352,6 +498,9 @@ def build_state(
     elif reconciliation_reasons or reviewable_reasons:
         verdict = "CURRENT_RELATION_CANDIDATES_REQUIRE_RECONCILIATION"
         next_action = "VALIDATE_AND_RECONCILE_CURRENT_CANDIDATES"
+    elif authority_missing_for_current_canon:
+        verdict = CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON
+        next_action = PREPARE_CURRENT_RELATIONAL_GENERATION
     elif s0183_reasons:
         verdict = "IMPACT_BLOCKED"
         next_action = "RESOLVE_S0183_RECONCILIATION_OR_REVIEW"
@@ -430,29 +579,67 @@ def build_state(
             "current": bool(cross_batch_path.exists() and not s0183_reasons),
             "stale_reasons": s0183_reasons,
         },
+        "current_authority": {
+            "valid": current_bundle_valid,
+            "bundle_path": current_bundle.get("bundle_path"),
+            "terminal_state": current_bundle.get("terminal_state"),
+            "planning": current_bundle.get("planning") or {},
+            "stale_reasons": current_bundle.get("reason_codes") or [],
+        },
+        "historical_artifacts": {
+            "s0183_preserved": True,
+            "stale_reasons": historical_stale_reasons,
+            "blocking_current_generation": False if current_bundle_valid else bool(historical_stale_reasons),
+            "authorization_path": display(authorization_path) if not authorization_error else None,
+            "authorization_consumed": authorization.get("consumed") is True,
+            "apply_id": apply_report.get("apply_id") or productive_reconciliation.get("apply_id"),
+        },
         "human_review": {
             "decisions_path": display(decisions_path),
             **decision_counts,
+            # This is the technical queue cardinality, not a count of human
+            # decisions still required.  Effective coverage is owned by the
+            # generational producer and is intentionally not inferred from
+            # raw decision rows.
+            "technical_reviewable": (
+                ready_count if technical_reviewable is None else technical_reviewable
+            ),
+            "effective_decision_covered": effective_decision_covered,
+            "effective_pending": effective_pending,
+            "coverage_source": (
+                "current_generation_bundle" if current_bundle_valid
+                else review_coverage.get("coverage_source")
+            ),
             "legacy_supersession_required": len(legacy_decisions),
             "stale": len(decisions) if decision_stale else 0,
             "current": not decisions_error and not decision_stale and not legacy_decisions,
             "preservation_manifest_path": display(preservation_path) if preservation_path.exists() else None,
             "preserved_equivalent": preservation.get("migrated_equivalent_count", 0),
-            "pending_after_preservation": len(preservation.get("pending_reviewable_candidate_ids") or []),
+            "pending_after_preservation": (
+                current_bundle_pending if current_bundle_human
+                else len(preservation.get("pending_reviewable_candidate_ids") or [])
+            ),
         },
         "admission_gate": {
             "report_path": display(gate_path),
             "evaluated": gate_summary.get("total_evaluated", 0),
             "technically_invalid": gate_summary.get("technically_invalid", 0),
-            "awaiting_human_review": gate_summary.get("awaiting_human_review", gate_decisions.get("blocked_missing_human_review", 0)),
+            "awaiting_human_review": (
+                current_bundle_pending if current_bundle_human
+                else effective_pending if effective_pending is not None
+                else gate_summary.get("awaiting_human_review", gate_decisions.get("blocked_missing_human_review", 0))
+            ),
             "human_rejected": gate_summary.get("human_rejected", gate_decisions.get("rejected_by_human", 0)),
             "human_deferred": gate_summary.get("human_deferred", 0),
             "approved_for_admission": gate_summary.get("approved_for_admission", 0),
-            "admission_ready": gate_summary.get("admission_ready_dry_run", 0),
-            "current": gate_current,
+            "admission_ready": (
+                0 if current_bundle_human
+                else gate_summary.get("admission_ready_dry_run", 0)
+            ),
+            "current": gate_current or current_bundle_valid,
             "partition_complete": partition_complete,
             "partition_total": partition_total,
-            "stale_reasons": gate_reasons,
+            "stale_reasons": [] if current_bundle_valid else gate_reasons,
         },
         "apply": {
             "executed": bool(apply_report.get("status") == "applied"),
@@ -467,14 +654,21 @@ def build_state(
             "receipt_hash": sha256_file(apply_receipt_path),
             "canon_modified": bool(apply_report.get("canon_modified") is True),
             "current": productive_apply_current,
-            "authorized": bool(
-                authorization.get("decision") == "authorized"
-                or (authorization_reconciliation.get("authorization") or {}).get(
-                    "valid_at_execution"
-                ) is True
+            "authorized": (
+                True if current_generational_apply_reconciled
+                else False if current_bundle_valid else bool(
+                    authorization.get("decision") == "authorized"
+                    or (authorization_reconciliation.get("authorization") or {}).get(
+                        "valid_at_execution"
+                    ) is True
+                )
             ),
             "authorized_at_execution": bool(
-                (not authorization_error and authorization.get("decision") == "authorized")
+                current_generational_apply_reconciled
+                or (
+                    not authorization_error
+                    and authorization.get("decision") == "authorized"
+                )
                 or (
                     not authorization_reconciliation_error
                     and (authorization_reconciliation.get("authorization") or {}).get(
@@ -482,15 +676,22 @@ def build_state(
                     ) is True
                 )
             ),
-            "authorization_consumed": bool(
-                authorization.get("consumed") is True
-                or (authorization_reconciliation.get("consumption") or {}).get(
-                    "consumed_once"
-                ) is True
+            "authorization_consumed": (
+                True if current_generational_apply_reconciled
+                else False if current_bundle_valid else bool(
+                    authorization.get("consumed") is True
+                    or (authorization_reconciliation.get("consumption") or {}).get(
+                        "consumed_once"
+                    ) is True
+                )
             ),
             "authorization_path": (
-                display(authorization_path) if not authorization_error else None
+                display(current_apply_authorization_path)
+                if current_generational_apply_reconciled
+                else None if current_bundle_valid
+                else display(authorization_path) if not authorization_error else None
             ),
+            "authorization_current": current_generational_apply_reconciled,
             "authorization_reconciliation_path": (
                 display(authorization_reconciliation_path)
                 if not authorization_reconciliation_error else None
@@ -500,13 +701,20 @@ def build_state(
                 if not productive_reconciliation_error else None
             ),
             "reconciled": productive_apply_reconciled,
-            "gate_g_ready": gate_g_current,
-            "gate_g_readiness_path": display(gate_g_path) if gate_g_path.exists() else None,
-            "plan_path": gate_g.get("apply_plan_path"),
+            "gate_g_ready": gate_g_current or current_bundle_authorization,
+            "gate_g_readiness_path": (
+                str(Path(str(current_bundle.get("bundle_path"))) / "gate_g_readiness.json")
+                if current_bundle_authorization else display(gate_g_path) if gate_g_path.exists() and not current_bundle_human else None
+            ),
+            "plan_path": (
+                str(Path(str(current_bundle.get("bundle_path"))) / "relation_apply_plan.json")
+                if current_bundle_authorization else gate_g.get("apply_plan_path") if not current_bundle_human else None
+            ),
+            "planning": current_bundle.get("planning") or {},
         },
         "rollback": {
             "available": bool(
-                gate_g_current
+                (gate_g_current and not current_bundle_valid)
                 or (apply_report.get("canon_modified") is True and apply_report.get("rollback_snapshot"))
             ),
             "receipt_bound": bool(
@@ -515,13 +723,30 @@ def build_state(
                 and apply_receipt.get("rollback_snapshot_hash")
                 == apply_report.get("rollback_snapshot_hash")
             ),
-            "snapshot_path": gate_g.get("snapshot_path") if gate_g_current else apply_report.get("rollback_snapshot"),
+            "snapshot_path": (
+                str(next((Path(str(current_bundle.get("bundle_path"))) / "rollback_snapshots").glob("*/snapshot_manifest.json"), ""))
+                if current_bundle_authorization
+                else gate_g.get("snapshot_path") if gate_g_current else apply_report.get("rollback_snapshot")
+            ),
+            "ready": bool(
+                productive_apply_reconciled
+                and apply_report.get("rollback_snapshot")
+                and Path(str(apply_report.get("rollback_snapshot"))).is_file()
+                and not apply_receipt_error
+                and apply_receipt.get("rollback_snapshot")
+                == apply_report.get("rollback_snapshot")
+                and apply_receipt.get("rollback_snapshot_hash")
+                == apply_report.get("rollback_snapshot_hash")
+            ) or current_bundle_authorization or gate_g_current,
             "current": bool(
                 productive_apply_current
                 and apply_report.get("rollback_snapshot")
                 and Path(str(apply_report.get("rollback_snapshot"))).is_file()
-            ) or gate_g_current,
-            "stale_reasons": gate_g_reasons,
+            ) or gate_g_current or current_bundle_authorization,
+            "stale_reasons": (
+                [] if productive_apply_reconciled or current_bundle_valid
+                else gate_g_reasons
+            ),
         },
         "canonical_relation_v1": canonical_relation_v1_count(local_root),
         "verdict": verdict,
@@ -536,8 +761,9 @@ def build_state(
         "warnings": [
             warning for warning in (
                 "baseline_is_historical_not_operational" if baseline else None,
-                "admission_gate_current_run_missing_or_stale" if not gate_current else None,
+                "admission_gate_current_run_missing_or_stale" if not gate_current and not current_bundle_valid else None,
                 "data_tmp_is_not_an_operational_dependency",
+                "historical_relational_artifacts_are_stale_provenance" if current_bundle_valid and historical_stale_reasons else None,
             ) if warning
         ],
     }
@@ -634,7 +860,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(precondition, ensure_ascii=False, indent=2, sort_keys=True))
         return 0 if precondition["allowed"] else 2
     if args.command == "state":
-        write_json(audit_dir / "relational_operational_state.json", state)
         print(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True))
         return 0
     print(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True))

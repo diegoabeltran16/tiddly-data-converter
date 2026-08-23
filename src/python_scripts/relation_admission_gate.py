@@ -1548,18 +1548,41 @@ def build_apply_plan(
     candidates_by_id = {str(candidate.get("candidate_id") or ""): candidate for candidate in candidates}
     would_apply_ids: list[str] = []
     omitted_duplicate_ids: list[str] = []
-    seen_signatures: set[tuple[str, str, str]] = set()
+    omitted_duplicate_representations: list[dict[str, Any]] = []
+    seen_signatures: dict[tuple[str, str, str], str] = {}
+    unaccounted_approved_ids: list[str] = []
     for candidate_id in selected_approved_ids:
         candidate = candidates_by_id.get(candidate_id) or {}
+        if not candidate:
+            unaccounted_approved_ids.append(candidate_id)
+            continue
         signature = (
             endpoint_id(candidate.get("source") or {}),
             endpoint_id(candidate.get("target") or {}),
             relation_type_for(candidate),
         )
-        if signature in seen_signatures:
-            omitted_duplicate_ids.append(candidate_id)
+        if not all(signature):
+            unaccounted_approved_ids.append(candidate_id)
             continue
-        seen_signatures.add(signature)
+        selected_representative = seen_signatures.get(signature)
+        if selected_representative is not None:
+            omitted_duplicate_ids.append(candidate_id)
+            canonical_relation_identity = hashlib.sha256(
+                json.dumps(signature, ensure_ascii=False).encode("utf-8")
+            ).hexdigest()
+            omitted_duplicate_representations.append({
+                "candidate_id": candidate_id,
+                "canonical_relation_identity": canonical_relation_identity,
+                "selected_representative_candidate_id": selected_representative,
+                "omission_reason": "duplicate_representation_omitted",
+                "evidence": {
+                    "source_id": signature[0],
+                    "target_id": signature[1],
+                    "relation_type": signature[2],
+                },
+            })
+            continue
+        seen_signatures[signature] = candidate_id
         would_apply_ids.append(candidate_id)
     block_reasons: list[str] = []
     if not human_review_decisions:
@@ -1570,8 +1593,17 @@ def build_apply_plan(
         block_reasons.append(dry_run_recent_reason or "missing_or_stale_dry_run")
     if p0_reasons:
         block_reasons.append("p0_block_reasons_present")
+    if unaccounted_approved_ids:
+        block_reasons.append("approved_representation_unaccounted")
     if not would_apply_ids and approved_ids and ready_ids and not block_reasons:
         block_reasons.append("no_candidates_selected_for_apply")
+    approved_candidate_representations = len(selected_approved_ids)
+    conservation_valid = (
+        approved_candidate_representations
+        == len(would_apply_ids) + len(omitted_duplicate_ids) + len(unaccounted_approved_ids)
+    )
+    if not conservation_valid:
+        block_reasons.append("approved_partition_conservation_failed")
     canon_before_count = count_canon_records(canon_glob)
     canon_before_hash = aggregate_canon_hash(canon_glob)
     bindings = {
@@ -1600,11 +1632,19 @@ def build_apply_plan(
         "canon_before_hash": canon_before_hash,
         "candidate_count": len(candidates),
         "approved_count": len(approved_ids),
+        "approved_candidate_representations": approved_candidate_representations,
+        "approved_candidate_ids": selected_approved_ids,
         "blocked_count": len(candidates) - len(selected_approved_ids),
         "omitted_planned_count": len(omitted_duplicate_ids),
         "omitted_planned_candidate_ids": omitted_duplicate_ids,
+        "omitted_duplicate_representations": omitted_duplicate_representations,
         "would_apply_count": len(would_apply_ids),
         "would_apply_candidate_ids": would_apply_ids,
+        "planned_unique_relations": len(would_apply_ids),
+        "unaccounted_approved_representations": len(unaccounted_approved_ids),
+        "unaccounted_approved_candidate_ids": unaccounted_approved_ids,
+        "deduplication_preserved": True,
+        "conservation_valid": conservation_valid,
         "block_reasons": block_reasons,
         "dry_run_report": str(dry_run_report_path),
         "dry_run_recent": dry_run_recent,
@@ -1612,6 +1652,42 @@ def build_apply_plan(
         "exact_bindings": bindings,
         "canon_modified": False,
     }
+
+
+def semantic_apply_plan_id(plan: dict[str, Any]) -> str:
+    """Stable current-plan identity independent of publication-local paths."""
+    material = {
+        "schema": plan.get("schema"),
+        "canon_before_count": plan.get("canon_before_count"),
+        "canon_before_hash": plan.get("canon_before_hash"),
+        "approved_candidate_ids": sorted(
+            plan.get("approved_candidate_ids") or []
+        ),
+        "would_apply_candidate_ids": sorted(
+            plan.get("would_apply_candidate_ids") or []
+        ),
+        "omitted_planned_candidate_ids": sorted(
+            plan.get("omitted_planned_candidate_ids") or []
+        ),
+        "unaccounted_approved_candidate_ids": sorted(
+            plan.get("unaccounted_approved_candidate_ids") or []
+        ),
+        "bindings": {
+            name: (binding or {}).get("sha256")
+            for name, binding in sorted(
+                (plan.get("exact_bindings") or {}).items()
+            )
+        },
+    }
+    digest = hashlib.sha256(
+        json.dumps(
+            material,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return "apply_" + digest[:16]
 
 
 def write_apply_plan(plan: dict[str, Any], out_dir: Path) -> Path:
@@ -2192,8 +2268,14 @@ def prepare_gate_g_package(
         "canon_records": plan["canon_before_count"],
         "would_apply_count": plan["would_apply_count"],
         "would_apply_candidate_ids": plan["would_apply_candidate_ids"],
+        "approved_candidate_representations": plan.get("approved_candidate_representations", 0),
+        "planned_unique_relations": plan.get("planned_unique_relations", plan["would_apply_count"]),
         "omitted_planned_count": plan.get("omitted_planned_count", 0),
         "omitted_planned_candidate_ids": plan.get("omitted_planned_candidate_ids", []),
+        "omitted_duplicate_representations": plan.get("omitted_duplicate_representations", []),
+        "unaccounted_approved_representations": plan.get("unaccounted_approved_representations", 0),
+        "deduplication_preserved": plan.get("deduplication_preserved") is True,
+        "conservation_valid": plan.get("conservation_valid") is True,
         "apply_plan_path": str(plan_path),
         "apply_plan_hash": sha256_path(plan_path),
         "snapshot_path": str(snapshot_path),
@@ -2305,10 +2387,34 @@ def verify_apply_safety_on_temp_copy(
             (path, source_inventory[path.name]) for path in source_files
         ))
     )
-    passed = all((
-        int(first.get("applied_count") or 0) > 0,
-        int(first.get("applied_count") or 0) == int((first.get("apply_plan") or {}).get("would_apply_count") or 0),
-        int(retry.get("applied_count") or 0) == 0,
+    planned_count = int(
+        (first.get("apply_plan") or {}).get("would_apply_count") or 0
+    )
+    first_applied = int(first.get("applied_count") or 0)
+    first_omitted_existing = int(first.get("omitted_existing_count") or 0)
+    retry_applied = int(retry.get("applied_count") or 0)
+    retry_omitted_existing = int(retry.get("omitted_existing_count") or 0)
+    failure_applied = int(failure.get("applied_count") or 0)
+    failure_omitted_existing = int(
+        failure.get("omitted_existing_count") or 0
+    )
+
+    # Gate F has two valid safety modes.
+    #
+    # 1. positive_mutation:
+    #    Exercise an actual shard mutation, injected failure and byte-exact
+    #    rollback.  This preserves the historical transactional safety
+    #    contract unchanged.
+    #
+    # 2. convergent_noop:
+    #    Every planned canonical relation already exists.  There is therefore
+    #    no shard promotion on which a failure can be injected.  Safety is
+    #    proven instead by complete planned/existing conservation, repeated
+    #    idempotent no-op execution and byte-exact canon preservation.
+    positive_mutation_passed = all((
+        first_applied > 0,
+        first_applied == planned_count,
+        retry_applied == 0,
         rollback.get("byte_exact") is True,
         repeated_rollback.get("status") == "already_restored",
         success_restored,
@@ -2317,18 +2423,73 @@ def verify_apply_safety_on_temp_copy(
         failure_restored,
         production_unchanged,
     ))
+
+    convergent_noop_passed = all((
+        planned_count > 0,
+
+        first_applied == 0,
+        first_omitted_existing == planned_count,
+        int(first.get("failed_count") or 0) == 0,
+        first.get("apply_executed") is False,
+        first.get("canon_modified") is False,
+        first.get("canon_before_hash") == source_hash,
+        first.get("canon_after_hash") == source_hash,
+
+        retry_code == 0,
+        retry.get("status") == "applied",
+        retry_applied == 0,
+        retry_omitted_existing == planned_count,
+        int(retry.get("failed_count") or 0) == 0,
+        retry.get("canon_modified") is False,
+        retry.get("canon_before_hash") == source_hash,
+        retry.get("canon_after_hash") == source_hash,
+
+        rollback.get("status") == "already_restored",
+        rollback.get("byte_exact") is True,
+        repeated_rollback.get("status") == "already_restored",
+        repeated_rollback.get("byte_exact") is True,
+        success_restored,
+
+        # Failure injection is intentionally non-applicable when no shard can
+        # be promoted.  The same invocation must remain an exact no-op.
+        failure_code == 0,
+        failure.get("status") == "applied",
+        failure_applied == 0,
+        failure_omitted_existing == planned_count,
+        int(failure.get("failed_count") or 0) == 0,
+        failure.get("canon_modified") is False,
+        failure.get("canon_before_hash") == source_hash,
+        failure.get("canon_after_hash") == source_hash,
+        failure_restored,
+
+        production_unchanged,
+    ))
+
+    verification_mode = (
+        "positive_mutation"
+        if positive_mutation_passed
+        else "convergent_noop"
+        if convergent_noop_passed
+        else "invalid"
+    )
+    passed = verification_mode != "invalid"
     report = {
         "schema_version": "s0183-transactional-apply-safety-verification/v1",
         "session_id": "m04-s0183",
+        "verification_mode": verification_mode,
         "verified_at": utc_now(),
         "source_canon_glob": source_canon_glob,
         "source_canon_hash": source_hash,
         "source_shards": len(source_files),
         "positive_apply": {
             "status": first.get("status"),
+            "apply_executed": first.get("apply_executed"),
             "applied_count": first.get("applied_count"),
+            "failed_count": first.get("failed_count"),
+            "canon_modified": first.get("canon_modified"),
             "approved_count": (first.get("apply_plan") or {}).get("approved_count"),
             "would_apply_count": (first.get("apply_plan") or {}).get("would_apply_count"),
+            "omitted_existing_count": first.get("omitted_existing_count"),
             "omitted_planned_count": (first.get("apply_plan") or {}).get("omitted_planned_count"),
             "omitted_planned_candidate_ids": (first.get("apply_plan") or {}).get("omitted_planned_candidate_ids"),
             "receipt_path": str(success_out / "relation_apply_receipt.json"),
@@ -2340,13 +2501,21 @@ def verify_apply_safety_on_temp_copy(
         },
         "second_apply": {
             "status": retry.get("status"),
+            "apply_executed": retry.get("apply_executed"),
             "applied_count": retry.get("applied_count"),
+            "failed_count": retry.get("failed_count"),
             "omitted_existing_count": retry.get("omitted_existing_count"),
+            "canon_modified": retry.get("canon_modified"),
         },
         "rollback": rollback,
         "repeated_rollback": repeated_rollback,
         "injected_failure": {
+            "applicable": verification_mode == "positive_mutation",
             "status": failure.get("status"),
+            "applied_count": failure.get("applied_count"),
+            "failed_count": failure.get("failed_count"),
+            "omitted_existing_count": failure.get("omitted_existing_count"),
+            "canon_modified": failure.get("canon_modified"),
             "failure": failure.get("failure"),
             "rollback_report": failure.get("rollback_report"),
             "restored_exactly": failure_restored,
@@ -2380,6 +2549,7 @@ def guarded_apply_relations(
     inject_failure_after_shards: int | None = None,
     authorization_path: Path | None = None,
     authorized_plan_path: Path | None = None,
+    prevalidated_plan_path: Path | None = None,
 ) -> tuple[int, dict[str, Any]]:
     """Apply an exact authorized plan, or exercise the same engine on a temp fixture."""
     candidates = load_jsonl(candidates_file) if candidates_file.exists() else []
@@ -2416,11 +2586,98 @@ def guarded_apply_relations(
     plan = observed_plan
     exact_authorized_plan_reused = False
     authorization_required = target_scope == "production_path"
-    if authorization_required and (authorization_path is None or authorized_plan_path is None):
-        observed_plan["block_reasons"].append("missing_gate_g_authorization_or_authorized_plan")
+
+    if prevalidated_plan_path is not None:
+        if target_scope != "current_relational_bundle":
+            observed_plan["block_reasons"].append(
+                "prevalidated_plan_scope_invalid"
+            )
+        elif authorization_path is not None or authorized_plan_path is not None:
+            observed_plan["block_reasons"].append(
+                "prevalidated_plan_authorization_conflict"
+            )
+        else:
+            sealed_plan = load_json(prevalidated_plan_path, default={}) or {}
+            if sealed_plan.get("schema") != SCHEMA_APPLY_PLAN:
+                observed_plan["block_reasons"].append(
+                    "invalid_prevalidated_plan_schema"
+                )
+
+            comparable_fields = (
+                "candidate_count",
+                "approved_count",
+                "blocked_count",
+                "omitted_planned_count",
+                "omitted_planned_candidate_ids",
+                "would_apply_count",
+                "would_apply_candidate_ids",
+                "canon_before_count",
+                "canon_before_hash",
+            )
+            sealed_bindings = sealed_plan.get("exact_bindings") or {}
+            observed_bindings = observed_plan.get("exact_bindings") or {}
+
+            expected_semantic_id = semantic_apply_plan_id(observed_plan)
+            if (
+                sealed_plan.get("apply_plan_id") != expected_semantic_id
+                or sealed_plan.get("apply_plan_id")
+                != semantic_apply_plan_id(sealed_plan)
+            ):
+                observed_plan["block_reasons"].append(
+                    "prevalidated_plan_id_mismatch"
+                )
+
+            for field in comparable_fields:
+                if sealed_plan.get(field) != observed_plan.get(field):
+                    observed_plan["block_reasons"].append(
+                        f"prevalidated_plan_observed_mismatch:{field}"
+                    )
+
+            sealed_binding_hashes = {
+                name: (binding or {}).get("sha256")
+                for name, binding in sorted(sealed_bindings.items())
+            }
+            observed_binding_hashes = {
+                name: (binding or {}).get("sha256")
+                for name, binding in sorted(observed_bindings.items())
+            }
+            if sealed_binding_hashes != observed_binding_hashes:
+                observed_plan["block_reasons"].append(
+                    "prevalidated_plan_exact_bindings_mismatch"
+                )
+
+            for name, binding in sorted(sealed_bindings.items()):
+                raw_path = str((binding or {}).get("path") or "")
+                bound_path = Path(raw_path)
+                if not bound_path.is_absolute():
+                    bound_path = prevalidated_plan_path.parent / bound_path
+                if (
+                    not bound_path.is_file()
+                    or sha256_path(bound_path) != (binding or {}).get("sha256")
+                ):
+                    observed_plan["block_reasons"].append(
+                        f"prevalidated_plan_binding_mismatch:{name}"
+                    )
+            if sealed_plan.get("block_reasons"):
+                observed_plan["block_reasons"].append(
+                    "prevalidated_plan_contains_block_reasons"
+                )
+
+            if not observed_plan["block_reasons"]:
+                plan = sealed_plan
+                exact_authorized_plan_reused = True
+
+    elif authorization_required and (
+        authorization_path is None or authorized_plan_path is None
+    ):
+        observed_plan["block_reasons"].append(
+            "missing_gate_g_authorization_or_authorized_plan"
+        )
     elif authorization_path is not None or authorized_plan_path is not None:
         if authorization_path is None or authorized_plan_path is None:
-            observed_plan["block_reasons"].append("incomplete_authorization_binding")
+            observed_plan["block_reasons"].append(
+                "incomplete_authorization_binding"
+            )
         else:
             authorization, authorized_plan, authorization_errors = _validate_authorized_plan(
                 authorization_path=authorization_path,
@@ -2437,6 +2694,8 @@ def guarded_apply_relations(
     plan_path = out_dir / "relation_apply_plan.json"
     if exact_authorized_plan_reused and authorized_plan_path is not None:
         _atomic_write_bytes(plan_path, authorized_plan_path.read_bytes())
+    elif exact_authorized_plan_reused and prevalidated_plan_path is not None:
+        _atomic_write_bytes(plan_path, prevalidated_plan_path.read_bytes())
     else:
         plan_path = write_apply_plan(observed_plan, out_dir)
 
