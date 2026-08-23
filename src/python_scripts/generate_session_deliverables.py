@@ -383,7 +383,11 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     print(f"  1. Fill in the 'text' field of each file with the session content.")
     print(f"  2. Run: python3 src/python_scripts/generate_session_deliverables.py --validate \\")
     print(f"          data/out/local/sessions/00_contratos/{session_id}-contrato-{topic_slug}.md.json")
-    print(f"  3. Run: python3 src/python_scripts/session_sync.py scan")
+    print("  3. Run session_sync with an explicit scope and filter, for example:")
+    print(
+        f"     python3 src/python_scripts/session_sync.py scan --scope missing "
+        f"--filter-type session_id --filter-value {session_id.split('-', 2)[0]}-{session_id.split('-', 2)[1]}"
+    )
     return 0
 
 
