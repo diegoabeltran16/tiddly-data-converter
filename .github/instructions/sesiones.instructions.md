@@ -311,4 +311,3 @@ La ejecución operativa es correcta cuando:
 - no confunde staging con canon;
 - no avanza sin veredicto;
 - permite reconstruir el trabajo sin depender de memoria conversacional.
-````

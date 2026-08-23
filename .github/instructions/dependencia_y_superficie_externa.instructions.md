@@ -928,4 +928,3 @@ La superficie externa está gobernada cuando:
 - código legacy y experimental no compiten silenciosamente;
 - actualizaciones y retiros tienen validación y rollback;
 - remoto permanece como dependencia o proyección, no como autoridad automática.
-````

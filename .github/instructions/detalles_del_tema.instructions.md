@@ -736,4 +736,3 @@ El desarrollo temático es suficiente cuando:
 - lo tentativo se distingue de lo vigente;
 - puede reconstruirse el tema sin depender de una sesión aislada;
 - el contenido puede evolucionar sin perder coherencia ni procedencia.
-````

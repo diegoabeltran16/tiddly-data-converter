@@ -678,4 +678,3 @@ El vocabulario es coherente cuando:
 - los consumidores afectados pueden localizarse;
 - el lenguaje reduce ambigüedad entre humano, código y canon;
 - no existen definiciones duplicadas entre dueños normativos.
-````
