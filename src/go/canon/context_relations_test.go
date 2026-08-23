@@ -1,6 +1,9 @@
 package canon
 
 import (
+	"bytes"
+	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -489,5 +492,141 @@ func TestClassifyUnresolvedTarget_Stale(t *testing.T) {
 		if got != UnresolvedStale {
 			t.Errorf("ClassifyUnresolvedTarget(%q) = %q, want %q", tc, got, UnresolvedStale)
 		}
+	}
+}
+
+func TestNodeRelationEvidenceDualReadAndRoundTrip(t *testing.T) {
+	legacyJSON := `{"type":"references","target_id":"target-legacy","evidence":"explicit_field"}`
+	canonicalJSON := s0184CanonicalRelationJSON()
+
+	var legacy NodeRelation
+	if err := json.Unmarshal([]byte(legacyJSON), &legacy); err != nil {
+		t.Fatalf("unmarshal legacy relation: %v", err)
+	}
+	if legacy.Evidence != RelationEvidenceExplicitField || legacy.StructuredEvidence != nil {
+		t.Fatalf("legacy evidence shape was not preserved: %+v", legacy)
+	}
+	assertJSONEquivalent(t, mustMarshalNodeRelation(t, legacy), []byte(legacyJSON))
+
+	var canonical NodeRelation
+	if err := json.Unmarshal([]byte(canonicalJSON), &canonical); err != nil {
+		t.Fatalf("unmarshal canonical-relation/v1: %v", err)
+	}
+	if canonical.Evidence != "" || canonical.StructuredEvidence == nil {
+		t.Fatalf("structured evidence shape was not preserved: %+v", canonical)
+	}
+	if canonical.StructuredEvidence.CandidateID != "candidate-1" {
+		t.Fatalf("candidate_id = %q, want %q", canonical.StructuredEvidence.CandidateID, "candidate-1")
+	}
+	wantPaths := []string{"ready.jsonl", "review.json"}
+	if !reflect.DeepEqual(canonical.StructuredEvidence.ReviewedEvidencePaths, wantPaths) {
+		t.Fatalf("reviewed_evidence_paths = %v, want %v", canonical.StructuredEvidence.ReviewedEvidencePaths, wantPaths)
+	}
+	if canonical.Authority == nil || canonical.Authority.MultiReviewOperationID != nil {
+		t.Fatalf("authority null field was not preserved: %+v", canonical.Authority)
+	}
+	assertJSONEquivalent(t, mustMarshalNodeRelation(t, canonical), []byte(canonicalJSON))
+}
+
+func TestNodeRelationEvidenceRejectsUnauthorizedForms(t *testing.T) {
+	validEvidence := `{"candidate_id":"candidate-1","reviewed_evidence_paths":["ready.jsonl","review.json"]}`
+	canonicalJSON := s0184CanonicalRelationJSON()
+	tests := map[string]string{
+		"absent":               `{"type":"references","target_id":"target-legacy"}`,
+		"null":                 `{"type":"references","target_id":"target-legacy","evidence":null}`,
+		"number":               `{"type":"references","target_id":"target-legacy","evidence":12}`,
+		"list":                 `{"type":"references","target_id":"target-legacy","evidence":[]}`,
+		"boolean":              `{"type":"references","target_id":"target-legacy","evidence":true}`,
+		"candidate-id-only":    strings.Replace(canonicalJSON, validEvidence, `{"candidate_id":"candidate-1"}`, 1),
+		"reviewed-paths-only":  strings.Replace(canonicalJSON, validEvidence, `{"reviewed_evidence_paths":["ready.jsonl"]}`, 1),
+		"empty-candidate-id":   strings.Replace(canonicalJSON, validEvidence, `{"candidate_id":"","reviewed_evidence_paths":[]}`, 1),
+		"null-reviewed-paths":  strings.Replace(canonicalJSON, validEvidence, `{"candidate_id":"candidate-1","reviewed_evidence_paths":null}`, 1),
+		"unknown-evidence-key": strings.Replace(canonicalJSON, validEvidence, `{"candidate_id":"candidate-1","reviewed_evidence_paths":[],"extra":true}`, 1),
+	}
+
+	for name, raw := range tests {
+		t.Run(name, func(t *testing.T) {
+			var relation NodeRelation
+			if err := json.Unmarshal([]byte(raw), &relation); err == nil {
+				t.Fatalf("json.Unmarshal accepted unauthorized evidence form: %s", raw)
+			}
+		})
+	}
+}
+
+func TestNodeRelationEvidenceMixedBatchPassesStrictAndDeduplicates(t *testing.T) {
+	legacy := mustUnmarshalNodeRelation(t, `{"type":"references","target_id":"target-legacy","evidence":"explicit_field"}`)
+	canonical := mustUnmarshalNodeRelation(t, s0184CanonicalRelationJSON())
+	canonicalDuplicate := mustUnmarshalNodeRelation(t, s0184CanonicalRelationJSON())
+
+	deduplicated := dedupeSortRelations([]NodeRelation{canonical, legacy, canonicalDuplicate})
+	if len(deduplicated) != 2 {
+		t.Fatalf("dedupeSortRelations length = %d, want 2", len(deduplicated))
+	}
+
+	entry := CanonEntry{
+		SchemaVersion: SchemaV0,
+		Key:           KeyOf("S0184 mixed relation contract"),
+		Title:         "S0184 mixed relation contract",
+		SectionPath:   []string{},
+		Relations:     []NodeRelation{legacy, canonical},
+	}
+	if err := BuildNodeIdentity(&entry); err != nil {
+		t.Fatalf("BuildNodeIdentity: %v", err)
+	}
+	jsonl, err := MarshalCanonJSONL([]CanonEntry{entry})
+	if err != nil {
+		t.Fatalf("MarshalCanonJSONL: %v", err)
+	}
+	report := ValidateCanonJSONL(bytes.NewReader(jsonl), DefaultCanonPolicy())
+	if !report.OK() {
+		t.Fatalf("strict mixed relation fixture failed: %+v", report.Issues)
+	}
+
+	var roundTripped CanonEntry
+	if err := json.Unmarshal(bytes.TrimSpace(jsonl), &roundTripped); err != nil {
+		t.Fatalf("round-trip unmarshal: %v", err)
+	}
+	if len(roundTripped.Relations) != 2 {
+		t.Fatalf("round-trip relations length = %d, want 2", len(roundTripped.Relations))
+	}
+	assertJSONEquivalent(t, mustMarshalNodeRelation(t, roundTripped.Relations[0]), mustMarshalNodeRelation(t, legacy))
+	assertJSONEquivalent(t, mustMarshalNodeRelation(t, roundTripped.Relations[1]), mustMarshalNodeRelation(t, canonical))
+}
+
+func s0184CanonicalRelationJSON() string {
+	return `{"type":"application/json","artifact_family":"canonical_relation","relation_schema_version":"canonical-relation/v1","relation_id":"cr1_s0184","relation_type":"depende_de","source_id":"source-v1","target_id":"target-v1","evidence":{"candidate_id":"candidate-1","reviewed_evidence_paths":["ready.jsonl","review.json"]},"authority":{"admitted_by":"operator","admission_session":"S0183","human_review_decision":"approved_for_admission","human_review_reason_code":"DIRECT_CODE_DEPENDENCY_CONFIRMED","human_review_note":"verified","decision_batch_id":"batch-1","multi_review_operation_id":null,"review_policy_id":"policy-1"},"lifecycle_state":"admitted_to_canon"}`
+}
+
+func mustUnmarshalNodeRelation(t *testing.T, raw string) NodeRelation {
+	t.Helper()
+	var relation NodeRelation
+	if err := json.Unmarshal([]byte(raw), &relation); err != nil {
+		t.Fatalf("json.Unmarshal NodeRelation: %v", err)
+	}
+	return relation
+}
+
+func mustMarshalNodeRelation(t *testing.T, relation NodeRelation) []byte {
+	t.Helper()
+	data, err := json.Marshal(relation)
+	if err != nil {
+		t.Fatalf("json.Marshal NodeRelation: %v", err)
+	}
+	return data
+}
+
+func assertJSONEquivalent(t *testing.T, got, want []byte) {
+	t.Helper()
+	var gotValue any
+	var wantValue any
+	if err := json.Unmarshal(got, &gotValue); err != nil {
+		t.Fatalf("unmarshal got JSON: %v", err)
+	}
+	if err := json.Unmarshal(want, &wantValue); err != nil {
+		t.Fatalf("unmarshal want JSON: %v", err)
+	}
+	if !reflect.DeepEqual(gotValue, wantValue) {
+		t.Fatalf("JSON mismatch\n got: %s\nwant: %s", got, want)
 	}
 }

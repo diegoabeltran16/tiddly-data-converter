@@ -26,6 +26,10 @@ const (
 	RelationEvidenceStructuralTag   = "structural_tag"
 	RelationEvidenceWikilink        = "wikilink"
 	RelationEvidenceEmbeddedContent = "content_embedded" // S84: capa-2 semantic relations
+
+	CanonicalRelationArtifactFamily = "canonical_relation"
+	CanonicalRelationSchemaV1       = "canonical-relation/v1"
+	CanonicalRelationLifecycleState = "admitted_to_canon"
 )
 
 // embeddedRelationTypes is the set of semantic relation types recognised
@@ -47,11 +51,266 @@ var (
 	wikilinkRe       = regexp.MustCompile(`\[\[([^\]]+)\]\]`)
 )
 
-// NodeRelation is the minimal S37 relation shape emitted in canonical JSONL.
+// CanonicalRelationEvidence is the structured evidence written by the
+// canonical-relation/v1 producer. Both fields are required on read; an empty
+// reviewed_evidence_paths list is valid and remains distinguishable from an
+// absent or null field.
+type CanonicalRelationEvidence struct {
+	CandidateID           string   `json:"candidate_id"`
+	ReviewedEvidencePaths []string `json:"reviewed_evidence_paths"`
+}
+
+// CanonicalRelationAuthority preserves the governed human authority carried
+// by canonical-relation/v1. Optional producer values use pointers so JSON null
+// is preserved as null instead of becoming a synthetic empty string.
+type CanonicalRelationAuthority struct {
+	AdmittedBy             string  `json:"admitted_by"`
+	AdmissionSession       string  `json:"admission_session"`
+	HumanReviewDecision    string  `json:"human_review_decision"`
+	HumanReviewReasonCode  string  `json:"human_review_reason_code"`
+	HumanReviewNote        *string `json:"human_review_note"`
+	DecisionBatchID        *string `json:"decision_batch_id"`
+	MultiReviewOperationID *string `json:"multi_review_operation_id"`
+	ReviewPolicyID         *string `json:"review_policy_id"`
+}
+
+// NodeRelation is the relation union observed in canonical JSONL. Legacy S37
+// relations keep Evidence as a string. canonical-relation/v1 values keep their
+// evidence and authority in explicit typed fields. MarshalJSON and
+// UnmarshalJSON preserve the original JSON shape and reject every uncontracted
+// evidence form.
 type NodeRelation struct {
+	Type     string `json:"-"`
+	TargetID string `json:"-"`
+	Evidence string `json:"-"`
+
+	ArtifactFamily        string                      `json:"-"`
+	RelationSchemaVersion string                      `json:"-"`
+	RelationID            string                      `json:"-"`
+	RelationType          string                      `json:"-"`
+	SourceID              string                      `json:"-"`
+	StructuredEvidence    *CanonicalRelationEvidence  `json:"-"`
+	Authority             *CanonicalRelationAuthority `json:"-"`
+	LifecycleState        string                      `json:"-"`
+}
+
+type legacyNodeRelationJSON struct {
 	Type     string `json:"type"`
 	TargetID string `json:"target_id"`
 	Evidence string `json:"evidence"`
+}
+
+type canonicalNodeRelationV1JSON struct {
+	Type                  string                     `json:"type"`
+	ArtifactFamily        string                     `json:"artifact_family"`
+	RelationSchemaVersion string                     `json:"relation_schema_version"`
+	RelationID            string                     `json:"relation_id"`
+	RelationType          string                     `json:"relation_type"`
+	SourceID              string                     `json:"source_id"`
+	TargetID              string                     `json:"target_id"`
+	Evidence              CanonicalRelationEvidence  `json:"evidence"`
+	Authority             CanonicalRelationAuthority `json:"authority"`
+	LifecycleState        string                     `json:"lifecycle_state"`
+}
+
+var (
+	legacyNodeRelationKeys = map[string]bool{
+		"type": true, "target_id": true, "evidence": true,
+	}
+	canonicalNodeRelationV1Keys = map[string]bool{
+		"type": true, "artifact_family": true, "relation_schema_version": true,
+		"relation_id": true, "relation_type": true, "source_id": true,
+		"target_id": true, "evidence": true, "authority": true,
+		"lifecycle_state": true,
+	}
+	canonicalRelationEvidenceKeys = map[string]bool{
+		"candidate_id": true, "reviewed_evidence_paths": true,
+	}
+	canonicalRelationAuthorityKeys = map[string]bool{
+		"admitted_by": true, "admission_session": true,
+		"human_review_decision": true, "human_review_reason_code": true,
+		"human_review_note": true, "decision_batch_id": true,
+		"multi_review_operation_id": true, "review_policy_id": true,
+	}
+)
+
+// MarshalJSON emits exactly the relation shape represented in memory. It does
+// not normalize legacy strings into objects or stringify structured evidence.
+func (r NodeRelation) MarshalJSON() ([]byte, error) {
+	if r.StructuredEvidence == nil {
+		if r.hasCanonicalRelationFields() {
+			return nil, fmt.Errorf("relations.evidence: canonical-relation/v1 requires an evidence object")
+		}
+		return json.Marshal(legacyNodeRelationJSON{
+			Type: r.Type, TargetID: r.TargetID, Evidence: r.Evidence,
+		})
+	}
+	if r.Evidence != "" {
+		return nil, fmt.Errorf("relations.evidence: relation cannot contain both string and object evidence")
+	}
+	if err := validateCanonicalNodeRelationV1(r); err != nil {
+		return nil, err
+	}
+	return json.Marshal(canonicalNodeRelationV1JSON{
+		Type:                  r.Type,
+		ArtifactFamily:        r.ArtifactFamily,
+		RelationSchemaVersion: r.RelationSchemaVersion,
+		RelationID:            r.RelationID,
+		RelationType:          r.RelationType,
+		SourceID:              r.SourceID,
+		TargetID:              r.TargetID,
+		Evidence:              *r.StructuredEvidence,
+		Authority:             *r.Authority,
+		LifecycleState:        r.LifecycleState,
+	})
+}
+
+// UnmarshalJSON accepts only the two shapes observed and authorized by S0184:
+// the three-field legacy relation with string evidence, and the complete
+// canonical-relation/v1 object with structured evidence.
+func (r *NodeRelation) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return fmt.Errorf("relation must be a JSON object: %w", err)
+	}
+	if fields == nil {
+		return fmt.Errorf("relation must be a JSON object")
+	}
+	evidenceRaw, ok := fields["evidence"]
+	if !ok {
+		return fmt.Errorf("relations.evidence: required field is missing")
+	}
+	trimmedEvidence := strings.TrimSpace(string(evidenceRaw))
+	if trimmedEvidence == "" {
+		return fmt.Errorf("relations.evidence: empty JSON value")
+	}
+
+	*r = NodeRelation{}
+	switch trimmedEvidence[0] {
+	case '"':
+		if err := requireExactJSONKeys(fields, legacyNodeRelationKeys, "legacy relation"); err != nil {
+			return err
+		}
+		var legacy legacyNodeRelationJSON
+		if err := json.Unmarshal(data, &legacy); err != nil {
+			return fmt.Errorf("relations.evidence: legacy string relation: %w", err)
+		}
+		r.Type = legacy.Type
+		r.TargetID = legacy.TargetID
+		r.Evidence = legacy.Evidence
+		return nil
+	case '{':
+		if err := requireExactJSONKeys(fields, canonicalNodeRelationV1Keys, "canonical-relation/v1"); err != nil {
+			return err
+		}
+		if err := requireNestedExactJSONKeys(evidenceRaw, canonicalRelationEvidenceKeys, "relations.evidence"); err != nil {
+			return err
+		}
+		if err := requireNestedExactJSONKeys(fields["authority"], canonicalRelationAuthorityKeys, "relations.authority"); err != nil {
+			return err
+		}
+		var canonical canonicalNodeRelationV1JSON
+		if err := json.Unmarshal(data, &canonical); err != nil {
+			return fmt.Errorf("canonical-relation/v1: %w", err)
+		}
+		r.Type = canonical.Type
+		r.ArtifactFamily = canonical.ArtifactFamily
+		r.RelationSchemaVersion = canonical.RelationSchemaVersion
+		r.RelationID = canonical.RelationID
+		r.RelationType = canonical.RelationType
+		r.SourceID = canonical.SourceID
+		r.TargetID = canonical.TargetID
+		r.StructuredEvidence = &canonical.Evidence
+		r.Authority = &canonical.Authority
+		r.LifecycleState = canonical.LifecycleState
+		return validateCanonicalNodeRelationV1(*r)
+	default:
+		return fmt.Errorf("relations.evidence: expected string or canonical-relation/v1 object, got %s", jsonValueKind(evidenceRaw))
+	}
+}
+
+func (r NodeRelation) hasCanonicalRelationFields() bool {
+	return r.ArtifactFamily != "" || r.RelationSchemaVersion != "" || r.RelationID != "" ||
+		r.RelationType != "" || r.SourceID != "" || r.Authority != nil || r.LifecycleState != ""
+}
+
+func validateCanonicalNodeRelationV1(r NodeRelation) error {
+	switch {
+	case r.Type != "application/json":
+		return fmt.Errorf("canonical-relation/v1: type must be application/json")
+	case r.ArtifactFamily != CanonicalRelationArtifactFamily:
+		return fmt.Errorf("canonical-relation/v1: artifact_family must be %s", CanonicalRelationArtifactFamily)
+	case r.RelationSchemaVersion != CanonicalRelationSchemaV1:
+		return fmt.Errorf("canonical-relation/v1: relation_schema_version must be %s", CanonicalRelationSchemaV1)
+	case strings.TrimSpace(r.RelationID) == "":
+		return fmt.Errorf("canonical-relation/v1: relation_id is required")
+	case strings.TrimSpace(r.RelationType) == "":
+		return fmt.Errorf("canonical-relation/v1: relation_type is required")
+	case strings.TrimSpace(r.SourceID) == "":
+		return fmt.Errorf("canonical-relation/v1: source_id is required")
+	case strings.TrimSpace(r.TargetID) == "":
+		return fmt.Errorf("canonical-relation/v1: target_id is required")
+	case r.StructuredEvidence == nil:
+		return fmt.Errorf("relations.evidence: object is required")
+	case strings.TrimSpace(r.StructuredEvidence.CandidateID) == "":
+		return fmt.Errorf("relations.evidence.candidate_id: non-empty string is required")
+	case r.StructuredEvidence.ReviewedEvidencePaths == nil:
+		return fmt.Errorf("relations.evidence.reviewed_evidence_paths: array is required")
+	case r.Authority == nil:
+		return fmt.Errorf("canonical-relation/v1: authority object is required")
+	case strings.TrimSpace(r.Authority.HumanReviewDecision) == "":
+		return fmt.Errorf("canonical-relation/v1: authority.human_review_decision is required")
+	case strings.TrimSpace(r.Authority.HumanReviewReasonCode) == "":
+		return fmt.Errorf("canonical-relation/v1: authority.human_review_reason_code is required")
+	case r.LifecycleState != CanonicalRelationLifecycleState:
+		return fmt.Errorf("canonical-relation/v1: lifecycle_state must be %s", CanonicalRelationLifecycleState)
+	default:
+		return nil
+	}
+}
+
+func requireNestedExactJSONKeys(data json.RawMessage, expected map[string]bool, label string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return fmt.Errorf("%s: expected object: %w", label, err)
+	}
+	if fields == nil {
+		return fmt.Errorf("%s: expected object", label)
+	}
+	return requireExactJSONKeys(fields, expected, label)
+}
+
+func requireExactJSONKeys(fields map[string]json.RawMessage, expected map[string]bool, label string) error {
+	for key := range fields {
+		if !expected[key] {
+			return fmt.Errorf("%s: unsupported field %q", label, key)
+		}
+	}
+	for key := range expected {
+		if _, ok := fields[key]; !ok {
+			return fmt.Errorf("%s: required field %q is missing", label, key)
+		}
+	}
+	return nil
+}
+
+func jsonValueKind(data json.RawMessage) string {
+	trimmed := strings.TrimSpace(string(data))
+	if trimmed == "" {
+		return "empty"
+	}
+	switch trimmed[0] {
+	case 'n':
+		return "null"
+	case '[':
+		return "array"
+	case 't', 'f':
+		return "boolean"
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
+		return "number"
+	default:
+		return "unsupported JSON value"
+	}
 }
 
 // ContextRelations is the computed S37 context + relations bundle for one node.
@@ -634,7 +893,7 @@ const (
 )
 
 var (
-	uuidBareRe   = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	uuidBareRe    = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 	headingPrefRe = regexp.MustCompile(`^#{1,6} `)
 )
 
@@ -696,17 +955,29 @@ func dedupeSortRelations(relations []NodeRelation) []NodeRelation {
 		if relations[i].TargetID != relations[j].TargetID {
 			return relations[i].TargetID < relations[j].TargetID
 		}
-		return relations[i].Evidence < relations[j].Evidence
+		if relations[i].Evidence != relations[j].Evidence {
+			return relations[i].Evidence < relations[j].Evidence
+		}
+		return nodeRelationJSONKey(relations[i]) < nodeRelationJSONKey(relations[j])
 	})
 
 	out := make([]NodeRelation, 0, len(relations))
-	var prev NodeRelation
+	prevKey := ""
 	for i, rel := range relations {
-		if i > 0 && rel == prev {
+		key := nodeRelationJSONKey(rel)
+		if i > 0 && key == prevKey {
 			continue
 		}
 		out = append(out, rel)
-		prev = rel
+		prevKey = key
 	}
 	return out
+}
+
+func nodeRelationJSONKey(relation NodeRelation) string {
+	data, err := json.Marshal(relation)
+	if err != nil {
+		return fmt.Sprintf("invalid:%#v", relation)
+	}
+	return string(data)
 }
