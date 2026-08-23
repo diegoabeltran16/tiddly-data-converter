@@ -226,7 +226,12 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
         self.assertFalse(dry_summary["canon_modified"])
         self.assertEqual(fixture_hash_before, canon_hash(canon_dir))
 
-        apply_result = self.run_admission("apply", candidate_file, canon_dir, ["--skip-tests", "--confirm-apply"])
+        apply_result = self.run_admission(
+            "apply",
+            candidate_file,
+            canon_dir,
+            ["--skip-tests", "--dry-run-report", str(REPO_ROOT / dry_summary["report"]), "--confirm-apply"],
+        )
         self.assertEqual(apply_result.returncode, 0, apply_result.stderr)
         apply_summary = stdout_payload(apply_result)
         self.assertTrue(apply_summary["canon_modified"])
@@ -260,13 +265,70 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
         candidate_file = self.write_candidate("valid-no-confirm", self.base_candidate)
         fixture_hash_before = canon_hash(canon_dir)
 
-        result = self.run_admission("apply", candidate_file, canon_dir)
+        dry_result = self.run_admission("dry-run", candidate_file, canon_dir, ["--skip-tests"])
+        dry_summary = stdout_payload(dry_result)
+        result = self.run_admission(
+            "apply", candidate_file, canon_dir, ["--dry-run-report", str(REPO_ROOT / dry_summary["report"])]
+        )
         self.assertEqual(result.returncode, 2)
         summary = stdout_payload(result)
         report = report_payload(summary)
         self.assertFalse(summary["canon_modified"])
         self.assertEqual([], report["commands_run"])
         self.assertEqual("reject_apply_without_confirmation", report["rejected_candidates"][0]["classification"])
+        self.assertEqual(fixture_hash_before, canon_hash(canon_dir))
+
+    def test_same_id_replacement_rescan_and_exact_rollback(self) -> None:
+        canon_dir = self.tmp_dir / "canon-replacement-cycle"
+        copy_canon_fixture(canon_dir)
+        append_to_last_shard(canon_dir, admitted_projection(self.base_candidate, self.tmp_dir))
+        fixture_hash_before = canon_hash(canon_dir)
+        candidate_file = self.write_candidate("same-id-replacement", self.make_content_drift())
+        binding_args = ["--skip-tests", "--scope", "replacement", "--allow-replacements"]
+
+        dry_result = self.run_admission("dry-run", candidate_file, canon_dir, binding_args)
+        self.assertEqual(dry_result.returncode, 0, dry_result.stderr)
+        dry_summary = stdout_payload(dry_result)
+        self.assertEqual(dry_summary["replacement_count"], 1)
+
+        apply_result = self.run_admission(
+            "apply",
+            candidate_file,
+            canon_dir,
+            [
+                *binding_args,
+                "--dry-run-report",
+                str(REPO_ROOT / dry_summary["report"]),
+                "--confirm-apply",
+            ],
+        )
+        self.assertEqual(apply_result.returncode, 0, apply_result.stderr)
+        apply_summary = stdout_payload(apply_result)
+        self.assertEqual(apply_summary["replacement_count"], 1)
+        self.assertNotEqual(fixture_hash_before, canon_hash(canon_dir))
+
+        rescan_result = self.run_admission("dry-run", candidate_file, canon_dir, binding_args)
+        self.assertEqual(rescan_result.returncode, 0, rescan_result.stderr)
+        rescan_summary = stdout_payload(rescan_result)
+        self.assertEqual(rescan_summary["eligible_count"], 0)
+        self.assertEqual(rescan_summary["replacement_count"], 0)
+
+        rollback_result = run_command(
+            [
+                sys.executable,
+                str(ADMIT_SCRIPT),
+                "rollback",
+                "--admission-report",
+                str(REPO_ROOT / apply_summary["report"]),
+                "--canon-dir",
+                str(canon_dir),
+                "--report-dir",
+                str(REPORT_DIR),
+                "--tmp-dir",
+                str(WORK_DIR),
+            ]
+        )
+        self.assertEqual(rollback_result.returncode, 0, rollback_result.stderr)
         self.assertEqual(fixture_hash_before, canon_hash(canon_dir))
 
     def test_duplicate_identical_is_skipped_without_append(self) -> None:
@@ -303,13 +365,13 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
         )
 
         cases = [
-            ("same-id-different-content", same_id_drift, "conflict_same_id_different_content", "apply"),
-            ("same-source-path-different-id", source_conflict, "conflict_same_source_path_different_id", "apply"),
+            ("same-id-different-content", same_id_drift, "conflict_same_id_different_content", "dry-run"),
+            ("same-source-path-different-id", source_conflict, "source_path_identity_drift", "dry-run"),
             (
                 "same-session-family-already-admitted",
                 session_family_conflict,
                 "conflict_same_session_family_already_admitted",
-                "apply",
+                "dry-run",
             ),
             ("missing-source-path", missing_source, "reject_missing_source_artifact", "validate"),
         ]
@@ -318,11 +380,11 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
             with self.subTest(name=name):
                 canon_dir = self.tmp_dir / f"canon-{name}"
                 copy_canon_fixture(canon_dir)
-                if mode == "apply":
+                if mode == "dry-run":
                     append_to_last_shard(canon_dir, admitted_projection(self.base_candidate, self.tmp_dir))
                 fixture_hash_before = canon_hash(canon_dir)
                 candidate_file = self.write_candidate(name, candidate)
-                extra = ["--skip-tests", "--confirm-apply"] if mode == "apply" else None
+                extra = ["--skip-tests"] if mode == "dry-run" else None
 
                 result = self.run_admission(mode, candidate_file, canon_dir, extra)
                 self.assertEqual(result.returncode, 2)

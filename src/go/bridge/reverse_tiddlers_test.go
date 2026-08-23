@@ -569,6 +569,78 @@ func TestReverseInsertOnlyHTML_RoundTripPreservesSourceFieldsAuthority(t *testin
 	}
 }
 
+func TestReverseInsertOnlyHTML_AcceptsMixedRelationEvidenceWithoutMutatingCanonInput(t *testing.T) {
+	baseHTML := mustReadReverseFixture(t, "s42", "base.html")
+	entry := buildFullCanonicalReverseEntry(t, fullCanonicalReverseSpec{
+		Title:      "S0184 mixed relation evidence",
+		Text:       "Dual-read reverse fixture.",
+		Created:    "20260801230000000",
+		Modified:   "20260801230000000",
+		SourceType: "text/markdown",
+		SourceTags: []string{"session:m04-s0184"},
+	})
+	entry.Relations = []canon.NodeRelation{
+		{
+			Type:     canon.RelationTypeReferences,
+			TargetID: "target-legacy",
+			Evidence: canon.RelationEvidenceExplicitField,
+		},
+		{
+			Type:                  "application/json",
+			ArtifactFamily:        canon.CanonicalRelationArtifactFamily,
+			RelationSchemaVersion: canon.CanonicalRelationSchemaV1,
+			RelationID:            "cr1_s0184_reverse",
+			RelationType:          "depende_de",
+			SourceID:              "source-v1",
+			TargetID:              "target-v1",
+			StructuredEvidence: &canon.CanonicalRelationEvidence{
+				CandidateID:           "candidate-1",
+				ReviewedEvidencePaths: []string{"ready.jsonl", "review.json"},
+			},
+			Authority: &canon.CanonicalRelationAuthority{
+				AdmittedBy:             "operator",
+				AdmissionSession:       "S0183",
+				HumanReviewDecision:    "approved_for_admission",
+				HumanReviewReasonCode:  "DIRECT_CODE_DEPENDENCY_CONFIRMED",
+				HumanReviewNote:        stringPtr("verified"),
+				DecisionBatchID:        stringPtr("batch-1"),
+				MultiReviewOperationID: nil,
+				ReviewPolicyID:         stringPtr("policy-1"),
+			},
+			LifecycleState: canon.CanonicalRelationLifecycleState,
+		},
+	}
+
+	canonJSONL, err := canon.MarshalCanonJSONL([]canon.CanonEntry{entry})
+	if err != nil {
+		t.Fatalf("MarshalCanonJSONL: %v", err)
+	}
+	before := append([]byte(nil), canonJSONL...)
+	if !bytes.Contains(canonJSONL, []byte(`"evidence":"explicit_field"`)) {
+		t.Fatal("mixed fixture is missing legacy string evidence")
+	}
+	if !bytes.Contains(canonJSONL, []byte(`"evidence":{"candidate_id":"candidate-1"`)) {
+		t.Fatal("mixed fixture is missing structured object evidence")
+	}
+
+	result, err := ReverseInsertOnlyHTML(baseHTML, canonJSONL)
+	if err != nil {
+		t.Fatalf("ReverseInsertOnlyHTML: %v", err)
+	}
+	if result.Report.RejectedCount != 0 {
+		t.Fatalf("RejectedCount = %d, want 0", result.Report.RejectedCount)
+	}
+	if !bytes.Equal(canonJSONL, before) {
+		t.Fatal("reverse mutated the canonical JSONL input")
+	}
+	if !strings.Contains(string(result.HTML), `"title":"S0184 mixed relation evidence"`) {
+		t.Fatal("reverse output is missing the mixed-relation tiddler")
+	}
+	if strings.Contains(string(result.HTML), `"relations"`) {
+		t.Fatal("reverse projected derived relations into authoritative TiddlyWiki fields")
+	}
+}
+
 func exportRoundTripEntries(t *testing.T, html []byte) []canon.CanonEntry {
 	t.Helper()
 

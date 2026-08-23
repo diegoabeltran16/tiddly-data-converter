@@ -10,6 +10,7 @@ and same-source replacements.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -26,6 +27,7 @@ from admit_session_candidates import (  # noqa: E402
     CANON_STATUS_CANDIDATE,
     DEFAULT_SESSIONS_DIR,
     _canonical_json,
+    _canon_hash,
     _load_canon_index,
     _project_candidate_record_as_admitted,
     _run_normalize,
@@ -61,6 +63,23 @@ class SessionArtifactCandidate:
     session_id: str
     artifact_family: str
     record: dict[str, Any]
+    contract_session_id: str
+    contract_module: str
+    contract_session: str
+
+
+SESSION_DELIVERABLE_FAMILIES = {
+    "contrato_de_sesion",
+    "procedencia_de_sesion",
+    "detalles_de_sesion",
+    "hipotesis_de_sesion",
+    "balance_de_sesion",
+    "propuesta_de_sesion",
+    "diagnostico_de_sesion",
+}
+
+SYNC_SCOPES = ("missing", "replacement", "combined", "identity-drift")
+SYNC_FILTER_TYPES = ("all", "session_id", "module", "family")
 
 
 def _iso_now() -> str:
@@ -76,6 +95,10 @@ def _write_json(path: Path, payload: Any) -> None:
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+
+
+def _sha256_file(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _write_persistent_summary(inventory: dict[str, Any], evidence_dir: Path) -> Path:
@@ -106,7 +129,13 @@ def _write_persistent_summary(inventory: dict[str, Any], evidence_dir: Path) -> 
             "blocked_same_id_different_content": len(inventory["blocked_same_id_different_content"]),
             "invalid": len(inventory["invalid"]),
             "unsupported": len(inventory["unsupported"]),
+            "source_path_identity_drift": len(inventory["source_path_identity_drift"]),
+            "excluded_non_session": len(inventory["excluded_non_session"]),
+            "selected_candidates": inventory["candidate_count"],
         },
+        "selection": inventory["selection"],
+        "source_canon_hash": inventory["source_canon_hash"],
+        "candidate_sha256": inventory["candidate_sha256"],
         "generated_candidate_files": generated_files,
         "policy": {
             "data_tmp_role": "temporary_cleanable_workspace",
@@ -240,6 +269,9 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
         session_id=session_id,
         artifact_family=artifact_family,
         record=record,
+        contract_session_id=_safe_str(payload.get("session_id")),
+        contract_module=_safe_str(payload.get("module")),
+        contract_session=_safe_str(payload.get("session")),
     )
 
 
@@ -284,6 +316,9 @@ def _normalize_candidates(
                 session_id=candidate.session_id,
                 artifact_family=candidate.artifact_family,
                 record=record,
+                contract_session_id=candidate.contract_session_id,
+                contract_module=candidate.contract_module,
+                contract_session=candidate.contract_session,
             )
         )
     return normalized_candidates, invalid
@@ -297,8 +332,60 @@ def _summary_record(candidate: SessionArtifactCandidate) -> dict[str, Any]:
         "title": _safe_str(record.get("title")),
         "session_origin": candidate.session_id,
         "artifact_family": candidate.artifact_family,
+        "session_id": candidate.contract_session_id,
+        "module": candidate.contract_module,
+        "session": candidate.contract_session,
         "source_path": _safe_str(source_fields.get("source_path")) or as_display_path(candidate.source_path),
+        "canonical_slug": _safe_str(record.get("canonical_slug")),
     }
+
+
+def _record_hash(record: dict[str, Any]) -> str:
+    return "sha256:" + hashlib.sha256(_canonical_json(record).encode("utf-8")).hexdigest()
+
+
+def _replacement_diff(candidate: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    candidate_fields = set(candidate)
+    current_fields = set(current)
+    changed_fields = sorted(
+        field for field in candidate_fields | current_fields if candidate.get(field) != current.get(field)
+    )
+    candidate_source = candidate.get("source_fields") or {}
+    current_source = current.get("source_fields") or {}
+    identity_fields = {"id", "key", "title", "canonical_slug"}
+    volatile_fields = {"modified"}
+    return {
+        "id": _safe_str(candidate.get("id")),
+        "source_path": _safe_str(candidate_source.get("source_path")),
+        "canonical_slug": _safe_str(candidate.get("canonical_slug")),
+        "changed_fields": changed_fields,
+        "text_changed": candidate.get("text") != current.get("text"),
+        "metadata_changed": bool(set(changed_fields) - {"text", "content"}),
+        "identity_changed": bool(set(changed_fields) & identity_fields),
+        "volatile_only": bool(changed_fields) and set(changed_fields) <= volatile_fields,
+        "current_record_hash": _record_hash(current),
+        "candidate_record_hash": _record_hash(candidate),
+    }
+
+
+def _matches_filter(candidate: SessionArtifactCandidate, filter_type: str, filter_value: str | None) -> bool:
+    if filter_type == "all":
+        return True
+    if not filter_value:
+        return False
+    if filter_type == "session_id":
+        return candidate.contract_session_id == filter_value
+    if filter_type == "module":
+        return candidate.contract_module == filter_value
+    if filter_type == "family":
+        return candidate.artifact_family == filter_value
+    raise ValueError(f"unsupported session sync filter: {filter_type}")
+
+
+def _candidate_filename(scope: str, filter_type: str, filter_value: str | None) -> str:
+    raw_filter = "all" if filter_type == "all" else f"{filter_type}-{filter_value or 'empty'}"
+    safe_filter = re.sub(r"[^a-zA-Z0-9_.-]+", "-", raw_filter).strip("-")
+    return f"{scope}-{safe_filter}.canon-candidates.jsonl"
 
 
 def scan_session_sync(
@@ -307,12 +394,21 @@ def scan_session_sync(
     out_dir: Path = DEFAULT_SESSION_SYNC_DIR,
     run_id: str | None = None,
     evidence_dir: Path | None = None,
+    scope: str = "combined",
+    filter_type: str = "all",
+    filter_value: str | None = None,
 ) -> dict[str, Any]:
     sessions_dir = sessions_dir.resolve()
     canon_dir = canon_dir.resolve()
     run_id = run_id or f"sync-{_stamp_now()}"
     run_dir = out_dir.resolve() / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+    if scope not in SYNC_SCOPES:
+        raise ValueError(f"unsupported sync scope: {scope}")
+    if filter_type not in SYNC_FILTER_TYPES:
+        raise ValueError(f"unsupported sync filter type: {filter_type}")
+    if filter_type != "all" and not filter_value:
+        raise ValueError(f"filter {filter_type} requires a value")
 
     md_paths = sorted(sessions_dir.rglob("*.md.json"))
     candidate_paths = sorted(sessions_dir.rglob("*.canon-candidates.jsonl"))
@@ -389,11 +485,12 @@ def scan_session_sync(
     missing_by_id: list[dict[str, Any]] = []
     replaceable_same_id_different_content: list[dict[str, Any]] = []
     blocked_same_id_different_content: list[dict[str, Any]] = []
+    source_path_identity_drift: list[dict[str, Any]] = []
+    excluded_non_session: list[dict[str, Any]] = []
 
     seen_ids: dict[str, str] = {}
     missing_records: list[dict[str, Any]] = []
     replacement_records: list[dict[str, Any]] = []
-    sync_records: list[dict[str, Any]] = []
 
     for candidate in normalized:
         rec_id = _safe_str(candidate.record.get("id"))
@@ -403,18 +500,36 @@ def scan_session_sync(
             blocked_same_id_different_content.append(
                 {
                     **summary,
-                    "classification": "blocked_duplicate_session_id",
+                    "classification": "blocking_conflict",
                     "message": f"id also derived from {previous_source}",
                 }
             )
             continue
         seen_ids[rec_id] = summary["source_path"]
 
+        if candidate.artifact_family not in SESSION_DELIVERABLE_FAMILIES:
+            excluded_non_session.append(
+                {**summary, "classification": "excluded_non_session", "message": "artifact family is outside the seven session deliverables"}
+            )
+            continue
+
         existing = canon_index.by_id.get(rec_id)
         if existing is None:
+            source_match = canon_index.by_source_path.get(summary["source_path"])
+            if source_match is not None:
+                source_path_identity_drift.append(
+                    {
+                        **summary,
+                        "classification": "source_path_identity_drift",
+                        "canonical_id": _safe_str(source_match.record.get("id")),
+                        "canonical_slug_current": _safe_str(source_match.record.get("canonical_slug")),
+                        "message": "source_path exists in canon under a different id; separate human identity review required",
+                    }
+                )
+                continue
             missing_by_id.append({**summary, "classification": "missing_by_id"})
-            missing_records.append(candidate.record)
-            sync_records.append(candidate.record)
+            if _matches_filter(candidate, filter_type, filter_value):
+                missing_records.append(candidate.record)
             continue
 
         projected = _project_candidate_record_as_admitted(candidate.record)
@@ -422,7 +537,7 @@ def scan_session_sync(
             existing_by_id.append(
                 {
                     **summary,
-                    "classification": "existing_by_id",
+                    "classification": "equal_by_id",
                     "shard": existing.shard,
                     "line_no": existing.line_no,
                 }
@@ -435,45 +550,30 @@ def scan_session_sync(
                 "shard": existing.shard,
                 "line_no": existing.line_no,
             }
-            if existing_source_path == summary["source_path"]:
-                replaceable_same_id_different_content.append(
-                    {
-                        **item,
-                        "classification": "replaceable_same_id_different_content",
-                        "message": (
-                            "id exists in canon with different content and the same source_path; "
-                            "eligible for controlled replacement"
-                        ),
-                    }
-                )
+            replaceable_same_id_different_content.append(
+                {
+                    **item,
+                    "classification": "replacement_by_same_id",
+                    "existing_source_path": existing_source_path,
+                    "source_path_changed": existing_source_path != summary["source_path"],
+                    "source_path_migrated": _is_migration_equivalent_path(
+                        existing_source_path, summary["source_path"]
+                    ),
+                    "message": "id exists in canon with different content; eligible for controlled same-id replacement",
+                    "replacement_diff": _replacement_diff(candidate.record, existing.record),
+                }
+            )
+            if _matches_filter(candidate, filter_type, filter_value):
                 replacement_records.append(candidate.record)
-                sync_records.append(candidate.record)
-            elif _is_migration_equivalent_path(existing_source_path, summary["source_path"]):
-                replaceable_same_id_different_content.append(
-                    {
-                        **item,
-                        "classification": "replaceable_migrated_source_path",
-                        "existing_source_path": existing_source_path,
-                        "message": (
-                            "id exists in canon with different content; source_path migrated to "
-                            "data/out/local/sessions/ — eligible for controlled replacement"
-                        ),
-                    }
-                )
-                replacement_records.append(candidate.record)
-                sync_records.append(candidate.record)
-            else:
-                blocked_same_id_different_content.append(
-                    {
-                        **item,
-                        "classification": "blocked_same_id_different_content",
-                        "existing_source_path": existing_source_path,
-                        "message": (
-                            "id exists in canon with different content but source_path differs; "
-                            "blocked until reviewed"
-                        ),
-                    }
-                )
+
+    if scope == "missing":
+        selected_records = missing_records
+    elif scope == "replacement":
+        selected_records = replacement_records
+    elif scope == "combined":
+        selected_records = [*missing_records, *replacement_records]
+    else:
+        selected_records = []
 
     generated_missing_candidate_file = None
     if missing_records:
@@ -486,9 +586,9 @@ def scan_session_sync(
         _write_jsonl(generated_replacement_candidate_file, replacement_records)
 
     generated_candidate_file = None
-    if sync_records:
-        generated_candidate_file = run_dir / "sync-candidates.canon-candidates.jsonl"
-        _write_jsonl(generated_candidate_file, sync_records)
+    if selected_records:
+        generated_candidate_file = run_dir / _candidate_filename(scope, filter_type, filter_value)
+        _write_jsonl(generated_candidate_file, selected_records)
 
     same_id_different_content = [
         *replaceable_same_id_different_content,
@@ -507,8 +607,21 @@ def scan_session_sync(
         "existing_by_id": existing_by_id,
         "missing_by_id": missing_by_id,
         "same_id_different_content": same_id_different_content,
+        "equal_by_id": existing_by_id,
         "replaceable_same_id_different_content": replaceable_same_id_different_content,
+        "replacement_by_same_id": replaceable_same_id_different_content,
         "blocked_same_id_different_content": blocked_same_id_different_content,
+        "blocking_conflict": blocked_same_id_different_content,
+        "source_path_identity_drift": source_path_identity_drift,
+        "excluded_non_session": excluded_non_session,
+        "unsupported_auxiliary": unsupported,
+        "invalid_session_deliverable": invalid,
+        "selection": {
+            "scope": scope,
+            "filter": {"type": filter_type, "value": filter_value},
+            "replacement_policy": "same_id_only" if scope in {"replacement", "combined"} else "none",
+        },
+        "source_canon_hash": _canon_hash(canon_dir),
         "invalid": invalid,
         "unsupported": unsupported,
         "generated_missing_candidate_file": (
@@ -518,6 +631,8 @@ def scan_session_sync(
             as_display_path(generated_replacement_candidate_file) if generated_replacement_candidate_file else None
         ),
         "generated_candidate_file": as_display_path(generated_candidate_file) if generated_candidate_file else None,
+        "candidate_sha256": _sha256_file(generated_candidate_file) if generated_candidate_file else None,
+        "candidate_count": len(selected_records),
         "inventory_path": as_display_path(inventory_path),
         "persistent_summary_path": None,
     }
@@ -546,6 +661,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Persistent session_sync evidence summary dir (default: data/out/local/audit/session_sync)",
     )
     parser.add_argument("--run-id", default=None)
+    parser.add_argument("--scope", choices=SYNC_SCOPES, required=True)
+    parser.add_argument("--filter-type", choices=SYNC_FILTER_TYPES, default="all")
+    parser.add_argument("--filter-value", default=None)
     return parser
 
 
@@ -559,6 +677,9 @@ def main() -> int:
             out_dir=resolve_repo_path(args.out_dir, DEFAULT_SESSION_SYNC_DIR),
             evidence_dir=resolve_repo_path(args.evidence_dir, DEFAULT_SESSION_SYNC_EVIDENCE_DIR),
             run_id=args.run_id,
+            scope=args.scope,
+            filter_type=args.filter_type,
+            filter_value=args.filter_value,
         )
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "fail", "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
@@ -582,6 +703,11 @@ def main() -> int:
                 "blocked_same_id_different_content": len(inventory["blocked_same_id_different_content"]),
                 "invalid": len(inventory["invalid"]),
                 "unsupported": len(inventory["unsupported"]),
+                "source_path_identity_drift": len(inventory["source_path_identity_drift"]),
+                "excluded_non_session": len(inventory["excluded_non_session"]),
+                "scope": inventory["selection"]["scope"],
+                "filter": inventory["selection"]["filter"],
+                "candidate_sha256": inventory["candidate_sha256"],
             },
             ensure_ascii=False,
         )

@@ -1,6 +1,4 @@
 ├── .github
-│   ├── agents
-│   │   └── tdc-PR.agent.md
 │   ├── dependabot.yml
 │   ├── instructions
 │   │   ├── canonical_session_family.instructions.md
@@ -8,6 +6,7 @@
 │   │   ├── dependencia_y_superficie_externa.instructions.md
 │   │   ├── desarrollo_y_evolucion.instructions.md
 │   │   ├── detalles_del_tema.instructions.md
+│   │   ├── diagnosticos_no_sesionales.instructions.md
 │   │   ├── elementos_especificos.instructions.md
 │   │   ├── glosario_y_convenciones.instructions.md
 │   │   ├── hipotesis.instructions.md
@@ -22,6 +21,7 @@
 │       ├── ci.yml
 │       └── copilot-setup-steps.yml
 ├── .gitignore
+├── AGENTS.md
 ├── data
 │   ├── in
 │   │   ├── objeto_de_estudio_trazabilidad_y_desarrollo.html
@@ -56,6 +56,16 @@
 │   │   │   │   │   ├── admit-20260722143158-multi-session.json
 │   │   │   │   │   ├── admit-20260723144730-multi-session.json
 │   │   │   │   │   ├── admit-20260723144753-multi-session.json
+│   │   │   │   │   ├── admit-20260801215708-multi-session.json
+│   │   │   │   │   ├── admit-20260801220415-multi-session.json
+│   │   │   │   │   ├── admit-20260801225627-multi-session.json
+│   │   │   │   │   ├── admit-20260801232634-multi-session.json
+│   │   │   │   │   ├── admit-20260802004923-multi-session.json
+│   │   │   │   │   ├── admit-20260802005004-multi-session.json
+│   │   │   │   │   ├── admit-20260823174548-multi-session.json
+│   │   │   │   │   ├── admit-20260823174655-multi-session.json
+│   │   │   │   │   ├── admit-20260823191433-multi-session.json
+│   │   │   │   │   ├── admit-20260823191818-multi-session.json
 │   │   │   │   │   ├── backups
 │   │   │   │   │   │   ├── admit-20260706220323-multi-session
 │   │   │   │   │   │   ├── admit-20260708001525-multi-session
@@ -65,7 +75,10 @@
 │   │   │   │   │   │   ├── admit-20260716133807-multi-session
 │   │   │   │   │   │   ├── admit-20260721134340-multi-session
 │   │   │   │   │   │   ├── admit-20260722143158-multi-session
-│   │   │   │   │   │   └── admit-20260723144753-multi-session
+│   │   │   │   │   │   ├── admit-20260723144753-multi-session
+│   │   │   │   │   │   ├── admit-20260802004923-multi-session
+│   │   │   │   │   │   ├── admit-20260823174655-multi-session
+│   │   │   │   │   │   └── admit-20260823191818-multi-session
 │   │   │   │   │   ├── generated
 │   │   │   │   │   │   ├── all-contracts-20260716203727
 │   │   │   │   │   │   └── all-contracts-20260716203736
@@ -102,6 +115,9 @@
 │   │   │   │   │   │   └── validate-20260716132658-multi-session.json
 │   │   │   │   │   ├── s0177-close-final
 │   │   │   │   │   │   └── validate-20260716133339-multi-session.json
+│   │   │   │   │   ├── s0184-post-s0183-consolidated-canon-baseline
+│   │   │   │   │   │   ├── canon
+│   │   │   │   │   │   └── manifest.json
 │   │   │   │   │   ├── validate-20260706153552-multi-session.json
 │   │   │   │   │   ├── validate-20260706153658-multi-session.json
 │   │   │   │   │   ├── validate-20260706161609-multi-session.json
@@ -136,10 +152,37 @@
 │   │   │   │   │   ├── validate-20260715141438-multi-session.json
 │   │   │   │   │   ├── validate-20260716201800-multi-session.json
 │   │   │   │   │   ├── validate-20260716203727-multi-session.json
-│   │   │   │   │   └── validate-20260716203736-multi-session.json
+│   │   │   │   │   ├── validate-20260716203736-multi-session.json
+│   │   │   │   │   ├── validate-20260728222942-multi-session.json
+│   │   │   │   │   ├── validate-20260728223045-multi-session.json
+│   │   │   │   │   ├── validate-20260802223614-multi-session.json
+│   │   │   │   │   ├── validate-20260802224040-multi-session.json
+│   │   │   │   │   ├── validate-20260823174513-multi-session.json
+│   │   │   │   │   └── validate-20260823191430-multi-session.json
 │   │   │   │   ├── applied_safe_fixes.json
+│   │   │   │   ├── binary_asset_canon
+│   │   │   │   │   └── dt070
+│   │   │   │   │       ├── base64_integrity_sample_report.json
+│   │   │   │   │       ├── binary_ai_rag_exclusion_report.json
+│   │   │   │   │       ├── binary_asset_target_model.json
+│   │   │   │   │       ├── binary_asset_target_model.md
+│   │   │   │   │       ├── binary_format_classification_report.json
+│   │   │   │   │       ├── binary_identity_gap_report.json
+│   │   │   │   │       ├── binary_implementation_readiness.md
+│   │   │   │   │       ├── binary_reverse_readiness_report.json
+│   │   │   │   │       └── binary_risk_report.json
 │   │   │   │   ├── compliance_report.json
 │   │   │   │   ├── compliance_summary.md
+│   │   │   │   ├── foundational_principles
+│   │   │   │   │   └── dt071
+│   │   │   │   │       ├── dt071_risk_report.json
+│   │   │   │   │       ├── foundational_doctrine_summary.md
+│   │   │   │   │       ├── foundational_principles_matrix.json
+│   │   │   │   │       ├── future_capability_boundary_report.json
+│   │   │   │   │       ├── genesis_timeline.json
+│   │   │   │   │       ├── non_sacrificable_invariants.json
+│   │   │   │   │       ├── problem_decision_matrix.json
+│   │   │   │   │       └── provisional_vs_foundational_decisions.json
 │   │   │   │   ├── functional_alignment
 │   │   │   │   │   ├── dt065
 │   │   │   │   │   │   ├── component_file_list.txt
@@ -267,11 +310,326 @@
 │   │   │   │   │       ├── rag_gate_before_metadata_promotion.json
 │   │   │   │   │       └── rag_gate_before_metadata_promotion.md
 │   │   │   │   ├── relation_admission
+│   │   │   │   │   ├── apply_receipts
+│   │   │   │   │   │   ├── rd_1d5cd8f99e1836b6120a250d
+│   │   │   │   │   │   │   └── cra_0976403087d02eb93b3acb9a
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │           └── apply_exec_8d2632bf40ff012d7ee9a610
+│   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   ├── rd_20b735fa89d9f155071ccc20
+│   │   │   │   │   │   │   └── cra_ede41c57803febbc1f0f0855
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │           └── apply_exec_c9794a0c2a8854c3f7832e15
+│   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   ├── rd_35fe4fd1b52af726ea2a9235
+│   │   │   │   │   │   │   └── cra_0347537a5ce7937d12f2878c
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │           └── apply_exec_e16408fb36ce946d10e9a6b6
+│   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   ├── rd_90315239c71f48fcaff9f128
+│   │   │   │   │   │   │   └── cra_58f5dc37f2b886ac05e96e37
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │           └── apply_exec_288730cd8d9118bd0eec2221
+│   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   └── rd_908bfb3726568c50554f826a
+│   │   │   │   │   │       └── cra_5e144752683170b2fb5b81d2
+│   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │           ├── relation_apply_receipt.json
+│   │   │   │   │   │           ├── relation_apply_report.json
+│   │   │   │   │   │           └── rollback_snapshots
+│   │   │   │   │   │               └── apply_exec_c3bce48d08f4fa01b14bba42
+│   │   │   │   │   │                   ├── canon
+│   │   │   │   │   │                   └── snapshot_manifest.json
+│   │   │   │   │   ├── authorizations
+│   │   │   │   │   │   ├── rd_1d5cd8f99e1836b6120a250d
+│   │   │   │   │   │   │   └── authorization.json
+│   │   │   │   │   │   ├── rd_20b735fa89d9f155071ccc20
+│   │   │   │   │   │   │   └── authorization.json
+│   │   │   │   │   │   ├── rd_35fe4fd1b52af726ea2a9235
+│   │   │   │   │   │   │   └── authorization.json
+│   │   │   │   │   │   ├── rd_90315239c71f48fcaff9f128
+│   │   │   │   │   │   │   └── authorization.json
+│   │   │   │   │   │   └── rd_908bfb3726568c50554f826a
+│   │   │   │   │   │       └── authorization.json
 │   │   │   │   │   ├── current
 │   │   │   │   │   │   ├── admission_gate_dry_run.json
 │   │   │   │   │   │   ├── current_run_manifest.json
-│   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── human_decision_migration
+│   │   │   │   │   │   │   └── human_decision_migration_report.json
+│   │   │   │   │   │   ├── relation_apply_receipt.json
+│   │   │   │   │   │   ├── relation_apply_report.json
+│   │   │   │   │   │   └── rollback_snapshots
+│   │   │   │   │   │       └── apply_4e278c6352f2495b
+│   │   │   │   │   │           ├── canon
+│   │   │   │   │   │           └── snapshot_manifest.json
+│   │   │   │   │   ├── current_generation.json
+│   │   │   │   │   ├── generations
+│   │   │   │   │   │   ├── rg_0d7bb6798136c8ddc7cc07d4
+│   │   │   │   │   │   │   └── rv_bfdb6e70358b526f962323bf
+│   │   │   │   │   │   │       └── rd_35fe4fd1b52af726ea2a9235
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_f951c15ffe03fcf4
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_1be59934bae7d0bc0e4f1a62
+│   │   │   │   │   │   │   ├── rv_c9f237159aec847b68346175
+│   │   │   │   │   │   │   │   └── rd_d13d74be92daf1c57fc6c25d
+│   │   │   │   │   │   │   │       ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   │       ├── apply_safety_verification.json
+│   │   │   │   │   │   │   │       ├── authorization_request.json
+│   │   │   │   │   │   │   │       ├── bundle_manifest.json
+│   │   │   │   │   │   │   │       ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │   │       ├── decision_checkpoint.json
+│   │   │   │   │   │   │   │       ├── gate_g_readiness.json
+│   │   │   │   │   │   │   │       ├── human_delta.json
+│   │   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │   │           └── apply_cab3898f8f082191
+│   │   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   │   └── rv_e98d12de2a72c16b10019607
+│   │   │   │   │   │   │       └── rd_42d834d245e7ff8e2a07c818
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           └── rollback_snapshots
+│   │   │   │   │   │   │               └── apply_cd7c389d503ed17a
+│   │   │   │   │   │   │                   ├── canon
+│   │   │   │   │   │   │                   └── snapshot_manifest.json
+│   │   │   │   │   │   ├── rg_3c845f24260ae4d8673c84be
+│   │   │   │   │   │   │   └── rv_b2e1eda8110fe9fe02c767bf
+│   │   │   │   │   │   │       └── rd_87cffd8f641e65dade0ab7d2
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_e308da195a48e189
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_59cb061258b1cdc88cd0a024
+│   │   │   │   │   │   │   ├── rv_b10094a0f72ab3ec0882454e
+│   │   │   │   │   │   │   │   └── human_delta
+│   │   │   │   │   │   │   │       ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   │       ├── bundle_manifest.json
+│   │   │   │   │   │   │   │       ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │   │       ├── current_candidate_manifest.json
+│   │   │   │   │   │   │   │       ├── current_human_delta_manifest.json
+│   │   │   │   │   │   │   │       ├── decision_checkpoint.json
+│   │   │   │   │   │   │   │       ├── human_delta.json
+│   │   │   │   │   │   │   │       ├── human_delta_inventory.json
+│   │   │   │   │   │   │   │       ├── independent_decision_preservation_manifest.json
+│   │   │   │   │   │   │   │       ├── predecessor_unrecoverability_manifest.json
+│   │   │   │   │   │   │   │       ├── reconciliation_manifest.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_checkpoint.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_manifest.json
+│   │   │   │   │   │   │   │       ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │   │       └── validation_report.json
+│   │   │   │   │   │   │   ├── rv_b3d3412bb008f9b95a7b5773
+│   │   │   │   │   │   │   │   └── human_delta
+│   │   │   │   │   │   │   │       ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   │       ├── bundle_manifest.json
+│   │   │   │   │   │   │   │       ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │   │       ├── current_candidate_manifest.json
+│   │   │   │   │   │   │   │       ├── current_human_delta_manifest.json
+│   │   │   │   │   │   │   │       ├── decision_checkpoint.json
+│   │   │   │   │   │   │   │       ├── human_delta.json
+│   │   │   │   │   │   │   │       ├── human_delta_inventory.json
+│   │   │   │   │   │   │   │       ├── independent_decision_preservation_manifest.json
+│   │   │   │   │   │   │   │       ├── predecessor_unrecoverability_manifest.json
+│   │   │   │   │   │   │   │       ├── reconciliation_manifest.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_checkpoint.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_manifest.json
+│   │   │   │   │   │   │   │       ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │   │       └── validation_report.json
+│   │   │   │   │   │   │   ├── rv_bae6a9f47ec028c719b7eabf
+│   │   │   │   │   │   │   │   └── human_delta
+│   │   │   │   │   │   │   │       ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   │       ├── bundle_manifest.json
+│   │   │   │   │   │   │   │       ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │   │       ├── current_candidate_manifest.json
+│   │   │   │   │   │   │   │       ├── current_human_delta_manifest.json
+│   │   │   │   │   │   │   │       ├── decision_checkpoint.json
+│   │   │   │   │   │   │   │       ├── human_delta.json
+│   │   │   │   │   │   │   │       ├── human_delta_inventory.json
+│   │   │   │   │   │   │   │       ├── independent_decision_preservation_manifest.json
+│   │   │   │   │   │   │   │       ├── predecessor_unrecoverability_manifest.json
+│   │   │   │   │   │   │   │       ├── reconciliation_manifest.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_checkpoint.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_manifest.json
+│   │   │   │   │   │   │   │       ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │   │       └── validation_report.json
+│   │   │   │   │   │   │   ├── rv_c0287f0228a672066ee6b105
+│   │   │   │   │   │   │   │   └── human_delta
+│   │   │   │   │   │   │   │       ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   │       ├── bundle_manifest.json
+│   │   │   │   │   │   │   │       ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │   │       ├── current_candidate_manifest.json
+│   │   │   │   │   │   │   │       ├── current_human_delta_manifest.json
+│   │   │   │   │   │   │   │       ├── decision_checkpoint.json
+│   │   │   │   │   │   │   │       ├── human_delta.json
+│   │   │   │   │   │   │   │       ├── human_delta_inventory.json
+│   │   │   │   │   │   │   │       ├── independent_decision_preservation_manifest.json
+│   │   │   │   │   │   │   │       ├── predecessor_unrecoverability_manifest.json
+│   │   │   │   │   │   │   │       ├── reconciliation_manifest.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_checkpoint.json
+│   │   │   │   │   │   │   │       ├── review_rebaseline_manifest.json
+│   │   │   │   │   │   │   │       ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │   │       └── validation_report.json
+│   │   │   │   │   │   │   └── rv_c20946968aa904f49ef04197
+│   │   │   │   │   │   │       └── human_delta
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── current_human_delta_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── human_delta_inventory.json
+│   │   │   │   │   │   │           ├── independent_decision_preservation_manifest.json
+│   │   │   │   │   │   │           ├── predecessor_unrecoverability_manifest.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── review_rebaseline_checkpoint.json
+│   │   │   │   │   │   │           ├── review_rebaseline_manifest.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_78d2068f3a3fedbcca673af7
+│   │   │   │   │   │   │   └── rv_861c814d4219c9dd5b7c48ee
+│   │   │   │   │   │   │       └── rd_20b735fa89d9f155071ccc20
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_2545982c5d2ef49a
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_8522d27408aa27e3aea88a16
+│   │   │   │   │   │   │   └── rv_f08a191e6370254e970e6186
+│   │   │   │   │   │   │       └── rd_1d5cd8f99e1836b6120a250d
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_78b50cfde4667906
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_f978bd13d1ed88b0ec090e47
+│   │   │   │   │   │   │   └── rv_7de286f1db35280cca77aecc
+│   │   │   │   │   │   │       └── rd_908bfb3726568c50554f826a
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_087856932a384ee7
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   └── rg_fefb930213377a544e5e424d
+│   │   │   │   │   │       └── rv_828d265047cee59c1781f9e6
+│   │   │   │   │   │           └── rd_90315239c71f48fcaff9f128
+│   │   │   │   │   │               ├── admission_gate_dry_run.json
+│   │   │   │   │   │               ├── apply_safety_verification.json
+│   │   │   │   │   │               ├── authorization_request.json
+│   │   │   │   │   │               ├── bundle_manifest.json
+│   │   │   │   │   │               ├── cross_generation_reconciliation.json
+│   │   │   │   │   │               ├── current_candidate_manifest.json
+│   │   │   │   │   │               ├── decision_checkpoint.json
+│   │   │   │   │   │               ├── gate_g_readiness.json
+│   │   │   │   │   │               ├── human_delta.json
+│   │   │   │   │   │               ├── reconciliation_manifest.json
+│   │   │   │   │   │               ├── relation_apply_plan.json
+│   │   │   │   │   │               ├── review_receipt_lineage.json
+│   │   │   │   │   │               ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │               ├── rollback_snapshots
+│   │   │   │   │   │               │   └── apply_ede7448e7356573e
+│   │   │   │   │   │               │       ├── canon
+│   │   │   │   │   │               │       └── snapshot_manifest.json
+│   │   │   │   │   │               └── validation_report.json
 │   │   │   │   │   ├── history
+│   │   │   │   │   │   ├── current-01bc99f4c4398efc
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   ├── relation_apply_report.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   │   ├── current-0f57f47c24e4a73c
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
 │   │   │   │   │   │   │   ├── archive_manifest.json
@@ -287,10 +645,23 @@
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
 │   │   │   │   │   │   │   ├── current_run_manifest.json
 │   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-57d729e2146ff8be
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   │   ├── current-5983eb4718c33673
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
 │   │   │   │   │   │   │   ├── archive_manifest.json
 │   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-610579ffe72aae5d
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   ├── relation_apply_plan.json
+│   │   │   │   │   │   │   ├── relation_apply_report.json
+│   │   │   │   │   │   │   ├── relational_audit_index.json
 │   │   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   │   ├── current-6a477e78de7d9ebf
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
@@ -303,11 +674,28 @@
 │   │   │   │   │   │   │   ├── archive_manifest.json
 │   │   │   │   │   │   │   ├── current_run_manifest.json
 │   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-788df2ad2019c49d
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-796835421d98b476
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   ├── relation_apply_plan.json
+│   │   │   │   │   │   │   ├── relation_apply_report.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   │   ├── current-a1d6763bcc4a9cf0
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
 │   │   │   │   │   │   │   ├── archive_manifest.json
 │   │   │   │   │   │   │   ├── current_run_manifest.json
 │   │   │   │   │   │   │   ├── relational_audit_index.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-a30ff0e5e1b4b504
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
 │   │   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   │   ├── current-a72afc8101b1294b
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
@@ -324,9 +712,25 @@
 │   │   │   │   │   │   │   ├── admission_gate_dry_run.json
 │   │   │   │   │   │   │   ├── archive_manifest.json
 │   │   │   │   │   │   │   └── current_run_manifest.json
+│   │   │   │   │   │   ├── current-ba9048bcdc19ef73
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-f1387355e56d9ac5
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   ├── current-fab5612851cb4a44
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── archive_manifest.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
 │   │   │   │   │   │   └── run-e1e966f3b3b4ae8e
 │   │   │   │   │   │       ├── admission_gate_dry_run.json
 │   │   │   │   │   │       └── relational_operational_state.json
+│   │   │   │   │   ├── runtime
 │   │   │   │   │   ├── s0164
 │   │   │   │   │   │   └── s0164_relation_admission_dry_run_report.json
 │   │   │   │   │   ├── s0165
@@ -425,6 +829,91 @@
 │   │   │   │   │           ├── current_run_manifest.json
 │   │   │   │   │           ├── reconciliation_manifest.json
 │   │   │   │   │           └── supersession_manifest.json
+│   │   │   │   ├── s0183
+│   │   │   │   │   ├── baseline_manifest.json
+│   │   │   │   │   ├── closure
+│   │   │   │   │   │   ├── s0183_closure_manifest.json
+│   │   │   │   │   │   └── s0183_closure_validation.json
+│   │   │   │   │   ├── current
+│   │   │   │   │   │   ├── candidate_reconciliation_summary.md
+│   │   │   │   │   │   ├── canonical_mapping_resolution.json
+│   │   │   │   │   │   ├── cross_batch_reconciliation_manifest.json
+│   │   │   │   │   │   ├── current_candidate_manifest.json
+│   │   │   │   │   │   ├── duplicate_resolution_report.json
+│   │   │   │   │   │   ├── historical_candidate_classification.json
+│   │   │   │   │   │   ├── historical_occurrence_reclassification_report.json
+│   │   │   │   │   │   ├── human_decision_preservation_manifest.json
+│   │   │   │   │   │   ├── pre_relational_rag_baseline_manifest.json
+│   │   │   │   │   │   └── unresolved_target_resolution.json
+│   │   │   │   │   ├── determinism_report.json
+│   │   │   │   │   ├── entry-20260727T020358Z
+│   │   │   │   │   │   ├── code
+│   │   │   │   │   │   │   ├── current_relation_human_review.py
+│   │   │   │   │   │   │   ├── generate_technical_relation_candidates.py
+│   │   │   │   │   │   │   ├── reconcile_current_relation_candidates.py
+│   │   │   │   │   │   │   ├── relation_admission_gate.py
+│   │   │   │   │   │   │   ├── relation_admission_state.py
+│   │   │   │   │   │   │   ├── relation_candidate_contract.py
+│   │   │   │   │   │   │   ├── tdc.sh
+│   │   │   │   │   │   │   └── validate_relation_candidates.py
+│   │   │   │   │   │   ├── gate_current
+│   │   │   │   │   │   │   ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │   ├── current_run_manifest.json
+│   │   │   │   │   │   │   └── relational_operational_state.json
+│   │   │   │   │   │   └── pipeline_current
+│   │   │   │   │   │       ├── current_candidate_manifest.json
+│   │   │   │   │   │       ├── human_review.md
+│   │   │   │   │   │       ├── reconciliation_manifest.json
+│   │   │   │   │   │       ├── relation_candidates_blocked.json
+│   │   │   │   │   │       ├── relation_candidates_ready_for_review.json
+│   │   │   │   │   │       ├── relation_candidates_report.json
+│   │   │   │   │   │       ├── relation_candidates_review.csv
+│   │   │   │   │   │       ├── relation_candidates_summary.md
+│   │   │   │   │   │       ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │       └── validation_report.json
+│   │   │   │   │   ├── gate-f-probe-safety-verification.json
+│   │   │   │   │   ├── gate-f-safety-verification.json
+│   │   │   │   │   ├── gate-g
+│   │   │   │   │   │   ├── authorizations
+│   │   │   │   │   │   │   ├── 20260728T210813Z_1386207b27adbfd33a19badd592686e63b71de530df252a1cb10fd7a2d75928e.json
+│   │   │   │   │   │   │   ├── 20260728T214924Z_2e233136836d956a7023fca3ef0b995fce3f3d1ed3cca9fcbbabc381fd672e00.json
+│   │   │   │   │   │   │   ├── 20260728T220211Z_gate_g_auth_50b3c5eebf86acf9fd10_supersession.json
+│   │   │   │   │   │   │   └── 20260728T230851Z_1e8611cb8221a5dd6d3bf771e5d8f5eb7a23976550e957e4d73969c4d0616d65.json
+│   │   │   │   │   │   ├── gate_g_authorization.json
+│   │   │   │   │   │   ├── gate_g_readiness.json
+│   │   │   │   │   │   ├── gate_g_reauthorization_package.json
+│   │   │   │   │   │   ├── relation_apply_plan.json
+│   │   │   │   │   │   └── rollback_snapshots
+│   │   │   │   │   │       └── apply_72827b886460c41f
+│   │   │   │   │   │           ├── canon
+│   │   │   │   │   │           └── snapshot_manifest.json
+│   │   │   │   │   ├── gate-h
+│   │   │   │   │   │   ├── evidence
+│   │   │   │   │   │   │   └── 20260728T221824Z
+│   │   │   │   │   │   │       ├── evidence_manifest.json
+│   │   │   │   │   │   │       ├── gate_g_authorization.json
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── relational_operational_state.json
+│   │   │   │   │   │   ├── gate_h_revalidation.json
+│   │   │   │   │   │   └── gate_h_validation.json
+│   │   │   │   │   └── reconciliation
+│   │   │   │   │       ├── authorization_consumption_reconciliation.json
+│   │   │   │   │       ├── evidence
+│   │   │   │   │       │   └── 20260728T230851Z
+│   │   │   │   │       │       ├── evidence_manifest.json
+│   │   │   │   │       │       ├── gate_g_authorization.json
+│   │   │   │   │       │       ├── gate_g_relation_apply_plan.json
+│   │   │   │   │       │       ├── gate_h_validation.json
+│   │   │   │   │       │       ├── productive_relation_apply_plan.json
+│   │   │   │   │       │       ├── relation_apply_receipt.json
+│   │   │   │   │       │       ├── relation_apply_report.json
+│   │   │   │   │       │       └── relational_operational_state.json
+│   │   │   │   │       ├── plan_identity_reconciliation.json
+│   │   │   │   │       ├── productive_apply_identity.json
+│   │   │   │   │       ├── productive_apply_reconciliation.json
+│   │   │   │   │       └── relation_apply_contractual_receipt.json
 │   │   │   │   ├── s85_capa2_stale_target_classification.json
 │   │   │   │   ├── s85_session_admission_before_after.json
 │   │   │   │   ├── sanitation-20260526172159.json
@@ -468,6 +957,14 @@
 │   │   │   │   │   ├── local-dt067-final-20260716150755
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt068-evaluacion-calidad-rag-ia-premium-post-admision-relacional-20260716151711
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt070-canon-activos-binarios-clasificacion-integridad-reversibilidad-20260728173500
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt070-canon-activos-binarios-clasificacion-integridad-reversibilidad-final-20260728173100
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt071-final-20260802174038
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt071-genesis-proposito-principios-fundacionales-tdt-20260802173559
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0159-close-202607061035
 │   │   │   │   │   │   └── summary.json
@@ -550,6 +1047,8 @@
 │   │   │   │   │   │   └── s0177-close-final
 │   │   │   │   │   │       └── summary.json
 │   │   │   │   │   ├── s0178-close
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── s0184-impact-02-production-rescan
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260706220253
 │   │   │   │   │   │   └── summary.json
@@ -707,7 +1206,25 @@
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260722154125
 │   │   │   │   │   │   └── summary.json
-│   │   │   │   │   └── sync-20260723144714
+│   │   │   │   │   ├── sync-20260723144714
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260727015956
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260801215012
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260801215702
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260801225615
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260801232615
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260802172645
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260820005820
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260823174434
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   └── sync-20260823191401
 │   │   │   │   │       └── summary.json
 │   │   │   │   ├── test_suite_operational_invariants
 │   │   │   │   │   └── dt069
@@ -801,6 +1318,8 @@
 │   │   │   │   │       └── tiddlers-sesiones.md
 │   │   │   │   └── topics.json
 │   │   │   ├── pipeline
+│   │   │   │   ├── canon.entries.json
+│   │   │   │   ├── ingesta.tiddlers.json
 │   │   │   │   ├── menu_refactor
 │   │   │   │   │   └── s0150
 │   │   │   │   │       ├── s0150_menu_after.txt
@@ -1703,6 +2222,7 @@
 │   │   │   │   │       ├── rag_sanitation_delta.json
 │   │   │   │   │       ├── semantic_text_builder_policy_report.json
 │   │   │   │   │       └── unknown_tag_review_queue.json
+│   │   │   │   ├── raw.tiddlers.json
 │   │   │   │   ├── relation_admissibility
 │   │   │   │   │   └── s0132
 │   │   │   │   │       ├── s0132_relation_admissibility_report.json
@@ -1775,6 +2295,7 @@
 │   │   │   │   ├── relation_candidates
 │   │   │   │   │   ├── current
 │   │   │   │   │   │   ├── current_candidate_manifest.json
+│   │   │   │   │   │   ├── generational_decision_preservation.json
 │   │   │   │   │   │   ├── human_review.md
 │   │   │   │   │   │   ├── reconciliation_manifest.json
 │   │   │   │   │   │   ├── relation_candidates_blocked.json
@@ -1782,6 +2303,7 @@
 │   │   │   │   │   │   ├── relation_candidates_report.json
 │   │   │   │   │   │   ├── relation_candidates_review.csv
 │   │   │   │   │   │   ├── relation_candidates_summary.md
+│   │   │   │   │   │   ├── review_receipt_lineage.json
 │   │   │   │   │   │   ├── reviewable_candidate_manifest.json
 │   │   │   │   │   │   └── validation_report.json
 │   │   │   │   │   ├── s0157
@@ -2042,28 +2564,42 @@
 │   │   │   ├── sessions
 │   │   │   │   ├── 00_contratos
 │   │   │   │   │   ├── m04-s0182-contrato-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0183-contrato-admision-relacional-canonica-gobernada.md.json
+│   │   │   │   │   ├── m04-s0184-contrato-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │   │   ├── policy
 │   │   │   │   │   │   ├── canon_policy_bundle.json
 │   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
 │   │   │   │   │   └── projections
 │   │   │   │   │       └── derived_layers_registry.json
 │   │   │   │   ├── 01_procedencia
-│   │   │   │   │   └── m04-s0182-procedencia-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0182-procedencia-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0183-procedencia-admision-relacional-canonica-gobernada.md.json
+│   │   │   │   │   └── m04-s0184-procedencia-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │   ├── 02_detalles_de_sesion
-│   │   │   │   │   └── m04-s0182-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0182-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0183-admision-relacional-canonica-gobernada.md.json
+│   │   │   │   │   └── m04-s0184-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │   ├── 03_hipotesis
-│   │   │   │   │   └── m04-s0182-hipotesis-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0182-hipotesis-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0183-hipotesis-admision-relacional-canonica-gobernada.md.json
+│   │   │   │   │   └── m04-s0184-hipotesis-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │   ├── 04_balance_de_sesion
-│   │   │   │   │   └── m04-s0182-balance-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0182-balance-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0183-balance-admision-relacional-canonica-gobernada.md.json
+│   │   │   │   │   └── m04-s0184-balance-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │   ├── 05_propuesta_de_sesion
-│   │   │   │   │   └── m04-s0182-propuesta-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0182-propuesta-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │   │   ├── m04-s0183-propuesta-admision-relacional-canonica-gobernada.md.json
+│   │   │   │   │   └── m04-s0184-propuesta-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │   └── 06_diagnoses
 │   │   │   │       ├── meso-ciclo
 │   │   │   │       ├── micro-ciclo
 │   │   │   │       ├── module
 │   │   │   │       ├── proyecto
 │   │   │   │       ├── sesion
-│   │   │   │       │   └── diagnostico-sesion-s0182-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s0182-hardening-alcance-current-admission-gate-relacional.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s0183-admision-relacional-canonica-gobernada.md.json
+│   │   │   │       │   └── diagnostico-sesion-s0184-saneamiento-baseline-derivados-post-relacionales.md.json
 │   │   │   │       └── tema
 │   │   │   │           ├── diagnostico-tematico-054-uso-efectivo-data-tmp-gobernanza-temporal.md.json
 │   │   │   │           ├── diagnostico-tematico-055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica.md.json
@@ -2080,83 +2616,183 @@
 │   │   │   │           ├── diagnostico-tematico-066-evaluacion-calidad-rag-ia-premium-derivados-gobernados-tdc.md.json
 │   │   │   │           ├── diagnostico-tematico-067-estado-productivo-de-relaciones-canonicas-y-brechas-previas-a-evaluacion-rag-premium.md.json
 │   │   │   │           ├── diagnostico-tematico-068-evaluacion-calidad-rag-ia-premium-post-admision-relacional.md.json
-│   │   │   │           └── diagnostico-tematico-069-auditoria-integral-suite-tests-invariantes-operativas.md.json
+│   │   │   │           ├── diagnostico-tematico-069-auditoria-integral-suite-tests-invariantes-operativas.md.json
+│   │   │   │           ├── diagnostico-tematico-070-canon-activos-binarios-clasificacion-integridad-reversibilidad.md.json
+│   │   │   │           └── diagnostico-tematico-071-genesis-proposito-principios-fundacionales-tdc.md.json
 │   │   │   └── tiddlers-export
-│   │   │       └── hashes_rep_export
+│   │   │       ├── estructura.txt.json
+│   │   │       ├── hashes_rep_export
+│   │   │       ├── src_python_scripts_prepare_current_relational_generation.py.json
+│   │   │       ├── src_python_scripts_relation_admission_gate.py.json
+│   │   │       └── tests_test_relation_admission_gate.py.json
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
 │       ├── html_export
-│       │   └── export-20260722144427
+│       │   ├── export-20260802201037
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260820010206
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260822201703
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260822210404
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260823143311
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260823160259
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   └── export-20260823182836
 │       │       ├── tiddlers.export.log
 │       │       └── tiddlers.export.manifest.json
 │       ├── reconstruction
-│       │   ├── diagnostic-20260722144422
+│       │   ├── diagnostic-20260802201032
 │       │   │   └── gate-report.json
-│       │   ├── export-20260722144427
+│       │   ├── diagnostic-20260820010158
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260822201700
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260822210401
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260823143307
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260823160248
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260823160256
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260823182833
+│       │   │   └── gate-report.json
+│       │   ├── export-20260802201037
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── reconstruction-20260722144438
+│       │   ├── export-20260820010206
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260822201703
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260822210404
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260823143311
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260823160259
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260823182836
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260802201043
 │       │   │   ├── canon_after
 │       │   │   ├── canon_before
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   ├── reverse-20260722143246
+│       │   ├── reconstruction-20260820010215
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   └── reverse-20260723144828
+│       │   ├── reconstruction-20260822201725
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260822210412
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260823143509
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260823160318
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260823182846
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260802201233
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260820010803
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260822201930
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823144830
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823160731
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823175200
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823183038
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   └── reverse-20260823192144
 │       │       ├── gate-report.json
 │       │       └── reconstruction-report.json
+│       ├── reverse-128-relations-report.json
+│       ├── s0184-impact-03a1
+│       │   └── pytest
+│       │       ├── test_migrate_equivalent_decisicurrent
+│       │       └── test_migration_dry_run_is_detecurrent
 │       ├── session_admission
-│       │   ├── admit-20260722143116-multi-session
+│       │   ├── admit-20260823174548-multi-session
 │       │   │   ├── canon
 │       │   │   └── reverse_html
-│       │   │       ├── admit-20260722143116-multi-session.derived.html
-│       │   │       └── admit-20260722143116-multi-session.reverse-report.json
-│       │   ├── admit-20260722143158-multi-session
+│       │   │       ├── admit-20260823174548-multi-session.derived.html
+│       │   │       └── admit-20260823174548-multi-session.reverse-report.json
+│       │   ├── admit-20260823174655-multi-session
 │       │   │   ├── canon
 │       │   │   └── reverse_html
-│       │   │       ├── admit-20260722143158-multi-session.derived.html
-│       │   │       └── admit-20260722143158-multi-session.reverse-report.json
-│       │   ├── admit-20260723144730-multi-session
+│       │   │       ├── admit-20260823174655-multi-session.derived.html
+│       │   │       └── admit-20260823174655-multi-session.reverse-report.json
+│       │   ├── admit-20260823191433-multi-session
 │       │   │   ├── canon
 │       │   │   └── reverse_html
-│       │   │       └── admit-20260723144730-multi-session.reverse-report.json
-│       │   └── admit-20260723144753-multi-session
+│       │   │       ├── admit-20260823191433-multi-session.derived.html
+│       │   │       └── admit-20260823191433-multi-session.reverse-report.json
+│       │   └── admit-20260823191818-multi-session
 │       │       ├── canon
 │       │       └── reverse_html
-│       │           └── admit-20260723144753-multi-session.reverse-report.json
-│       └── session_sync
-│           ├── sync-20260722143054
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722153636
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722153643
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722153931
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722153937
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722154032
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722154038
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722154118
-│           │   ├── inventory.json
-│           │   └── normalize
-│           ├── sync-20260722154125
-│           │   ├── inventory.json
-│           │   └── normalize
-│           └── sync-20260723144714
-│               ├── inventory.json
-│               └── normalize
+│       │           ├── admit-20260823191818-multi-session.derived.html
+│       │           └── admit-20260823191818-multi-session.reverse-report.json
+│       ├── session_sync
+│       │   ├── local-dt071-final-20260802174038
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── local-dt071-genesis-proposito-principios-fundacionales-tdt-20260802173559
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── sync-20260820005820
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── sync-20260823174434
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   └── sync-20260823191401
+│       │       ├── inventory.json
+│       │       └── normalize
+│       ├── tiddly-with-128-relations.html
+│       └── verify-reverse-128
+│           ├── tiddlers.export.log
+│           └── tiddlers.export.manifest.json
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
 │   ├── plantillas
@@ -2339,6 +2975,9 @@
 │   │   ├── classification.py
 │   │   ├── corpus_governance.py
 │   │   ├── current_relation_human_review.py
+│   │   ├── current_relation_review_taxonomy.py
+│   │   ├── current_relational_apply.py
+│   │   ├── current_relational_authority.py
 │   │   ├── derive_layers.py
 │   │   ├── diagnostic_governance.py
 │   │   ├── enrichment.py
@@ -2347,11 +2986,13 @@
 │   │   ├── generate_technical_relation_candidates.py
 │   │   ├── layer_authority_policy.py
 │   │   ├── legacy_test_classifier.py
+│   │   ├── markdown_fence_validation.py
 │   │   ├── mcp_env_manager.py
 │   │   ├── metadata_promotion_policy.py
 │   │   ├── normalize_session_titles.py
 │   │   ├── operator_menu.py
 │   │   ├── path_governance.py
+│   │   ├── prepare_current_relational_generation.py
 │   │   ├── qc_reports.py
 │   │   ├── rag_admission_state.py
 │   │   ├── rag_derivation_plan.py
@@ -2561,6 +3202,8 @@
 │   ├── test_classification_characterization.py
 │   ├── test_controlled_relation_propagation.py
 │   ├── test_current_relation_human_review.py
+│   ├── test_current_relation_review_taxonomy.py
+│   ├── test_current_relational_authority.py
 │   ├── test_derivation_menu.py
 │   ├── test_derive_layers_characterization.py
 │   ├── test_diagnostic_artifact_governance.py
@@ -2569,11 +3212,14 @@
 │   ├── test_historical_relation_type_governance.py
 │   ├── test_layer_authority_policy.py
 │   ├── test_legacy_test_classifier.py
+│   ├── test_markdown_fences.py
 │   ├── test_mcp_env_manager_security.py
 │   ├── test_metadata_promotion.py
 │   ├── test_minimal_reversible_metadata.py
 │   ├── test_normalize_session_titles.py
 │   ├── test_operator_menu_smoke.py
+│   ├── test_prepare_current_relational_generation.py
+│   ├── test_prepare_current_relational_generation_integration.py
 │   ├── test_productive_equivalence_s0173.py
 │   ├── test_qc_reports_characterization.py
 │   ├── test_rag_admission_state.py
@@ -2616,9 +3262,12 @@
 │   ├── test_s0174_governance.py
 │   ├── test_semantic_text_authority_aware.py
 │   ├── test_semantic_text_builder.py
+│   ├── test_session_admission_binding.py
+│   ├── test_session_admission_identity.py
 │   ├── test_session_artifact_governance.py
 │   ├── test_session_cycle_diagnostics.py
 │   ├── test_session_path_governance.py
+│   ├── test_session_sync_menu_contract.py
 │   ├── test_session_sync_scan_p0.py
 │   ├── test_session_title_policy.py
 │   ├── test_source_fields_contract.py

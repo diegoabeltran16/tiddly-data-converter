@@ -80,6 +80,7 @@ def _run_scan(
     normalize_mock=None,
     canon_index: CanonIndex | None = None,
     run_id: str = "test-run",
+    **scan_kwargs,
 ) -> dict:
     if normalize_mock is None:
         normalize_mock = _normalize_mock()
@@ -94,6 +95,7 @@ def _run_scan(
             canon_dir=REPO_ROOT / "data" / "out" / "local",
             out_dir=out_dir,
             run_id=run_id,
+            **scan_kwargs,
         )
 
 
@@ -244,7 +246,7 @@ class TestB4ExistingById:
         idx = _canon_index_with("test-id-0", canon_rec)
 
         inv = _run_scan(SESSIONS_DIR, tmp_path, canon_index=idx)
-        assert inv["existing_by_id"][0]["classification"] == "existing_by_id"
+        assert inv["existing_by_id"][0]["classification"] == "equal_by_id"
 
     def test_existing_by_id_not_in_missing(self, tmp_path):
         normalized_record = self._build_normalized()
@@ -257,10 +259,10 @@ class TestB4ExistingById:
 
 # ── B5: same ID + different content + different source → blocked ───────────────
 
-class TestB5BlockedSameId:
-    """Same id, different content, unrelated source_path → blocked_same_id_different_content."""
+class TestB5SameIdDifferentSource:
+    """Same id remains a controlled replacement even when source_path changed."""
 
-    def test_blocked_classification(self, tmp_path):
+    def test_same_id_is_replacement(self, tmp_path):
         different_content_record = {"id": "test-id-0", "key": "different-content"}
         canon_rec = CanonRecord(
             record={"source_fields": {"source_path": "/completely/different/source.md.json"}},
@@ -271,9 +273,9 @@ class TestB5BlockedSameId:
         idx = _canon_index_with("test-id-0", canon_rec)
 
         inv = _run_scan(SESSIONS_DIR, tmp_path, canon_index=idx)
-        assert len(inv["blocked_same_id_different_content"]) == 1
+        assert len(inv["replacement_by_same_id"]) == 1
 
-    def test_blocked_entry_has_correct_classification(self, tmp_path):
+    def test_source_path_change_is_visible(self, tmp_path):
         different_content_record = {"id": "test-id-0", "key": "other"}
         canon_rec = CanonRecord(
             record={"source_fields": {"source_path": "/unrelated/path.md.json"}},
@@ -284,10 +286,11 @@ class TestB5BlockedSameId:
         idx = _canon_index_with("test-id-0", canon_rec)
 
         inv = _run_scan(SESSIONS_DIR, tmp_path, canon_index=idx)
-        entry = inv["blocked_same_id_different_content"][0]
-        assert entry["classification"] == "blocked_same_id_different_content"
+        entry = inv["replacement_by_same_id"][0]
+        assert entry["classification"] == "replacement_by_same_id"
+        assert entry["source_path_changed"] is True
 
-    def test_blocked_not_in_missing_or_existing(self, tmp_path):
+    def test_replacement_not_in_missing_or_existing(self, tmp_path):
         different_content_record = {"id": "test-id-0", "key": "other"}
         canon_rec = CanonRecord(
             record={"source_fields": {"source_path": "/unrelated/path.md.json"}},
@@ -335,20 +338,17 @@ class TestB6ReplaceSameSource:
 
         inv = _run_scan(SESSIONS_DIR, tmp_path, canon_index=idx)
         entry = inv["replaceable_same_id_different_content"][0]
-        assert entry["classification"] in (
-            "replaceable_same_id_different_content",
-            "replaceable_migrated_source_path",
-        )
+        assert entry["classification"] == "replacement_by_same_id"
 
 
 # ── B7: generated_candidate_file when missing candidates exist ─────────────────
 
 class TestB7GeneratedCandidateFile:
-    """sync-candidates.canon-candidates.jsonl is written when missing_by_id > 0."""
+    """A scope-specific candidate file is written when selected records exist."""
 
     def test_sync_candidates_file_created(self, tmp_path):
-        _run_scan(SESSIONS_DIR, tmp_path, run_id="b7-run")
-        candidate_file = tmp_path / "b7-run" / "sync-candidates.canon-candidates.jsonl"
+        inv = _run_scan(SESSIONS_DIR, tmp_path, run_id="b7-run")
+        candidate_file = REPO_ROOT / inv["generated_candidate_file"]
         assert candidate_file.exists(), "sync-candidates.canon-candidates.jsonl not created"
 
     def test_missing_candidates_file_created(self, tmp_path):
@@ -357,8 +357,8 @@ class TestB7GeneratedCandidateFile:
         assert candidate_file.exists(), "missing-candidates.canon-candidates.jsonl not created"
 
     def test_sync_candidates_file_contains_valid_jsonl(self, tmp_path):
-        _run_scan(SESSIONS_DIR, tmp_path, run_id="b7-valid")
-        candidate_file = tmp_path / "b7-valid" / "sync-candidates.canon-candidates.jsonl"
+        inv = _run_scan(SESSIONS_DIR, tmp_path, run_id="b7-valid")
+        candidate_file = REPO_ROOT / inv["generated_candidate_file"]
         lines = [l for l in candidate_file.read_text(encoding="utf-8").splitlines() if l.strip()]
         assert len(lines) >= 1
         for line in lines:
@@ -373,6 +373,47 @@ class TestB7GeneratedCandidateFile:
 
         inv = _run_scan(SESSIONS_DIR, tmp_path, canon_index=idx, run_id="b7-existing")
         assert inv["generated_candidate_file"] is None
+
+    def test_session_id_filter_uses_contract_metadata(self, tmp_path):
+        inv = _run_scan(
+            SESSIONS_DIR,
+            tmp_path,
+            run_id="b7-session-filter",
+            scope="missing",
+            filter_type="session_id",
+            filter_value="m04-s0117",
+        )
+        assert inv["candidate_count"] == 1
+        assert inv["selection"]["filter"] == {"type": "session_id", "value": "m04-s0117"}
+
+    def test_empty_session_filter_produces_no_candidate(self, tmp_path):
+        inv = _run_scan(
+            SESSIONS_DIR,
+            tmp_path,
+            run_id="b7-empty-filter",
+            scope="missing",
+            filter_type="session_id",
+            filter_value="m04-s9999",
+        )
+        assert inv["candidate_count"] == 0
+        assert inv["generated_candidate_file"] is None
+
+
+class TestB7IdentityDrift:
+    def test_same_source_path_different_id_is_not_missing(self, tmp_path):
+        candidate = ss.build_candidate_from_artifact(VALID_CONTRATO, SESSIONS_DIR)
+        source_path = candidate.record["source_fields"]["source_path"]
+        canonical = CanonRecord(
+            record={"id": "canonical-other-id", "canonical_slug": "old", "source_fields": {"source_path": source_path}},
+            serialized=_canonical_json({"id": "canonical-other-id"}),
+            shard="tiddlers_1.jsonl",
+            line_no=1,
+        )
+        index = _empty_canon_index()
+        index.by_source_path[source_path] = canonical
+        inv = _run_scan(SESSIONS_DIR, tmp_path, canon_index=index)
+        assert inv["missing_by_id"] == []
+        assert inv["source_path_identity_drift"][0]["classification"] == "source_path_identity_drift"
 
 
 # ── B8: migrated path → replaceable_migrated_source_path ─────────────────────
@@ -413,7 +454,7 @@ class TestB8MigratedPath:
         )
         replaceable = inv["replaceable_same_id_different_content"]
         assert len(replaceable) >= 1
-        assert any(e["classification"] == "replaceable_migrated_source_path" for e in replaceable)
+        assert any(e["classification"] == "replacement_by_same_id" and e["source_path_migrated"] for e in replaceable)
 
     def test_unsupported_file_classified_correctly(self, tmp_path):
         sess = tmp_path / "sessions" / "00_contratos"

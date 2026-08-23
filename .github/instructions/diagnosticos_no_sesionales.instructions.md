@@ -434,8 +434,6 @@ La instrucción se cumple cuando:
 * remoto permanece como proyección, no como autoridad;
 * cualquier promoción canónica ocurre mediante una sesión y S66.
 
-````
-
 Con esta extracción quedan separadas dos rutas cognitivas:
 
 ```text
@@ -448,3 +446,4 @@ diagnosticos_no_sesionales.instructions.md
 → diagnósticos especializados
 → ciclos y proyecto
 → publicación y recuperación remota
+```

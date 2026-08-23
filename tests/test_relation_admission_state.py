@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "src/python_scripts/relation_admission_state.py"
 sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 import relation_admission_state as relation_state  # noqa: E402
+import prepare_current_relational_generation as preparation  # noqa: E402
 
 
 def _sha256(path: Path) -> str:
@@ -109,6 +110,32 @@ def test_state_audit_works_without_data_tmp(tmp_path: Path) -> None:
     assert (local / "audit/relation_admission/current/relational_operational_state.json").exists()
 
 
+def test_state_command_is_read_only_and_preserves_existing_report(
+    tmp_path: Path,
+) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    report = (
+        local
+        / "audit/relation_admission/current/relational_operational_state.json"
+    )
+    original = b'{"authority":"preexisting-audit-evidence"}\n'
+    report.write_bytes(original)
+
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT), "state", "--local-root", str(local)],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0
+    assert json.loads(completed.stdout)["schema_version"] == (
+        "relational-operational-state/v1"
+    )
+    assert report.read_bytes() == original
+
+
 def test_validate_currentness_returns_two_for_incomplete_fixture(tmp_path: Path) -> None:
     local = tmp_path / "local"
     local.mkdir()
@@ -169,19 +196,82 @@ def test_stale_reason_controls_and_missing_current_manifest_are_fail_closed(tmp_
     local, _ = _write_current_fixture(tmp_path / "missing-manifest", with_run_manifest=False)
     state = relation_state.build_state(local)
     assert state["admission_gate"]["current"] is False
-    assert state["verdict"] == "READY_FOR_HUMAN_RELATIONAL_REVIEW"
-    assert state["next_action"] == relation_state.RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS
+    assert state["verdict"] == relation_state.CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON
+    assert state["next_action"] == relation_state.PREPARE_CURRENT_RELATIONAL_GENERATION
+    assert state["blocking_reasons"] == ["current_bundle_missing"]
     assert "current_run_manifest_missing" in state["admission_gate"]["stale_reasons"]
 
 
 def test_current_review_action_is_unique_and_operational(tmp_path: Path) -> None:
     local, _ = _write_current_fixture(tmp_path)
     state = relation_state.build_state(local)
-    assert state["next_action"] == relation_state.RECORD_CURRENT_HUMAN_RELATIONAL_DECISIONS
+    assert state["verdict"] == relation_state.CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON
+    assert state["next_action"] == relation_state.PREPARE_CURRENT_RELATIONAL_GENERATION
+    assert state["blocking_reasons"] == ["current_bundle_missing"]
+    assert state["human_review"]["technical_reviewable"] == 1
+    assert state["human_review"]["effective_decision_covered"] is None
+    assert state["human_review"]["effective_pending"] is None
     assert "OPEN_S0181" not in state["next_action"]
 
 
-def test_legacy_review_is_counted_as_evidence_but_requires_supersession(tmp_path: Path) -> None:
+def test_stale_bundle_for_current_pipeline_preserves_causal_authority_reason(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    monkeypatch.setattr(
+        preparation,
+        "read_current_bundle_status",
+        lambda _local_root: {
+            "valid": False,
+            "reason_codes": ["current_bundle_canon_stale"],
+            "bundle_path": "/immutable/previous-canon/bundle",
+            "terminal_state": "READY_FOR_HUMAN_DELTA_REVIEW",
+            "planning": {"pending_human_review": 12},
+        },
+    )
+
+    state = relation_state.build_state(local)
+
+    assert state["candidate_generation"]["current"] is True
+    assert state["reconciliation"]["current"] is True
+    assert state["verdict"] == relation_state.CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON
+    assert state["next_action"] == relation_state.PREPARE_CURRENT_RELATIONAL_GENERATION
+    assert state["blocking_reasons"] == ["current_bundle_canon_stale"]
+    assert state["current_authority"]["stale_reasons"] == ["current_bundle_canon_stale"]
+    assert state["human_review"]["technical_reviewable"] == 1
+    assert state["human_review"]["effective_decision_covered"] is None
+    assert state["human_review"]["effective_pending"] is None
+
+
+def test_effective_pending_is_exposed_only_from_a_valid_current_bundle(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+    monkeypatch.setattr(
+        preparation,
+        "read_current_bundle_status",
+        lambda _local_root: {
+            "valid": True,
+            "reason_codes": [],
+            "bundle_path": "/immutable/current/bundle",
+            "terminal_state": "READY_FOR_HUMAN_DELTA_REVIEW",
+            "next_action": "REVIEW_CURRENT_RELATIONAL_DELTA",
+            "planning": {"pending_human_review": 1},
+        },
+    )
+
+    state = relation_state.build_state(local)
+
+    assert state["human_review"]["technical_reviewable"] == 1
+    assert state["human_review"]["effective_decision_covered"] is None
+    assert state["human_review"]["effective_pending"] == 1
+
+
+def test_legacy_review_remains_visible_while_missing_current_authority_is_prioritized(
+    tmp_path: Path,
+) -> None:
     local, _ = _write_current_fixture(tmp_path)
     decisions = local / "pipeline/relation_candidates/current/human_review_decisions.jsonl"
     decisions.write_text(json.dumps({
@@ -193,11 +283,12 @@ def test_legacy_review_is_counted_as_evidence_but_requires_supersession(tmp_path
     assert state["human_review"]["total"] == 0
     assert state["human_review"]["legacy_supersession_required"] == 1
     assert state["human_review"]["current"] is False
-    assert state["verdict"] == "LEGACY_HUMAN_RELATIONAL_REVIEW_NOT_AUTHORITATIVE"
-    assert state["next_action"] == relation_state.SUPERSEDE_LEGACY_HUMAN_RELATIONAL_DECISIONS
+    assert state["verdict"] == relation_state.CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON
+    assert state["next_action"] == relation_state.PREPARE_CURRENT_RELATIONAL_GENERATION
+    assert state["blocking_reasons"] == ["current_bundle_missing"]
 
 
-def test_technically_invalid_approvals_emit_partial_verdict(tmp_path: Path) -> None:
+def test_missing_current_authority_precedes_legacy_gate_projection(tmp_path: Path) -> None:
     local, _ = _write_current_fixture(tmp_path)
     current = local / "pipeline/relation_candidates/current"
     audit = local / "audit/relation_admission/current"
@@ -221,8 +312,10 @@ def test_technically_invalid_approvals_emit_partial_verdict(tmp_path: Path) -> N
     manifest["human_review_decisions_hash"] = _sha256(decisions)
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     state = relation_state.build_state(local)
-    assert state["verdict"] == "RELATIONAL_ADMISSION_PARTIALLY_READY"
-    assert state["next_action"] == "RESOLVE_OR_DEFER_TECHNICALLY_INVALID_APPROVALS"
+    assert state["admission_gate"]["technically_invalid"] == 1
+    assert state["verdict"] == relation_state.CURRENT_RELATIONAL_AUTHORITY_MISSING_FOR_CURRENT_CANON
+    assert state["next_action"] == relation_state.PREPARE_CURRENT_RELATIONAL_GENERATION
+    assert state["blocking_reasons"] == ["current_bundle_missing"]
     preflight = relation_state.relational_apply_precondition(state)
     assert "technically_invalid_approvals_present" in preflight["reasons"]
 
@@ -329,6 +422,219 @@ def test_postapply_reconciliation_projects_authority_receipt_and_expected_stalen
     assert state["apply"]["authorization_consumed"] is True
     assert state["apply"]["receipt_path"].endswith("relation_apply_receipt.json")
     assert state["apply"]["reconciled"] is True
+    assert state["rollback"]["receipt_bound"] is True
+    assert state["expected_postapply_staleness"]["recognized"] is True
+    assert state["blocking_reasons"] == []
+    assert state["verdict"] == "RELATIONAL_PRODUCTIVE_APPLY_RECONCILED"
+    assert state["next_action"] == "START_POSTIMPACT_CLOSURE"
+
+
+def test_current_generational_postapply_is_reconciled_without_s0183(
+    tmp_path: Path,
+) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+
+    canon_path = local / "tiddlers_1.jsonl"
+    canon_path.write_text(json.dumps({
+        "id": "fixture",
+        "title": "Fixture",
+        "relations": [{
+            "relation_schema_version": "canonical-relation/v1",
+            "relation_id": "cr1_current_fixture",
+            "source_id": "fixture",
+            "target_id": "target",
+            "relation_type": "references",
+        }],
+    }) + "\n", encoding="utf-8")
+    post_hash = _sha256(canon_path)
+
+    readiness_id = "rd_current_fixture"
+    authorization_id = "cra_current_fixture"
+    apply_id = "apply_exec_current_fixture"
+
+    current_audit = local / "audit/relation_admission/current"
+    receipt_dir = (
+        local / "audit/relation_admission/apply_receipts"
+        / readiness_id / authorization_id
+    )
+    snapshot = (
+        receipt_dir / "rollback_snapshots"
+        / apply_id / "snapshot_manifest.json"
+    )
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text("{}\n", encoding="utf-8")
+
+    report = {
+        "schema": "relation-admission-apply-report/v1",
+        "status": "applied",
+        "apply_executed": True,
+        "apply_id": apply_id,
+        "applied_count": 1,
+        "failed_count": 0,
+        "canon_modified": True,
+        "canon_before_hash": "pre_current_fixture",
+        "canon_after_hash": post_hash,
+        "rollback_snapshot": str(snapshot),
+        "rollback_snapshot_hash": _sha256(snapshot),
+    }
+    (current_audit / "relation_apply_report.json").write_text(
+        json.dumps(report), encoding="utf-8",
+    )
+
+    receipt = {
+        "schema_version": "relation-admission-apply-receipt/v1",
+        "status": "applied",
+        "apply_id": apply_id,
+        "current_relational_authorization_id": authorization_id,
+        "readiness_id": readiness_id,
+        "bundle_manifest_hash": "bundle_current_fixture",
+        "sealed_apply_plan_hash": "plan_current_fixture",
+        "canon_before_hash": "pre_current_fixture",
+        "canon_after_hash": post_hash,
+        "applied_count": 1,
+        "failed_count": 0,
+        "rollback_snapshot": str(snapshot),
+        "rollback_snapshot_hash": _sha256(snapshot),
+    }
+    current_receipt = current_audit / "relation_apply_receipt.json"
+    current_receipt.write_text(json.dumps(receipt), encoding="utf-8")
+
+    auth_path = (
+        local / "audit/relation_admission/authorizations"
+        / readiness_id / "authorization.json"
+    )
+    auth_path.parent.mkdir(parents=True)
+    auth_path.write_text(json.dumps({
+        "schema_version": "current-relational-authorization/v1",
+        "authorization_id": authorization_id,
+        "readiness_id": readiness_id,
+        "bundle_manifest_hash": "bundle_current_fixture",
+        "apply_plan_hash": "plan_current_fixture",
+        "consumed": True,
+        "canon_modified": True,
+        "relations_written": 1,
+        "receipt_hash": _sha256(current_receipt),
+    }), encoding="utf-8")
+
+    state = relation_state.build_state(local)
+
+    assert state["canonical_relation_v1"] == 1
+    assert state["apply"]["executed"] is True
+    assert state["apply"]["apply_id"] == apply_id
+    assert state["apply"]["authorization_current"] is True
+    assert state["apply"]["authorized_at_execution"] is True
+    assert state["apply"]["authorization_consumed"] is True
+    assert state["apply"]["reconciled"] is True
+    assert state["rollback"]["available"] is True
+    assert state["rollback"]["ready"] is True
+    assert state["rollback"]["current"] is True
+    assert state["rollback"]["receipt_bound"] is True
+    assert state["expected_postapply_staleness"]["recognized"] is True
+    assert state["blocking_reasons"] == []
+    assert state["verdict"] == "RELATIONAL_PRODUCTIVE_APPLY_RECONCILED"
+    assert state["next_action"] == "START_POSTIMPACT_CLOSURE"
+
+
+def test_current_generational_convergent_noop_is_reconciled_without_s0183(
+    tmp_path: Path,
+) -> None:
+    local, _ = _write_current_fixture(tmp_path)
+
+    canon_path = local / "tiddlers_1.jsonl"
+    canon_path.write_text(json.dumps({
+        "id": "fixture",
+        "title": "Fixture",
+        "relations": [{
+            "relation_schema_version": "canonical-relation/v1",
+            "relation_id": "cr1_current_fixture",
+            "source_id": "fixture",
+            "target_id": "target",
+            "relation_type": "references",
+        }],
+    }) + "\n", encoding="utf-8")
+    post_hash = _sha256(canon_path)
+
+    readiness_id = "rd_current_noop_fixture"
+    authorization_id = "cra_current_noop_fixture"
+    apply_id = "apply_exec_current_noop_fixture"
+
+    current_audit = local / "audit/relation_admission/current"
+    receipt_dir = (
+        local / "audit/relation_admission/apply_receipts"
+        / readiness_id / authorization_id
+    )
+    snapshot = (
+        receipt_dir / "rollback_snapshots"
+        / apply_id / "snapshot_manifest.json"
+    )
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_text("{}\n", encoding="utf-8")
+
+    report = {
+        "schema": "relation-admission-apply-report/v1",
+        "status": "applied",
+        "apply_executed": False,
+        "apply_id": apply_id,
+        "applied_count": 0,
+        "omitted_existing_count": 1,
+        "failed_count": 0,
+        "canon_modified": False,
+        "canon_before_hash": post_hash,
+        "canon_after_hash": post_hash,
+        "rollback_snapshot": str(snapshot),
+        "rollback_snapshot_hash": _sha256(snapshot),
+    }
+    (current_audit / "relation_apply_report.json").write_text(
+        json.dumps(report), encoding="utf-8",
+    )
+
+    receipt = {
+        "schema_version": "relation-admission-apply-receipt/v1",
+        "status": "applied",
+        "apply_id": apply_id,
+        "current_relational_authorization_id": authorization_id,
+        "readiness_id": readiness_id,
+        "bundle_manifest_hash": "bundle_current_noop_fixture",
+        "sealed_apply_plan_hash": "plan_current_noop_fixture",
+        "canon_before_hash": post_hash,
+        "canon_after_hash": post_hash,
+        "applied_count": 0,
+        "failed_count": 0,
+        "rollback_snapshot": str(snapshot),
+        "rollback_snapshot_hash": _sha256(snapshot),
+    }
+    current_receipt = current_audit / "relation_apply_receipt.json"
+    current_receipt.write_text(json.dumps(receipt), encoding="utf-8")
+
+    auth_path = (
+        local / "audit/relation_admission/authorizations"
+        / readiness_id / "authorization.json"
+    )
+    auth_path.parent.mkdir(parents=True)
+    auth_path.write_text(json.dumps({
+        "schema_version": "current-relational-authorization/v1",
+        "authorization_id": authorization_id,
+        "readiness_id": readiness_id,
+        "bundle_manifest_hash": "bundle_current_noop_fixture",
+        "apply_plan_hash": "plan_current_noop_fixture",
+        "consumed": True,
+        "canon_modified": False,
+        "relations_written": 0,
+        "receipt_hash": _sha256(current_receipt),
+    }), encoding="utf-8")
+
+    state = relation_state.build_state(local)
+
+    assert state["canonical_relation_v1"] == 1
+    assert state["apply"]["executed"] is True
+    assert state["apply"]["apply_id"] == apply_id
+    assert state["apply"]["authorization_current"] is True
+    assert state["apply"]["authorized_at_execution"] is True
+    assert state["apply"]["authorization_consumed"] is True
+    assert state["apply"]["reconciled"] is True
+    assert state["rollback"]["available"] is False
+    assert state["rollback"]["ready"] is True
+    assert state["rollback"]["current"] is True
     assert state["rollback"]["receipt_bound"] is True
     assert state["expected_postapply_staleness"]["recognized"] is True
     assert state["blocking_reasons"] == []

@@ -317,10 +317,17 @@ def discover_observations(root: Path, canon_paths: set[str]) -> list[Observation
     return observations
 
 
-def load_prior_signatures(pipeline_root: Path) -> dict[tuple[str | None, str | None, str | None], str]:
+def load_prior_signatures(
+    pipeline_root: Path,
+    *,
+    exclude_dirs: Iterable[Path] = (),
+) -> dict[tuple[str | None, str | None, str | None], str]:
+    excluded = {path.resolve() for path in exclude_dirs}
     signatures: dict[tuple[str | None, str | None, str | None], str] = {}
     for path in sorted(pipeline_root.rglob("*.jsonl")):
         if "s0157" in path.parts:
+            continue
+        if any(parent.resolve() in excluded for parent in (path, *path.parents)):
             continue
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
@@ -451,10 +458,19 @@ def build_candidate(
     return candidate
 
 
-def build_candidates(root: Path, canon_root: Path, session: str = SESSION) -> list[dict[str, Any]]:
+def build_candidates(
+    root: Path,
+    canon_root: Path,
+    session: str = SESSION,
+    *,
+    exclude_prior_dirs: Iterable[Path] = (),
+) -> list[dict[str, Any]]:
     artifacts, canonical_relations = load_canon_artifacts(canon_root)
     observations = discover_observations(root, set(artifacts))
-    prior = load_prior_signatures(canon_root / "pipeline")
+    prior = load_prior_signatures(
+        canon_root / "pipeline",
+        exclude_dirs=exclude_prior_dirs,
+    )
     seen_observations: set[tuple[str, str | None, str, int]] = set()
     candidates: list[dict[str, Any]] = []
     for obs in observations:
@@ -626,6 +642,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--session", default=DEFAULT_SESSION)
     parser.add_argument("--run-id", default=None)
+    parser.add_argument(
+        "--exclude-prior-dir",
+        action="append",
+        default=[],
+        type=Path,
+        help="Candidate directory excluded from historical duplicate detection.",
+    )
     parser.add_argument("--dry-run", action="store_true", required=True)
     parser.add_argument("--apply", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args()
@@ -639,7 +662,12 @@ def main() -> int:
     if args.input:
         canon_root = args.input if args.input.is_dir() else args.input.parent
     session = str(args.session).upper()
-    candidates = build_candidates(args.repo_root.resolve(), canon_root, session=session)
+    candidates = build_candidates(
+        args.repo_root.resolve(),
+        canon_root,
+        session=session,
+        exclude_prior_dirs=args.exclude_prior_dir,
+    )
     report = write_outputs(candidates, args.out_dir, canon_root, session=session, run_id=args.run_id)
     if report["validation_errors"]:
         print(json.dumps(report["validation_errors"], ensure_ascii=False, indent=2))

@@ -13,6 +13,9 @@ RELATION_RUN_ID="${RELATION_RUN_ID:-current}"
 RELATION_ROLLBACK_SNAPSHOT="${RELATION_ROLLBACK_SNAPSHOT:-}"
 RELATION_GATE_G_AUTHORIZATION="${RELATION_GATE_G_AUTHORIZATION:-data/out/local/audit/s0183/gate-g/gate_g_authorization.json}"
 RELATION_GATE_G_PLAN="${RELATION_GATE_G_PLAN:-data/out/local/audit/s0183/gate-g/relation_apply_plan.json}"
+RELATION_MIGRATION_SOURCE_DECISIONS="${RELATION_MIGRATION_SOURCE_DECISIONS:-data/out/local/audit/s0183/entry-20260727T020358Z/pipeline_current/human_review_decisions.jsonl}"
+RELATION_MIGRATION_CROSS_BATCH_MANIFEST="${RELATION_MIGRATION_CROSS_BATCH_MANIFEST:-data/out/local/audit/s0183/current/cross_batch_reconciliation_manifest.json}"
+RELATION_MIGRATION_AUDIT_DIR="${RELATION_MIGRATION_AUDIT_DIR:-$AUDIT_DIR/human_decision_migration}"
 
 tdc_pause() {
     if [[ -t 0 ]]; then
@@ -105,17 +108,28 @@ tdc_relations_dry_run_gate() {
 }
 
 tdc_relations_show_summary() {
-    python3 src/python_scripts/relation_admission_state.py state
+    python3 src/python_scripts/relation_admission_state.py \
+        state --local-root "$CANON_DIR"
 }
 
 tdc_relations_show_ready_queue() {
-    python3 - "$RELATION_OUT_DIR/ready_for_human_review.jsonl" <<'PY'
+    python3 - "$CANON_DIR" <<'PY'
 import sys
 from pathlib import Path
-p = Path(sys.argv[1])
-print(f"Cola técnica vigente: {p}")
-print(f"Registros: {sum(1 for line in p.open(encoding='utf-8') if line.strip()) if p.exists() else 0}")
-print("Autoridad: candidate; revisión humana no ejecutada; canon no admitido.")
+sys.path.insert(0, "src/python_scripts")
+from relation_admission_state import build_state
+
+state = build_state(Path(sys.argv[1]))
+review = state.get("human_review") or {}
+authority = state.get("current_authority") or {}
+print(f"Cola técnica reviewable: {review.get('technical_reviewable', 'no resoluble')}")
+print(f"Cobertura efectiva de decisiones: {review.get('effective_decision_covered', 'no resoluble')}")
+print(f"Delta humano efectivo pendiente: {review.get('effective_pending', 'no resoluble')}")
+print(f"Autoridad generacional current: {'VÁLIDA' if authority.get('valid') else 'STALE/AUSENTE'}")
+if authority.get("stale_reasons"):
+    print("Reason-codes: " + ", ".join(authority["stale_reasons"]))
+print(f"Estado operacional: {state.get('verdict')}")
+print(f"Siguiente acción: {state.get('next_action')}")
 PY
 }
 
@@ -174,6 +188,17 @@ Esta operación preserva decisiones, auditoría, manifests y dry-run en la ruta
 histórica S0181 antes de reinicializar atómicamente la autoridad current.
 No ejecuta apply ni modifica el canon.
 EOF
+    echo "Preflight fail-closed de migración equivalente (dry-run; cero escritura):"
+    if ! python3 src/python_scripts/current_relation_human_review.py \
+        --migrate-equivalent \
+        --historical-decisions "$RELATION_MIGRATION_SOURCE_DECISIONS" \
+        --cross-batch-manifest "$RELATION_MIGRATION_CROSS_BATCH_MANIFEST" \
+        --migration-audit-dir "$RELATION_MIGRATION_AUDIT_DIR" \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR"; then
+        echo "Supersesión bloqueada por el preflight; no se solicitará confirmación."
+        return 1
+    fi
     local actor note confirmation
     printf "Identidad del revisor humano: "
     read -r actor || actor=""
@@ -245,6 +270,7 @@ except (TypeError, ValueError):
 
 if awaiting > 0 or (evaluated > 0 and not decisions_path.is_file()):
     block(
+        "RELATION_APPLY_PREFLIGHT_BLOCKED",
         "HUMAN_REVIEW_INCOMPLETE",
         "Apply bloqueado: la revisión humana del lote current está incompleta.",
         "Resuelva las candidatas awaiting antes de preparar una admisión.",
@@ -260,58 +286,51 @@ PY
     fi
     printf '%s\n' "$guard_output"
     echo "No se solicitará confirmación y no se modificó el canon."
+    echo "No se modificó el canon."
     return 1
 }
 
 tdc_relations_apply() {
-    if ! python3 src/python_scripts/relation_admission_state.py \
-        apply-preflight --local-root "$CANON_DIR"; then
+    local preflight readiness authorization_present reviewer confirmation authorization_id apply_result
+    if ! preflight="$(python3 src/python_scripts/current_relational_apply.py preflight --local-root "$CANON_DIR")"; then
+        printf '%s\n' "$preflight"
         echo "RELATION_APPLY_PREFLIGHT_BLOCKED"
-        echo "APPLY RELATIONS bloqueado antes de solicitar confirmación."
-        echo "No se modificó el canon."
         return 1
     fi
-    if ! tdc_relations_apply_cli_guard; then
-        return 1
+    printf '%s\n' "$preflight"
+    readiness="$(printf '%s' "$preflight" | python3 -c 'import json,sys; print(json.load(sys.stdin)["readiness_id"])')"
+    authorization_present="$(printf '%s' "$preflight" | python3 -c 'import json,sys; print(str(json.load(sys.stdin)["authorization_present"]).lower())')"
+    if [[ "$authorization_present" != "true" ]]; then
+        printf 'Identidad del autorizador: '
+        read -r reviewer || reviewer=""
+        printf 'Escriba exactamente AUTHORIZE CURRENT RELATIONAL APPLY %s: ' "$readiness"
+        read -r confirmation || confirmation=""
+        if ! python3 src/python_scripts/current_relational_apply.py authorize \
+            --local-root "$CANON_DIR" --reviewer "$reviewer" --confirmation "$confirmation"; then
+            echo "CURRENT_RELATIONAL_APPLY_AUTHORIZATION_CANCELLED"
+            echo "No se modificó el canon."
+            return 1
+        fi
+        echo "CURRENT_RELATIONAL_APPLY_AUTHORIZED"
+        echo "Apply no ejecutado. Vuelva a seleccionar la opción 5 para ejecutar."
+        return 0
     fi
-    cat <<'EOF'
-ATENCIÓN:
-Esta operación puede modificar el canon local agregando relaciones admitidas.
-
-Solo debe ejecutarse si:
-- el dry-run pasó;
-- existe human_review_decision=approved_for_admission;
-- las candidatas fueron revalidadas contra el canon vigente;
-- el operador acepta la mutación canónica.
-
-Escribe exactamente:
-APPLY RELATIONS
-para continuar.
-EOF
-    local confirmation
+    authorization_id="$(printf '%s' "$preflight" | python3 -c 'import json,sys; print(json.load(sys.stdin)["authorization"]["authorization_id"])')"
+    printf 'Escriba exactamente CONFIRM APPLY CURRENT RELATIONS %s: ' "$authorization_id"
     read -r confirmation || confirmation=""
-    if [[ "$confirmation" != "APPLY RELATIONS" ]]; then
-        echo "RELATION_APPLY_CANCELLED"
-        echo "Apply cancelado: no se recibió la confirmación exacta requerida."
+    if [[ "$confirmation" != "CONFIRM APPLY CURRENT RELATIONS $authorization_id" ]]; then
+        echo "CURRENT_RELATIONAL_APPLY_CANCELLED"
         echo "No se modificó el canon."
         return 1
     fi
-
-    local report="$AUDIT_DIR/admission_gate_dry_run.json"
-    local candidate_file
-    candidate_file="$(tdc_relation_reviewable_file)"
-    mkdir -p "$AUDIT_DIR"
-    python3 src/python_scripts/relation_admission_gate.py \
-        --candidate-file "$candidate_file" \
-        --canon-glob "$CANON_DIR/tiddlers_*.jsonl" \
-        --human-review-decisions "$RELATION_HUMAN_REVIEW_DECISIONS" \
-        --dry-run-report "$report" \
-        --authorization-file "$RELATION_GATE_G_AUTHORIZATION" \
-        --authorized-plan "$RELATION_GATE_G_PLAN" \
-        --out-dir "$AUDIT_DIR" \
-        --session "$RELATION_SESSION" \
-        --terminal-confirmation "$confirmation" \
-        --apply 2>&1
+    if ! apply_result="$(python3 src/python_scripts/current_relational_apply.py apply \
+        --local-root "$CANON_DIR" --authorization-id "$authorization_id" --confirmation "$confirmation")"; then
+        printf '%s\n' "$apply_result"
+        echo "CURRENT_RELATIONAL_APPLY_BLOCKED"
+        return 1
+    fi
+    printf '%s\n' "$apply_result"
+    echo "CURRENT_RELATIONAL_APPLY_COMPLETED"
 }
 
 tdc_relations_rollback() {
@@ -335,6 +354,33 @@ EOF
         --rollback-snapshot "$RELATION_ROLLBACK_SNAPSHOT" \
         --rollback-confirmation "$confirmation" \
         --out-dir "$AUDIT_DIR"
+}
+
+tdc_relations_prepare_current_generation() {
+    local status preflight result
+    echo "Estado current antes de preparar:"
+    if ! status="$(python3 src/python_scripts/prepare_current_relational_generation.py \
+        --status --local-root "$CANON_DIR")"; then
+        printf '%s\n' "$status"
+    else
+        printf '%s\n' "$status"
+    fi
+    echo "Preflight de recomposición current:"
+    if ! preflight="$(python3 src/python_scripts/prepare_current_relational_generation.py \
+        --dry-run --local-root "$CANON_DIR" --compact)"; then
+        printf '%s\n' "$preflight"
+        echo "CURRENT_RECOMPOSITION_PREFLIGHT_BLOCKED"
+        return 0
+    fi
+    printf '%s\n' "$preflight"
+    echo "Ejecutando recomposición current en staging:"
+    if ! result="$(python3 src/python_scripts/prepare_current_relational_generation.py \
+        --execute --local-root "$CANON_DIR" --compact)"; then
+        printf '%s\n' "$result"
+        echo "CURRENT_RECOMPOSITION_BLOCKED"
+        return 0
+    fi
+    printf '%s\n' "$result"
 }
 
 tdc_relations_menu() {
@@ -389,6 +435,7 @@ tdc_relations_admission_menu() {
 9) Superseder revisión legacy con respaldo histórico
 10) Revisar múltiples lotes homogéneos v2
 11) ROLLBACK RELATIONS protegido
+12) Preparar generación relacional current
 0) Volver
 EOF
         printf "> "
@@ -406,6 +453,7 @@ EOF
             9) tdc_relations_supersede_legacy_review; tdc_pause ;;
             10) tdc_relations_review_multiple_batches; tdc_pause ;;
             11) tdc_relations_rollback; tdc_pause ;;
+            12) tdc_relations_prepare_current_generation; tdc_pause ;;
             0|"") return 0 ;;
             *) echo "Opción inválida." ;;
         esac

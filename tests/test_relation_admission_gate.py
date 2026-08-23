@@ -826,6 +826,103 @@ class TestS0165SafeApplyEngine:
         )
         return path
 
+    def test_safety_verification_accepts_convergent_noop(
+        self, tmp_path: Path,
+    ):
+        candidate = _technical_candidate()
+        candidate_id = str(candidate["candidate_id"])
+        source_id = relation_gate.endpoint_id(candidate.get("source") or {})
+        target_id = relation_gate.endpoint_id(candidate.get("target") or {})
+        relation_type = relation_gate.relation_type_for(candidate)
+
+        canon_dir = tmp_path / "canon"
+        canon_dir.mkdir()
+        canon_path = canon_dir / "tiddlers_1.jsonl"
+        canon_path.write_text(
+            json.dumps({
+                "id": source_id,
+                "relations": [{
+                    "relation_schema_version": "canonical-relation/v1",
+                    "relation_id": "cr1_existing_fixture",
+                    "source_id": source_id,
+                    "target_id": target_id,
+                    "relation_type": relation_type,
+                }],
+            }) + "\n",
+            encoding="utf-8",
+        )
+        canon_before = canon_path.read_bytes()
+
+        candidates_file = self._write_candidates(tmp_path, [candidate])
+        dry_run = self._write_dry_run_report(
+            tmp_path,
+            [{
+                "candidate_id": candidate_id,
+                "gate_status": "admission_ready_dry_run",
+                "admission_ready_dry_run": True,
+                "blocking_reasons": [],
+                "all_block_reasons": [],
+            }],
+            ready=1,
+        )
+        review_file = self._write_review(
+            tmp_path,
+            [{
+                "candidate_id": candidate_id,
+                "human_review_decision": "approved_for_admission",
+                "human_review_actor": "operator",
+                "human_review_timestamp": "2026-08-23T00:00:00+00:00",
+                "approval_scope": "canonical_admission",
+                "reviewed_evidence_paths": [],
+                "session_id": "S0184",
+            }],
+        )
+
+        report = relation_gate.verify_apply_safety_on_temp_copy(
+            source_canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+            temp_work_root=tmp_path / "safety-work",
+            candidates_file=candidates_file,
+            human_review_decisions_file=review_file,
+            dry_run_report_path=dry_run,
+            binding_paths={},
+            report_path=tmp_path / "safety-report.json",
+        )
+
+        assert report["passed"] is True
+        assert report["verification_mode"] == "convergent_noop"
+
+        positive = report["positive_apply"]
+        assert positive["would_apply_count"] == 1
+        assert positive["applied_count"] == 0
+        assert positive["omitted_existing_count"] == 1
+        assert positive["failed_count"] == 0
+        assert positive["apply_executed"] is False
+        assert positive["canon_modified"] is False
+
+        retry = report["second_apply"]
+        assert retry["status"] == "applied"
+        assert retry["applied_count"] == 0
+        assert retry["omitted_existing_count"] == 1
+        assert retry["failed_count"] == 0
+        assert retry["canon_modified"] is False
+
+        failure = report["injected_failure"]
+        assert failure["applicable"] is False
+        assert failure["status"] == "applied"
+        assert failure["applied_count"] == 0
+        assert failure["omitted_existing_count"] == 1
+        assert failure["failed_count"] == 0
+        assert failure["canon_modified"] is False
+        assert failure["restored_exactly"] is True
+
+        assert report["rollback"]["status"] == "already_restored"
+        assert report["rollback"]["byte_exact"] is True
+        assert report["repeated_rollback"]["status"] == "already_restored"
+        assert report["repeated_rollback"]["byte_exact"] is True
+        assert report["success_copy_restored_exactly"] is True
+        assert report["production_canon_unchanged"] is True
+        assert canon_path.read_bytes() == canon_before
+
     def test_apply_requires_human_review_file(self, tmp_path: Path):
         candidates_file = self._write_candidates(tmp_path, [_technical_candidate()])
         dry_run = self._write_dry_run_report(tmp_path, [])
@@ -1298,6 +1395,95 @@ class TestS0165SafeApplyEngine:
         )
         assert retry_code == 1
         assert "authorization_already_consumed" in retry["apply_plan"]["block_reasons"]
+
+    def test_prevalidated_plan_is_blocked_outside_current_relational_bundle(
+        self, tmp_path: Path,
+    ):
+        canon_dir = tmp_path / "canon"
+        inputs_dir = tmp_path / "inputs"
+        audit_dir = tmp_path / "audit"
+        canon_dir.mkdir()
+        inputs_dir.mkdir()
+
+        canon_path = canon_dir / "tiddlers_1.jsonl"
+        canon_path.write_text(
+            json.dumps({"id": "src-001", "relations": []}) + "\n"
+            + json.dumps({"id": "tgt-002", "relations": []}) + "\n",
+            encoding="utf-8",
+        )
+        canon_before = canon_path.read_bytes()
+
+        candidate = _technical_candidate(
+            source={"canonical_id": "src-001", "repo_path": "source.py"},
+            target={"canonical_id": "tgt-002", "repo_path": "target.py"},
+            policy={
+                "human_review_required": True,
+                "canonical_admission_allowed": True,
+            },
+            session_resolution={"classification": "resolved_for_human_review"},
+        )
+        candidates_file = self._write_candidates(inputs_dir, [candidate])
+        review_file = self._write_review(inputs_dir, [{
+            "candidate_id": candidate["candidate_id"],
+            "human_review_decision": "approved_for_admission",
+            "human_review_actor": "operator",
+            "human_review_timestamp": "2026-07-28T00:00:00Z",
+            "approval_scope": "canonical_admission",
+            "reviewed_evidence_paths": [],
+            "session_id": "S0183",
+        }])
+        dry_run = self._write_dry_run_report(
+            inputs_dir,
+            [{
+                "candidate_id": candidate["candidate_id"],
+                "gate_status": "admission_ready_dry_run",
+                "all_block_reasons": [],
+            }],
+            ready=1,
+        )
+
+        decisions, errors = relation_gate.load_persistent_human_review_decisions(
+            review_file
+        )
+        assert errors == []
+
+        plan = relation_gate.build_apply_plan(
+            candidates=[candidate],
+            canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+            human_review_decisions=decisions,
+            dry_run_report=relation_gate.load_dry_run_report(dry_run),
+            dry_run_report_path=dry_run,
+            dry_run_recent=True,
+            binding_paths={},
+        )
+        plan["apply_plan_id"] = relation_gate.semantic_apply_plan_id(plan)
+
+        sealed_plan = inputs_dir / "sealed_current_plan.json"
+        sealed_plan.write_text(
+            json.dumps(plan, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        code, report = guarded_apply_relations(
+            candidates_file=candidates_file,
+            canon_glob=str(canon_dir / "tiddlers_*.jsonl"),
+            human_review_decisions_file=review_file,
+            dry_run_report_path=dry_run,
+            out_dir=audit_dir,
+            terminal_confirmation="APPLY RELATIONS",
+            perform_write=True,
+            target_scope="production_path",
+            prevalidated_plan_path=sealed_plan,
+        )
+
+        assert code == 1
+        assert report["status"] == "blocked"
+        assert report["exact_authorized_plan_reused"] is False
+        assert (
+            "prevalidated_plan_scope_invalid"
+            in report["apply_plan"]["block_reasons"]
+        )
+        assert canon_path.read_bytes() == canon_before
 
     def test_transaction_failure_between_shards_rolls_back_exactly(self, tmp_path: Path):
         canon_dir = tmp_path / "canon"

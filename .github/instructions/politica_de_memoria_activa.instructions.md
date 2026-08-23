@@ -299,4 +299,3 @@ La política se cumple cuando:
 - se distingue preferencia humana, señal computada y acción operativa;
 - toda acción irreversible requiere autorización;
 - la continuidad puede recuperarse sin cargar todo el historial.
-````
