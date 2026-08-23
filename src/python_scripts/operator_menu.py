@@ -1266,7 +1266,14 @@ def print_items(title: str, items: list[dict[str, Any]], limit: int = 40) -> Non
         print(f"... {len(items) - limit} mas")
 
 
-def run_admission_command(mode: str, candidate_file: Path, extra: list[str] | None = None) -> tuple[CommandResult, dict[str, Any] | None]:
+def run_admission_command(
+    mode: str,
+    candidate_file: Path,
+    inventory: dict[str, Any],
+    extra: list[str] | None = None,
+) -> tuple[CommandResult, dict[str, Any] | None]:
+    selection = inventory.get("selection") or {}
+    session_filter = selection.get("filter") or {"type": "all", "value": None}
     args = [
         sys.executable,
         "src/python_scripts/admit_session_candidates.py",
@@ -1281,7 +1288,13 @@ def run_admission_command(mode: str, candidate_file: Path, extra: list[str] | No
         str(DEFAULT_ADMISSION_TMP_DIR),
         "--report-dir",
         str(DEFAULT_ADMISSION_REPORT_DIR),
+        "--scope",
+        str(selection.get("scope") or "combined"),
+        "--session-filter-type",
+        str(session_filter.get("type") or "all"),
     ]
+    if session_filter.get("value"):
+        args.extend(["--session-filter-value", str(session_filter["value"])])
     if extra:
         args.extend(extra)
     result = run_command(args, cwd=REPO_ROOT)
@@ -1290,12 +1303,16 @@ def run_admission_command(mode: str, candidate_file: Path, extra: list[str] | No
 
 
 def sync_admission_extra_args(inventory: dict[str, Any]) -> list[str]:
-    if inventory.get("replaceable_same_id_different_content"):
+    if (inventory.get("selection") or {}).get("scope") in {"replacement", "combined"}:
         return ["--allow-replacements"]
     return []
 
 
-def dry_run_report_is_usable(report_path: Path, candidate_file: Path) -> tuple[bool, str]:
+def dry_run_report_is_usable(
+    report_path: Path,
+    candidate_file: Path,
+    inventory: dict[str, Any],
+) -> tuple[bool, str]:
     try:
         payload = load_json(report_path)
     except (OSError, json.JSONDecodeError) as exc:
@@ -1304,8 +1321,22 @@ def dry_run_report_is_usable(report_path: Path, candidate_file: Path) -> tuple[b
         return False, "el reporte no es de dry-run"
     if payload.get("status") != "ok":
         return False, "el dry-run no termino ok"
-    if payload.get("candidate_file") != as_display_path(candidate_file):
-        return False, "el reporte dry-run no corresponde al candidato actual"
+    binding = payload.get("admission_binding") or {}
+    selection = inventory.get("selection") or {}
+    if binding.get("candidate_file") != as_display_path(candidate_file):
+        return False, "el binding no corresponde al archivo candidato actual"
+    actual_candidate_hash = "sha256:" + hashlib.sha256(candidate_file.read_bytes()).hexdigest()
+    if binding.get("candidate_sha256") != actual_candidate_hash:
+        return False, "el hash del candidato cambio despues del dry-run"
+    if binding.get("source_canon_hash") != inventory.get("source_canon_hash"):
+        return False, "el hash del canon cambio despues del scan/dry-run"
+    if binding.get("scope") != selection.get("scope"):
+        return False, "el alcance cambio despues del dry-run"
+    if binding.get("session_filter") != selection.get("filter"):
+        return False, "el filtro de sesion cambio despues del dry-run"
+    expected_replacements = selection.get("scope") in {"replacement", "combined"}
+    if binding.get("replacements_allowed") != expected_replacements:
+        return False, "la politica de reemplazos cambio despues del dry-run"
     if payload.get("rejected_candidates"):
         return False, "el dry-run tiene candidatos rechazados"
     reverse = payload.get("reverse_result") or {}
@@ -1315,6 +1346,41 @@ def dry_run_report_is_usable(report_path: Path, candidate_file: Path) -> tuple[b
 
 
 def option_session_sync(state: MenuState) -> None:
+    print(
+        "\nAlcance de sincronizacion (seleccion obligatoria)\n"
+        "1) Solo faltantes\n"
+        "2) Solo reemplazos por mismo ID\n"
+        "3) Combinado\n"
+        "4) Revisar derivas de identidad por source_path\n"
+        "0) Volver"
+    )
+    scope_choice = prompt("> ").strip()
+    scope_by_choice = {"1": "missing", "2": "replacement", "3": "combined", "4": "identity-drift"}
+    if scope_choice == "0" or scope_choice == "":
+        return
+    scope = scope_by_choice.get(scope_choice)
+    if scope is None:
+        print("Alcance invalido; no se ejecuto scan.")
+        return
+
+    print(
+        "\nFiltro de sesion (seleccion obligatoria)\n"
+        "1) session_id (ej. m04-s0183)\n"
+        "2) module (ej. m04)\n"
+        "3) artifact family\n"
+        "4) Todas"
+    )
+    filter_choice = prompt("> ").strip()
+    filter_type_by_choice = {"1": "session_id", "2": "module", "3": "family", "4": "all"}
+    filter_type = filter_type_by_choice.get(filter_choice)
+    if filter_type is None:
+        print("Filtro invalido; no se ejecuto scan.")
+        return
+    filter_value = None if filter_type == "all" else prompt(f"Valor {filter_type}: ").strip()
+    if filter_type != "all" and not filter_value:
+        print("El filtro requiere valor; no se ejecuto scan.")
+        return
+
     print("\nEscaneando data/out/local/sessions por ID canonico...")
     try:
         inventory = scan_session_sync(
@@ -1322,6 +1388,9 @@ def option_session_sync(state: MenuState) -> None:
             canon_dir=DEFAULT_CANON_DIR,
             out_dir=DEFAULT_SESSION_SYNC_DIR,
             evidence_dir=DEFAULT_SESSION_SYNC_EVIDENCE_DIR,
+            scope=scope,
+            filter_type=filter_type,
+            filter_value=filter_value,
         )
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         print(f"No se pudo generar inventario: {exc}")
@@ -1331,6 +1400,9 @@ def option_session_sync(state: MenuState) -> None:
     candidate_value = inventory.get("generated_candidate_file")
     state.last_sync_candidate_file = (REPO_ROOT / candidate_value).resolve() if candidate_value else None
     print_inventory_summary(inventory)
+    print(f"Alcance: {scope}; filtro: {filter_type}={filter_value or 'all'}")
+    print(f"Canon fuente: {inventory.get('source_canon_hash')}")
+    print(f"Hash candidato: {inventory.get('candidate_sha256') or '-'}")
 
     while True:
         print(
@@ -1365,7 +1437,7 @@ def option_session_sync(state: MenuState) -> None:
             if state.last_sync_candidate_file:
                 print(f"Candidato sincronizable: {display(state.last_sync_candidate_file)}")
                 print(f"Lineas: {count_jsonl_lines(state.last_sync_candidate_file)}")
-                if inventory.get("replaceable_same_id_different_content"):
+                if scope in {"replacement", "combined"}:
                     print("Modo: incluye reemplazos controlados; se usara --allow-replacements.")
             else:
                 print("No hay faltantes ni reemplazos; no se genero archivo de candidatos.")
@@ -1379,6 +1451,7 @@ def option_session_sync(state: MenuState) -> None:
             result, payload = run_admission_command(
                 "validate",
                 state.last_sync_candidate_file,
+                inventory,
                 sync_admission_extra_args(inventory),
             )
             if payload and payload.get("report"):
@@ -1395,6 +1468,7 @@ def option_session_sync(state: MenuState) -> None:
             result, payload = run_admission_command(
                 "dry-run",
                 state.last_sync_candidate_file,
+                inventory,
                 sync_admission_extra_args(inventory),
             )
             if payload and payload.get("report"):
@@ -1411,7 +1485,7 @@ def option_session_sync(state: MenuState) -> None:
             if not state.last_dry_run_report:
                 print("Apply bloqueado: no hay dry-run previo en esta ejecucion del menu.")
                 continue
-            usable, reason = dry_run_report_is_usable(state.last_dry_run_report, state.last_sync_candidate_file)
+            usable, reason = dry_run_report_is_usable(state.last_dry_run_report, state.last_sync_candidate_file, inventory)
             if not usable:
                 print(f"Apply bloqueado: {reason}")
                 continue
@@ -1428,7 +1502,13 @@ def option_session_sync(state: MenuState) -> None:
             run_admission_command(
                 "apply",
                 state.last_sync_candidate_file,
-                [*sync_admission_extra_args(inventory), "--confirm-apply"],
+                inventory,
+                [
+                    *sync_admission_extra_args(inventory),
+                    "--dry-run-report",
+                    str(state.last_dry_run_report),
+                    "--confirm-apply",
+                ],
             )
         elif choice == "8":
             option_rollback()
