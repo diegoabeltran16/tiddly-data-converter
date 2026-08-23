@@ -313,6 +313,10 @@ def _canon_hash(canon_dir: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 
+def _file_hash(path: Path) -> str:
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+
+
 def _session_family_key(session_origin: str, artifact_family: str) -> str:
     return f"{session_origin}::{artifact_family}"
 
@@ -700,9 +704,9 @@ def _classify_against_index(
         "already_admitted_skip": 0,
         "duplicate_identical": 0,
         "conflict_same_id_different_content": 0,
-        "conflict_same_source_path_different_id": 0,
+        "source_path_identity_drift": 0,
         "conflict_same_session_family_already_admitted": 0,
-        "replace_existing_by_source_path": 0,
+        "replacement_by_same_id": 0,
         "warning_same_title_different_id": 0,
     }
 
@@ -751,11 +755,11 @@ def _classify_against_index(
                     "line": entry.line_no,
                     "id": rec_id,
                     "title": rec_title,
-                    "classification": "conflict_same_source_path_different_id",
+                    "classification": "source_path_identity_drift",
                     "message": f"source_path {entry.source_path} already appears with a different id inside candidate file",
                 }
             )
-            stats["conflict_same_source_path_different_id"] += 1
+            stats["source_path_identity_drift"] += 1
             continue
 
         if sf_key in seen_session_family and seen_session_family[sf_key].record.get("id") != rec_id:
@@ -830,28 +834,22 @@ def _classify_against_index(
                     }
                 )
                 stats["already_admitted_skip"] += 1
-            elif allow_replacements and (
-                _safe_str((canon_same_id.record.get("source_fields") or {}).get("source_path")) == entry.source_path
-                or _is_migration_equivalent_path(
-                    _safe_str((canon_same_id.record.get("source_fields") or {}).get("source_path")),
-                    entry.source_path,
-                )
-            ):
+            elif allow_replacements:
                 entry.replacement = canon_same_id
                 warnings.append(
                     {
                         "line": entry.line_no,
                         "id": rec_id,
                         "title": rec_title,
-                        "classification": "replace_existing_by_source_path",
+                        "classification": "replacement_by_same_id",
                         "message": (
                             f"id {rec_id} already exists with different content in {canon_same_id.shard}; "
-                            "will replace it because source_path is identical or migration-equivalent"
+                            "will replace it while preserving the same canonical id"
                         ),
                     }
                 )
                 eligible.append(entry)
-                stats["replace_existing_by_source_path"] += 1
+                stats["replacement_by_same_id"] += 1
             else:
                 rejected.append(
                     {
@@ -885,63 +883,23 @@ def _classify_against_index(
 
         source_match = canon_index.by_source_path.get(entry.source_path)
         if source_match is not None and _safe_str(source_match.record.get("id")) != rec_id:
-            if allow_replacements:
-                entry.replacement = source_match
-                warnings.append(
-                    {
-                        "line": entry.line_no,
-                        "id": rec_id,
-                        "title": rec_title,
-                        "classification": "replace_existing_by_source_path",
-                        "message": (
-                            f"source_path {entry.source_path} already exists with id "
-                            f"{_safe_str(source_match.record.get('id'))}; will replace it"
-                        ),
-                    }
-                )
-                eligible.append(entry)
-                stats["replace_existing_by_source_path"] += 1
-                continue
             rejected.append(
                 {
                     "line": entry.line_no,
                     "id": rec_id,
                     "title": rec_title,
-                    "classification": "conflict_same_source_path_different_id",
+                    "classification": "source_path_identity_drift",
                     "message": (
                         f"source_path {entry.source_path} already exists with id "
-                        f"{_safe_str(source_match.record.get('id'))}"
+                        f"{_safe_str(source_match.record.get('id'))}; source_path alone never authorizes replacement"
                     ),
                 }
             )
-            stats["conflict_same_source_path_different_id"] += 1
+            stats["source_path_identity_drift"] += 1
             continue
 
         sf_existing = canon_index.by_session_family.get(sf_key)
         if sf_existing is not None and _safe_str(sf_existing.record.get("id")) != rec_id:
-            if allow_replacements and (
-                _safe_str((sf_existing.record.get("source_fields") or {}).get("source_path")) == entry.source_path
-                or _is_migration_equivalent_path(
-                    _safe_str((sf_existing.record.get("source_fields") or {}).get("source_path")),
-                    entry.source_path,
-                )
-            ):
-                entry.replacement = sf_existing
-                warnings.append(
-                    {
-                        "line": entry.line_no,
-                        "id": rec_id,
-                        "title": rec_title,
-                        "classification": "replace_existing_by_source_path",
-                        "message": (
-                            "session_origin + artifact_family already admitted with a different id; "
-                            "will replace it because source_path is identical"
-                        ),
-                    }
-                )
-                eligible.append(entry)
-                stats["replace_existing_by_source_path"] += 1
-                continue
             rejected.append(
                 {
                     "line": entry.line_no,
@@ -1286,6 +1244,7 @@ def _build_report_skeleton(
         "timestamp": _iso_now(),
         "session_id": session_id,
         "candidate_file": as_display_path(candidate_file) if candidate_file else None,
+        "candidate_sha256": _file_hash(candidate_file) if candidate_file and candidate_file.exists() else None,
         "sessions_dir": as_display_path(sessions_dir) if sessions_dir else None,
         "canon_dir": as_display_path(canon_dir),
         "tmp_canon_dir": as_display_path(tmp_canon_dir) if tmp_canon_dir else None,
@@ -1324,6 +1283,63 @@ def _build_report_skeleton(
     }
 
 
+def _binding_from_args(
+    args: argparse.Namespace,
+    candidate_file: Path,
+    canon_dir: Path,
+    dry_run_report: Path | None,
+    dry_run_status: str,
+) -> dict[str, Any]:
+    replacements_allowed = bool(getattr(args, "allow_replacements", False) or getattr(args, "all_contracts", False))
+    return {
+        "source_canon_hash": _canon_hash(canon_dir),
+        "candidate_file": as_display_path(candidate_file),
+        "candidate_sha256": _file_hash(candidate_file),
+        "candidate_count": sum(1 for line in candidate_file.read_text(encoding="utf-8").splitlines() if line.strip()),
+        "scope": getattr(args, "scope", "combined"),
+        "session_filter": {
+            "type": getattr(args, "session_filter_type", "all"),
+            "value": getattr(args, "session_filter_value", None),
+        },
+        "replacements_allowed": replacements_allowed,
+        "dry_run_report": as_display_path(dry_run_report) if dry_run_report else None,
+        "dry_run_status": dry_run_status,
+        "created_at": _iso_now(),
+    }
+
+
+def _validate_dry_run_binding(
+    args: argparse.Namespace,
+    candidate_file: Path,
+    canon_dir: Path,
+) -> tuple[Path | None, list[str]]:
+    raw_report = getattr(args, "dry_run_report", None)
+    if not raw_report:
+        return None, ["apply requires --dry-run-report bound to the exact candidate and canon"]
+    report_path = resolve_repo_path(raw_report, DEFAULT_REPORT_DIR)
+    try:
+        payload = _load_json(report_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return report_path, [f"dry-run report cannot be read: {exc}"]
+    binding = payload.get("admission_binding") if isinstance(payload, dict) else None
+    if not isinstance(binding, dict):
+        return report_path, ["dry-run report has no admission_binding"]
+    expected = _binding_from_args(args, candidate_file, canon_dir, report_path, "ok")
+    checks = {
+        "dry-run mode": payload.get("mode") == "dry-run",
+        "dry-run status": payload.get("status") == "ok" and binding.get("dry_run_status") == "ok",
+        "candidate file": binding.get("candidate_file") == expected["candidate_file"],
+        "candidate hash": binding.get("candidate_sha256") == expected["candidate_sha256"],
+        "candidate count": binding.get("candidate_count") == expected["candidate_count"],
+        "canon hash": binding.get("source_canon_hash") == expected["source_canon_hash"],
+        "scope": binding.get("scope") == expected["scope"],
+        "session filter": binding.get("session_filter") == expected["session_filter"],
+        "replacement policy": binding.get("replacements_allowed") == expected["replacements_allowed"],
+        "dry-run report": binding.get("dry_run_report") == as_display_path(report_path),
+    }
+    return report_path, [label for label, passed in checks.items() if not passed]
+
+
 def _write_report(report: dict[str, Any], report_dir: Path) -> Path:
     report_dir.mkdir(parents=True, exist_ok=True)
     report_path = report_dir / f"{report['admission_run_id']}.json"
@@ -1353,6 +1369,7 @@ def _handle_validate(args: argparse.Namespace) -> int:
     report["canon_before_hash"] = _canon_hash(canon_dir)
     report["canon_after_hash"] = report["canon_before_hash"]
     report["candidate_count"] = len(validation.entries) + len([r for r in validation.rejected if r.get("classification") == "reject_invalid_jsonl"])
+    report["admission_binding"] = _binding_from_args(args, candidate_file, canon_dir, None, "not_run")
 
     proposal_validate_result = _run_canon_proposal_validate(candidate_file, canon_dir)
     report["commands_run"].append(proposal_validate_result.to_report())
@@ -1426,6 +1443,30 @@ def _run_dry_pipeline(args: argparse.Namespace, mode: str) -> tuple[int, dict[st
     report["candidate_count"] = len(validation.entries) + len([r for r in validation.rejected if r.get("classification") == "reject_invalid_jsonl"])
     report["rejected_candidates"].extend(validation.rejected)
     report["warnings"].extend(validation.warnings)
+
+    report_path_expected = report_dir / f"{run_id}.json"
+    report["admission_binding"] = _binding_from_args(
+        args,
+        candidate_file,
+        canon_dir,
+        report_path_expected if mode == "dry-run" else None,
+        "pending",
+    )
+
+    if mode == "apply":
+        bound_report, binding_errors = _validate_dry_run_binding(args, candidate_file, canon_dir)
+        report["admission_binding"]["dry_run_report"] = as_display_path(bound_report) if bound_report else None
+        if binding_errors:
+            report["canon_after_hash"] = report["canon_before_hash"]
+            report["rejected_candidates"].append(
+                {
+                    "line": 0,
+                    "classification": "reject_stale_or_missing_dry_run_binding",
+                    "message": "; ".join(binding_errors),
+                }
+            )
+            report_path = _write_report(report, report_dir)
+            return 2, report, report_path
 
     if mode == "apply" and not args.confirm_apply:
         report["canon_after_hash"] = report["canon_before_hash"]
@@ -1584,6 +1625,7 @@ def _run_dry_pipeline(args: argparse.Namespace, mode: str) -> tuple[int, dict[st
         report["rollback_ready"] = False
         report["canon_modified"] = False
         report["status"] = "ok"
+        report["admission_binding"]["dry_run_status"] = "ok"
         report_path = _write_report(report, report_dir)
         return 0, report, report_path
 
@@ -1601,6 +1643,7 @@ def _run_dry_pipeline(args: argparse.Namespace, mode: str) -> tuple[int, dict[st
         report["canon_after_hash"] = _canon_hash(canon_dir)
         report["rollback_ready"] = bool(normalized_lines)
         report["status"] = "ok"
+        report["admission_binding"]["dry_run_status"] = "consumed"
         report_path = _write_report(report, report_dir)
         return 0, report, report_path
 
@@ -1990,10 +2033,13 @@ def _shared_mode_arguments(subparser: argparse.ArgumentParser) -> None:
         "--allow-replacements",
         action="store_true",
         help=(
-            "Allow controlled replacement when the same source_path is already in canon "
-            "with an older id/content; rollback stores the replaced records"
+            "Allow controlled replacement only when the canonical id is unchanged; "
+            "same-source different-id records remain blocked"
         ),
     )
+    subparser.add_argument("--scope", choices=("missing", "replacement", "combined"), default="combined")
+    subparser.add_argument("--session-filter-type", choices=("all", "session_id", "module", "family"), default="all")
+    subparser.add_argument("--session-filter-value", default=None)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -2035,6 +2081,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--confirm-apply",
         action="store_true",
         help="Required explicit confirmation before admission gates can write data/out/local/tiddlers_*.jsonl",
+    )
+    apply_parser.add_argument(
+        "--dry-run-report",
+        help="Exact successful dry-run receipt whose binding apply must consume",
     )
     apply_parser.set_defaults(func=_handle_apply)
 
