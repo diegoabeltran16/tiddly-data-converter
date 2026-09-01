@@ -66,6 +66,10 @@
 │   │   │   │   │   ├── admit-20260823174655-multi-session.json
 │   │   │   │   │   ├── admit-20260823191433-multi-session.json
 │   │   │   │   │   ├── admit-20260823191818-multi-session.json
+│   │   │   │   │   ├── admit-20260823214845-multi-session.json
+│   │   │   │   │   ├── admit-20260823214953-multi-session.json
+│   │   │   │   │   ├── admit-20260823221435-multi-session.json
+│   │   │   │   │   ├── admit-20260823222151-multi-session.json
 │   │   │   │   │   ├── backups
 │   │   │   │   │   │   ├── admit-20260706220323-multi-session
 │   │   │   │   │   │   ├── admit-20260708001525-multi-session
@@ -78,7 +82,9 @@
 │   │   │   │   │   │   ├── admit-20260723144753-multi-session
 │   │   │   │   │   │   ├── admit-20260802004923-multi-session
 │   │   │   │   │   │   ├── admit-20260823174655-multi-session
-│   │   │   │   │   │   └── admit-20260823191818-multi-session
+│   │   │   │   │   │   ├── admit-20260823191818-multi-session
+│   │   │   │   │   │   ├── admit-20260823214953-multi-session
+│   │   │   │   │   │   └── admit-20260823222151-multi-session
 │   │   │   │   │   ├── generated
 │   │   │   │   │   │   ├── all-contracts-20260716203727
 │   │   │   │   │   │   └── all-contracts-20260716203736
@@ -158,7 +164,11 @@
 │   │   │   │   │   ├── validate-20260802223614-multi-session.json
 │   │   │   │   │   ├── validate-20260802224040-multi-session.json
 │   │   │   │   │   ├── validate-20260823174513-multi-session.json
-│   │   │   │   │   └── validate-20260823191430-multi-session.json
+│   │   │   │   │   ├── validate-20260823191430-multi-session.json
+│   │   │   │   │   ├── validate-20260823214841-multi-session.json
+│   │   │   │   │   ├── validate-20260823221404-multi-session.json
+│   │   │   │   │   ├── validate-20260826040010-multi-session.json
+│   │   │   │   │   └── validate-20260826041329-multi-session.json
 │   │   │   │   ├── applied_safe_fixes.json
 │   │   │   │   ├── binary_asset_canon
 │   │   │   │   │   └── dt070
@@ -208,6 +218,20 @@
 │   │   │   │   │       ├── functional_alignment_risk_report.json
 │   │   │   │   │       ├── productive_equivalence_alignment_report.json
 │   │   │   │   │       └── productive_writer_transaction_boundary_report.json
+│   │   │   │   ├── license_copyleft_commons
+│   │   │   │   │   └── dt086
+│   │   │   │   │       ├── contribution_governance_report.json
+│   │   │   │   │       ├── copyleft_commons_scenario_matrix.json
+│   │   │   │   │       ├── copyright_provenance_report.json
+│   │   │   │   │       ├── core_extension_boundary_report.json
+│   │   │   │   │       ├── dependency_compatibility_risk_report.json
+│   │   │   │   │       ├── dt086_risk_report.json
+│   │   │   │   │       ├── license_copyleft_commons_summary.md
+│   │   │   │   │       ├── license_decision_tree.json
+│   │   │   │   │       ├── license_option_comparison_matrix.json
+│   │   │   │   │       ├── linux_git_transversality_report.json
+│   │   │   │   │       ├── relicensing_readiness_report.json
+│   │   │   │   │       └── sustainability_model_report.json
 │   │   │   │   ├── manifest.json
 │   │   │   │   ├── metadata_promotion
 │   │   │   │   │   └── s0171
@@ -216,6 +240,19 @@
 │   │   │   │   │       ├── normalization_collisions.json
 │   │   │   │   │       ├── template_node_topic_collision_report.json
 │   │   │   │   │       └── validation_report.json
+│   │   │   │   ├── multilanguage_strategy
+│   │   │   │   │   └── dt085
+│   │   │   │   │       ├── build_distribution_portability_report.json
+│   │   │   │   │       ├── dt085_risk_report.json
+│   │   │   │   │       ├── embedding_pipeline_language_report.json
+│   │   │   │   │       ├── ffi_subprocess_boundary_report.json
+│   │   │   │   │       ├── language_responsibility_matrix.json
+│   │   │   │   │       ├── maintenance_complexity_report.json
+│   │   │   │   │       ├── multilanguage_decision_matrix.json
+│   │   │   │   │       ├── multilanguage_strategy_summary.md
+│   │   │   │   │       ├── parser_language_fit_report.json
+│   │   │   │   │       ├── security_memory_safety_report.json
+│   │   │   │   │       └── testing_contract_multilanguage_report.json
 │   │   │   │   ├── pre_post_diff.json
 │   │   │   │   ├── premium_rag_quality
 │   │   │   │   │   └── dt066
@@ -338,6 +375,15 @@
 │   │   │   │   │   │   │           └── apply_exec_e16408fb36ce946d10e9a6b6
 │   │   │   │   │   │   │               ├── canon
 │   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   ├── rd_67b153e8adb1a46e41436803
+│   │   │   │   │   │   │   └── cra_8c5ee3f70cffdf2cc97b4e74
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │           └── apply_exec_b98f0facd9caf2f61a9600d5
+│   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │               └── snapshot_manifest.json
 │   │   │   │   │   │   ├── rd_90315239c71f48fcaff9f128
 │   │   │   │   │   │   │   └── cra_58f5dc37f2b886ac05e96e37
 │   │   │   │   │   │   │       ├── relation_apply_plan.json
@@ -347,13 +393,22 @@
 │   │   │   │   │   │   │           └── apply_exec_288730cd8d9118bd0eec2221
 │   │   │   │   │   │   │               ├── canon
 │   │   │   │   │   │   │               └── snapshot_manifest.json
-│   │   │   │   │   │   └── rd_908bfb3726568c50554f826a
-│   │   │   │   │   │       └── cra_5e144752683170b2fb5b81d2
+│   │   │   │   │   │   ├── rd_908bfb3726568c50554f826a
+│   │   │   │   │   │   │   └── cra_5e144752683170b2fb5b81d2
+│   │   │   │   │   │   │       ├── relation_apply_plan.json
+│   │   │   │   │   │   │       ├── relation_apply_receipt.json
+│   │   │   │   │   │   │       ├── relation_apply_report.json
+│   │   │   │   │   │   │       └── rollback_snapshots
+│   │   │   │   │   │   │           └── apply_exec_c3bce48d08f4fa01b14bba42
+│   │   │   │   │   │   │               ├── canon
+│   │   │   │   │   │   │               └── snapshot_manifest.json
+│   │   │   │   │   │   └── rd_d94c821142c6552024f72129
+│   │   │   │   │   │       └── cra_d6444de14fe6811a7189aabd
 │   │   │   │   │   │           ├── relation_apply_plan.json
 │   │   │   │   │   │           ├── relation_apply_receipt.json
 │   │   │   │   │   │           ├── relation_apply_report.json
 │   │   │   │   │   │           └── rollback_snapshots
-│   │   │   │   │   │               └── apply_exec_c3bce48d08f4fa01b14bba42
+│   │   │   │   │   │               └── apply_exec_d7f32a25d698c616b2738c6e
 │   │   │   │   │   │                   ├── canon
 │   │   │   │   │   │                   └── snapshot_manifest.json
 │   │   │   │   │   ├── authorizations
@@ -363,9 +418,13 @@
 │   │   │   │   │   │   │   └── authorization.json
 │   │   │   │   │   │   ├── rd_35fe4fd1b52af726ea2a9235
 │   │   │   │   │   │   │   └── authorization.json
+│   │   │   │   │   │   ├── rd_67b153e8adb1a46e41436803
+│   │   │   │   │   │   │   └── authorization.json
 │   │   │   │   │   │   ├── rd_90315239c71f48fcaff9f128
 │   │   │   │   │   │   │   └── authorization.json
-│   │   │   │   │   │   └── rd_908bfb3726568c50554f826a
+│   │   │   │   │   │   ├── rd_908bfb3726568c50554f826a
+│   │   │   │   │   │   │   └── authorization.json
+│   │   │   │   │   │   └── rd_d94c821142c6552024f72129
 │   │   │   │   │   │       └── authorization.json
 │   │   │   │   │   ├── current
 │   │   │   │   │   │   ├── admission_gate_dry_run.json
@@ -578,6 +637,48 @@
 │   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
 │   │   │   │   │   │   │           ├── rollback_snapshots
 │   │   │   │   │   │   │           │   └── apply_78b50cfde4667906
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_c10ba04ec03724d55f01f270
+│   │   │   │   │   │   │   └── rv_7db87efc5617861ffb27323a
+│   │   │   │   │   │   │       └── rd_67b153e8adb1a46e41436803
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_31b83e6cc77e83a2
+│   │   │   │   │   │   │           │       ├── canon
+│   │   │   │   │   │   │           │       └── snapshot_manifest.json
+│   │   │   │   │   │   │           └── validation_report.json
+│   │   │   │   │   │   ├── rg_d16995bd4320538fbc8aff0a
+│   │   │   │   │   │   │   └── rv_27f2793aaf988da7d7b1fa68
+│   │   │   │   │   │   │       └── rd_d94c821142c6552024f72129
+│   │   │   │   │   │   │           ├── admission_gate_dry_run.json
+│   │   │   │   │   │   │           ├── apply_safety_verification.json
+│   │   │   │   │   │   │           ├── authorization_request.json
+│   │   │   │   │   │   │           ├── bundle_manifest.json
+│   │   │   │   │   │   │           ├── cross_generation_reconciliation.json
+│   │   │   │   │   │   │           ├── current_candidate_manifest.json
+│   │   │   │   │   │   │           ├── decision_checkpoint.json
+│   │   │   │   │   │   │           ├── gate_g_readiness.json
+│   │   │   │   │   │   │           ├── human_delta.json
+│   │   │   │   │   │   │           ├── reconciliation_manifest.json
+│   │   │   │   │   │   │           ├── relation_apply_plan.json
+│   │   │   │   │   │   │           ├── review_receipt_lineage.json
+│   │   │   │   │   │   │           ├── reviewable_candidate_manifest.json
+│   │   │   │   │   │   │           ├── rollback_snapshots
+│   │   │   │   │   │   │           │   └── apply_a4762dc6ca6db7b8
 │   │   │   │   │   │   │           │       ├── canon
 │   │   │   │   │   │   │           │       └── snapshot_manifest.json
 │   │   │   │   │   │   │           └── validation_report.json
@@ -966,6 +1067,12 @@
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── local-dt071-genesis-proposito-principios-fundacionales-tdt-20260802173559
 │   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt084-gobernanza-usuarios-permisos-autorizacion-configuracion
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt085-estrategia-multilenguaje-parsers-observaciones-embeddings
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── local-dt086-license-copyleft-commons-20260830
+│   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0159-close-202607061035
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── s0159-close-final-202607061037
@@ -1224,7 +1331,15 @@
 │   │   │   │   │   │   └── summary.json
 │   │   │   │   │   ├── sync-20260823174434
 │   │   │   │   │   │   └── summary.json
-│   │   │   │   │   └── sync-20260823191401
+│   │   │   │   │   ├── sync-20260823191401
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260823213509
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260823214827
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   ├── sync-20260823220456
+│   │   │   │   │   │   └── summary.json
+│   │   │   │   │   └── sync-20260823220733
 │   │   │   │   │       └── summary.json
 │   │   │   │   ├── test_suite_operational_invariants
 │   │   │   │   │   └── dt069
@@ -1244,7 +1359,20 @@
 │   │   │   │   ├── titlenorm-20260522215356.json
 │   │   │   │   ├── titlenorm-20260522215432.json
 │   │   │   │   ├── titlenorm-20260523003506.json
-│   │   │   │   └── titlenorm-20260523023936.json
+│   │   │   │   ├── titlenorm-20260523023936.json
+│   │   │   │   └── user_permission_authorization
+│   │   │   │       └── dt084
+│   │   │   │           ├── authorization_block_contract_report.json
+│   │   │   │           ├── configuration_surface_report.json
+│   │   │   │           ├── dt084_risk_report.json
+│   │   │   │           ├── human_agent_permission_boundary_report.json
+│   │   │   │           ├── identity_subject_model_report.json
+│   │   │   │           ├── local_first_multiuser_risk_report.json
+│   │   │   │           ├── mutating_operation_permission_map.json
+│   │   │   │           ├── role_permission_matrix.json
+│   │   │   │           ├── secret_credential_boundary_report.json
+│   │   │   │           ├── user_governance_state_machine.json
+│   │   │   │           └── user_permission_authorization_summary.md
 │   │   │   ├── backups
 │   │   │   │   ├── titlenorm-20260523-diag-4digit
 │   │   │   │   ├── titlenorm-20260523-diag-tematico
@@ -2566,6 +2694,7 @@
 │   │   │   │   │   ├── m04-s0182-contrato-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │   │   ├── m04-s0183-contrato-admision-relacional-canonica-gobernada.md.json
 │   │   │   │   │   ├── m04-s0184-contrato-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   ├── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │   │   ├── policy
 │   │   │   │   │   │   ├── canon_policy_bundle.json
 │   │   │   │   │   │   └── estructura_de_commits_tiddly-data-converter.JSON
@@ -2574,23 +2703,28 @@
 │   │   │   │   ├── 01_procedencia
 │   │   │   │   │   ├── m04-s0182-procedencia-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │   │   ├── m04-s0183-procedencia-admision-relacional-canonica-gobernada.md.json
-│   │   │   │   │   └── m04-s0184-procedencia-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   ├── m04-s0184-procedencia-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   └── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │   ├── 02_detalles_de_sesion
 │   │   │   │   │   ├── m04-s0182-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │   │   ├── m04-s0183-admision-relacional-canonica-gobernada.md.json
-│   │   │   │   │   └── m04-s0184-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   ├── m04-s0184-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   └── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │   ├── 03_hipotesis
 │   │   │   │   │   ├── m04-s0182-hipotesis-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │   │   ├── m04-s0183-hipotesis-admision-relacional-canonica-gobernada.md.json
-│   │   │   │   │   └── m04-s0184-hipotesis-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   ├── m04-s0184-hipotesis-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   └── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │   ├── 04_balance_de_sesion
 │   │   │   │   │   ├── m04-s0182-balance-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │   │   ├── m04-s0183-balance-admision-relacional-canonica-gobernada.md.json
-│   │   │   │   │   └── m04-s0184-balance-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   ├── m04-s0184-balance-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   └── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │   ├── 05_propuesta_de_sesion
 │   │   │   │   │   ├── m04-s0182-propuesta-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │   │   ├── m04-s0183-propuesta-admision-relacional-canonica-gobernada.md.json
-│   │   │   │   │   └── m04-s0184-propuesta-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   ├── m04-s0184-propuesta-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │   │   └── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │   └── 06_diagnoses
 │   │   │   │       ├── meso-ciclo
 │   │   │   │       ├── micro-ciclo
@@ -2599,7 +2733,8 @@
 │   │   │   │       ├── sesion
 │   │   │   │       │   ├── diagnostico-sesion-s0182-hardening-alcance-current-admission-gate-relacional.md.json
 │   │   │   │       │   ├── diagnostico-sesion-s0183-admision-relacional-canonica-gobernada.md.json
-│   │   │   │       │   └── diagnostico-sesion-s0184-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │       │   ├── diagnostico-sesion-s0184-saneamiento-baseline-derivados-post-relacionales.md.json
+│   │   │   │       │   └── m04-s0185-contrato-identidad-estado-canonico-tdc.md.json
 │   │   │   │       └── tema
 │   │   │   │           ├── diagnostico-tematico-054-uso-efectivo-data-tmp-gobernanza-temporal.md.json
 │   │   │   │           ├── diagnostico-tematico-055-crecimiento-canon-vivo-curaduria-humana-escala-logaritmica.md.json
@@ -2618,16 +2753,130 @@
 │   │   │   │           ├── diagnostico-tematico-068-evaluacion-calidad-rag-ia-premium-post-admision-relacional.md.json
 │   │   │   │           ├── diagnostico-tematico-069-auditoria-integral-suite-tests-invariantes-operativas.md.json
 │   │   │   │           ├── diagnostico-tematico-070-canon-activos-binarios-clasificacion-integridad-reversibilidad.md.json
-│   │   │   │           └── diagnostico-tematico-071-genesis-proposito-principios-fundacionales-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-071-genesis-proposito-principios-fundacionales-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-072-topologia-operativa-repositorio-src-superficie-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-073-modelo-identidad-estado-canonico-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-074-ciclo-vida-sesiones-artefactos-candidatos.md.json
+│   │   │   │           ├── diagnostico-tematico-075-ciclo-vida-admisiones-transiciones-gobernadas.md.json
+│   │   │   │           ├── diagnostico-tematico-076-integridad-reversibilidad-restore-recuperacion.md.json
+│   │   │   │           ├── diagnostico-tematico-077-taxonomia-ciclo-vida-derivados-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-078-vocabulario-operativo-colisiones-terminologicas-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-079-superficie-comandos-experiencia-operativa-tdc.md.json
+│   │   │   │           ├── diagnostico-tematico-080-contexto-agentes-economia-tokens-agent-context-package.md.json
+│   │   │   │           ├── diagnostico-tematico-081-preparacion-arquitectonica-parsers-observaciones-activos.md.json
+│   │   │   │           ├── diagnostico-tematico-083-reverse-completo-superficie-tiddlywiki-empty-store-plantilla-operativa.md.json
+│   │   │   │           ├── diagnostico-tematico-084-gobernanza-usuarios-permisos-autorizacion-configuracion.md.json
+│   │   │   │           ├── diagnostico-tematico-085-estrategia-multilenguaje-parsers-observaciones-embeddings.md.json
+│   │   │   │           └── diagnostico-tematico-086-licencia-copyleft-sostenibilidad-commons-tdc.md.json
 │   │   │   └── tiddlers-export
 │   │   │       ├── estructura.txt.json
 │   │   │       ├── hashes_rep_export
 │   │   │       ├── src_python_scripts_prepare_current_relational_generation.py.json
 │   │   │       ├── src_python_scripts_relation_admission_gate.py.json
-│   │   │       └── tests_test_relation_admission_gate.py.json
+│   │   │       ├── src_python_scripts_relation_admission_state.py.json
+│   │   │       ├── tests_test_relation_admission_gate.py.json
+│   │   │       └── tests_test_relation_admission_state.py.json
 │   │   └── remote
 │   ├── README.md
 │   └── tmp
+│       ├── admissions
+│       │   └── s69_unittest
+│       │       ├── admit-20260823224101-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224123-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224126-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224132-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224137-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224146-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224210-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224233-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224257-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224344-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224407-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224732-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224801-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224805-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224810-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224816-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224826-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224853-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224920-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823224949-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823225047-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823225111-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823232950-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233033-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233038-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233044-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233050-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233100-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233127-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233152-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233217-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233306-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260823233328-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020444-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020516-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020521-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020528-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020535-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020544-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020548-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020618-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020624-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020628-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020632-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020641-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020654-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020704-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020731-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020813-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020848-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020856-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020930-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831020958-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── admit-20260831021034-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── backups
+│       │       │   ├── admit-20260823224233-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260823224407-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260823224920-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260823225111-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260823233152-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260823233328-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260831020704-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260831020813-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260831020930-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── admit-20260831021034-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       │   ├── rollback-20260823224320-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260823224435-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260823225021-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260823225137-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260823233242-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260823233353-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260831020822-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260831020922-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   ├── rollback-20260831021008-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       │   └── rollback-20260831021115-m04-s98-propagacion-relacional-chunks-ai-y-rule23-pre
+│       │       ├── rollback-20260823224320-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260823224435-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260823225021-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260823225137-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260823233242-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260823233353-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260831020822-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260831020922-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260831021008-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── rollback-20260831021115-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── validate-20260823224142-missing-source-path.json
+│       │       ├── validate-20260823224343-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── validate-20260823224821-missing-source-path.json
+│       │       ├── validate-20260823225046-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── validate-20260823233056-missing-source-path.json
+│       │       ├── validate-20260823233305-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       ├── validate-20260831020543-missing-source-path.json
+│       │       ├── validate-20260831020648-missing-source-path.json
+│       │       ├── validate-20260831020854-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
+│       │       └── validate-20260831020956-m04-s98-propagacion-relacional-chunks-ai-y-rule23.json
 │       ├── html_export
 │       │   ├── export-20260802201037
 │       │   │   ├── tiddlers.export.log
@@ -2647,7 +2896,13 @@
 │       │   ├── export-20260823160259
 │       │   │   ├── tiddlers.export.log
 │       │   │   └── tiddlers.export.manifest.json
-│       │   └── export-20260823182836
+│       │   ├── export-20260823182836
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   ├── export-20260823213155
+│       │   │   ├── tiddlers.export.log
+│       │   │   └── tiddlers.export.manifest.json
+│       │   └── export-20260823213227
 │       │       ├── tiddlers.export.log
 │       │       └── tiddlers.export.manifest.json
 │       ├── reconstruction
@@ -2666,6 +2921,10 @@
 │       │   ├── diagnostic-20260823160256
 │       │   │   └── gate-report.json
 │       │   ├── diagnostic-20260823182833
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260823213147
+│       │   │   └── gate-report.json
+│       │   ├── diagnostic-20260823213225
 │       │   │   └── gate-report.json
 │       │   ├── export-20260802201037
 │       │   │   ├── gate-report.json
@@ -2686,6 +2945,12 @@
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
 │       │   ├── export-20260823182836
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260823213155
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── export-20260823213227
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
 │       │   ├── reconstruction-20260802201043
@@ -2723,6 +2988,11 @@
 │       │   │   ├── canon_before
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
+│       │   ├── reconstruction-20260823213238
+│       │   │   ├── canon_after
+│       │   │   ├── canon_before
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
 │       │   ├── reverse-20260802201233
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
@@ -2744,7 +3014,19 @@
 │       │   ├── reverse-20260823183038
 │       │   │   ├── gate-report.json
 │       │   │   └── reconstruction-report.json
-│       │   └── reverse-20260823192144
+│       │   ├── reverse-20260823192144
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823213406
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823215137
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   ├── reverse-20260823215732
+│       │   │   ├── gate-report.json
+│       │   │   └── reconstruction-report.json
+│       │   └── reverse-20260823222255
 │       │       ├── gate-report.json
 │       │       └── reconstruction-report.json
 │       ├── reverse-128-relations-report.json
@@ -2752,6 +3034,49 @@
 │       │   └── pytest
 │       │       ├── test_migrate_equivalent_decisicurrent
 │       │       └── test_migration_dry_run_is_detecurrent
+│       ├── s0185-impact
+│       │   ├── canon-state
+│       │   │   ├── canon_state_conformance_vectors.json
+│       │   │   ├── canon_state_contract.json
+│       │   │   ├── impact_state_checkpoint.json
+│       │   │   └── state_transition_compatibility_matrix.json
+│       │   ├── identity-revision
+│       │   │   ├── identity_compatibility_migration_matrix.json
+│       │   │   ├── identity_revision_conformance_vectors.json
+│       │   │   ├── identity_revision_contract.json
+│       │   │   └── impact_identity_checkpoint.json
+│       │   ├── license-readiness
+│       │   │   ├── gpl3_or_later_relicense_plan.json
+│       │   │   ├── impact_license_readiness_checkpoint.json
+│       │   │   ├── license_surface_inventory.json
+│       │   │   ├── rights_and_contributors_matrix.json
+│       │   │   └── third_party_license_matrix.json
+│       │   ├── license-relicense-agpl
+│       │   │   ├── agpl_3_or_later_relicense_plan.json
+│       │   │   ├── agpl_dependency_compatibility.json
+│       │   │   ├── agpl_scope_manifest.json
+│       │   │   ├── impact_license_agpl_checkpoint.json
+│       │   │   ├── license_apply_receipt.json
+│       │   │   ├── license_target_delta.json
+│       │   │   ├── post_apply_license_audit.json
+│       │   │   ├── protected_baseline_manifest.json
+│       │   │   └── rights_ledger.json
+│       │   └── persistence
+│       │       ├── impact_persistence_checkpoint.json
+│       │       ├── persistence_mapping.json
+│       │       ├── tmp_artifact_inventory.json
+│       │       ├── tmp_cleanability_manifest.json
+│       │       └── tmp_deletion_dry_run.json
+│       ├── s0185-postimpact
+│       │   └── postimpact_checkpoint.json
+│       ├── s0185-preimpact
+│       │   ├── identity_field_inventory.json
+│       │   ├── preimpact_baseline.json
+│       │   ├── preimpact_checkpoint.json
+│       │   └── state_semantics_gap_matrix.json
+│       ├── sanitation
+│       │   ├── backup-20260831021046
+│       │   └── backup-20260831021154
 │       ├── session_admission
 │       │   ├── admit-20260823174548-multi-session
 │       │   │   ├── canon
@@ -2768,16 +3093,271 @@
 │       │   │   └── reverse_html
 │       │   │       ├── admit-20260823191433-multi-session.derived.html
 │       │   │       └── admit-20260823191433-multi-session.reverse-report.json
-│       │   └── admit-20260823191818-multi-session
+│       │   ├── admit-20260823191818-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823191818-multi-session.derived.html
+│       │   │       └── admit-20260823191818-multi-session.reverse-report.json
+│       │   ├── admit-20260823214845-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823214845-multi-session.derived.html
+│       │   │       └── admit-20260823214845-multi-session.reverse-report.json
+│       │   ├── admit-20260823214953-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823214953-multi-session.derived.html
+│       │   │       └── admit-20260823214953-multi-session.reverse-report.json
+│       │   ├── admit-20260823221435-multi-session
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823221435-multi-session.derived.html
+│       │   │       └── admit-20260823221435-multi-session.reverse-report.json
+│       │   └── admit-20260823222151-multi-session
 │       │       ├── canon
 │       │       └── reverse_html
-│       │           ├── admit-20260823191818-multi-session.derived.html
-│       │           └── admit-20260823191818-multi-session.reverse-report.json
+│       │           ├── admit-20260823222151-multi-session.derived.html
+│       │           └── admit-20260823222151-multi-session.reverse-report.json
+│       ├── session_admission_s69_unittest
+│       │   ├── admit-20260823224101-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224101-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224101-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224146-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224146-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224146-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224210-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224210-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224210-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224233-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224233-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224233-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224257-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224257-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224257-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224344-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224344-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224344-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224407-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224407-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224407-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224732-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224732-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224732-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224826-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224826-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224826-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224853-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224853-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224853-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224920-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224920-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224920-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823224949-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823224949-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823224949-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823225047-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823225047-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823225047-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823225111-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823225111-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823225111-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823232950-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823232950-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823232950-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823233100-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823233100-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823233100-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823233127-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823233127-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823233127-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823233152-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823233152-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823233152-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823233217-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823233217-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823233217-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823233306-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823233306-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823233306-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260823233328-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260823233328-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260823233328-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020444-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020444-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020444-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020544-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020544-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020544-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020548-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020548-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020548-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020628-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020628-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020628-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020654-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020654-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020654-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020704-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020704-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020704-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020731-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020731-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020731-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020742-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020742-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020813-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020813-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020813-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020848-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020848-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020848-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020856-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020856-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020856-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020930-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020930-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020930-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831020958-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831020958-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831020958-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── admit-20260831021034-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── admit-20260831021034-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── admit-20260831021034-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260823224320-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260823224320-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260823224320-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260823224435-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260823224435-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260823224435-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260823225021-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260823225021-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260823225021-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260823225137-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260823225137-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260823225137-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260823233242-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260823233242-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260823233242-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260823233353-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260823233353-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260823233353-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260831020822-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260831020822-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260831020822-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260831020922-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260831020922-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260831020922-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   ├── rollback-20260831021008-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │   │   ├── canon
+│       │   │   └── reverse_html
+│       │   │       ├── rollback-20260831021008-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │   │       └── rollback-20260831021008-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
+│       │   └── rollback-20260831021115-m04-s98-propagacion-relacional-chunks-ai-y-rule23
+│       │       ├── canon
+│       │       └── reverse_html
+│       │           ├── rollback-20260831021115-m04-s98-propagacion-relacional-chunks-ai-y-rule23.derived.html
+│       │           └── rollback-20260831021115-m04-s98-propagacion-relacional-chunks-ai-y-rule23.reverse-report.json
 │       ├── session_sync
 │       │   ├── local-dt071-final-20260802174038
 │       │   │   ├── inventory.json
 │       │   │   └── normalize
 │       │   ├── local-dt071-genesis-proposito-principios-fundacionales-tdt-20260802173559
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── local-dt084-gobernanza-usuarios-permisos-autorizacion-configuracion
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── local-dt085-estrategia-multilenguaje-parsers-observaciones-embeddings
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── local-dt086-license-copyleft-commons-20260830
 │       │   │   ├── inventory.json
 │       │   │   └── normalize
 │       │   ├── sync-20260820005820
@@ -2786,7 +3366,19 @@
 │       │   ├── sync-20260823174434
 │       │   │   ├── inventory.json
 │       │   │   └── normalize
-│       │   └── sync-20260823191401
+│       │   ├── sync-20260823191401
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── sync-20260823213509
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── sync-20260823214827
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   ├── sync-20260823220456
+│       │   │   ├── inventory.json
+│       │   │   └── normalize
+│       │   └── sync-20260823220733
 │       │       ├── inventory.json
 │       │       └── normalize
 │       ├── tiddly-with-128-relations.html
@@ -2795,6 +3387,7 @@
 │           └── tiddlers.export.manifest.json
 ├── docs
 │   ├── Informe_Tecnico_de_Tiddler (Esp).md
+│   ├── LICENSE_SCOPE.md
 │   ├── plantillas
 │   │   ├── plantilla-sesion-local.md
 │   │   └── plantilla-sesion-remota.md
