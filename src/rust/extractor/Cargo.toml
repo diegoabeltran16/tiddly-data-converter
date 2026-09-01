@@ -3,7 +3,7 @@ name = "tdc-extractor"
 version = "0.1.0"
 edition = "2021"
 description = "Extractor HTML para tiddly-data-converter — frontera crítica de entrada del pipeline HTML → Canon."
-license = "MIT"
+license = "AGPL-3.0-or-later"
 
 [lib]
 name = "tdc_extractor"
