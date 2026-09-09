@@ -1,4 +1,4 @@
-Docs/refs
+/docs/refs/
 Docs/translate.ps1
 /rep_export_Windows
 /.venv
@@ -53,3 +53,6 @@ data/sessions
 /.agents
 /.claude
 /.env
+/AGENTS.md
+/.github/instructions/
+/estructura.txt
