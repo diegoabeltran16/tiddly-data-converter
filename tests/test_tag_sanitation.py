@@ -103,6 +103,48 @@ def test_rag_gate_passes_on_sanitized_preview(tmp_path: Path) -> None:
     assert report["p0_tags_in_embedding_metadata"] == 0
 
 
+def test_rag_gate_does_not_flag_unknown_tag_as_substring_of_unrelated_word(tmp_path: Path) -> None:
+    policy = write_default_policy(tmp_path / "policy.json")
+    inventory = {
+        "tags": [
+            {"tag": "gitignore", "classification": "unknown", "count": 1},
+        ],
+    }
+    _write_jsonl(
+        tmp_path / "rag" / "records.jsonl",
+        [
+            {
+                "id": "r1",
+                "title": "R1",
+                "semantic_text": "data/out/ is gitignored, so this workflow needs a persistent runner",
+            }
+        ],
+    )
+
+    report = build_gate_report(policy=policy, inventory=inventory, roots=[tmp_path / "rag"])
+
+    assert report["status"] != "blocked"
+    assert report["unknown_tags_in_semantic_text"] == 0
+
+
+def test_rag_gate_still_blocks_a_genuine_unknown_tag_mention(tmp_path: Path) -> None:
+    policy = write_default_policy(tmp_path / "policy.json")
+    inventory = {
+        "tags": [
+            {"tag": "gitignore", "classification": "unknown", "count": 1},
+        ],
+    }
+    _write_jsonl(
+        tmp_path / "rag" / "records.jsonl",
+        [{"id": "r1", "title": "R1", "semantic_text": "this file is named .gitignore and lists ignored paths"}],
+    )
+
+    report = build_gate_report(policy=policy, inventory=inventory, roots=[tmp_path / "rag"])
+
+    assert report["status"] == "blocked"
+    assert report["unknown_tags_in_semantic_text"] == 1
+
+
 def test_rag_gate_blocks_p0_tags_from_retrieval_hints(tmp_path: Path) -> None:
     policy = write_default_policy(tmp_path / "policy.json")
     inventory = {

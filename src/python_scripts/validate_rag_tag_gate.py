@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -71,13 +72,39 @@ def field_values(value: Any) -> list[str]:
     return [str(value)]
 
 
+_WORD_LIKE_TAG_RE = re.compile(r"^[\w\-]+$", re.UNICODE)
+
+
+def _tag_mentioned_in_text(tag: str, text: str) -> bool:
+    """True when ``tag`` appears in ``text`` as a real mention.
+
+    A word-like tag (letters/digits/underscore/hyphen only, e.g. ``gitignore``
+    or ``LICENSE``) must appear at word boundaries -- otherwise it collides
+    with an unrelated word that merely contains it as a substring (the tag
+    ``gitignore`` must not "match" inside the ordinary English word
+    ``gitignored``, and ``LICENSE`` must not match inside third-party vendor
+    source that legitimately discusses licenses). A tag containing other
+    characters (a path, a phrase) keeps the exact substring check, which is
+    unambiguous for those. This mirrors the same word-boundary fix applied to
+    ``semantic_text_builder.redact_terms_for_rag`` -- the gate's detector and
+    the producer's redactor must agree on what counts as a mention, or one
+    routinely flags text the other correctly left untouched.
+    """
+
+    if not tag:
+        return False
+    if _WORD_LIKE_TAG_RE.match(tag):
+        return re.search(rf"\b{re.escape(tag)}\b", text) is not None
+    return tag in text
+
+
 def detect_tags_in_values(values: list[str], p0_tags: set[str]) -> list[str]:
     hits: set[str] = set()
     for value in values:
         text = str(value)
         parsed = set(parse_tags(text))
         for tag in p0_tags:
-            if tag in parsed or tag == text or (tag and tag in text):
+            if tag in parsed or tag == text or _tag_mentioned_in_text(tag, text):
                 hits.add(tag)
     return sorted(hits, key=lambda item: item.casefold())
 

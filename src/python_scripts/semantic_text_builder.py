@@ -484,13 +484,34 @@ def content_core(record: dict[str, Any]) -> str:
     return normalize_text(content)
 
 
+_WORD_LIKE_TERM_RE = re.compile(r"^[\w\-]+$", re.UNICODE)
+
+
 def redact_terms_for_rag(text: str, blocked_terms: list[str]) -> str:
-    redacted = text
-    for term in sorted(set(blocked_terms), key=len, reverse=True):
-        if not term:
-            continue
-        redacted = redacted.replace(term, "[RAG_TAG_BLOCKED]")
-    return redacted
+    """Redact every mention of an unvetted tag from RAG-consumable text.
+
+    Word-like terms (letters/digits/underscore/hyphen only, e.g. a short tag
+    such as ``canon`` or ``RAG``) are matched at word boundaries so they
+    cannot collide with an unrelated substring inside another word (``canon``
+    must not blank out ``canonical_slug``). Terms containing other characters
+    (paths, sentences) keep exact substring matching, unchanged from before.
+    All terms are redacted in a single pass so the inserted
+    ``[RAG_TAG_BLOCKED]`` marker is never re-scanned and re-matched by a
+    later, shorter term (which previously produced nested markers when a term
+    such as ``RAG`` collided with the marker's own name).
+    """
+
+    if not text:
+        return text
+    terms = sorted({term for term in blocked_terms if term}, key=len, reverse=True)
+    if not terms:
+        return text
+    alternatives = [
+        rf"\b{re.escape(term)}\b" if _WORD_LIKE_TERM_RE.match(term) else re.escape(term)
+        for term in terms
+    ]
+    pattern = re.compile("|".join(alternatives), re.UNICODE)
+    return pattern.sub("[RAG_TAG_BLOCKED]", text)
 
 
 def build_retrieval_hints(
