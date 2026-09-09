@@ -379,7 +379,9 @@ class TestApplyEliminationPlan:
         canon, nc = self._setup_canon_with_targets(tmp_path)
         target_line_nos = {n.line_no for n in nc}
         plan = build_elimination_plan([n.index for n in nc], nc, canon)
-        success, _, updated = apply_elimination_plan(plan, canon_dir=canon, confirm=True)
+        success, _, updated = apply_elimination_plan(
+            plan, canon_dir=canon, backup_dir=tmp_path / "backup", confirm=True
+        )
         assert success
         assert updated.applied is True
         assert updated.removed_count == len(nc)
@@ -405,7 +407,9 @@ class TestApplyEliminationPlan:
         canon, nc = self._setup_canon_with_targets(tmp_path)
         plan = build_elimination_plan([nc[0].index], nc, canon)
         hash_before = plan.canon_hash_before
-        _, _, updated = apply_elimination_plan(plan, canon_dir=canon, confirm=True)
+        _, _, updated = apply_elimination_plan(
+            plan, canon_dir=canon, backup_dir=tmp_path / "backup", confirm=True
+        )
         assert updated.canon_hash_after != ""
         assert updated.canon_hash_after != hash_before  # canon changed
 

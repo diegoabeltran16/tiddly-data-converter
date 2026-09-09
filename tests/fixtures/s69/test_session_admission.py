@@ -32,8 +32,6 @@ BASE_CONTRACT_SOURCE = (
 )
 REAL_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
 DATA_TMP = REPO_ROOT / "data" / "tmp"
-REPORT_DIR = DATA_TMP / "admissions" / "s69_unittest"
-WORK_DIR = DATA_TMP / "session_admission_s69_unittest"
 BASE_SESSION_ORIGIN = "m04-s98-propagacion-relacional-chunks-ai-y-rule23"
 ALT_EXISTING_SOURCE = (
     "tests/fixtures/s69/sessions/01_procedencia/m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
@@ -168,11 +166,18 @@ def report_payload(summary: dict) -> dict:
 class SessionAdmissionFixtureTests(unittest.TestCase):
     def setUp(self) -> None:
         DATA_TMP.mkdir(parents=True, exist_ok=True)
-        REPORT_DIR.mkdir(parents=True, exist_ok=True)
-        WORK_DIR.mkdir(parents=True, exist_ok=True)
         self.real_canon_before = canon_hash(REAL_CANON_DIR)
         self.tmp = tempfile.TemporaryDirectory(prefix="s69_admission_", dir=DATA_TMP)
         self.tmp_dir = Path(self.tmp.name)
+        # S0186 Unit J1: report/work dirs must live inside this test's own
+        # TemporaryDirectory, not under a fixed shared data/tmp path -- a
+        # fixed shared path never gets pruned by tearDown() and accumulates
+        # a full canon+rollback snapshot on every admit/dry-run/apply/rollback
+        # cycle across every test run forever (~92 GiB found in S0186 Unit J).
+        self.REPORT_DIR = self.tmp_dir / "admissions_report"
+        self.WORK_DIR = self.tmp_dir / "session_admission_work"
+        self.REPORT_DIR.mkdir(parents=True, exist_ok=True)
+        self.WORK_DIR.mkdir(parents=True, exist_ok=True)
         self.base_candidate = base_session_candidate(self.tmp_dir)
 
     def tearDown(self) -> None:
@@ -196,9 +201,9 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
             "--canon-dir",
             str(canon_dir),
             "--report-dir",
-            str(REPORT_DIR),
+            str(self.REPORT_DIR),
             "--tmp-dir",
-            str(WORK_DIR),
+            str(self.WORK_DIR),
         ]
         if extra:
             args.extend(extra)
@@ -248,9 +253,9 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
                 "--canon-dir",
                 str(canon_dir),
                 "--report-dir",
-                str(REPORT_DIR),
+                str(self.REPORT_DIR),
                 "--tmp-dir",
-                str(WORK_DIR),
+                str(self.WORK_DIR),
             ]
         )
         self.assertEqual(rollback_result.returncode, 0, rollback_result.stderr)
@@ -323,9 +328,9 @@ class SessionAdmissionFixtureTests(unittest.TestCase):
                 "--canon-dir",
                 str(canon_dir),
                 "--report-dir",
-                str(REPORT_DIR),
+                str(self.REPORT_DIR),
                 "--tmp-dir",
-                str(WORK_DIR),
+                str(self.WORK_DIR),
             ]
         )
         self.assertEqual(rollback_result.returncode, 0, rollback_result.stderr)
