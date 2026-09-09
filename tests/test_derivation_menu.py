@@ -22,8 +22,11 @@ def _fake_result(args: list[str], cwd: Path) -> operator_menu.CommandResult:
     return operator_menu.CommandResult(args=args, cwd=cwd, returncode=0, stdout="ok", stderr="")
 
 
-def test_option_5_resolves_to_authoritative_derivation_menu() -> None:
-    choice = resolve_choice("5")
+def test_option_8_resolves_to_authoritative_derivation_menu() -> None:
+    # S0186 Unit H (final intervention, top-level UX migration): Derivados /
+    # RAG moved from position 5 to 8 (OLD_NAVIGATION_CONTRACT_MIGRATED --
+    # the capability is unchanged, only its top-level number moved).
+    choice = resolve_choice("8")
     assert choice is not None
     assert choice["action"] == "derivatives"
 
@@ -85,6 +88,56 @@ def test_restoration_and_audit_menu_options_have_distinct_read_only_commands(mon
 
     assert calls[0][-1] == "rollback-status"
     assert calls[1][-1] == "audit"
+
+
+# --- BLOCKER EN PROMOCION DEFINITIVA: option 11 must fail fast -----------
+#
+# Option 11 used to chain promote-definitive -> validate-definitive ->
+# finalize unconditionally, so a blocked promote-definitive still ran the
+# other two commands and produced confusing, unrelated errors. Fixed to
+# stop at the first non-zero exit code.
+
+
+def test_option_11_promote_failure_stops_before_validate_and_finalize(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], cwd: Path = REPO_ROOT) -> operator_menu.CommandResult:
+        calls.append(args)
+        returncode = 1 if args[-1] == "promote-definitive" else 0
+        return operator_menu.CommandResult(args=args, cwd=cwd, returncode=returncode, stdout="", stderr="blocked")
+
+    monkeypatch.setattr(operator_menu, "prompt", _answers("11", "0"))
+    monkeypatch.setattr(operator_menu, "run_command", fake_run)
+
+    operator_menu.option_derivatives(operator_menu.MenuState())
+
+    assert [call[-1] for call in calls] == ["promote-definitive"]
+
+
+def test_option_11_validate_failure_stops_before_finalize(monkeypatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], cwd: Path = REPO_ROOT) -> operator_menu.CommandResult:
+        calls.append(args)
+        returncode = 1 if args[-1] == "validate-definitive" else 0
+        return operator_menu.CommandResult(args=args, cwd=cwd, returncode=returncode, stdout="", stderr="blocked")
+
+    monkeypatch.setattr(operator_menu, "prompt", _answers("11", "0"))
+    monkeypatch.setattr(operator_menu, "run_command", fake_run)
+
+    operator_menu.option_derivatives(operator_menu.MenuState())
+
+    assert [call[-1] for call in calls] == ["promote-definitive", "validate-definitive"]
+
+
+def test_option_11_successful_sequence_runs_promote_validate_finalize_in_order(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(operator_menu, "prompt", _answers("11", "0"))
+    monkeypatch.setattr(operator_menu, "run_command", lambda args, cwd=REPO_ROOT: (calls.append(args) or _fake_result(args, cwd)))
+
+    operator_menu.option_derivatives(operator_menu.MenuState())
+
+    assert [call[-1] for call in calls] == ["promote-definitive", "validate-definitive", "finalize"]
 
 
 def test_reports_audit_rag_delegates_to_authoritative_derivatives_surface(monkeypatch) -> None:

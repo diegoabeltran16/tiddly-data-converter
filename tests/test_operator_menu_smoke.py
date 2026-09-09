@@ -79,15 +79,19 @@ class TestMenuExitsCleanly:
         )
 
     def test_menu_shows_critical_options(self):
+        # S0186 Unit H (final intervention, top-level UX migration):
+        # "Revisión / admisión gobernada" was retired as an independent
+        # top-level entry (its capabilities relocated into "Relaciones
+        # canónicas" and "Sincronizar artefactos al canon") -- it is no
+        # longer expected here.
         result = _run_menu("0\n")
         stdout = result.stdout
         expected_fragments = [
             "Preparación / preflight",
             "Construir o importar canon",
             "Exportar / consultar canon",
-            "Sincronizar sesiones",
+            "Sincronizar artefactos",
             "Derivados / RAG",
-            "Revisión / admisión gobernada",
         ]
         missing = [f for f in expected_fragments if f not in stdout]
         assert not missing, (
