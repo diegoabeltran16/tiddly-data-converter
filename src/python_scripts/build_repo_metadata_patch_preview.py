@@ -21,7 +21,14 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+# S0186 Unit H (GATE-020 remediation, producer repair): same off-by-one as
+# characterize_repo_artifacts.py -- this resolved to .../src instead of the
+# repo root, so every DEFAULT_* path below silently pointed outside the
+# repository. Existing tests never exercised these defaults (they always
+# pass explicit classification/canon_glob paths), so it went undetected.
+# Matches the sibling convention already used by repo_metadata_admission_gate
+# .py, repo_metadata_review_menu.py, and repo_metadata_refresh_patch.py.
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
 DEFAULT_CLASSIFICATION = (
     REPO_ROOT

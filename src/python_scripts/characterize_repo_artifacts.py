@@ -21,7 +21,17 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
+# S0186 Unit H (GATE-020 remediation diagnostic): this was SCRIPT_DIR.parent
+# (one level short -- resolving to .../src instead of the repo root), which
+# silently made every DEFAULT_* path below point outside the repository
+# (e.g. DEFAULT_CANON_GLOB resolved under .../src/data/out/local/, which
+# never exists) and this script's own --dry-run evaluated 0 canon records
+# whenever invoked without explicit --canon-glob/--s0145-candidates
+# overrides. Every existing test bypasses this via
+# monkeypatch.setattr(cra, "REPO_ROOT", tmp_path), which is why it went
+# undetected. Matches the sibling convention already used by
+# relation_admission_gate.py and generate_technical_relation_candidates.py.
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
 SCHEMA = "repo-artifact-characterization/v1"
 DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
@@ -189,6 +199,15 @@ SPECIAL_REPO_NAMES = {
     "go.work.sum",
     "estructura.txt",
     "tdc.sh",
+    # S0186 Unit H (GATE-020 remediation, producer repair): src/README.md is
+    # the only file directly under src/ (not inside a TECH_PATH_PREFIXES
+    # subdirectory), so looks_like_repo_path() rejected it outright. Its
+    # title/key candidate was then never added to candidate_repo_path()'s
+    # candidate list, leaving the bare "README.md" substring match below
+    # (found inside the record's own "[[src/README.md]]" tag text) as the
+    # only accepted candidate -- silently comparing this record's content
+    # against the WRONG file (the repo-root README.md).
+    "src/README.md",
 }
 GENERATED_PREFIXES = (
     "data/out/",
@@ -208,8 +227,35 @@ SESSION_TITLE_RE = re.compile(
 PATH_TOKEN_RE = re.compile(
     r"(?:(?:python_scripts|shell_scripts|tests|\.github|go|docs|data|esquemas|ux)/"
     r"[A-Za-z0-9._/() -]+\.[A-Za-z0-9]+|"
-    r"(?:README\.md|LICENSE|go\.work(?:\.sum)?|estructura\.txt|\.gitignore|\.gitattributes))"
+    # S0186 Unit H (GATE-020 remediation, producer repair): the negative
+    # lookbehind stops these bare special names from matching as a SUBSTRING
+    # of a longer, unrelated path (e.g. "README.md" inside "src/README.md"
+    # or a future "docs/README.md") -- without it, a record whose text only
+    # mentions its OWN nested path was still credited with a spurious match
+    # on the repo-root special file, and could be compared against the
+    # wrong file's content.
+    r"(?<!/)(?:README\.md|LICENSE|go\.work(?:\.sum)?|estructura\.txt|\.gitignore|\.gitattributes))"
 )
+# S0186 Closure Prep (2026-09-08): REVERTED to lazy. A prior pass in this
+# same session changed this to greedy `(.*)`, reasoning that 6
+# .github/instructions/*.md records' "substantive_diff" verdict was a lazy-
+# regex truncation bug. That reasoning was WRONG, confirmed by directly
+# running the OFFICIAL Go ExtractCodeBlocks (via canon_preflight --mode
+# normalize) against these records' actual, unmodified text: Go extracts
+# 8 SEPARATE blocks from one such record (1612, 13, 51, 1202, 89, 2409,
+# 3639, 1952 bytes), and Go's block[0] matches EXACTLY what this lazy
+# regex already produced. These are genuine MULTI_BLOCK_DOCUMENT artifacts
+# (their `text` is the file's own raw markdown, containing several
+# independently meaningful fenced examples), not WHOLE_FILE_ARTIFACT
+# records wrapped in one outer fence -- the greedy version was fabricating
+# a "whole file" reading these records were never contractually meant to
+# have, silently disagreeing with the authoritative Go extraction. Lazy
+# `(.*?)` (stop at the first closing fence) is what actually matches Go's
+# own block[0] semantics for a multi-block document; the earlier "bug" was
+# not a bug. Comparing ANY single block against the whole live file is not
+# a meaningful currentness check for this artifact class -- that is a
+# separate, real, still-open problem (a distinct typed refresh lane would
+# be needed), not something this regex can or should paper over.
 FENCE_RE = re.compile(r"```[A-Za-z0-9_+-]*\n(.*?)\n```", re.DOTALL)
 
 
@@ -434,10 +480,10 @@ def classify_repo_artifact_kind(path: str, *, external: bool = False) -> str:
     return "unknown_repo_artifact"
 
 
-def compare_content(record: dict[str, Any], repo_path: str) -> tuple[str, str, str]:
+def compare_content(record: dict[str, Any], repo_path: str, repo_root: Path | None = None) -> tuple[str, str, str]:
     if not repo_path:
         return "not_applicable", "", ""
-    path = REPO_ROOT / repo_path
+    path = (repo_root or REPO_ROOT) / repo_path
     if not path.exists() or not path.is_file():
         return "not_applicable", "", ""
     canon_code = first_code_block(record)
@@ -1096,7 +1142,18 @@ def build_repo_artifact_outputs(
     git_set = load_path_set(git_files)
     worktree_set = load_path_set(worktree_files)
     if not git_set:
-        git_set = {path.as_posix() for path in REPO_ROOT.rglob("*") if path.is_file()}
+        # S0186 Unit H (GATE-020 remediation, producer repair): this produced
+        # ABSOLUTE paths (e.g. "/repo/src/README.md"), which can never equal
+        # the repo-RELATIVE candidates candidate_repo_path() builds (e.g.
+        # "src/README.md") -- every membership check against the default,
+        # no-argument auto-populated set silently failed (confirmed live:
+        # with_git_path=0 for the entire canon). That in turn let
+        # candidate_repo_path() fall through to its weaker
+        # looks_like_repo_path-only fallback and pick an unrelated candidate
+        # that merely happened to satisfy that check first.
+        git_set = {
+            path.relative_to(REPO_ROOT).as_posix() for path in REPO_ROOT.rglob("*") if path.is_file()
+        }
     if not worktree_set:
         worktree_set = set(git_set)
 

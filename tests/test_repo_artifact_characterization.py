@@ -112,13 +112,26 @@ def test_operates_without_s0145_using_only_canon(tmp_path: Path, monkeypatch) ->
     assert _classifications(result)[0]["diagnostic_category"] == "embedded_code_block"
 
 
+# S0186 Unit H (GATE-020 remediation, producer repair): this test and the
+# five below it used the pre-src-migration "python_scripts/demo.py" /
+# "shell_scripts/run.sh" path shape. TECH_PATH_PREFIXES only recognizes the
+# current "src/python_scripts/", "src/shell_scripts/" prefixes (correctly --
+# every real record in the live population is already under src/), so
+# looks_like_repo_path() returned False, candidate_repo_path() returned "",
+# and every downstream signal (exists_in_git, artifact_kind,
+# content_comparison, authority_level) degraded from there. That looked like
+# a broken comparison/authority_level rule; it was six stale fixtures never
+# updated for the src/ migration. Independently confirmed via
+# audit_repo_lifecycle_authority.py (S0186 Unit H) as an oracle: the real,
+# current-convention population classifies correctly without any production
+# code change.
 def test_detects_exact_git_path(tmp_path: Path, monkeypatch) -> None:
-    _repo_file(tmp_path, "python_scripts/demo.py", "print('ok')\n")
+    _repo_file(tmp_path, "src/python_scripts/demo.py", "print('ok')\n")
     result = _run(
         tmp_path,
         monkeypatch,
-        [_record("demo", "python_scripts/demo.py", role="code", code="print('ok')\n")],
-        git_files=["python_scripts/demo.py"],
+        [_record("demo", "src/python_scripts/demo.py", role="code", code="print('ok')\n")],
+        git_files=["src/python_scripts/demo.py"],
     )
 
     row = _classifications(result)[0]
@@ -148,8 +161,8 @@ def test_detects_moved_candidate_by_alternative_path(tmp_path: Path, monkeypatch
 
 
 def test_classifies_py_as_source_code(tmp_path: Path, monkeypatch) -> None:
-    _repo_file(tmp_path, "python_scripts/demo.py")
-    row = _classifications(_run(tmp_path, monkeypatch, [_record("py", "python_scripts/demo.py", role="code", code="print('ok')\n")], git_files=["python_scripts/demo.py"]))[0]
+    _repo_file(tmp_path, "src/python_scripts/demo.py")
+    row = _classifications(_run(tmp_path, monkeypatch, [_record("py", "src/python_scripts/demo.py", role="code", code="print('ok')\n")], git_files=["src/python_scripts/demo.py"]))[0]
     assert row["candidate_repo_artifact_kind"] == "source_code"
 
 
@@ -160,8 +173,8 @@ def test_classifies_test_py_as_test_code(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_classifies_sh_as_shell_script(tmp_path: Path, monkeypatch) -> None:
-    _repo_file(tmp_path, "shell_scripts/run.sh", "#!/usr/bin/env bash\n")
-    row = _classifications(_run(tmp_path, monkeypatch, [_record("sh", "shell_scripts/run.sh", role="code", code="#!/usr/bin/env bash\n")], git_files=["shell_scripts/run.sh"]))[0]
+    _repo_file(tmp_path, "src/shell_scripts/run.sh", "#!/usr/bin/env bash\n")
+    row = _classifications(_run(tmp_path, monkeypatch, [_record("sh", "src/shell_scripts/run.sh", role="code", code="#!/usr/bin/env bash\n")], git_files=["src/shell_scripts/run.sh"]))[0]
     assert row["candidate_repo_artifact_kind"] == "shell_script"
 
 
@@ -199,15 +212,15 @@ def test_distinguishes_embedded_code_block_from_repo_file(tmp_path: Path, monkey
 
 
 def test_does_not_declare_current_verified_for_title_only(tmp_path: Path, monkeypatch) -> None:
-    _repo_file(tmp_path, "python_scripts/demo.py", "print('ok')\n")
-    row = _classifications(_run(tmp_path, monkeypatch, [_record("title", "python_scripts/demo.py", role="code")], git_files=["python_scripts/demo.py"]))[0]
+    _repo_file(tmp_path, "src/python_scripts/demo.py", "print('ok')\n")
+    row = _classifications(_run(tmp_path, monkeypatch, [_record("title", "src/python_scripts/demo.py", role="code")], git_files=["src/python_scripts/demo.py"]))[0]
     assert row["candidate_authority_level"] != "current_verified"
     assert row["content_comparison"] == "no_comparable_code_block"
 
 
 def test_requires_positive_comparison_for_current_verified(tmp_path: Path, monkeypatch) -> None:
-    _repo_file(tmp_path, "python_scripts/demo.py", "print('ok')\n")
-    row = _classifications(_run(tmp_path, monkeypatch, [_record("hash", "python_scripts/demo.py", role="code", code="print('ok')\n")], git_files=["python_scripts/demo.py"]))[0]
+    _repo_file(tmp_path, "src/python_scripts/demo.py", "print('ok')\n")
+    row = _classifications(_run(tmp_path, monkeypatch, [_record("hash", "src/python_scripts/demo.py", role="code", code="print('ok')\n")], git_files=["src/python_scripts/demo.py"]))[0]
     assert row["candidate_authority_level"] == "current_verified"
     assert row["content_comparison"] == "exact_match"
 
@@ -218,8 +231,8 @@ def test_declares_applied_to_canon_false(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_relation_opportunities_are_not_formal_candidates(tmp_path: Path, monkeypatch) -> None:
-    _repo_file(tmp_path, "python_scripts/demo.py", "print('ok')\n")
-    result = _run(tmp_path, monkeypatch, [_record("demo", "python_scripts/demo.py", role="code", code="print('ok')\n")], git_files=["python_scripts/demo.py"])
+    _repo_file(tmp_path, "src/python_scripts/demo.py", "print('ok')\n")
+    result = _run(tmp_path, monkeypatch, [_record("demo", "src/python_scripts/demo.py", role="code", code="print('ok')\n")], git_files=["src/python_scripts/demo.py"])
     path = Path(result["paths"]["relation_opportunities"])
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert rows
@@ -246,6 +259,21 @@ def test_output_is_deterministic(tmp_path: Path, monkeypatch) -> None:
     first_hash = hashlib.sha256(Path(first["paths"]["classification"]).read_bytes()).hexdigest()
     second_hash = hashlib.sha256(Path(second["paths"]["classification"]).read_bytes()).hexdigest()
     assert first_hash == second_hash
+
+
+def test_default_repo_root_resolves_to_the_actual_repository_root() -> None:
+    # S0186 Unit H (GATE-020 remediation): REPO_ROOT used to be SCRIPT_DIR
+    # .parent (one level short), so every DEFAULT_* path -- canon glob,
+    # s0145 candidates, out-dir -- silently pointed outside the repository
+    # and --dry-run with no explicit overrides evaluated 0 canon records.
+    # This never surfaced because every other test in this file monkeypatches
+    # REPO_ROOT directly. Confirms the default matches the same
+    # SCRIPT_DIR.parents[1] convention relation_admission_gate.py uses.
+    script_dir = Path(cra.__file__).resolve().parent
+    assert cra.REPO_ROOT == script_dir.parents[1]
+    assert (cra.REPO_ROOT / "data" / "out" / "local").is_dir()
+    assert (cra.REPO_ROOT / "src" / "python_scripts").is_dir()
+    assert cra.DEFAULT_CANON_GLOB == str(cra.REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
 
 
 def test_does_not_modify_input_canon_jsonl(tmp_path: Path, monkeypatch) -> None:

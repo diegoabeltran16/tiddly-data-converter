@@ -15,7 +15,12 @@ import repo_metadata_admission_gate as metadata_gate  # noqa: E402
 import repo_metadata_refresh_patch as metadata_refresh  # noqa: E402
 
 
-def test_tdc_menu_exposes_governed_admission_and_keeps_critical_access() -> None:
+def test_tdc_menu_keeps_critical_access_after_top_level_migration() -> None:
+    # S0186 Unit H (final intervention, top-level UX migration):
+    # "Revisión / admisión gobernada" no longer exists as an independent
+    # top-level entry (OLD_NAVIGATION_CONTRACT_MIGRATED) -- metadata técnica
+    # is now reachable via "4) Sincronizar artefactos al canon" -> 2, proven
+    # separately below.
     result = subprocess.run(
         [str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh")],
         cwd=REPO_ROOT,
@@ -29,9 +34,24 @@ def test_tdc_menu_exposes_governed_admission_and_keeps_critical_access() -> None
     assert "Tiddly Data Converter - Operador local" in result.stdout
     assert "TDC · Tiddly Data Converter" not in result.stdout
     assert "6) Relaciones canónicas" in result.stdout
-    assert "7) Revisión / admisión gobernada" in result.stdout
-    assert "10) Exportador de repositorio" in result.stdout
-    assert "11) Configurar MCP / mirror remoto" in result.stdout
+    assert "3) Exportador de repositorio" in result.stdout
+    assert "9) Configurar MCP / mirror remoto" in result.stdout
+    assert "4) Sincronizar artefactos al canon" in result.stdout
+
+
+def test_metadata_tecnica_reachable_from_sync_governance_menu() -> None:
+    result = subprocess.run(
+        [str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh")],
+        cwd=REPO_ROOT,
+        input="4\n2\n0\n0\n0\n",
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "Metadata técnica" in result.stdout
+    assert "Canon: PROTEGIDO" in result.stdout
 
 
 def test_metadata_submenu_header_declares_s0151_guided_policy() -> None:
