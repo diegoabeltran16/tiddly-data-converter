@@ -105,6 +105,75 @@ def _normalize_session_num(raw: str) -> str | None:
     return str(n).zfill(4)
 
 
+# ── Thematic diagnostic (DT) title contract ──────────────────────────────────
+#
+# S0186 Closure Prep, Track A: diagnostico_tematico is explicitly NOT a
+# session-numbered family (see _NON_SESSION_FAMILIES above -- no S-prefix,
+# no session semantics) and is governed by its own contract instead:
+# "Diagnóstico temático" + an unbounded positive integer, canonically
+# presented zero-padded to AT LEAST 4 digits.
+#
+# Root-cause investigation for this contract (S0186 Closure Prep, 2026-09-08):
+# no code anywhere (this module, diagnostic_governance.py's filename regex
+# `\d+`, canon_proposal.py, or the Go canon_preflight validator) ever
+# enforced an exact digit width for DT titles -- the "siempre cuatro
+# dígitos" rule was documented in .github/instructions/diagnosticos_no_
+# sesionales.instructions.md without a corresponding implementation, and
+# DT097 is live, currently-admitted proof that a 3-digit title has already
+# passed through the real governed pipeline. Selected scenario:
+# CONTRACT_SHOULD_EVOLVE_TO_UNBOUNDED_NUMERIC_SEQUENCE -- a MINIMUM width
+# of 4 (via zfill, which only pads up, never truncates) rather than an
+# EXACT width of 4, so DT10000 is representable without hitting the same
+# wall DT100 just did.
+_DT_TITLE_RE = re.compile(r"^#### 🌀 Diagnóstico temático (\d+) = (.+)$", re.DOTALL)
+
+
+def _canonical_dt_number(raw: str) -> str | None:
+    """Canonical DT number string for *raw*: zero-padded to >=4 digits,
+
+    no maximum -- str.zfill only pads up, so DT10000 stays "10000", not
+    truncated to 4 digits. Returns None if raw isn't a positive integer.
+    """
+    if not raw.isdigit():
+        return None
+    n = int(raw)
+    if n < 1:
+        return None
+    return str(n).zfill(4)
+
+
+def classify_thematic_diagnostic_title(title: str) -> TitleClassification:
+    """Classify a ``diagnostico_tematico`` title against its OWN contract
+
+    (DT number width), independent of the session-number policy this
+    family is explicitly excluded from (no S-prefix stripping applies).
+    """
+    m = _DT_TITLE_RE.fullmatch(title)
+    if not m:
+        return TitleClassification(
+            status="manual_review",
+            issue="unparseable",
+            reason="title does not match '#### 🌀 Diagnóstico temático NNNN = <slug>'",
+        )
+    raw_num, slug = m.group(1), m.group(2).strip()
+    canonical_num = _canonical_dt_number(raw_num)
+    if canonical_num is None:
+        return TitleClassification(
+            status="manual_review",
+            issue="invalid_dt_number",
+            reason=f"DT number {raw_num!r} is not a valid positive integer",
+        )
+    if raw_num == canonical_num:
+        return TitleClassification(status="canonical")
+    proposed = f"#### 🌀 Diagnóstico temático {canonical_num} = {slug}"
+    return TitleClassification(
+        status="normalizable",
+        issue="dt_number_not_zero_padded",
+        proposed_title=proposed,
+        reason=f"DT number {raw_num!r} should be zero-padded to at least 4 digits ({canonical_num!r})",
+    )
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def classify_title(title: str, family: str) -> TitleClassification:
@@ -117,6 +186,9 @@ def classify_title(title: str, family: str) -> TitleClassification:
     - ``blocked``        — parsed but normalisation would be invalid.
     - ``not_applicable`` — family not subject to session-number policy.
     """
+    if family == "diagnostico_tematico":
+        return classify_thematic_diagnostic_title(title)
+
     if family in _NON_SESSION_FAMILIES or family not in FAMILY_CANONICAL_PREFIX:
         return TitleClassification(
             status="not_applicable",

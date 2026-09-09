@@ -58,16 +58,33 @@ HISTORICAL_TRIAL_CLASSIFICATION = AUDIT_ROOT / "historical_trial_snapshot_classi
 ACTIVE_TRIAL_ROOT = AUDIT_ROOT / "current_trial"
 TRIAL_SNAPSHOT = PIPELINE_ROOT / "current_trial_rollback_snapshot"
 ARCHIVED_TRIAL_ROOT = PIPELINE_ROOT / "archived_trial_snapshots"
-DEFINITIVE_SNAPSHOT = PIPELINE_ROOT / "definitive_rollback_snapshot"
 TRIAL_RECEIPT = ACTIVE_TRIAL_ROOT / "trial_write_receipt.json"
-DEFINITIVE_RECEIPT = AUDIT_ROOT / "definitive_promotion_receipt.json"
 TRIAL_VALIDATION = ACTIVE_TRIAL_ROOT / "trial_post_write_validation.json"
 TRIAL_VALIDATION_OUT_OF_SEQUENCE = ACTIVE_TRIAL_ROOT / "trial_validation_out_of_sequence.json"
-DEFINITIVE_VALIDATION = AUDIT_ROOT / "definitive_post_write_validation.json"
 ROLLBACK_REPORT = ACTIVE_TRIAL_ROOT / "rollback_execution_report.json"
 ROLLBACK_EQUALITY = ACTIVE_TRIAL_ROOT / "rollback_equality_report.json"
 ROLLBACK_ERROR = ACTIVE_TRIAL_ROOT / "rollback_error_report.json"
 TRIAL_JOURNAL = ACTIVE_TRIAL_ROOT / "trial_transaction_journal.jsonl"
+# S0180-era definitive-promotion evidence is likewise immutable at its
+# original, unscoped paths -- preserved exactly like the S0175 trial
+# evidence above, and for the same reason: a CURRENT definitive promotion
+# must never collide with, silently satisfy, or be confused with it.
+HISTORICAL_DEFINITIVE_SNAPSHOT = PIPELINE_ROOT / "definitive_rollback_snapshot"
+HISTORICAL_DEFINITIVE_RECEIPT = AUDIT_ROOT / "definitive_promotion_receipt.json"
+HISTORICAL_DEFINITIVE_VALIDATION = AUDIT_ROOT / "definitive_post_write_validation.json"
+HISTORICAL_DEFINITIVE_CLASSIFICATION = AUDIT_ROOT / "historical_definitive_snapshot_classification.json"
+# Active/current definitive-promotion surface. Unlike a trial (repeatable,
+# rolled back, and archived to free a single active slot), a definitive
+# promotion is a one-shot terminal productive mutation: its rollback
+# snapshot is permanent audit evidence, never reused or overwritten, so it
+# is scoped by BOTH the staging manifest it promoted and the authorization
+# that committed to it -- durable across every future promotion generation
+# without ever colliding with a prior one's evidence (see
+# ``_definitive_snapshot_path``).
+ACTIVE_DEFINITIVE_ROOT = AUDIT_ROOT / "current_definitive"
+DEFINITIVE_SNAPSHOT_ROOT = PIPELINE_ROOT / "definitive_rollback_snapshots"
+DEFINITIVE_RECEIPT = ACTIVE_DEFINITIVE_ROOT / "definitive_promotion_receipt.json"
+DEFINITIVE_VALIDATION = ACTIVE_DEFINITIVE_ROOT / "definitive_post_write_validation.json"
 DEFINITIVE_JOURNAL = AUDIT_ROOT / "definitive_transaction_journal.jsonl"
 FINAL_MANIFEST = AUDIT_ROOT / "productive_rag_manifest.json"
 HISTORICAL_BASELINE_ROOT = LOCAL_ROOT / "pipeline" / "rag_derivation" / "s0174" / "staging"
@@ -160,6 +177,19 @@ def _authorization_status(path: Path, operation: str, manifest_hash: str | None)
     return "valid", []
 
 
+def _definitive_snapshot_path(staging_manifest_hash: str | None, authorization_id: str | None) -> Path:
+    """Every definitive promotion gets its own permanent, non-reusable
+
+    rollback snapshot directory, scoped by exactly the manifest and
+    authorization it commits to. This is what keeps a CURRENT definitive
+    promotion from ever colliding with -- or being confused with -- a
+    prior one's evidence (historical or from an earlier generation): each
+    (manifest, authorization) pair owns a distinct path forever.
+    """
+
+    return DEFINITIVE_SNAPSHOT_ROOT / str(staging_manifest_hash or "unbound") / str(authorization_id or "unbound")
+
+
 def _evidence_matches_manifest(value: dict[str, Any], manifest_hash: str | None) -> bool:
     """Operational evidence is reusable only for the exact active manifest."""
 
@@ -184,21 +214,31 @@ def _current_trial_receipt(
     manifest_hash: str | None,
     operation: str,
 ) -> tuple[bool, list[str]]:
-    """Require a successful receipt from this manifest and authorization."""
+    """Require a successful receipt from this manifest and authorization.
 
+    Despite the name (kept for compatibility with existing callers/tests),
+    this is shared by both trial_write and definitive_promotion checks.
+    Reason codes are prefixed by the operation actually being checked, so a
+    definitive-promotion validation failure is never reported with
+    trial-flavored reason codes (and vice versa) -- a receipt sitting at
+    the wrong path/generation reads as "definitive_receipt_*", not
+    "trial_receipt_*", when operation="definitive_promotion".
+    """
+
+    prefix = "trial_receipt" if operation == "trial_write" else "definitive_receipt"
     reasons: list[str] = []
     if not receipt:
-        reasons.append("trial_receipt_absent")
+        reasons.append(f"{prefix}_absent")
     elif receipt.get("operation") != operation:
-        reasons.append("trial_receipt_operation_mismatch")
+        reasons.append(f"{prefix}_operation_mismatch")
     elif receipt.get("status") != "promotion_completed":
-        reasons.append("trial_receipt_not_successful")
+        reasons.append(f"{prefix}_not_successful")
     if _receipt_manifest_hash(receipt) != manifest_hash:
-        reasons.append("trial_receipt_manifest_mismatch")
+        reasons.append(f"{prefix}_manifest_mismatch")
     if receipt.get("authorization_id") != authorization.get("authorization_id"):
-        reasons.append("trial_receipt_authorization_mismatch")
+        reasons.append(f"{prefix}_authorization_mismatch")
     if receipt.get("session_id") != ADMISSION_SCOPE_ID:
-        reasons.append("trial_receipt_scope_mismatch")
+        reasons.append(f"{prefix}_scope_mismatch")
     return not reasons, reasons
 
 
@@ -348,6 +388,64 @@ def classify_historical_trial_snapshot() -> dict[str, Any]:
         "productive_surfaces_mutated": False,
     }
     _write(HISTORICAL_TRIAL_CLASSIFICATION, payload)
+    return payload
+
+
+def classify_historical_definitive_snapshot() -> dict[str, Any]:
+    """Preserve and classify the pre-existing definitive-promotion evidence
+
+    without relocating or rewriting it. Mirrors
+    ``classify_historical_trial_snapshot`` for the same reason: an old,
+    unscoped definitive promotion's snapshot/receipt must never be
+    reusable for -- or confusable with -- a CURRENT one. A definitive
+    promotion is terminal (no rollback step), so unlike the trial
+    classification there is no rollback/equality provenance to record.
+    """
+
+    manifest, manifest_error = _read(HISTORICAL_DEFINITIVE_SNAPSHOT / "rollback_manifest.json")
+    receipt, receipt_error = _read(HISTORICAL_DEFINITIVE_RECEIPT)
+    validation, validation_error = _read(HISTORICAL_DEFINITIVE_VALIDATION)
+    verification = (
+        verify_rollback_snapshot(HISTORICAL_DEFINITIVE_SNAPSHOT, manifest)
+        if not manifest_error
+        else {"restored_manifest_matches": False, "mismatches": [manifest_error]}
+    )
+    payload = {
+        "schema_version": "rag-historical-definitive-snapshot/v1",
+        "operation": "preserve_historical_definitive_snapshot",
+        "classified_at": _now(),
+        "historical_snapshot": {
+            "present": HISTORICAL_DEFINITIVE_SNAPSHOT.exists(),
+            "path": str(HISTORICAL_DEFINITIVE_SNAPSHOT),
+            "session_id": manifest.get("session_id"),
+            "created_at": manifest.get("created_at"),
+            "authorization_id": manifest.get("authorization_id"),
+            "manifest_hash": _receipt_manifest_hash(receipt) or manifest.get("staging_manifest_hash"),
+            "reusable_for_current_manifest": False,
+            "protected": True,
+            "files_manifest": len(manifest.get("files", [])),
+            "hashes": _historical_snapshot_hashes(HISTORICAL_DEFINITIVE_SNAPSHOT),
+            "verification": verification,
+        },
+        "provenance": {
+            "receipt_path": str(HISTORICAL_DEFINITIVE_RECEIPT),
+            "receipt_session_id": receipt.get("session_id"),
+            "validation_path": str(HISTORICAL_DEFINITIVE_VALIDATION),
+            "evidence_errors": [error for error in (receipt_error, validation_error) if error],
+            "historical_status": {
+                "definitive_promotion": receipt.get("status"),
+                "validation": validation.get("status"),
+            },
+        },
+        "active_surface": {
+            "snapshot_root": str(DEFINITIVE_SNAPSHOT_ROOT),
+            "audit_root": str(ACTIVE_DEFINITIVE_ROOT),
+            "shares_historical_authority": False,
+        },
+        "relocation_performed": False,
+        "productive_surfaces_mutated": False,
+    }
+    _write(HISTORICAL_DEFINITIVE_CLASSIFICATION, payload)
     return payload
 
 
@@ -618,7 +716,16 @@ def build_state() -> dict[str, Any]:
             "classification_path": str(HISTORICAL_TRIAL_CLASSIFICATION),
             "reusable_for_current_manifest": False,
         },
-        "warnings": (["historical_trial_evidence_not_reusable"] if HISTORICAL_TRIAL_RECEIPT.exists() else []),
+        "historical_definitive_evidence": {
+            "snapshot_path": str(HISTORICAL_DEFINITIVE_SNAPSHOT),
+            "receipt_path": str(HISTORICAL_DEFINITIVE_RECEIPT),
+            "classification_path": str(HISTORICAL_DEFINITIVE_CLASSIFICATION),
+            "reusable_for_current_manifest": False,
+        },
+        "warnings": (
+            (["historical_trial_evidence_not_reusable"] if HISTORICAL_TRIAL_RECEIPT.exists() else [])
+            + (["historical_definitive_evidence_not_reusable"] if HISTORICAL_DEFINITIVE_RECEIPT.exists() else [])
+        ),
     }
 
 
@@ -688,7 +795,11 @@ def execute_write(operation: str) -> dict[str, Any]:
     authorization, error = _read(auth_path)
     if error:
         raise ProductiveWriteBlocked(f"authorization unavailable: {error}")
-    snapshot = TRIAL_SNAPSHOT if operation == "trial_write" else DEFINITIVE_SNAPSHOT
+    snapshot = (
+        TRIAL_SNAPSHOT
+        if operation == "trial_write"
+        else _definitive_snapshot_path(state["staging"]["manifest_hash"], authorization.get("authorization_id"))
+    )
     receipt = TRIAL_RECEIPT if operation == "trial_write" else DEFINITIVE_RECEIPT
     journal = TRIAL_JOURNAL if operation == "trial_write" else DEFINITIVE_JOURNAL
     if snapshot.exists() and any(snapshot.iterdir()):
@@ -989,7 +1100,7 @@ def refresh_governance() -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evidence-derived governed RAG admission")
-    parser.add_argument("command", choices=("state", "audit", "rollback-status", "archive-verified-trial-snapshot", "classify-historical-trial", "recover-trial-validation", "refresh-governance", "authorize-trial", "authorize-definitive", "trial-write", "validate-trial", "record-rollback-error", "rollback-trial", "promote-definitive", "validate-definitive", "finalize"))
+    parser.add_argument("command", choices=("state", "audit", "rollback-status", "archive-verified-trial-snapshot", "classify-historical-trial", "classify-historical-definitive", "recover-trial-validation", "refresh-governance", "authorize-trial", "authorize-definitive", "trial-write", "validate-trial", "record-rollback-error", "rollback-trial", "promote-definitive", "validate-definitive", "finalize"))
     parser.add_argument("--phrase")
     args = parser.parse_args()
     if args.command == "state":
@@ -1002,6 +1113,8 @@ def main() -> int:
         result = archive_current_verified_trial_snapshot()
     elif args.command == "classify-historical-trial":
         result = classify_historical_trial_snapshot()
+    elif args.command == "classify-historical-definitive":
+        result = classify_historical_definitive_snapshot()
     elif args.command == "recover-trial-validation":
         result = recover_trial_validation_from_receipt()
     elif args.command == "refresh-governance":

@@ -12,7 +12,7 @@ import ast
 import csv
 import hashlib
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -125,9 +125,23 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def load_canon_artifacts(canon_root: Path) -> tuple[dict[str, CanonArtifact], set[tuple[str, str, str]]]:
+def load_canon_artifacts(
+    canon_root: Path, repo_root: Path | None = None,
+) -> tuple[dict[str, CanonArtifact], set[tuple[str, str, str]]]:
     by_repo_path: dict[str, CanonArtifact] = {}
     canonical_relations: set[tuple[str, str, str]] = set()
+    # S0186 Unit H2: some canon records for real repository files predate the
+    # governed repo-metadata admission that materializes source_fields.repo_path
+    # (artifact_family/authority_level/repo_lifecycle_state are curated
+    # judgments and are deliberately NOT fabricated here). Those records'
+    # key/title is already, verifiably, the exact repo-relative path -- the
+    # same fact a human reviewer would use to admit repo_path. Recovering it
+    # here (cross-checked against real files on disk, never guessed) closes a
+    # resolver false negative without writing to Canon. A path claimed by two
+    # different canonical_ids is a genuine ambiguity and is left unresolved.
+    known_repo_files = repo_file_paths(repo_root) if repo_root is not None else set()
+    derived_by_path: dict[str, set[str]] = defaultdict(set)
+    derived_artifact_by_id: dict[str, CanonArtifact] = {}
 
     for shard in sorted(canon_root.glob("tiddlers_*.jsonl")):
         with shard.open(encoding="utf-8") as fh:
@@ -143,20 +157,41 @@ def load_canon_artifacts(canon_root: Path) -> tuple[dict[str, CanonArtifact], se
                         canonical_relations.add((tid, str(rel["target_id"]), str(rel["type"])))
                 source_fields = rec.get("source_fields") or {}
                 repo_path = canonicalize_repo_path(source_fields.get("repo_path"))
-                if not repo_path:
+                if repo_path:
+                    artifact = CanonArtifact(
+                        repo_path=repo_path,
+                        canonical_id=tid,
+                        canonical_title=str(rec.get("title") or ""),
+                        artifact_family=source_fields.get("artifact_family"),
+                        authority_level=source_fields.get("authority_level"),
+                        repo_lifecycle_state=source_fields.get("repo_lifecycle_state"),
+                        canonical_status=source_fields.get("canonical_status"),
+                        sha256=source_fields.get("content_sha256") or rec.get("version_id"),
+                    )
+                    for alias in path_aliases(repo_path) | path_aliases(source_fields.get("source_path")):
+                        by_repo_path.setdefault(alias, artifact)
                     continue
-                artifact = CanonArtifact(
-                    repo_path=repo_path,
-                    canonical_id=tid,
-                    canonical_title=str(rec.get("title") or ""),
-                    artifact_family=source_fields.get("artifact_family"),
-                    authority_level=source_fields.get("authority_level"),
-                    repo_lifecycle_state=source_fields.get("repo_lifecycle_state"),
-                    canonical_status=source_fields.get("canonical_status"),
-                    sha256=source_fields.get("content_sha256") or rec.get("version_id"),
-                )
-                for alias in path_aliases(repo_path) | path_aliases(source_fields.get("source_path")):
-                    by_repo_path.setdefault(alias, artifact)
+                if not known_repo_files:
+                    continue
+                for raw_candidate in (rec.get("key"), rec.get("title")):
+                    candidate_path = canonicalize_repo_path(raw_candidate)
+                    if candidate_path and candidate_path in known_repo_files:
+                        derived_by_path[candidate_path].add(tid)
+                        derived_artifact_by_id[tid] = CanonArtifact(
+                            repo_path=candidate_path,
+                            canonical_id=tid,
+                            canonical_title=str(rec.get("title") or ""),
+                            artifact_family=source_fields.get("artifact_family"),
+                            authority_level=source_fields.get("authority_level"),
+                            repo_lifecycle_state=source_fields.get("repo_lifecycle_state"),
+                            canonical_status=source_fields.get("canonical_status"),
+                            sha256=source_fields.get("content_sha256") or rec.get("version_id"),
+                        )
+
+    for candidate_path, candidate_ids in derived_by_path.items():
+        if len(candidate_ids) != 1:
+            continue
+        by_repo_path.setdefault(candidate_path, derived_artifact_by_id[next(iter(candidate_ids))])
     return by_repo_path, canonical_relations
 
 
@@ -465,7 +500,7 @@ def build_candidates(
     *,
     exclude_prior_dirs: Iterable[Path] = (),
 ) -> list[dict[str, Any]]:
-    artifacts, canonical_relations = load_canon_artifacts(canon_root)
+    artifacts, canonical_relations = load_canon_artifacts(canon_root, root)
     observations = discover_observations(root, set(artifacts))
     prior = load_prior_signatures(
         canon_root / "pipeline",

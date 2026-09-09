@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -266,6 +267,24 @@ def build_state(
     gate_summary = gate.get("summary") or {}
     gate_items = gate.get("items") or []
     gate_decisions = Counter(str(item.get("decision") or "unknown") for item in gate_items if isinstance(item, dict))
+    # S0186 Unit H (GATE-020 remediation): approved_for_admission and
+    # admission_ready can legitimately diverge -- a human/policy decision
+    # approves a candidate, but the gate's OWN technical criteria (lifecycle
+    # metadata, duplicates, confidence, ...) can still block it. That gap
+    # was previously only visible by cross-referencing several reports by
+    # hand. Surface it here, in the same state "Estado actual" already
+    # reads, instead of adding a new menu entry.
+    approved_but_not_ready = [
+        item for item in gate_items
+        if isinstance(item, dict)
+        and item.get("human_review_decision") == "approved_for_admission"
+        and item.get("gate_status") != "admission_ready_dry_run"
+    ]
+    approved_not_ready_block_reasons = Counter(
+        re.match(r"^(GATE-\d+)", str(reason)).group(1) if re.match(r"^(GATE-\d+)", str(reason)) else str(reason)
+        for item in approved_but_not_ready
+        for reason in (item.get("all_block_reasons") or [str(item.get("primary_block_reason") or "unknown")])
+    )
     gate_reasons: list[str] = []
     if gate_error:
         gate_reasons.append(f"admission_gate_report_{gate_error}")
@@ -640,6 +659,14 @@ def build_state(
             "partition_complete": partition_complete,
             "partition_total": partition_total,
             "stale_reasons": [] if current_bundle_valid else gate_reasons,
+            # approved_for_admission counts every candidate a human/policy
+            # decision approved; admission_ready counts only those that ALSO
+            # pass every other gate criterion. The gap between them (if any)
+            # is explained here by gate reason code, sourced from the same
+            # report already loaded above -- not a second report to
+            # cross-reference by hand.
+            "approved_but_not_admission_ready": len(approved_but_not_ready),
+            "approved_but_not_admission_ready_by_gate_reason": dict(sorted(approved_not_ready_block_reasons.items())),
         },
         "apply": {
             "executed": bool(apply_report.get("status") == "applied"),

@@ -212,9 +212,18 @@ def candidate_semantic_payload(candidate: Any, *, include_evidence: bool = True)
     """Return decision-relevant semantics, deliberately excluding volatile IDs.
 
     Candidate IDs, line numbers, timestamps, file hashes, and current-manifest
-    bindings are regeneration details.  Reusing a human decision is allowed
-    only when the resolved endpoints, predicate, evidence kind, observed text,
-    and lifecycle semantics remain equal.
+    bindings are regeneration details.  So is endpoint metadata that describes
+    governance/admission state rather than which relation this is:
+    ``repo_lifecycle_state``/``lifecycle_state``, ``artifact_family`` and
+    ``authority_level`` are populated, rehydrated, or nulled out by repo
+    metadata patches and re-admissions independently of the relation itself
+    -- a candidate whose endpoints and predicate never changed must not stop
+    being recognized as the same relation just because that governed
+    metadata drifted. The stable relational identity is exactly the
+    endpoint-predicate triple (resolved source, resolved target, predicate);
+    reusing a human decision beyond that identity is allowed only when the
+    evidence semantics (kind, parser, technical kind, observed text) also
+    remain equal.
     """
     if not isinstance(candidate, dict):
         return None
@@ -240,8 +249,6 @@ def candidate_semantic_payload(candidate: Any, *, include_evidence: bool = True)
         "source": source_id,
         "target": target_id,
         "predicate": predicate,
-        "source_lifecycle": _normalized_text(source.get("repo_lifecycle_state") or source.get("lifecycle_state")),
-        "target_lifecycle": _normalized_text(target.get("repo_lifecycle_state") or target.get("lifecycle_state")),
     }
     if include_evidence:
         evidence = candidate.get("evidence")

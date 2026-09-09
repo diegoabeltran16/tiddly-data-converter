@@ -173,6 +173,37 @@ def test_semantic_text_builder_does_not_emit_source_tags_raw(tmp_path: Path) -> 
     assert "src/python_scripts/example.py" not in json.dumps(record, ensure_ascii=False)
 
 
+def test_global_tag_redaction_does_not_corrupt_unrelated_word_substrings(tmp_path: Path) -> None:
+    """An unvetted short tag (e.g. ``canon``) is redacted globally, but only
+
+    as a standalone word. It must never blank out an unrelated word that
+    merely contains it as a substring (``canonical_slug``), and it must not
+    recursively re-match its own ``[RAG_TAG_BLOCKED]`` marker either.
+    """
+
+    result = _run_build(
+        tmp_path,
+        [
+            _record("src", tags=["canon"], text="Mencion aislada de canon como termino no vetado."),
+            _record(
+                "tgt",
+                title="Target",
+                source_fields={"canonical_slug": "example-canonical-slug"},
+            ),
+        ],
+    )
+    records = {record["id"]: record for record in _records_from_output(result)}
+
+    tgt_text = records["tgt"]["semantic_text"]
+    assert "canonical_slug: example-canonical-slug" in tgt_text
+    assert "RAG_TAG_BLOCKED]ical_slug" not in tgt_text
+
+    src_text = records["src"]["semantic_text"]
+    assert "Mencion aislada de [RAG_TAG_BLOCKED] como termino no vetado." in src_text
+    assert "[[RAG_TAG_BLOCKED]" not in src_text
+    assert "canonical_status: local_admitted" in src_text
+
+
 def test_embedding_metadata_excludes_p0_tags(tmp_path: Path) -> None:
     result = _run_build(tmp_path, [_record("src", tags=["--- Codigo", "status:local_admitted"])])
     record = _records_from_output(result)[0]

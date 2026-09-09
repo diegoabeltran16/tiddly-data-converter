@@ -137,7 +137,7 @@ def test_duplicate_with_conflicting_effective_identity_blocks(tmp_path: Path) ->
     assert "duplicate_group_identity_conflict" in error.value.reason_codes
 
 
-def test_productive_dry_run_derives_136_as_128_plus_8_without_writes() -> None:
+def test_productive_dry_run_reports_pending_human_review_without_writes() -> None:
     paths = preparation.Paths.from_local_root(REPO_ROOT / "data/out/local")
     canon_paths = sorted(paths.local_root.glob("tiddlers_*.jsonl"))
     decisions_path = paths.current_dir / "human_review_decisions.jsonl"
@@ -148,9 +148,17 @@ def test_productive_dry_run_derives_136_as_128_plus_8_without_writes() -> None:
     checkpoint_item = pointer_manifest["artifacts"]["decision_checkpoint"]
     pointer_checkpoint = preparation.read_json(pointer_bundle / checkpoint_item["path"])
     certified_predecessor = Path(pointer_checkpoint["previous_checkpoint_or_receipt"])
-    predecessor_review_state = preparation.read_json(
-        certified_predecessor / "bundle_manifest.json"
-    )["review_state_id"]
+    # S0186 Unit G2: do not assume the checkpoint's declared
+    # previous_checkpoint_or_receipt is always the effective predecessor --
+    # that assumption only holds in the regression-recovery branch of
+    # _resolve_monotonic_review_predecessor. In the current live state, the
+    # current and predecessor bundles carry identical decisions/receipts, so
+    # the resolver legitimately selects the pointer's own bundle instead.
+    # Reuse the production resolver rather than re-deriving its contract by
+    # hand, so this assertion tracks real resolver behavior, not a guess.
+    predecessor_review_state = preparation._resolve_monotonic_review_predecessor(
+        paths
+    )["manifest"]["review_state_id"]
     protected_history = [pointer_bundle, certified_predecessor]
     def protected_hashes() -> dict[str, str]:
         return {
@@ -174,26 +182,63 @@ def test_productive_dry_run_derives_136_as_128_plus_8_without_writes() -> None:
     # The technical pipeline is current while the generational authority is
     # stale.  The receipt-certified review lineage must recover coverage
     # without publishing the productive successor.
-    assert first["expected_terminal_state"] == preparation.TERMINAL_AUTHORIZATION
-    assert first["ids"]["review_state_id"]
-    assert first["ids"]["readiness_id"]
-    assert first["review_coverage"] == {
-        "technical_reviewable": 153,
-        "expected_equivalent_covered": 153,
-        "effective_decision_covered": 153,
-        "effective_pending": 0,
-        "predecessor_review_state_id": predecessor_review_state,
-        "receipt_count": 2,
-        "monotonic": True,
+    #
+    # S0186 Unit G2 reconciliation (golden-fixture drift): the literal counts
+    # below were re-derived from the live, governed pipeline state, not
+    # guessed.  The 153/136/128/8 values this test previously hardcoded
+    # (commit 4fa9f66) were already stale at the moment they were committed
+    # -- the live relation-candidate bundle had already dropped to 90
+    # reviewable/90 planning-approved ~7h earlier, reacting to legitimate
+    # canon growth (2279->3659 records) with byte-identical producer/
+    # reconciler code.
+    #
+    # S0186 Unit H reconciliation (this test tracks live production state,
+    # which keeps moving -- a fourth drift, same root cause as G2). H1 fixed
+    # CURRENT_REVIEW_TAXONOMY_PRESERVATION_GRANULARITY_GAP with per-candidate
+    # lineage recovery, which at that point left dry_run() reporting 4
+    # pending via the review-decision-recomposition preview branch
+    # (terminal READY_FOR_HUMAN_DELTA_REVIEW, review_coverage present).
+    # H6/H7 then fixed a separate, larger defect in
+    # generate_technical_relation_candidates.py: load_canon_artifacts() only
+    # indexed repo files by the governed source_fields.repo_path field, so
+    # 136 real repo files whose canon record's key/title already IS their
+    # exact repo path (LICENSE, README.md, estructura.txt, ~133
+    # src/python_scripts/*.py files added since the last governed
+    # repo-metadata admission) were resolver false negatives -- 359 formerly
+    # not_canonicalizable candidates were actually resolvable all along. The
+    # fix recovers repo_path from key/title only when it matches a real file
+    # on disk (fail-closed on any ambiguity; Canon itself is untouched). A
+    # full governed regeneration (prepare_current_relational_generation.py
+    # --execute) republished the current bundle on top of that fix, which
+    # also cleared the earlier staleness: dry_run() took the simpler
+    # "decisions changed only" branch (no review_coverage/reason_codes keys
+    # at all) because candidate_generation was fully current, with 409 newly
+    # resolvable candidates correctly awaiting real human review instead of a
+    # fixed-then-recomputed 4.
+    #
+    # S0186 Unit H8 reconciliation (fourth drift): a real human then
+    # authorized and materialized PYTHON_AST_IMPORT_DEPENDENCY_V1's 97
+    # eligible candidates as policy_derived decisions -- a legitimate,
+    # governed write to effective_human_review_decisions.jsonl, the exact
+    # file this pipeline treats as its live decision authority. That is new
+    # decision content, so review_state_id (a hash over decisions content)
+    # now legitimately differs from the predecessor's, and pending_human_review
+    # dropped 409 -> 312 (409 minus the 97 now-decided candidates). This is
+    # the intended, correct effect of H8's admission-gate integration fix,
+    # confirmed independently here through PREPARE's own pipeline rather than
+    # only through the admission gate directly.
+    assert first["expected_terminal_state"] == preparation.TERMINAL_HUMAN
+    assert first["ids"]["review_state_id"] != predecessor_review_state
+    assert first["ids"]["readiness_id"] is None
+    assert first["detected_changes"] == {
+        "canon_changed": False,
+        "decisions_changed_only": True,
+        "candidate_generation_current": True,
     }
     assert first["planning"] == {
-        "approved_candidate_representations": 136,
-        "planned_unique_relations": 128,
-        "omitted_duplicate_representations": 8,
-        "unaccounted_approved_representations": 0,
-        "conservation_valid": True,
+        "pending_human_review": 312,
+        "planned_unique_relations": 0,
     }
-    assert "current_bundle_canon_stale" in first["reason_codes"]
     assert second == first
     assert first["writes_performed"] is False
     after = {
@@ -555,6 +600,7 @@ def test_regressive_pointer_recovers_explicit_receipt_certified_predecessor(
         "receipt_count": 1,
         "receipt_ids": [predecessor["receipts"][0]["receipt_id"]],
         "consumed_candidate_ids": sorted(predecessor["decision_by_id"]),
+        "live_recovered_candidate_ids": [],
         "integrity_verified": True,
     }
 
@@ -1801,6 +1847,36 @@ def test_stale_canon_rebuilds_in_staging_publishes_delta_and_resumes(
     assert len(ambiguous_manifest["ambiguous"]) == 2
     assert ambiguous_delta["decision_preservation"]["preserved_equivalent"] == 0
 
+    # S0186 Unit H1: growing the batch with an unrelated candidate must not
+    # strand the still-unresolved ambiguous pair. Left untouched, the next
+    # generation's cross-generation reconciliation observes each of them as
+    # "equivalent" to its own unreviewed predecessor (same candidate_id,
+    # same semantics) -- a fresh observation the taxonomy does not itself
+    # certify as a review reason. Per-candidate lineage must recover their
+    # certified "reconciliation_ambiguous" reason from the previous
+    # publication despite the whole batch no longer matching byte-for-byte.
+    ambiguous_candidate_ids = list(ambiguous_manifest["ambiguous"])
+    assert len(ambiguous_candidate_ids) == 2
+    (scripts / "d.py").write_text("import e\n", encoding="utf-8")
+    (scripts / "e.py").write_text("VALUE = 2\n", encoding="utf-8")
+    canon_rows.append(_canon_record("source-d", "src/python_scripts/d.py", "import e\n"))
+    canon_rows.append(_canon_record("target-e", "src/python_scripts/e.py", "VALUE = 2\n"))
+    _write_canon(paths.local_root / "tiddlers_1.jsonl", canon_rows)
+    unrelated_growth_delta = preparation.execute(paths, source_root=source_root)
+    assert unrelated_growth_delta["terminal_state"] == preparation.TERMINAL_HUMAN
+    taxonomy_after_growth = preparation.analyze(paths)["review_taxonomy"]
+    assert taxonomy_after_growth["conservation_valid"] is True
+    assert taxonomy_after_growth["missing_review_reason_candidate_ids"] == []
+    reasons_by_id = {
+        item["candidate_id"]: item["review_reason"] for item in taxonomy_after_growth["items"]
+    }
+    for candidate_id in ambiguous_candidate_ids:
+        assert reasons_by_id[candidate_id] == "reconciliation_ambiguous"
+    growth_manifest = preparation.read_json(
+        Path(unrelated_growth_delta["bundle_path"]) / "human_delta.json"
+    )
+    assert len(growth_manifest["new"]) == 1
+
 
 def test_review_reason_change_changes_review_state_not_relation_generation(
     tmp_path: Path,
@@ -1846,6 +1922,172 @@ def test_exact_previous_v1_delta_classes_are_recovered_without_id_mapping(
     )
 
     assert recovered == {pending[1]: "ambiguous"}
+
+
+def _cross_row(
+    candidate_id: str, *, classification: str, counterpart_candidate_id: str | None,
+    decision_reusable: bool | None = None,
+) -> dict:
+    return {
+        "candidate_id": candidate_id,
+        "classification": classification,
+        "counterpart_candidate_id": counterpart_candidate_id,
+        "decision_reusable": (
+            classification == "equivalent" if decision_reusable is None else decision_reusable
+        ),
+    }
+
+
+def _write_published_bundle(
+    bundle: Path, *, pending_candidate_ids: list[str], new: list[str] | None = None,
+    modified: list[str] | None = None, ambiguous: list[str] | None = None,
+) -> None:
+    bundle.mkdir(parents=True, exist_ok=True)
+    (bundle / "human_delta.json").write_text(json.dumps({
+        "schema_version": "current-relational-human-delta/v1",
+        "pending_candidate_ids": pending_candidate_ids,
+        "new": new or [],
+        "modified": modified or [],
+        "ambiguous": ambiguous or [],
+    }) + "\n", encoding="utf-8")
+
+
+def test_per_candidate_lineage_recovers_unchanged_pending_despite_batch_drift(
+    tmp_path: Path,
+) -> None:
+    # POSITIVE: the whole batch changed (an unrelated candidate elsewhere was
+    # added/removed), but this pending candidate is individually continuous
+    # -- same id, fresh classification "equivalent", decision_reusable True
+    # -- and its counterpart was itself pending (unreviewed) under a
+    # certified class in the previous publication. Its review reason must
+    # survive even though whole-batch reuse (a different, stricter function)
+    # would not apply here.
+    bundle = tmp_path / "bundle"
+    _write_published_bundle(
+        bundle, pending_candidate_ids=["rc_a", "rc_b"], ambiguous=["rc_a", "rc_b"],
+    )
+    current_to_predecessor = [
+        _cross_row("rc_a", classification="equivalent", counterpart_candidate_id="rc_a"),
+        _cross_row("rc_b", classification="equivalent", counterpart_candidate_id="rc_b"),
+    ]
+
+    recovered = preparation.previous_published_review_classes_per_candidate(
+        str(bundle), current_to_predecessor, ["rc_a", "rc_b"],
+    )
+
+    assert recovered == {"rc_a": "ambiguous", "rc_b": "ambiguous"}
+
+
+def test_per_candidate_lineage_rejects_counterpart_outside_previous_pending_set(
+    tmp_path: Path,
+) -> None:
+    # NEGATIVE: fresh classification is "equivalent" and the counterpart id
+    # is even named in one of the previous bundle's certified class lists,
+    # but the counterpart was never part of the previous *pending* review
+    # set (e.g. it belonged to a different, already-decided batch). Identity
+    # of the counterpart id alone is not lineage continuity.
+    bundle = tmp_path / "bundle"
+    _write_published_bundle(
+        bundle, pending_candidate_ids=["rc_other"], ambiguous=["rc_a"],
+    )
+    current_to_predecessor = [
+        _cross_row("rc_a", classification="equivalent", counterpart_candidate_id="rc_a"),
+    ]
+
+    recovered = preparation.previous_published_review_classes_per_candidate(
+        str(bundle), current_to_predecessor, ["rc_a"],
+    )
+
+    assert recovered == {}
+
+
+def test_per_candidate_lineage_ignores_non_equivalent_and_non_reusable_rows(
+    tmp_path: Path,
+) -> None:
+    # NEGATIVE: a genuinely "modified" candidate must not inherit a stale
+    # published class, and an "equivalent" observation that is not itself
+    # decision_reusable must not be trusted either.
+    bundle = tmp_path / "bundle"
+    _write_published_bundle(
+        bundle, pending_candidate_ids=["rc_modified", "rc_untrusted"],
+        ambiguous=["rc_modified", "rc_untrusted"],
+    )
+    current_to_predecessor = [
+        _cross_row("rc_modified", classification="modified", counterpart_candidate_id="rc_modified"),
+        _cross_row(
+            "rc_untrusted", classification="equivalent",
+            counterpart_candidate_id="rc_untrusted", decision_reusable=False,
+        ),
+    ]
+
+    recovered = preparation.previous_published_review_classes_per_candidate(
+        str(bundle), current_to_predecessor, ["rc_modified", "rc_untrusted"],
+    )
+
+    assert recovered == {}
+
+
+def test_per_candidate_lineage_rejects_contradictory_published_counterpart(
+    tmp_path: Path,
+) -> None:
+    # NEGATIVE: the previous bundle itself assigned the counterpart to two
+    # different certified classes -- an internal contradiction in the source
+    # of truth. Reuse must refuse rather than pick one arbitrarily.
+    bundle = tmp_path / "bundle"
+    _write_published_bundle(
+        bundle, pending_candidate_ids=["rc_a"], new=["rc_a"], modified=["rc_a"],
+    )
+    current_to_predecessor = [
+        _cross_row("rc_a", classification="equivalent", counterpart_candidate_id="rc_a"),
+    ]
+
+    recovered = preparation.previous_published_review_classes_per_candidate(
+        str(bundle), current_to_predecessor, ["rc_a"],
+    )
+
+    assert recovered == {}
+
+
+def test_per_candidate_lineage_ignores_disappeared_candidate(tmp_path: Path) -> None:
+    # NEGATIVE: a candidate that no longer appears in the current pending
+    # set at all must not be looked up or resolved by lineage.
+    bundle = tmp_path / "bundle"
+    _write_published_bundle(
+        bundle, pending_candidate_ids=["rc_a", "rc_gone"], ambiguous=["rc_a", "rc_gone"],
+    )
+    current_to_predecessor = [
+        _cross_row("rc_a", classification="equivalent", counterpart_candidate_id="rc_a"),
+    ]
+
+    recovered = preparation.previous_published_review_classes_per_candidate(
+        str(bundle), current_to_predecessor, ["rc_a"],
+    )
+
+    assert recovered == {"rc_a": "ambiguous"}
+
+
+def test_per_candidate_lineage_is_not_consulted_when_whole_batch_reuse_succeeds(
+    tmp_path: Path,
+) -> None:
+    # REGRESSION: when the whole batch is byte-identical to the previous
+    # publication, the existing stricter whole-batch function already
+    # recovers every class; the new per-candidate fallback must not change
+    # that established, already-tested behavior.
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    current_candidates = tmp_path / "current.jsonl"
+    rows = [_candidate("rc_current_" + f"{number:024x}") for number in range(1, 3)]
+    encoded = "".join(json.dumps(row) + "\n" for row in rows)
+    current_candidates.write_text(encoded, encoding="utf-8")
+    (bundle / "relation_candidates.jsonl").write_text(encoded, encoding="utf-8")
+    pending = [row["candidate_id"] for row in rows]
+    _write_published_bundle(bundle, pending_candidate_ids=pending, ambiguous=[pending[0]], new=[pending[1]])
+
+    whole_batch = preparation.previous_published_review_classes(
+        str(bundle), current_candidates, pending,
+    )
+
+    assert whole_batch == {pending[0]: "ambiguous", pending[1]: "new"}
 
 
 @pytest.mark.parametrize(

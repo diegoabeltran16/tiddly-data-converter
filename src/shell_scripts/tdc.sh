@@ -7,7 +7,59 @@ cd "$ROOT"
 CANON_DIR="${CANON_DIR:-data/out/local}"
 RELATION_OUT_DIR="${RELATION_OUT_DIR:-data/out/local/pipeline/relation_candidates/current}"
 AUDIT_DIR="${AUDIT_DIR:-data/out/local/audit/relation_admission/current}"
-RELATION_HUMAN_REVIEW_DECISIONS="${RELATION_HUMAN_REVIEW_DECISIONS:-$RELATION_OUT_DIR/human_review_decisions.jsonl}"
+# S0186 Unit H8 (second diagnostic pass): decisions written after CURRENT was
+# last prepared -- batch confirmations, and now policy_derived materialization
+# -- land in effective_human_review_decisions.jsonl when it exists, exactly
+# the same "prefer effective, fall back to raw" rule
+# current_relation_human_review.decision_authority_path() /
+# prepare_current_relational_generation.effective_decisions_path() already
+# use. This default MUST mirror that rule; a hardcoded raw-file default here
+# silently stranded 97 materialized policy-derived decisions from the
+# admission gate dry-run despite the human review record existing correctly.
+#
+# S0186 Unit H (final intervention, current-authority fragmentation):
+# pipeline/current/effective_human_review_decisions.jsonl only mirrors
+# governed_relation_admission_policy.materialize_authorized_policy() writes
+# -- it never receives batch-review receipts published into a new
+# generational review-state bundle (current_relation_human_review.py's own
+# persist_current_human_delta_batch()). It is therefore a partial,
+# derived/convenience surface, not the authority: it can under-report
+# decisions (e.g. 283 of 498 known) relative to the published generational
+# bundle the CURRENT pointer names. When a valid current bundle is published,
+# resolve decisions from THAT authority (the same one
+# current_relational_apply.py already trusts for the productive Apply path)
+# instead of the convenience copy, so the admission-gate dry-run this script
+# drives sees the same CURRENT every other authority-resolving consumer sees.
+# An explicit RELATION_HUMAN_REVIEW_DECISIONS override (as some fixtures/tests
+# set) is still respected untouched. Resolved LAZILY (only at point of use,
+# not at script startup) so menu paths that never touch relation decisions
+# never pay for or depend on this resolution.
+resolve_relation_human_review_decisions() {
+    if [[ -n "${RELATION_HUMAN_REVIEW_DECISIONS:-}" ]]; then
+        return 0
+    fi
+    RELATION_HUMAN_REVIEW_DECISIONS="$(python3 - "$CANON_DIR" <<'PY'
+import sys
+sys.path.insert(0, "src/python_scripts")
+from pathlib import Path
+from current_relational_authority import CurrentRelationalAuthorityError, resolve_current_relational_authority
+
+try:
+    authority = resolve_current_relational_authority(Path(sys.argv[1]))
+    path = authority["artifacts"].get("effective_decisions")
+    print(path if path is not None else "", end="")
+except CurrentRelationalAuthorityError:
+    print("", end="")
+PY
+)"
+    if [[ -z "$RELATION_HUMAN_REVIEW_DECISIONS" ]]; then
+        if [[ -f "$RELATION_OUT_DIR/effective_human_review_decisions.jsonl" ]]; then
+            RELATION_HUMAN_REVIEW_DECISIONS="$RELATION_OUT_DIR/effective_human_review_decisions.jsonl"
+        else
+            RELATION_HUMAN_REVIEW_DECISIONS="$RELATION_OUT_DIR/human_review_decisions.jsonl"
+        fi
+    fi
+}
 RELATION_SESSION="${RELATION_SESSION:-current}"
 RELATION_RUN_ID="${RELATION_RUN_ID:-current}"
 RELATION_ROLLBACK_SNAPSHOT="${RELATION_ROLLBACK_SNAPSHOT:-}"
@@ -93,6 +145,7 @@ tdc_relations_dry_run_gate() {
         echo "o defina RELATION_REVIEWABLE_FILE."
         return 1
     fi
+    resolve_relation_human_review_decisions
     local -a decision_arg=()
     if [[ -s "$RELATION_HUMAN_REVIEW_DECISIONS" ]]; then
         decision_arg=(--human-review-decisions "$RELATION_HUMAN_REVIEW_DECISIONS")
@@ -143,6 +196,7 @@ tdc_relations_show_history() {
 }
 
 tdc_relations_show_decisions() {
+    resolve_relation_human_review_decisions
     if [[ -s "$RELATION_HUMAN_REVIEW_DECISIONS" ]]; then
         sed -n '1,20p' "$RELATION_HUMAN_REVIEW_DECISIONS"
     else
@@ -164,6 +218,16 @@ tdc_relations_preview_review_batches() {
         --canon-root "$CANON_DIR" \
         --gate-report "$AUDIT_DIR/admission_gate_dry_run.json" \
         --preview-batches
+    printf "\n¿Ver detalle completo por candidata? (s/N): "
+    local ver_detalle
+    read -r ver_detalle || ver_detalle=""
+    if [[ "$ver_detalle" =~ ^[sS]$ ]]; then
+        python3 src/python_scripts/current_relation_human_review.py \
+            --current-dir "$RELATION_OUT_DIR" \
+            --canon-root "$CANON_DIR" \
+            --gate-report "$AUDIT_DIR/admission_gate_dry_run.json" \
+            --preview-batches --detail
+    fi
 }
 
 tdc_relations_review_batches() {
@@ -216,6 +280,7 @@ EOF
 }
 
 tdc_relations_apply_cli_guard() {
+    resolve_relation_human_review_decisions
     local report="$AUDIT_DIR/admission_gate_dry_run.json"
     local guard_output
     if guard_output="$(python3 - "$report" "$RELATION_HUMAN_REVIEW_DECISIONS" <<'PY'
@@ -312,7 +377,7 @@ tdc_relations_apply() {
             return 1
         fi
         echo "CURRENT_RELATIONAL_APPLY_AUTHORIZED"
-        echo "Apply no ejecutado. Vuelva a seleccionar la opción 5 para ejecutar."
+        echo "Apply no ejecutado. Vuelva a seleccionar la opción 6 para ejecutar."
         return 0
     fi
     authorization_id="$(printf '%s' "$preflight" | python3 -c 'import json,sys; print(json.load(sys.stdin)["authorization"]["authorization_id"])')"
@@ -383,6 +448,86 @@ tdc_relations_prepare_current_generation() {
     printf '%s\n' "$result"
 }
 
+tdc_relations_policy_preview() {
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" --compact
+}
+
+tdc_relations_policy_detail() {
+    local policy_id
+    printf "policy_id (ver el resumen compacto para la lista exacta): "
+    read -r policy_id || policy_id=""
+    if [[ -z "$policy_id" ]]; then
+        echo "policy_id vacío; cancelado."
+        return 0
+    fi
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" --policy "$policy_id"
+}
+
+tdc_relations_policy_exceptions() {
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" --exceptions
+}
+
+tdc_relations_policy_authorize() {
+    local policy_id actor confirmation
+    cat <<'EOF'
+Autorizar política para lote CURRENT
+Esto NO aprueba ninguna relación. Solo registra que un humano autorizó esta
+política, exactamente para el conjunto elegible y los hashes CURRENT vigentes
+en este momento. Cualquier cambio posterior de Canon, del lote de candidatas,
+de la reconciliación o de la propia política invalida esta autorización.
+No ejecuta admisión, no ejecuta Apply, no modifica Canon.
+EOF
+    printf "policy_id a autorizar (ver el resumen compacto): "
+    read -r policy_id || policy_id=""
+    if [[ -z "$policy_id" ]]; then
+        echo "policy_id vacío; cancelado."
+        return 0
+    fi
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" --policy "$policy_id"
+    printf "Identidad del humano que autoriza: "
+    read -r actor || actor=""
+    printf "Escriba exactamente la frase de confirmación mostrada arriba: "
+    read -r confirmation || confirmation=""
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" \
+        --authorize "$policy_id" --actor "$actor" --confirmation "$confirmation"
+}
+
+tdc_relations_policy_materialize() {
+    local policy_id actor
+    cat <<'EOF'
+Materializar decisiones de políticas autorizadas
+Esto SI escribe decisiones (human_review_decisions.jsonl), una por cada
+candidata del conjunto autorizado, con decision_mode=policy_derived y
+provenance explícita (no se etiquetan como revisión humana individual).
+Antes de escribir, se recalcula el conjunto elegible y se compara byte a
+byte contra la autorización: canon_hash, candidate_batch_hash,
+reconciliation_hash, policy_hash y el propio conjunto elegible. Cualquier
+diferencia bloquea la operación sin escribir nada.
+No modifica Canon. No ejecuta admisión ni Apply.
+EOF
+    printf "policy_id a materializar (debe tener una autorización vigente y no consumida): "
+    read -r policy_id || policy_id=""
+    if [[ -z "$policy_id" ]]; then
+        echo "policy_id vacío; cancelado."
+        return 0
+    fi
+    printf "Identidad del humano que ejecuta la materialización: "
+    read -r actor || actor=""
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" \
+        --materialize "$policy_id" --actor "$actor"
+}
+
+tdc_relations_policy_status() {
+    python3 src/python_scripts/governed_relation_admission_policy.py \
+        --local-root "$CANON_DIR" --status
+}
+
 tdc_relations_menu() {
     while true; do
         cat <<'EOF'
@@ -397,6 +542,7 @@ tdc_relations_menu() {
 3) Ver estado relacional vigente
 4) Ver cola lista para revisión humana
 5) Ver bloqueos técnicos
+6) Revisión / admisión / Apply protegido
 9) Historia relacional avanzada
 0) Volver
 EOF
@@ -409,7 +555,112 @@ EOF
             3) tdc_relations_show_summary; tdc_pause ;;
             4) tdc_relations_show_ready_queue; tdc_pause ;;
             5) tdc_relations_show_blocked; tdc_pause ;;
+            # S0186 Unit H (operator relational human-lifecycle unification):
+            # bridges to the review/admission/Apply menu without leaving this
+            # screen -- preparación técnica and revisión/admisión/Apply are
+            # separate BACKEND contracts, but the operator should not need to
+            # know that to reach one from the other.
+            6) tdc_relations_admission_menu ;;
             9) tdc_relations_show_history; tdc_pause ;;
+            0|"") return 0 ;;
+            *) echo "Opción inválida." ;;
+        esac
+    done
+}
+
+tdc_relations_pending_review_menu() {
+    while true; do
+        cat <<'EOF'
+Revisar relaciones pendientes (S0181; sin apply)
+1) Revisión individual
+2) Ver decisiones humanas vigentes
+3) Previsualizar lotes homogéneos (no escribe)
+4) Revisar y confirmar un lote
+5) Revisar múltiples lotes homogéneos
+0) Volver
+EOF
+        printf "> "
+        local choice
+        read -r choice || choice=""
+        case "$choice" in
+            1) tdc_relations_review; tdc_pause ;;
+            2) tdc_relations_show_decisions; tdc_pause ;;
+            3) tdc_relations_preview_review_batches; tdc_pause ;;
+            4) tdc_relations_review_batches; tdc_pause ;;
+            5) tdc_relations_review_multiple_batches; tdc_pause ;;
+            0|"") return 0 ;;
+            *) echo "Opción inválida." ;;
+        esac
+    done
+}
+
+tdc_relations_policy_menu() {
+    while true; do
+        cat <<'EOF'
+Gobernanza por políticas
+1) Resumen de políticas
+2) Ver detalle / muestra
+3) Ver excepciones
+4) Autorizar política CURRENT
+5) Materializar decisiones autorizadas
+6) Ver autorizaciones / decisiones (estado detallado)
+0) Volver
+EOF
+        printf "> "
+        local choice
+        read -r choice || choice=""
+        case "$choice" in
+            1) tdc_relations_policy_preview; tdc_pause ;;
+            2) tdc_relations_policy_detail; tdc_pause ;;
+            3) tdc_relations_policy_exceptions; tdc_pause ;;
+            4) tdc_relations_policy_authorize; tdc_pause ;;
+            5) tdc_relations_policy_materialize; tdc_pause ;;
+            6) tdc_relations_policy_status; tdc_pause ;;
+            0|"") return 0 ;;
+            *) echo "Opción inválida." ;;
+        esac
+    done
+}
+
+tdc_relations_repo_lifecycle_authority() {
+    python3 src/python_scripts/audit_repo_lifecycle_authority.py \
+        --local-root "$CANON_DIR" --compact
+}
+
+tdc_relations_reports_menu() {
+    while true; do
+        cat <<'EOF'
+Reportes
+1) Listado de archivos (candidatas / auditoría)
+2) Auditoría de autoridad de repo_lifecycle_state (solo lectura)
+0) Volver
+EOF
+        printf "> "
+        local choice
+        read -r choice || choice=""
+        case "$choice" in
+            1) find "$RELATION_OUT_DIR" "$AUDIT_DIR" -maxdepth 1 -type f -printf '%p\n' | sort; tdc_pause ;;
+            2) tdc_relations_repo_lifecycle_authority; tdc_pause ;;
+            0|"") return 0 ;;
+            *) echo "Opción inválida." ;;
+        esac
+    done
+}
+
+tdc_relations_advanced_menu() {
+    while true; do
+        cat <<'EOF'
+Avanzado / especializado
+1) Superseder revisión legacy con respaldo histórico
+2) ROLLBACK RELATIONS protegido
+0) Volver
+EOF
+        printf "> "
+        local choice
+        read -r choice || choice=""
+        case "$choice" in
+            1) tdc_relations_supersede_legacy_review; tdc_pause ;;
+            2) tdc_relations_rollback; tdc_pause ;;
             0|"") return 0 ;;
             *) echo "Opción inválida." ;;
         esac
@@ -420,44 +671,51 @@ tdc_relations_admission_menu() {
     while true; do
         cat <<'EOF'
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Revisión humana / admisión relacional
+  Relaciones canónicas — revisión/admisión
   Canon: PROTEGIDO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1) Abrir revisión individual v2 (S0181; sin apply)
-2) Ver decisiones humanas vigentes
-3) Ejecutar admission gate dry-run
-4) Ver estado de compuerta relacional
-5) APPLY RELATIONS protegido
-6) Ver reportes relacionales
-7) Previsualizar lotes homogéneos v2 (no escribe)
-8) Revisar y confirmar un lote v2
-9) Superseder revisión legacy con respaldo histórico
-10) Revisar múltiples lotes homogéneos v2
-11) ROLLBACK RELATIONS protegido
-12) Preparar generación relacional current
+1) Estado actual
+2) Generar / reconciliar CURRENT
+3) Revisar relaciones pendientes
+4) Gobernanza por políticas
+5) Preparar admisión (dry-run gate)
+6) APPLY RELATIONS protegido
+7) Reportes
+8) Revisar aprobadas con bloqueo técnico
+9) Avanzado
 0) Volver
 EOF
         printf "> "
         local choice
         read -r choice || choice=""
         case "$choice" in
-            1) tdc_relations_review; tdc_pause ;;
-            2) tdc_relations_show_decisions; tdc_pause ;;
-            3) tdc_relations_dry_run_gate; tdc_pause ;;
-            4) tdc_relations_show_summary; tdc_pause ;;
-            5) tdc_relations_apply; tdc_pause ;;
-            6) find "$RELATION_OUT_DIR" "$AUDIT_DIR" -maxdepth 1 -type f -printf '%p\n' | sort; tdc_pause ;;
-            7) tdc_relations_preview_review_batches; tdc_pause ;;
-            8) tdc_relations_review_batches; tdc_pause ;;
-            9) tdc_relations_supersede_legacy_review; tdc_pause ;;
-            10) tdc_relations_review_multiple_batches; tdc_pause ;;
-            11) tdc_relations_rollback; tdc_pause ;;
-            12) tdc_relations_prepare_current_generation; tdc_pause ;;
+            1) tdc_relations_show_summary; tdc_pause ;;
+            2) tdc_relations_prepare_current_generation; tdc_pause ;;
+            3) tdc_relations_pending_review_menu ;;
+            4) tdc_relations_policy_menu ;;
+            5) tdc_relations_dry_run_gate; tdc_pause ;;
+            6) tdc_relations_apply; tdc_pause ;;
+            7) tdc_relations_reports_menu ;;
+            8) tdc_relations_review_technically_invalid; tdc_pause ;;
+            9) tdc_relations_advanced_menu ;;
             0|"") return 0 ;;
             *) echo "Opción inválida." ;;
         esac
     done
+}
+
+tdc_relations_review_technically_invalid() {
+    # S0186 Unit H (final closure blocker): scope exactly CURRENT AND
+    # human_review_decision == approved_for_admission AND
+    # technically_invalid == true. Preview performs zero decision writes;
+    # the final write, if the human explicitly chooses one, reuses the
+    # already-governed supersede_individual_decision() primitive.
+    python3 src/python_scripts/current_relation_human_review.py \
+        --current-dir "$RELATION_OUT_DIR" \
+        --canon-root "$CANON_DIR" \
+        --gate-report "$AUDIT_DIR/admission_gate_dry_run.json" \
+        --review-technically-invalid
 }
 
 # tdc.sh mcp  → gestor de configuracion MCP / mirror remoto

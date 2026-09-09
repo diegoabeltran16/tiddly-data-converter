@@ -419,17 +419,28 @@ class TestViewHumanReport:
 class TestMainMenuIntegration:
     """Verifica que la revisión relacional sigue integrada tras S0150."""
 
-    def test_main_menu_shows_revision_relacional_experimental(self):
-        """El menú principal muestra el punto central de admisión gobernada."""
+    def test_main_menu_shows_relational_lifecycle_entry_point(self):
+        """El menú principal muestra el punto central del ciclo relacional.
+
+        S0186 Unit H (final intervention, top-level UX migration):
+        "Revisión / admisión gobernada" fue retirado como entrada de nivel
+        superior independiente (OLD_NAVIGATION_CONTRACT_MIGRATED); revisión
+        y admisión ahora viven dentro de "Relaciones canónicas".
+        """
         result = _run_menu("0\n")
         assert result.returncode == 0
-        assert "Revisión / admisión gobernada" in result.stdout, (
-            f"Admisión gobernada no encontrada:\n{result.stdout[:600]}"
+        assert "Relaciones canónicas" in result.stdout, (
+            f"Relaciones canónicas no encontrada:\n{result.stdout[:600]}"
         )
+        assert "Revisión / admisión gobernada" not in result.stdout
 
     def test_alias_16_redirects_to_canonical_relations(self):
+        # S0186 Unit H (final intervention, top-level UX migration): alias
+        # message text updated to reflect that preparation AND review/
+        # admission/Apply now both live under Relaciones canónicas
+        # (OLD_NAVIGATION_CONTRACT_MIGRATED).
         result = _run_menu("16\n0\n0\n", timeout=30)
-        assert "Preparación relacional ahora vive" in result.stdout, (
+        assert "viven juntas en Relaciones canónicas" in result.stdout, (
             f"Alias 16 no redirigió correctamente:\n{result.stdout[:800]}"
         )
         assert "Relaciones canónicas" in result.stdout

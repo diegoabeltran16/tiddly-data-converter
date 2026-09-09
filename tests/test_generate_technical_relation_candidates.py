@@ -99,6 +99,102 @@ def test_blocks_path_literal_when_target_has_no_canonical_mapping(tmp_path: Path
     assert candidates[0]["target"]["canonical_id"] is None
 
 
+def _ungoverned_canon_record(tid: str, key_and_title: str, relations: list[dict] | None = None) -> dict:
+    # A canon record for a real repo file that predates governed repo-metadata
+    # admission: no source_fields.repo_path, artifact_family, authority_level
+    # or repo_lifecycle_state -- only its key/title happens to already be the
+    # exact repo-relative path (S0186 Unit H2 finding).
+    return {
+        "id": tid,
+        "title": key_and_title,
+        "key": key_and_title,
+        "text": f"## {key_and_title}",
+        "relations": relations or [],
+        "source_fields": {"content_sha256": f"sha-{tid}"},
+    }
+
+
+def test_recovers_target_mapping_from_key_when_repo_path_ungoverned(tmp_path: Path) -> None:
+    # S0186 Unit H2/H6: a real, resolvable target file whose canon record has
+    # no governed source_fields.repo_path yet must still resolve, because its
+    # key already IS the exact repo-relative path of a real file on disk.
+    _write(tmp_path / "src" / "python_scripts" / "reader.py", "PATH = 'README.md'\n")
+    _write(tmp_path / "README.md", "# readme\n")
+    canon_root = tmp_path / "data" / "out" / "local"
+    _write_canon(canon_root, [
+        _canon_record("src-reader", "src/python_scripts/reader.py"),
+        _ungoverned_canon_record("target-readme", "README.md"),
+    ])
+
+    candidates = build_candidates(tmp_path, canon_root)
+
+    assert len(candidates) == 1
+    assert candidates[0]["status"] == READY
+    assert candidates[0]["target"]["canonical_id"] == "target-readme"
+    assert candidates[0]["target"]["repo_path"] == "README.md"
+
+
+def test_ungoverned_key_recovery_never_wins_over_a_governed_repo_path(tmp_path: Path) -> None:
+    # REGRESSION: a governed source_fields.repo_path is authoritative even if
+    # some other, unrelated record's key/title happens to equal that same
+    # string -- the resolver must never let a derived guess override curated
+    # metadata.
+    _write(tmp_path / "src" / "python_scripts" / "reader.py", "PATH = 'README.md'\n")
+    _write(tmp_path / "README.md", "# readme\n")
+    canon_root = tmp_path / "data" / "out" / "local"
+    _write_canon(canon_root, [
+        _canon_record("src-reader", "src/python_scripts/reader.py"),
+        _canon_record("governed-readme", "README.md"),
+        _ungoverned_canon_record("decoy-readme", "README.md"),
+    ])
+
+    candidates = build_candidates(tmp_path, canon_root)
+
+    assert len(candidates) == 1
+    assert candidates[0]["status"] == READY
+    assert candidates[0]["target"]["canonical_id"] == "governed-readme"
+
+
+def test_ambiguous_key_recovery_stays_unresolved_rather_than_guessing(tmp_path: Path) -> None:
+    # NEGATIVE: two different, both-ungoverned canon records claim the same
+    # real file via key/title. This is a genuine identity collision, not a
+    # single-candidate recovery -- the resolver must fail closed, not pick
+    # one arbitrarily.
+    _write(tmp_path / "src" / "python_scripts" / "reader.py", "PATH = 'README.md'\n")
+    _write(tmp_path / "README.md", "# readme\n")
+    canon_root = tmp_path / "data" / "out" / "local"
+    _write_canon(canon_root, [
+        _canon_record("src-reader", "src/python_scripts/reader.py"),
+        _ungoverned_canon_record("readme-one", "README.md"),
+        {**_ungoverned_canon_record("readme-two", "README.md")},
+    ])
+
+    candidates = build_candidates(tmp_path, canon_root)
+
+    assert len(candidates) == 1
+    assert candidates[0]["status"] == BLOCKED_UNRESOLVED
+    assert candidates[0]["target"]["canonical_id"] is None
+
+
+def test_key_recovery_ignores_paths_that_do_not_exist_on_disk(tmp_path: Path) -> None:
+    # NEGATIVE: a record's key looking path-shaped is not evidence on its
+    # own -- it must be cross-checked against a real file. A stale or
+    # fictitious path must not be recovered.
+    _write(tmp_path / "src" / "python_scripts" / "reader.py", "PATH = 'README.md'\n")
+    _write(tmp_path / "README.md", "# readme\n")
+    canon_root = tmp_path / "data" / "out" / "local"
+    _write_canon(canon_root, [
+        _canon_record("src-reader", "src/python_scripts/reader.py"),
+        _ungoverned_canon_record("phantom", "docs/does_not_exist.md"),
+    ])
+
+    candidates = build_candidates(tmp_path, canon_root)
+
+    assert len(candidates) == 1
+    assert candidates[0]["status"] == BLOCKED_UNRESOLVED
+    assert candidates[0]["target"]["canonical_id"] is None
+
+
 def test_writes_required_review_outputs(tmp_path: Path) -> None:
     _write(tmp_path / "src" / "python_scripts" / "subject.py", "VALUE = 1\n")
     _write(tmp_path / "tests" / "test_subject.py", "import subject\n")

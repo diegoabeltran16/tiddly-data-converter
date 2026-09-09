@@ -87,6 +87,71 @@ def _write_current_fixture(tmp_path: Path, *, with_run_manifest: bool = True) ->
     }
 
 
+def test_admission_gate_explains_approved_but_not_ready_gap(tmp_path: Path) -> None:
+    # S0186 Unit H (GATE-020 remediation): approved_for_admission and
+    # admission_ready can legitimately diverge when policy/human-approved
+    # candidates still fail an unrelated gate criterion (e.g. missing
+    # repo_lifecycle_state). "Estado actual" must explain that gap by gate
+    # reason code without the human cross-referencing a second report.
+    local, _paths = _write_current_fixture(tmp_path)
+    audit = local / "audit/relation_admission/current"
+    report = audit / "admission_gate_dry_run.json"
+    report.write_text(json.dumps({
+        "summary": {"total_evaluated": 4, "awaiting_human_review": 0, "approved_for_admission": 3, "admission_ready_dry_run": 1},
+        "items": [
+            {
+                "candidate_id": "a", "gate_status": "admission_ready_dry_run",
+                "human_review_decision": "approved_for_admission", "all_block_reasons": [],
+            },
+            {
+                "candidate_id": "b", "gate_status": "blocked",
+                "human_review_decision": "approved_for_admission",
+                "all_block_reasons": ["GATE-020: source.lifecycle_state ausente."],
+            },
+            {
+                "candidate_id": "c", "gate_status": "blocked",
+                "human_review_decision": "approved_for_admission",
+                "all_block_reasons": [
+                    "GATE-020: source.lifecycle_state ausente.",
+                    "GATE-020: target.lifecycle_state ausente.",
+                ],
+            },
+            {
+                "candidate_id": "d", "gate_status": "blocked",
+                "human_review_decision": "deferred", "all_block_reasons": ["GATE-016: ..."],
+            },
+        ],
+    }), encoding="utf-8")
+
+    state = relation_state.build_state(local, checked_at="fixture")
+
+    gate = state["admission_gate"]
+    assert gate["approved_for_admission"] == 3
+    assert gate["approved_but_not_admission_ready"] == 2
+    assert gate["approved_but_not_admission_ready_by_gate_reason"] == {"GATE-020": 3}
+
+
+def test_admission_gate_gap_is_zero_when_every_approval_is_ready(tmp_path: Path) -> None:
+    local, _paths = _write_current_fixture(tmp_path)
+    audit = local / "audit/relation_admission/current"
+    report = audit / "admission_gate_dry_run.json"
+    report.write_text(json.dumps({
+        "summary": {"total_evaluated": 1, "awaiting_human_review": 0, "approved_for_admission": 1, "admission_ready_dry_run": 1},
+        "items": [
+            {
+                "candidate_id": "a", "gate_status": "admission_ready_dry_run",
+                "human_review_decision": "approved_for_admission", "all_block_reasons": [],
+            },
+        ],
+    }), encoding="utf-8")
+
+    state = relation_state.build_state(local, checked_at="fixture")
+
+    gate = state["admission_gate"]
+    assert gate["approved_but_not_admission_ready"] == 0
+    assert gate["approved_but_not_admission_ready_by_gate_reason"] == {}
+
+
 def test_state_audit_works_without_data_tmp(tmp_path: Path) -> None:
     local = tmp_path / "data/out/local"
     local.mkdir(parents=True)

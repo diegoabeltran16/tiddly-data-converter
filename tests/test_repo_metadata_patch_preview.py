@@ -225,3 +225,16 @@ def test_patch_preview_and_patch_hash_are_deterministic(tmp_path: Path) -> None:
     second_patch = Path(second["paths"]["patch_preview"]).read_text(encoding="utf-8")
     assert first_patch == second_patch
     assert first["hashes"]["patch_preview_sha256"] == second["hashes"]["patch_preview_sha256"]
+
+
+def test_default_repo_root_resolves_to_the_actual_repository_root() -> None:
+    # S0186 Unit H (GATE-020 remediation, producer repair): REPO_ROOT used to
+    # be SCRIPT_DIR.parent (one level short), so every DEFAULT_* path here
+    # silently pointed outside the repository. No existing test caught this
+    # because every one of them passes explicit paths instead of relying on
+    # the defaults.
+    script_dir = Path(preview.__file__).resolve().parent
+    assert preview.REPO_ROOT == script_dir.parents[1]
+    assert (preview.REPO_ROOT / "data" / "out" / "local").is_dir()
+    assert (preview.REPO_ROOT / "src" / "python_scripts").is_dir()
+    assert preview.DEFAULT_CANON_GLOB == str(preview.REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")

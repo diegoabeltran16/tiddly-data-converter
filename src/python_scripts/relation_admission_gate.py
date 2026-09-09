@@ -271,10 +271,24 @@ def validate_human_review_decision_record(
         if reason_code in NOTE_REQUIRED_REASON_CODES and not str(note or "").strip():
             errors.append(f"human_review_note required for {reason_code}")
         mode = record.get("decision_mode")
-        if mode not in {"individual", "batch"}:
-            errors.append("decision_mode must be individual or batch")
+        if mode not in {"individual", "batch", "policy_derived"}:
+            errors.append("decision_mode must be individual, batch, or policy_derived")
         if mode == "batch" and not str(record.get("decision_batch_id") or "").strip():
             errors.append("decision_batch_id required for batch decision")
+        if mode == "policy_derived":
+            # S0186 Unit H8: a policy-derived decision was never individually
+            # or batch reviewed by a human -- it is the machine-derived
+            # consequence of a policy a human authorized for this CURRENT
+            # batch scope. Its provenance must be distinguishable from
+            # "individual"/"batch" at validation time, not just by convention.
+            for governed_field in (
+                "review_policy_id", "policy_version", "policy_hash",
+                "human_authorization_id", "authorization_scope",
+            ):
+                if not str(record.get(governed_field) or "").strip():
+                    errors.append(f"{governed_field} required for policy_derived decision")
+            if str(record.get("authorization_scope") or "").strip() not in ("", "CURRENT_BATCH"):
+                errors.append("authorization_scope must be CURRENT_BATCH for policy_derived decision")
         multi_operation = record.get("multi_review_operation_id")
         if multi_operation is not None and not re.fullmatch(r"hrm_[a-f0-9]{24}", str(multi_operation)):
             errors.append("multi_review_operation_id must match hrm_<24 hex>")
@@ -1445,6 +1459,32 @@ def dry_run_p0_block_reasons(
     return reasons
 
 
+def dry_run_p0_blocked_candidates(
+    report: dict[str, Any], *, candidate_ids: set[str] | None = None,
+) -> dict[str, list[str]]:
+    """Per-candidate P0 block reasons for already-approved candidates.
+
+    S0186 Unit H (apply-plan partition): dry_run_p0_block_reasons() returns a
+    flat, unattributed list used for aggregate reporting -- it cannot say
+    WHICH approved candidate is affected. build_apply_plan() needs that
+    attribution to exclude exactly the technically-invalid candidates from
+    the plan rather than the whole approved population whenever a P0 issue
+    exists anywhere in the batch.
+    """
+    blocked: dict[str, list[str]] = {}
+    for item in report.get("items") or []:
+        candidate_id = str(item.get("candidate_id") or "")
+        if candidate_ids is not None and candidate_id not in candidate_ids:
+            continue
+        reasons = [
+            str(reason)
+            for reason in item.get("all_block_reasons") or item.get("blocking_reasons") or []
+        ]
+        if reasons:
+            blocked[candidate_id] = reasons
+    return blocked
+
+
 def build_admitted_relation(candidate: dict[str, Any], review: dict[str, Any]) -> dict[str, Any]:
     source = candidate.get("source") or {}
     target = candidate.get("target") or {}
@@ -1544,7 +1584,30 @@ def build_apply_plan(
         or item.get("admission_ready_dry_run") is True
     }
     p0_reasons = dry_run_p0_block_reasons(dry_run_report, candidate_ids=approved_ids)
-    selected_approved_ids = sorted(approved_ids & ready_ids) if dry_run_recent and not p0_reasons else []
+    # S0186 Unit H (apply-plan partition): an approved candidate the gate
+    # itself did not mark ready is technically_invalid -- excluded from the
+    # plan, never silently promoted, but that exclusion does not need to
+    # blank out OTHER approved candidates the same gate run independently
+    # marked ready. p0_blocked_ids attributes each P0 reason to its own
+    # candidate so the exclusion is exact, not "if a P0 reason exists
+    # anywhere, drop everyone".
+    p0_blocked_by_candidate = dry_run_p0_blocked_candidates(dry_run_report, candidate_ids=approved_ids)
+    p0_blocked_ids = set(p0_blocked_by_candidate)
+    evaluated_ids = {str(item.get("candidate_id") or "") for item in dry_run_items}
+    technically_invalid_ids = sorted((approved_ids & evaluated_ids) - ready_ids)
+    unevaluated_approved_ids = sorted(approved_ids - evaluated_ids)
+    # A candidate the gate marks simultaneously ready AND P0-blocked means
+    # the gate's own report is internally contradictory -- not a clean,
+    # disjoint, auditable partition. Fail closed exactly as before (blank
+    # the whole plan) rather than silently choosing a side; this is the one
+    # case where a P0 finding still invalidates the entire plan.
+    p0_ready_overlap = sorted(p0_blocked_ids & ready_ids)
+    partition_is_clean = not p0_ready_overlap
+    selected_approved_ids = (
+        sorted(approved_ids & ready_ids)
+        if dry_run_recent and partition_is_clean
+        else []
+    )
     candidates_by_id = {str(candidate.get("candidate_id") or ""): candidate for candidate in candidates}
     would_apply_ids: list[str] = []
     omitted_duplicate_ids: list[str] = []
@@ -1584,6 +1647,33 @@ def build_apply_plan(
             continue
         seen_signatures[signature] = candidate_id
         would_apply_ids.append(candidate_id)
+    # Auditable, per-candidate record of every approved candidate excluded
+    # for being technically invalid -- never silently dropped, never
+    # converted to a deferred/rejected decision, never given a fabricated
+    # repo_lifecycle_state. candidate_id, the human's own decision, every
+    # GATE reason (including the specific lifecycle deficiency text), the
+    # candidate's technical evidence, and the dry-run report this was
+    # sourced from (audit lineage) are all preserved verbatim.
+    technically_invalid_candidates = [
+        {
+            "candidate_id": candidate_id,
+            "human_review_decision": {
+                key: human_review_decisions.get(candidate_id, {}).get(key)
+                for key in (
+                    "human_review_decision", "human_review_reason_code",
+                    "human_review_actor", "human_review_timestamp", "decision_mode",
+                )
+            },
+            "gate_reasons": p0_blocked_by_candidate.get(candidate_id, []),
+            "technical_evidence": (candidates_by_id.get(candidate_id) or {}).get("evidence"),
+            "audit_lineage": {
+                "dry_run_report": str(dry_run_report_path),
+                "dry_run_recent": dry_run_recent,
+            },
+            "admitted": False,
+        }
+        for candidate_id in technically_invalid_ids
+    ]
     block_reasons: list[str] = []
     if not human_review_decisions:
         block_reasons.append("missing_human_review")
@@ -1591,8 +1681,23 @@ def build_apply_plan(
         block_reasons.append("no_approved_for_admission_decisions")
     if not dry_run_recent:
         block_reasons.append(dry_run_recent_reason or "missing_or_stale_dry_run")
-    if p0_reasons:
-        block_reasons.append("p0_block_reasons_present")
+    if p0_ready_overlap:
+        # A candidate cannot be both ready and P0-blocked in the same gate
+        # run -- this is not a clean partition, so (unlike the ordinary
+        # technically_invalid case below) the WHOLE plan is blocked, exactly
+        # as the pre-fix behavior did for every P0 finding.
+        block_reasons.append("p0_ready_overlap_present")
+    elif technically_invalid_ids:
+        # The gate provides a complete, disjoint, auditable partition
+        # (approved = admission_ready + technically_invalid); the plan
+        # correctly contains only the admission_ready subset. This still
+        # blocks actual apply execution -- excluding candidates from a plan
+        # is not the same as authorizing the remainder -- but it is no
+        # longer the old, imprecise "p0_block_reasons_present" that implied
+        # the whole plan was broken.
+        block_reasons.append("technically_invalid_candidates_excluded")
+    if unevaluated_approved_ids:
+        block_reasons.append("approved_candidate_not_gate_evaluated")
     if unaccounted_approved_ids:
         block_reasons.append("approved_representation_unaccounted")
     if not would_apply_ids and approved_ids and ready_ids and not block_reasons:
@@ -1604,6 +1709,15 @@ def build_apply_plan(
     )
     if not conservation_valid:
         block_reasons.append("approved_partition_conservation_failed")
+    # Structural proof (not an assumption) that every approved candidate
+    # lands in exactly one of: gate-ready, technically invalid, or never
+    # evaluated by this gate run at all.
+    approved_ready_ids = approved_ids & ready_ids
+    technically_invalid_partition_valid = len(approved_ids) == (
+        len(approved_ready_ids) + len(technically_invalid_ids) + len(unevaluated_approved_ids)
+    )
+    if not technically_invalid_partition_valid:
+        block_reasons.append("approved_technically_invalid_partition_conservation_failed")
     canon_before_count = count_canon_records(canon_glob)
     canon_before_hash = aggregate_canon_hash(canon_glob)
     bindings = {
@@ -1618,6 +1732,7 @@ def build_apply_plan(
         json.dumps({
             "approved_ids": sorted(approved_ids),
             "ready_ids": sorted(ready_ids),
+            "technically_invalid_ids": technically_invalid_ids,
             "canon_before_count": canon_before_count,
             "canon_before_hash": canon_before_hash,
             "dry_run_report": str(dry_run_report_path),
@@ -1643,6 +1758,13 @@ def build_apply_plan(
         "planned_unique_relations": len(would_apply_ids),
         "unaccounted_approved_representations": len(unaccounted_approved_ids),
         "unaccounted_approved_candidate_ids": unaccounted_approved_ids,
+        "technically_invalid_count": len(technically_invalid_ids),
+        "technically_invalid_candidate_ids": technically_invalid_ids,
+        "technically_invalid_candidates": technically_invalid_candidates,
+        "technically_invalid_partition_valid": technically_invalid_partition_valid,
+        "unevaluated_approved_count": len(unevaluated_approved_ids),
+        "unevaluated_approved_candidate_ids": unevaluated_approved_ids,
+        "p0_ready_overlap_candidate_ids": p0_ready_overlap,
         "deduplication_preserved": True,
         "conservation_valid": conservation_valid,
         "block_reasons": block_reasons,
@@ -1671,6 +1793,14 @@ def semantic_apply_plan_id(plan: dict[str, Any]) -> str:
         ),
         "unaccounted_approved_candidate_ids": sorted(
             plan.get("unaccounted_approved_candidate_ids") or []
+        ),
+        # S0186 Unit H (apply-plan partition): the excluded set is now part
+        # of the plan's own identity -- if which candidates are technically
+        # invalid changes (resolved, or a new one appears), any previously
+        # sealed authorization for the OLD exclusion set must no longer
+        # match this plan's semantic id, so stale authority fails closed.
+        "technically_invalid_candidate_ids": sorted(
+            plan.get("technically_invalid_candidate_ids") or []
         ),
         "bindings": {
             name: (binding or {}).get("sha256")
@@ -2550,6 +2680,7 @@ def guarded_apply_relations(
     authorization_path: Path | None = None,
     authorized_plan_path: Path | None = None,
     prevalidated_plan_path: Path | None = None,
+    dry_run_freshness_required: bool = True,
 ) -> tuple[int, dict[str, Any]]:
     """Apply an exact authorized plan, or exercise the same engine on a temp fixture."""
     candidates = load_jsonl(candidates_file) if candidates_file.exists() else []
@@ -2559,6 +2690,28 @@ def guarded_apply_relations(
         dry_run_report_path,
         max_age_minutes=max_dry_run_age_minutes,
     )
+    if (
+        not dry_run_recent
+        and not dry_run_freshness_required
+        and dry_run_report_path.exists()
+        and dry_run_recent_reason.startswith("stale_dry_run_report")
+    ):
+        # A prevalidated (sealed) plan's own content-integrity is already
+        # proven byte-exact by the exact_bindings hash comparisons below and
+        # by preflight()'s canon_before_hash check -- neither of which this
+        # wall-clock check adds anything to. When the dry-run report lives
+        # inside an IMMUTABLE published bundle (target_scope=
+        # "current_relational_bundle"), its mtime is fixed forever at
+        # publish time: this check would otherwise permanently and
+        # unrecoverably block any authorized apply attempted more than
+        # max_dry_run_age_minutes after the bundle was published, with no
+        # governed remediation (refreshing the file means republishing the
+        # bundle, which invalidates the very authorization being
+        # exercised). Only the AGE finding is waived here -- a genuinely
+        # missing dry-run report still blocks unconditionally, and callers
+        # that never opt in (dry_run_freshness_required stays True by
+        # default) see no change in behavior at all.
+        dry_run_recent, dry_run_recent_reason = True, ""
     observed_plan = build_apply_plan(
         candidates=candidates,
         canon_glob=canon_glob,

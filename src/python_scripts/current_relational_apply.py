@@ -188,6 +188,18 @@ def apply(local_root: Path, authorization_id: str, confirmation: str) -> dict[st
             "human_review_decisions": authority["artifacts"]["effective_decisions"],
         },
         prevalidated_plan_path=authority["artifacts"]["apply_plan"],
+        # The sealed apply_plan's exact_bindings (canon_before_hash, every
+        # candidate/decision file hash) are compared byte-exact against a
+        # freshly observed plan just above -- that IS this flow's integrity
+        # guarantee. admission_gate's own dry-run report is a bundle-local,
+        # immutable artifact whose mtime is fixed at publish time and can
+        # never be "refreshed" without republishing the bundle (which would
+        # invalidate this very authorization); requiring it to be < 24h old
+        # relative to whenever the human happens to apply would permanently
+        # and unrecoverably block every authorized CURRENT apply once that
+        # window passes, with no governed remedy. See guarded_apply_relations'
+        # dry_run_freshness_required docstring for the full reasoning.
+        dry_run_freshness_required=False,
     )
     if code != 0:
         raise CurrentRelationalAuthorityError("sealed_apply_execution_blocked")

@@ -59,6 +59,7 @@ from normalize_session_titles import (  # noqa: E402
     load_last_plan as load_last_norm_plan,
     save_plan as save_norm_plan,
 )
+import canon_content_recovery  # noqa: E402
 from tdc_cat import (  # noqa: E402
     tdc_cat_error,
     tdc_cat_loading,
@@ -107,6 +108,16 @@ RAG_TAG_POLICY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanita
 RAG_TAG_INVENTORY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169" / "tag_inventory.json"
 RAG_METADATA_POLICY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
 RAG_METADATA_CANDIDATES = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_candidates.jsonl"
+
+CANON_CONTENT_RECOVERY_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "canon_content_recovery"
+CANON_CONTENT_RECOVERY_REQUEST = CANON_CONTENT_RECOVERY_ROOT / "request.json"
+CANON_CONTENT_RECOVERY_PLAN = CANON_CONTENT_RECOVERY_ROOT / "plan.json"
+CANON_CONTENT_RECOVERY_DRYRUN_REPORT = CANON_CONTENT_RECOVERY_ROOT / "dry_run_report.json"
+CANON_CONTENT_RECOVERY_SNAPSHOT_DIR = CANON_CONTENT_RECOVERY_ROOT / "snapshot"
+CANON_CONTENT_RECOVERY_SNAPSHOT_MANIFEST = CANON_CONTENT_RECOVERY_SNAPSHOT_DIR / "rollback_manifest.json"
+CANON_CONTENT_RECOVERY_AUTHORIZATION = CANON_CONTENT_RECOVERY_ROOT / "authorization.json"
+CANON_CONTENT_RECOVERY_RECEIPT = CANON_CONTENT_RECOVERY_ROOT / "apply_receipt.json"
+CANON_CONTENT_RECOVERY_WORK_DIR = CANON_CONTENT_RECOVERY_ROOT / "work"
 S0173_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0173"
 S0173_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0173"
 S0174_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0174"
@@ -182,8 +193,6 @@ def print_governed_gate_status() -> None:
         / "s0151"
         / "s0151_metadata_admission_dry_run_report.json"
     )
-    relation_state_path = REPO_ROOT / "data/out/local/audit/relation_admission/current/relational_operational_state.json"
-
     print("\nEstado de compuertas")
     print("- Superficies: metadata técnica, relaciones canónicas y sesiones al canon")
     print("- Contratos: separados; coordinación operativa en este menú")
@@ -198,10 +207,24 @@ def print_governed_gate_status() -> None:
     else:
         print("- Metadata dry-run: no ejecutado")
 
+    # S0186 Unit H (operator relational-state fragmentation): resolve CURRENT
+    # from the SAME live authority resolver TDC->6 and TDC->8->2 consult
+    # (relation_admission_state.py's own build_state(), via its "state"
+    # stdout) instead of a separately-produced "audit" snapshot file on disk
+    # that only exists after someone has run the "audit" subcommand -- reading
+    # that derived, possibly-stale-or-absent file was reporting
+    # RELATIONAL_STATE_UNAVAILABLE even when the live authority itself was
+    # perfectly current, contradicting the other two surfaces.
     relation_state_result = run_command(
         ["python3", "src/python_scripts/relation_admission_state.py", "state"]
     )
-    relation_state = load_json_if_exists(relation_state_path)
+    relation_state: dict[str, Any] = {}
+    relation_state_problem: str | None = None
+    if relation_state_result.returncode == 0:
+        try:
+            relation_state = json.loads(relation_state_result.stdout)
+        except json.JSONDecodeError:
+            relation_state_problem = "malformed"
     if relation_state_result.returncode == 0 and relation_state:
         candidate = relation_state.get("candidate_generation") or {}
         reconciliation = relation_state.get("reconciliation") or {}
@@ -217,7 +240,12 @@ def print_governed_gate_status() -> None:
             f"siguiente={relation_state.get('next_action')}"
         )
     else:
-        print("- Relaciones current: estado operativo ausente o malformado")
+        if relation_state_problem == "malformed":
+            print("- Relaciones current: estado persistido malformado")
+            print("  veredicto=RELATIONAL_STATE_MALFORMED; siguiente=detener operaciones mutantes y reconstruir el estado relacional")
+        else:
+            print(f"- Relaciones current: estado no disponible (exit={relation_state_result.returncode})")
+            print("  veredicto=RELATIONAL_STATE_UNAVAILABLE; siguiente=detener operaciones mutantes y revisar el backend relacional")
     print(f"- Sesiones al canon: {display(DEFAULT_ADMISSION_REPORT_DIR)}")
 
 
@@ -1882,8 +1910,16 @@ def option_derivatives(state: MenuState) -> None:
             print_command_result(run_command(_rag_admission_command("authorize-definitive", phrase), cwd=REPO_ROOT))
             continue
         if choice == "11":
-            print_command_result(run_command(_rag_admission_command("promote-definitive"), cwd=REPO_ROOT))
-            print_command_result(run_command(_rag_admission_command("validate-definitive"), cwd=REPO_ROOT))
+            promote_result = run_command(_rag_admission_command("promote-definitive"), cwd=REPO_ROOT)
+            print_command_result(promote_result)
+            if promote_result.returncode != 0:
+                print("Promoción definitiva bloqueada; no se ejecuta validate-definitive ni finalize.")
+                continue
+            validate_result = run_command(_rag_admission_command("validate-definitive"), cwd=REPO_ROOT)
+            print_command_result(validate_result)
+            if validate_result.returncode != 0:
+                print("Validación definitiva bloqueada; no se ejecuta finalize.")
+                continue
             print_command_result(run_command(_rag_admission_command("finalize"), cwd=REPO_ROOT))
             continue
         if choice == "12":
@@ -1997,6 +2033,24 @@ def option_reverse(state: MenuState) -> None:
         print("Continuidad hacia derivados bloqueada: reverse debe terminar con Rejected: 0.")
 
 
+# S0186 Unit H (operator reporting scope contamination): "unittest" is the
+# stable naming convention for non-operational test-fixture output under
+# data/tmp (e.g. data/tmp/admissions/s69_unittest,
+# data/tmp/session_admission_s69_unittest -- see quiescence_state.py's own
+# _CONTENT_ATTRIBUTABLE_OWNERS, which already distinguishes these from real
+# STAGING owners like html_export/reconstruction/session_admission). data/tmp
+# is not an operational dependency for this scope: unittest fixtures must
+# never surface as "Reportes recientes".
+_NON_OPERATIONAL_REPORT_PATH_MARKERS = ("unittest",)
+
+
+def _is_operational_report(path: Path) -> bool:
+    lowered_parts = [part.lower() for part in path.parts]
+    return not any(
+        marker in part for part in lowered_parts for marker in _NON_OPERATIONAL_REPORT_PATH_MARKERS
+    )
+
+
 def option_reports() -> None:
     roots = [
         DEFAULT_TMP_DIR,
@@ -2006,7 +2060,10 @@ def option_reports() -> None:
         QUALITY_REPORT_DIR,
         DEFAULT_CANON_DIR / "reverse_html",
     ]
-    reports = recent_files(roots, "*.json", limit=16)
+    reports = [
+        path for path in recent_files(roots, "*.json", limit=64)
+        if _is_operational_report(path)
+    ][:16]
     print("\nReportes recientes:")
     for index, path in enumerate(reports, start=1):
         print(f"{index}) {display(path)}")
@@ -2601,44 +2658,55 @@ def option_export_or_consult_canon(state: MenuState) -> None:
             print("Opcion invalida.")
 
 
-def option_governed_admission(state: MenuState) -> None:
+def option_sync_governance_menu(state: MenuState) -> None:
+    """Top-level 'Sincronizar artefactos al canon': session sync AND the
+    metadata/session governed-admission capabilities that used to live under
+    the now-retired 'Revisión / admisión gobernada' top-level entry.
+
+    S0186 Unit H (final intervention, top-level UX migration): relations
+    governance (review/admission/Apply) already lives inside "6) Relaciones
+    canónicas" (bridged from tdc.sh's own relations menu); "Ver reportes de
+    admisión" and "Avanzado" were always the same handlers as top-level
+    "Reportes / métricas / auditoría" and "Avanzado / mantenimiento" -- no
+    relocation needed for those, just no longer duplicated here. Metadata
+    técnica and cross-cutting gate status are genuinely metadata/session
+    governance, so they move here.
+    """
     while True:
         print(
             "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "  Revisión / admisión gobernada\n"
+            "  Sincronizar artefactos al canon\n"
             "  Canon: PROTEGIDO\n"
-            "  Apply: requiere confirmación humana explícita\n"
-            "  Metadata, relaciones y sesiones: coordinadas; contratos separados\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            "1) Metadata técnica\n"
-            "2) Relaciones canónicas\n"
-            "3) Sesiones al canon\n"
-            "4) Estado de compuertas\n"
-            "5) Ver reportes de admisión\n"
-            "9) Avanzado / mantenimiento\n"
+            "1) Sincronizar sesiones al canon\n"
+            "2) Metadata técnica\n"
+            "3) Estado de compuertas (metadata, relaciones, sesiones)\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
         if choice == "0" or choice == "":
             return
         if choice == "1":
-            option_repo_metadata_admission_menu()
-        elif choice == "2":
-            option_relational_admission_menu()
-        elif choice == "3":
             option_session_sync(state)
-        elif choice == "4":
+        elif choice == "2":
+            option_repo_metadata_admission_menu()
+        elif choice == "3":
             print_governed_gate_status()
-        elif choice == "5":
-            option_reports()
-        elif choice == "9":
-            option_advanced_maintenance(state)
         else:
             print("Opcion invalida.")
 
 
 def option_canonical_relations_menu() -> None:
-    """Open the single terminal route for canonical relation operations."""
+    """Open the single terminal route for canonical relation operations.
+
+    S0186 Unit H (operator relational human-lifecycle unification): rather
+    than inserting a new Python-level hub in front of this (which would have
+    changed this entry point's own long-standing direct-launch contract for
+    every existing caller/test/alias), the bridge to review/admission/Apply
+    was added inside tdc.sh's own "relations" menu (tdc_relations_menu, item
+    6) -- the operator can now reach the whole relational lifecycle without
+    leaving this screen, while this Python wrapper's behavior is unchanged.
+    """
     subprocess.run(
         ["bash", str(REPO_ROOT / "src" / "shell_scripts" / "tdc.sh"), "relations"],
         cwd=REPO_ROOT,
@@ -2732,16 +2800,328 @@ def option_rollback_menu() -> None:
             print("Opcion invalida.")
 
 
+def option_tmp_quiescence() -> None:
+    """TMP/quiescence: read-only inventory (1-4, unchanged) plus the
+
+    governed retention/cleanup surface built in S0186 Unit J (subunit J.2):
+    a retention classification, non-destructive evidence extraction, and a
+    productive-cleanup dry-run. Nothing under 5-8 deletes a path except 8,
+    which requires typing the exact authorization phrase bound to a
+    freshly-recomputed dry-run plan hash -- a stale or hand-typed phrase is
+    rejected. This menu never invokes 8 on its own.
+    """
+    from quiescence_state import classify_tmp_lifecycle, evaluate_quiescence
+    import tmp_lifecycle_governance as lifecycle_gov
+
+    while True:
+        print(
+            "\nTemporales / quiescencia\n"
+            "1-4: solo lectura. 5-7: gobernado, no destructivo. 8: requiere frase de autorización.\n"
+            "1) Ver estado de quiescencia\n"
+            "2) Ver inventario / clasificación de temporales\n"
+            "3) Ver artefactos activos o sin owner persistente\n"
+            "4) Ver resumen de reconstruibilidad\n"
+            "5) Ver clasificación de retención (J.2: superseded/investigate/candidato)\n"
+            "6) Extraer evidencia única a ubicación durable (no borra el origen)\n"
+            "7) Dry-run de limpieza productiva (no borra nada)\n"
+            "8) Ejecutar limpieza (requiere frase de autorización de un dry-run vigente)\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            report = evaluate_quiescence()
+            print(f"TDC_QUIESCENT={report.get('tdc_quiescent')}")
+            for name, term in (report.get("terms") or {}).items():
+                print(f"- {name}: {term.get('status')}")
+        elif choice == "2":
+            report = classify_tmp_lifecycle()
+            print(f"Entradas observadas: {report.get('entry_count')}")
+            for lifecycle, count in sorted((report.get("counts_by_lifecycle") or {}).items()):
+                print(f"- {lifecycle}: {count}")
+        elif choice == "3":
+            report = classify_tmp_lifecycle()
+            selected = [
+                entry for entry in report.get("entries") or []
+                if entry.get("lifecycle") in {"ACTIVE_SESSION_TMP", "NO_PERSISTENT_OWNER_FOUND_IN_CURRENT_SOURCE"}
+            ]
+            if not selected:
+                print("No hay artefactos activos o sin owner persistente.")
+            for entry in selected:
+                print(f"- {entry.get('path')}: {entry.get('lifecycle')} (owner={entry.get('owner') or 'unresolved'})")
+        elif choice == "4":
+            report = evaluate_quiescence()
+            terms = report.get("terms") or {}
+            summary = {name: value.get("status") for name, value in terms.items()}
+            print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        elif choice == "5":
+            print("Calculando (compara cada snapshot contra Canon vivo; puede tardar ~40s)...")
+            report = lifecycle_gov.build_retention_report()
+            totals = report.get("totals_bytes_by_proposed_action") or {}
+            print(f"Registros en Canon vivo comparados: {report.get('canon_index_size')}")
+            for action, total in sorted(totals.items()):
+                print(f"- {action}: {total} bytes")
+            for group in ("session_admission", "reconstruction", "html_export", "sanitation", "session_sync"):
+                entries = report.get(group) or []
+                by_class: dict[str, int] = {}
+                for entry in entries:
+                    by_class[entry["retention_class"]] = by_class.get(entry["retention_class"], 0) + 1
+                print(f"  {group}: {len(entries)} entradas -- {by_class}")
+        elif choice == "6":
+            print("Extrayendo evidencia unica a data/out/local/audit/tmp_lifecycle/extracted_evidence/ (no borra el origen)...")
+            result = lifecycle_gov.extract_unique_evidence(execute=True)
+            print(f"candidatos={result['candidate_count']} extraidos_ahora={result['extracted_count']} "
+                  f"ya_extraidos={result['already_extracted_count']} bytes_totales={result['total_bytes']}")
+            unverified = [r for r in result["records"] if not r["verified"]]
+            if unverified:
+                print(f"ADVERTENCIA: {len(unverified)} archivo(s) no verificados tras la copia.")
+            print(f"Receipt: {result.get('receipt_path')}")
+        elif choice == "7":
+            print("Calculando dry-run (no borra nada)...")
+            plan = lifecycle_gov.dry_run_cleanup()
+            print(f"plan_hash={plan['plan_hash']}")
+            print(f"items={plan['item_count']}  total_bytes={plan['total_bytes']}")
+            if plan.get("warning_unextracted_evidence"):
+                print(f"ADVERTENCIA: {plan['warning_unextracted_evidence']}")
+            from collections import Counter
+            by_root = Counter(item["root"] for item in plan["items"])
+            print(f"por raiz: {dict(by_root)}")
+            print(f"Frase de autorizacion (para la opcion 8): {plan['authorization_phrase']}")
+        elif choice == "8":
+            print(
+                "Limpieza productiva: requiere la frase EXACTA de un dry-run recien calculado "
+                "(opcion 7). Si el estado real cambio desde ese dry-run, se rechaza."
+            )
+            phrase = prompt("Frase de autorizacion (o Enter para cancelar): ").strip()
+            if not phrase:
+                print("Cancelado.")
+                continue
+            result = lifecycle_gov.execute_cleanup(phrase)
+            if result.get("status") != "ok":
+                print(f"RECHAZADO: {result.get('reason')}")
+                continue
+            print(f"Eliminados: {result['deleted_count']}  bytes_recuperados={result['bytes_reclaimed']}")
+            print(f"Receipt: {result.get('receipt_path')}")
+        else:
+            print("Opción inválida.")
+
+
+# S0186 Unit I -- the two blockers demonstrated by the RAG equivalence
+# investigation, certified via read-only historical bisection this
+# session. Prefilling from these exact, already-verified paths is a
+# convenience only; the human still reviews the plan, dry-run, and
+# authorization phrase explicitly before any Apply.
+_S0186_UNIT_I_KNOWN_REQUESTS: list[dict[str, Any]] = [
+    {
+        "mode": canon_content_recovery.MODE_RESTORE_MISSING_SAME_ID,
+        "target_record_id": "4667737e-bac0-583f-91ba-53ecc9ac10de",
+        "certified_source_path": str(
+            REPO_ROOT
+            / "data/out/local/audit/admissions/backups/admit-20260802004923-multi-session/tiddlers_1.jsonl"
+        ),
+        "corroborating_source_path": str(
+            REPO_ROOT / "data/in/# 1_objeto_de_estudio_trazabilidad_y_desarrollo.json"
+        ),
+    },
+    {
+        "mode": canon_content_recovery.MODE_REPAIR_EXISTING_TARGET,
+        "target_record_id": "ab0f1850-e42c-5dcf-a85a-0e786e590147",
+        "predecessor_record_id": "aafec109-c197-5979-b9ac-5bd8636650f6",
+        "predecessor_certified_source_path": str(
+            REPO_ROOT
+            / "data/out/local/audit/admissions/backups/admit-20260901213051-multi-session/tiddlers_29.jsonl"
+        ),
+    },
+]
+
+
+def option_canon_content_recovery() -> None:
+    """Recuperación de contenido canónico -- superficie mínima gobernada
+
+    (S0186 Unit I) para exactamente dos clases contractuales: restaurar un
+    id ausente desde evidencia certificada (RESTORE_MISSING_SAME_ID), o
+    reparar el contenido de un target vacío desde un predecessor probado
+    (REPAIR_EXISTING_TARGET_FROM_PROVEN_PREDECESSOR). No es un editor
+    general de Canon.
+    """
+
+    while True:
+        print(
+            "\nRecuperación de contenido canónico (S0186 Unit I)\n"
+            "Canon: SOLO LECTURA salvo Aplicar con confirmación explícita\n\n"
+            "1) Ver hallazgos conocidos de S0186 Unit I\n"
+            "2) Construir plan desde solicitud (JSON)\n"
+            "3) Construir plan con los 2 hallazgos conocidos de S0186 Unit I\n"
+            "4) Dry-run del último plan\n"
+            "5) Preparar snapshot de rollback (requerido antes de autorizar)\n"
+            "6) Solicitar autorización para el último plan (requiere snapshot ya preparado)\n"
+            "7) Aplicar el último plan autorizado (requiere confirmación exacta)\n"
+            "8) Rollback desde un snapshot\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+
+        if choice == "1":
+            for request in _S0186_UNIT_I_KNOWN_REQUESTS:
+                print(json.dumps(request, indent=2, ensure_ascii=False))
+
+        elif choice == "2":
+            request_path = prompt(f"Archivo de solicitud JSON [{as_display_path(CANON_CONTENT_RECOVERY_REQUEST)}]: ").strip()
+            request_file = Path(request_path) if request_path else CANON_CONTENT_RECOVERY_REQUEST
+            if not request_file.exists():
+                print(f"No existe: {as_display_path(request_file)}")
+                continue
+            try:
+                plan = canon_content_recovery._build_plan_from_request_file(request_file, DEFAULT_CANON_DIR)
+            except (canon_content_recovery.RecoveryPlanError, canon_content_recovery.RecoveryAuthorizationError) as exc:
+                print(f"Plan bloqueado: {exc}")
+                continue
+            canon_content_recovery.write_plan(plan, CANON_CONTENT_RECOVERY_PLAN)
+            print(f"Plan {plan.plan_id} escrito en {as_display_path(CANON_CONTENT_RECOVERY_PLAN)}")
+            print(f"canon_before_hash={plan.canon_before_hash} expected_canon_after_count={plan.expected_canon_after_count}")
+
+        elif choice == "3":
+            CANON_CONTENT_RECOVERY_ROOT.mkdir(parents=True, exist_ok=True)
+            CANON_CONTENT_RECOVERY_REQUEST.write_text(
+                json.dumps(_S0186_UNIT_I_KNOWN_REQUESTS, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            try:
+                plan = canon_content_recovery._build_plan_from_request_file(
+                    CANON_CONTENT_RECOVERY_REQUEST, DEFAULT_CANON_DIR
+                )
+            except (canon_content_recovery.RecoveryPlanError, canon_content_recovery.RecoveryAuthorizationError) as exc:
+                print(f"Plan bloqueado: {exc}")
+                continue
+            canon_content_recovery.write_plan(plan, CANON_CONTENT_RECOVERY_PLAN)
+            print(f"Plan {plan.plan_id} escrito en {as_display_path(CANON_CONTENT_RECOVERY_PLAN)}")
+            print(f"canon_before_hash={plan.canon_before_hash} expected_canon_after_count={plan.expected_canon_after_count}")
+            for op in plan.operations:
+                print(f"  - {op.operation_mode} target={op.target_record_id} delta={op.expected_record_count_delta}")
+
+        elif choice == "4":
+            if not CANON_CONTENT_RECOVERY_PLAN.exists():
+                print("No hay plan construido todavía (opciones 2 o 3).")
+                continue
+            plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
+            canon_dir_from_plan = Path(plan_dict["canon_dir"])
+            operations = [
+                canon_content_recovery.RecoveryOperation(
+                    **{**op_dict, "recovered_record": canon_content_recovery.materialize_recovered_record(op_dict, canon_dir_from_plan)}
+                )
+                for op_dict in plan_dict["operations"]
+            ]
+            plan = canon_content_recovery.RecoveryPlan(**{**plan_dict, "operations": operations})
+            try:
+                report = canon_content_recovery.dry_run(plan, out_dir=CANON_CONTENT_RECOVERY_WORK_DIR)
+            except (canon_content_recovery.RecoveryPlanError, canon_content_recovery.RecoveryAuthorizationError) as exc:
+                print(f"Dry-run bloqueado: {exc}")
+                continue
+            CANON_CONTENT_RECOVERY_DRYRUN_REPORT.parent.mkdir(parents=True, exist_ok=True)
+            CANON_CONTENT_RECOVERY_DRYRUN_REPORT.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+
+        elif choice == "5":
+            if not CANON_CONTENT_RECOVERY_PLAN.exists():
+                print("No hay plan construido todavía (opciones 2 o 3).")
+                continue
+            plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
+            operations = [canon_content_recovery.RecoveryOperation(**{**op, "recovered_record": {}}) for op in plan_dict["operations"]]
+            plan = canon_content_recovery.RecoveryPlan(**{**plan_dict, "operations": operations})
+            try:
+                manifest_path = canon_content_recovery.prepare_snapshot(plan, CANON_CONTENT_RECOVERY_SNAPSHOT_DIR)
+            except canon_content_recovery.RecoveryAuthorizationError as exc:
+                print(f"Preparación de snapshot bloqueada: {exc}")
+                continue
+            print(
+                f"Snapshot preparado en {as_display_path(manifest_path)} "
+                f"(hash={canon_content_recovery.sha256_path(manifest_path)}). Canon no fue modificado."
+            )
+
+        elif choice == "6":
+            if not CANON_CONTENT_RECOVERY_PLAN.exists():
+                print("No hay plan construido todavía (opciones 2 o 3).")
+                continue
+            if not CANON_CONTENT_RECOVERY_SNAPSHOT_MANIFEST.exists():
+                print("Se requiere un snapshot de rollback ya preparado (opción 5) antes de autorizar.")
+                continue
+            plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
+            operations = [canon_content_recovery.RecoveryOperation(**{**op, "recovered_record": {}}) for op in plan_dict["operations"]]
+            plan = canon_content_recovery.RecoveryPlan(**{**plan_dict, "operations": operations})
+            expected_phrase = canon_content_recovery.authorization_phrase(plan)
+            print(f"Frase de autorización exacta requerida: {expected_phrase!r}")
+            phrase = prompt("Escriba la frase exacta (o Enter para cancelar): ")
+            if not phrase:
+                print("Cancelado.")
+                continue
+            try:
+                authorization = canon_content_recovery.create_authorization(
+                    plan, CANON_CONTENT_RECOVERY_SNAPSHOT_MANIFEST, phrase
+                )
+            except canon_content_recovery.RecoveryAuthorizationError as exc:
+                print(f"Autorización rechazada: {exc}")
+                continue
+            CANON_CONTENT_RECOVERY_AUTHORIZATION.parent.mkdir(parents=True, exist_ok=True)
+            CANON_CONTENT_RECOVERY_AUTHORIZATION.write_text(
+                json.dumps(authorization, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            print(f"Autorización {authorization['authorization_id']} creada y vinculada al plan {plan.plan_id}.")
+
+        elif choice == "7":
+            if not CANON_CONTENT_RECOVERY_PLAN.exists() or not CANON_CONTENT_RECOVERY_AUTHORIZATION.exists():
+                print("Se requiere un plan y una autorización previos (opciones 2/3 y 6).")
+                continue
+            plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
+            canon_dir_from_plan = Path(plan_dict["canon_dir"])
+            operations = [
+                canon_content_recovery.RecoveryOperation(
+                    **{**op_dict, "recovered_record": canon_content_recovery.materialize_recovered_record(op_dict, canon_dir_from_plan)}
+                )
+                for op_dict in plan_dict["operations"]
+            ]
+            plan = canon_content_recovery.RecoveryPlan(**{**plan_dict, "operations": operations})
+            authorization = json.loads(CANON_CONTENT_RECOVERY_AUTHORIZATION.read_text(encoding="utf-8"))
+            print(f"Esto ESCRIBIRÁ productivamente en Canon: {[op.target_record_id for op in plan.operations]}")
+            confirm = prompt(f"Escriba exactamente 'CONFIRM APPLY {plan.plan_id}' para continuar (o Enter para cancelar): ")
+            if confirm != f"CONFIRM APPLY {plan.plan_id}":
+                print("Cancelado; Canon no fue modificado.")
+                continue
+            try:
+                receipt = canon_content_recovery.apply(plan, authorization, out_dir=CANON_CONTENT_RECOVERY_WORK_DIR)
+            except Exception as exc:  # noqa: BLE001 -- surfaced verbatim to the operator, apply() already rolled back
+                print(f"Apply falló (Canon restaurado automáticamente si aplicaba): {exc}")
+                continue
+            CANON_CONTENT_RECOVERY_AUTHORIZATION.write_text(
+                json.dumps(authorization, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            CANON_CONTENT_RECOVERY_RECEIPT.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(json.dumps(receipt, indent=2, ensure_ascii=False))
+
+        elif choice == "8":
+            snapshot_path = prompt("Ruta a rollback_manifest.json: ").strip()
+            if not snapshot_path:
+                print("Cancelado.")
+                continue
+            try:
+                report = canon_content_recovery.rollback(Path(snapshot_path), out_dir=CANON_CONTENT_RECOVERY_WORK_DIR)
+            except Exception as exc:  # noqa: BLE001
+                print(f"Rollback falló: {exc}")
+                continue
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+
+        else:
+            print("Opción inválida.")
+
+
 def option_advanced_maintenance(state: MenuState) -> None:
     while True:
         print(
             "\nAvanzado / mantenimiento\n"
             "1) Preparacion técnica\n"
             "2) Saneamiento del canon\n"
-            "3) Configurar MCP / mirror remoto\n"
-            "4) Relaciones canónicas [alias histórico 16]\n"
-            "5) Metadata técnica [alias histórico 18]\n"
-            "6) Exportador de repositorio [alias histórico 17]\n"
+            "7) Recuperación de contenido canónico\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
@@ -2751,14 +3131,16 @@ def option_advanced_maintenance(state: MenuState) -> None:
             option_preparation()
         elif choice == "2":
             option_canon_sanitation()
-        elif choice == "3":
+        elif choice == "3":  # compatibility dispatch; intentionally hidden from the visible menu
             option_mcp_manager()
-        elif choice == "4":
+        elif choice == "4":  # compatibility dispatch; intentionally hidden from the visible menu
             option_canonical_relations_menu()
-        elif choice == "5":
+        elif choice == "5":  # compatibility dispatch; intentionally hidden from the visible menu
             option_repo_metadata_admission_menu()
-        elif choice == "6":
+        elif choice == "6":  # compatibility dispatch; intentionally hidden from the visible menu
             option_repository_exporter()
+        elif choice == "7":
+            option_canon_content_recovery()
         else:
             print("Opcion invalida.")
 
@@ -2779,13 +3161,11 @@ def dispatch_main_choice(choice: str, state: MenuState) -> bool:
     elif action == "export_or_consult_canon":
         option_export_or_consult_canon(state)
     elif action == "session_sync":
-        option_session_sync(state)
+        option_sync_governance_menu(state)
     elif action == "derivatives":
         option_derivatives(state)
     elif action == "canonical_relations":
         option_canonical_relations_menu()
-    elif action == "governed_admission":
-        option_governed_admission(state)
     elif action == "reports_audit":
         option_reports_audit()
     elif action == "rollback":
@@ -2796,6 +3176,8 @@ def dispatch_main_choice(choice: str, state: MenuState) -> bool:
         option_mcp_manager()
     elif action == "advanced_maintenance":
         option_advanced_maintenance(state)
+    elif action == "tmp_quiescence":
+        option_tmp_quiescence()
     elif action == "metadata_admission":
         option_repo_metadata_admission_menu()
     else:

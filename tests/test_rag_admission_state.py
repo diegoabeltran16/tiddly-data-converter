@@ -287,6 +287,373 @@ def test_verified_rollback_archives_snapshot_and_frees_active_slot(monkeypatch, 
     assert (archived / ("a" * 16) / "archive_manifest.json").exists()
 
 
+# --- BLOCKER EN PROMOCION DEFINITIVA: historical/current snapshot collision -
+#
+# A CURRENT ``promote-definitive`` collided with a fixed, unscoped
+# ``definitive_rollback_snapshot`` path left over from a prior (S0180-era)
+# definitive promotion, and ``validate-definitive`` then read that same
+# stale receipt and reported it with trial-flavored reason codes. Fixed by
+# giving definitive promotion the same historical/active evidence
+# separation trial already has, scoping the CURRENT snapshot by exactly
+# (staging_manifest_hash, authorization_id) via ``_definitive_snapshot_path``,
+# and prefixing receipt-check reason codes by the operation actually being
+# validated.
+
+
+from typing import Any
+
+
+def _definitive_fixture(
+    monkeypatch,
+    tmp_path: Path,
+    *,
+    next_action: str = "EXECUTE_DEFINITIVE_PROMOTION",
+    manifest_hash: str = "manifest-current",
+    authorization_id: str = "auth-current",
+    consumed: bool = False,
+) -> dict[str, Any]:
+    """Wire execute_write("definitive_promotion") to isolated tmp_path state,
+
+    stubbing the underlying writer primitives so no real productive family
+    is ever touched (mirrors how the existing trial-rollback tests stub
+    ``rollback_productive_transaction`` rather than calling it for real).
+    """
+
+    auth_path = tmp_path / "definitive_authorization.json"
+    auth_path.write_text(
+        json.dumps(
+            {
+                "authorization_id": authorization_id,
+                "operation": "definitive_promotion",
+                "staging_manifest_hash": manifest_hash,
+                "protected_before": admission._protected_snapshot(),
+                "consumed": consumed,
+            }
+        )
+    )
+    receipt_path = tmp_path / "current_definitive" / "definitive_promotion_receipt.json"
+    journal_path = tmp_path / "current_definitive" / "definitive_transaction_journal.jsonl"
+    snapshot_root = tmp_path / "definitive_rollback_snapshots"
+
+    monkeypatch.setattr(admission, "DEFINITIVE_AUTH", auth_path)
+    monkeypatch.setattr(admission, "DEFINITIVE_RECEIPT", receipt_path)
+    monkeypatch.setattr(admission, "DEFINITIVE_JOURNAL", journal_path)
+    monkeypatch.setattr(admission, "DEFINITIVE_SNAPSHOT_ROOT", snapshot_root)
+    monkeypatch.setattr(admission, "build_state", lambda: {"next_action": next_action, "staging": {"manifest_hash": manifest_hash}})
+    monkeypatch.setattr(admission, "write_state", lambda: {})
+
+    def fake_snapshot(snapshot_root_arg, *, productive_families=None, session_id="S0173"):
+        del productive_families
+        target = Path(snapshot_root_arg)
+        if target.exists() and any(target.iterdir()):
+            raise admission.ProductiveWriteBlocked(f"rollback snapshot is not empty: {target}")
+        target.mkdir(parents=True, exist_ok=True)
+        return {"schema_version": "rollback-manifest/v1", "session_id": session_id, "created_at": admission._now(), "files": []}
+
+    promote_calls: list[dict[str, Any]] = []
+
+    def fake_promote(**kwargs):
+        promote_calls.append(kwargs)
+        return {
+            "schema_version": "productive-regeneration-receipt/v1",
+            "status": "promotion_completed",
+            "session_id": admission.ADMISSION_SCOPE_ID,
+            "rollback_snapshot": str(kwargs["rollback_root"]),
+            "write_manifest": {"staging_manifest_hash": kwargs.get("staging_manifest_hash")},
+        }
+
+    monkeypatch.setattr(admission, "snapshot_productive_derivatives", fake_snapshot)
+    monkeypatch.setattr(admission, "promote_staging_transaction", fake_promote)
+
+    return {
+        "auth_path": auth_path,
+        "receipt_path": receipt_path,
+        "snapshot_root": snapshot_root,
+        "promote_calls": promote_calls,
+    }
+
+
+# --- 1. historical definitive snapshot present -> CURRENT promotion proceeds
+
+
+def test_historical_definitive_snapshot_present_does_not_block_current_promotion(monkeypatch, tmp_path: Path) -> None:
+    historical = tmp_path / "historical_definitive_rollback_snapshot"
+    (historical / "enriched").mkdir(parents=True)
+    (historical / "enriched" / "old.txt").write_text("historical evidence")
+    monkeypatch.setattr(admission, "HISTORICAL_DEFINITIVE_SNAPSHOT", historical)
+
+    fixture = _definitive_fixture(monkeypatch, tmp_path)
+    receipt = admission.execute_write("definitive_promotion")
+
+    assert receipt["status"] == "promotion_completed"
+    # The historical evidence is untouched -- a different, scoped path was used.
+    assert (historical / "enriched" / "old.txt").read_text() == "historical evidence"
+    assert str(historical) not in receipt["rollback_snapshot"]
+    assert receipt["rollback_snapshot"].startswith(str(fixture["snapshot_root"]))
+
+
+# --- 2. historical definitive evidence can never satisfy a CURRENT check ---
+
+
+def test_historical_definitive_receipt_never_satisfies_current_manifest_check() -> None:
+    historical_receipt = {
+        "operation": "definitive_promotion",
+        "status": "promotion_completed",
+        "session_id": admission.ADMISSION_SCOPE_ID,
+        "authorization_id": "historical-auth",
+        "write_manifest": {"staging_manifest_hash": "historical-manifest"},
+    }
+    current, reasons = admission._current_trial_receipt(
+        historical_receipt, {"authorization_id": "current-auth"}, "current-manifest", "definitive_promotion"
+    )
+
+    assert current is False
+    assert "definitive_receipt_manifest_mismatch" in reasons
+    assert "definitive_receipt_authorization_mismatch" in reasons
+
+
+# --- 3. CURRENT definitive snapshot is scoped by manifest AND authorization
+
+
+def test_current_definitive_snapshot_is_scoped_by_manifest_and_authorization() -> None:
+    a = admission._definitive_snapshot_path("hash-a", "auth-1")
+    b = admission._definitive_snapshot_path("hash-b", "auth-1")
+    c = admission._definitive_snapshot_path("hash-a", "auth-2")
+
+    assert len({a, b, c}) == 3
+    assert "hash-a" in a.parts and "auth-1" in a.parts
+    assert "hash-b" in b.parts
+    assert "auth-2" in c.parts
+
+
+# --- 4. the same CURRENT snapshot can never be overwritten/reused ---------
+
+
+def test_same_current_definitive_snapshot_cannot_be_overwritten(monkeypatch, tmp_path: Path) -> None:
+    _definitive_fixture(monkeypatch, tmp_path, manifest_hash="manifest-x", authorization_id="auth-x")
+    first = admission.execute_write("definitive_promotion")
+    assert first["status"] == "promotion_completed"
+
+    # Simulate a retry of the exact same (manifest, authorization) pair --
+    # e.g. option 11 invoked twice, or a stale operator script re-running.
+    auth, _ = admission._read(admission.DEFINITIVE_AUTH)
+    auth["consumed"] = False
+    admission._write(admission.DEFINITIVE_AUTH, auth)
+
+    with pytest.raises(admission.ProductiveWriteBlocked, match="already contains evidence"):
+        admission.execute_write("definitive_promotion")
+
+
+# --- 5. a stale staging manifest blocks the definitive authorization ------
+
+
+def test_stale_manifest_blocks_definitive_authorization(tmp_path: Path) -> None:
+    authorization = tmp_path / "definitive_authorization.json"
+    authorization.write_text(
+        json.dumps(
+            {
+                "operation": "definitive_promotion",
+                "staging_manifest_hash": "old-manifest",
+                "planned_families": list(admission.PRODUCTIVE_FAMILIES),
+                "deletion_policy": "none",
+                "authorized_by": "human_operator",
+                "consumed": False,
+            }
+        )
+    )
+    status, reasons = admission._authorization_status(authorization, "definitive_promotion", "new-manifest")
+    assert status == "stale"
+    assert reasons == ["staging_manifest_hash_stale"]
+
+
+# --- 6. a receipt bound to the wrong authorization blocks ------------------
+
+
+def test_wrong_authorization_id_blocks_receipt_currentness() -> None:
+    receipt = {
+        "operation": "definitive_promotion",
+        "status": "promotion_completed",
+        "session_id": admission.ADMISSION_SCOPE_ID,
+        "authorization_id": "someone-elses-authorization",
+        "staging_manifest_hash": "manifest-current",
+    }
+    current, reasons = admission._current_trial_receipt(
+        receipt, {"authorization_id": "auth-current"}, "manifest-current", "definitive_promotion"
+    )
+    assert current is False
+    assert reasons == ["definitive_receipt_authorization_mismatch"]
+
+
+# --- 7. failure before write leaves the definitive authorization unconsumed
+
+
+def test_failure_before_write_leaves_definitive_authorization_unconsumed(monkeypatch, tmp_path: Path) -> None:
+    fixture = _definitive_fixture(monkeypatch, tmp_path, manifest_hash="manifest-y", authorization_id="auth-y")
+    # Pre-populate the exact scoped path this call will target, so the
+    # collision guard fires before any write happens.
+    collision_path = admission._definitive_snapshot_path("manifest-y", "auth-y")
+    collision_path.mkdir(parents=True)
+    (collision_path / "leftover.txt").write_text("stale evidence from an aborted attempt")
+
+    with pytest.raises(admission.ProductiveWriteBlocked, match="already contains evidence"):
+        admission.execute_write("definitive_promotion")
+
+    auth, _ = admission._read(fixture["auth_path"])
+    assert auth.get("consumed") is not True
+    assert fixture["promote_calls"] == []
+
+
+# --- 8. productive state is unchanged after a pre-write failure -----------
+
+
+def test_productive_state_unchanged_after_pre_write_failure(monkeypatch, tmp_path: Path) -> None:
+    families, _ = _families(tmp_path)
+    before = {name: admission._tree(root) for name, root in families.items()}
+    monkeypatch.setattr(admission, "PRODUCTIVE_ROOTS", families)
+    fixture = _definitive_fixture(monkeypatch, tmp_path, manifest_hash="manifest-z", authorization_id="auth-z")
+    collision_path = admission._definitive_snapshot_path("manifest-z", "auth-z")
+    collision_path.mkdir(parents=True)
+    (collision_path / "leftover.txt").write_text("stale")
+
+    with pytest.raises(admission.ProductiveWriteBlocked):
+        admission.execute_write("definitive_promotion")
+
+    after = {name: admission._tree(root) for name, root in families.items()}
+    assert before == after
+    assert fixture["promote_calls"] == []
+
+
+# --- 9. validate-definitive selects the CURRENT definitive receipt only ---
+
+
+def test_validate_definitive_selects_current_receipt_only(monkeypatch, tmp_path: Path) -> None:
+    manifest = tmp_path / "staging_manifest.json"
+    manifest.write_text("{}")
+    manifest_hash = admission.hashlib.sha256(manifest.read_bytes()).hexdigest()
+    authorization = tmp_path / "definitive_authorization.json"
+    authorization.write_text(json.dumps({"authorization_id": "current-auth", "protected_before": admission._protected_snapshot()}))
+    current_receipt = tmp_path / "current_definitive" / "definitive_promotion_receipt.json"
+    current_receipt.parent.mkdir(parents=True)
+    current_receipt.write_text(
+        json.dumps(
+            {
+                "operation": "definitive_promotion",
+                "status": "promotion_completed",
+                "session_id": admission.ADMISSION_SCOPE_ID,
+                "staging_manifest_hash": manifest_hash,
+                "authorization_id": "current-auth",
+            }
+        )
+    )
+    historical_receipt = tmp_path / "historical_definitive_promotion_receipt.json"
+    historical_receipt.write_text(
+        json.dumps(
+            {
+                "operation": "definitive_promotion",
+                "status": "promotion_completed",
+                "session_id": admission.ADMISSION_SCOPE_ID,
+                "staging_manifest_hash": "a-completely-different-historical-manifest",
+                "authorization_id": "historical-auth",
+            }
+        )
+    )
+    validation = tmp_path / "current_definitive" / "definitive_post_write_validation.json"
+    monkeypatch.setattr(admission, "STAGING_MANIFEST", manifest)
+    monkeypatch.setattr(admission, "DEFINITIVE_AUTH", authorization)
+    monkeypatch.setattr(admission, "DEFINITIVE_RECEIPT", current_receipt)
+    monkeypatch.setattr(admission, "HISTORICAL_DEFINITIVE_RECEIPT", historical_receipt)
+    monkeypatch.setattr(admission, "DEFINITIVE_VALIDATION", validation)
+    monkeypatch.setattr(admission, "build_post_write_validation", lambda **_kwargs: {"status": "pass"})
+    monkeypatch.setattr(admission, "_assert_protected", lambda _auth: {"canon_mutated": False, "relations_mutated": False, "reverse_html_mutated": False, "remote_mutated": False})
+    monkeypatch.setattr(admission, "write_state", lambda: {})
+
+    report = admission.validate_write("definitive_promotion")
+
+    assert report["status"] == "pass"
+    assert report["receipt_checks"]["current"] is True
+
+
+# --- 10. the historical definitive receipt is never reusable for validation
+
+
+def test_historical_definitive_receipt_is_nonreusable_for_validation(monkeypatch, tmp_path: Path) -> None:
+    manifest = tmp_path / "staging_manifest.json"
+    manifest.write_text("{}")
+    authorization = tmp_path / "definitive_authorization.json"
+    authorization.write_text(json.dumps({"authorization_id": "current-auth"}))
+    # Only the historical receipt exists, at the OLD fixed path -- the
+    # active DEFINITIVE_RECEIPT points elsewhere and is absent.
+    historical_receipt = tmp_path / "historical_definitive_promotion_receipt.json"
+    historical_receipt.write_text(
+        json.dumps(
+            {
+                "operation": "definitive_promotion",
+                "status": "promotion_completed",
+                "session_id": admission.ADMISSION_SCOPE_ID,
+                "staging_manifest_hash": "historical-manifest",
+                "authorization_id": "historical-auth",
+            }
+        )
+    )
+    monkeypatch.setattr(admission, "STAGING_MANIFEST", manifest)
+    monkeypatch.setattr(admission, "DEFINITIVE_AUTH", authorization)
+    monkeypatch.setattr(admission, "DEFINITIVE_RECEIPT", tmp_path / "current_definitive" / "definitive_promotion_receipt.json")
+    monkeypatch.setattr(admission, "HISTORICAL_DEFINITIVE_RECEIPT", historical_receipt)
+    monkeypatch.setattr(admission, "write_state", lambda: {})
+
+    with pytest.raises(admission.ProductiveWriteBlocked, match="definitive_receipt_absent"):
+        admission.validate_write("definitive_promotion")
+
+
+# --- 11. a missing CURRENT definitive receipt gives the correct reason ----
+
+
+def test_missing_current_definitive_receipt_gives_correct_reason(monkeypatch, tmp_path: Path) -> None:
+    manifest = tmp_path / "staging_manifest.json"
+    manifest.write_text("{}")
+    authorization = tmp_path / "definitive_authorization.json"
+    authorization.write_text(json.dumps({"authorization_id": "current-auth"}))
+    validation = tmp_path / "current_definitive" / "definitive_post_write_validation.json"
+    monkeypatch.setattr(admission, "STAGING_MANIFEST", manifest)
+    monkeypatch.setattr(admission, "DEFINITIVE_AUTH", authorization)
+    monkeypatch.setattr(admission, "DEFINITIVE_RECEIPT", tmp_path / "current_definitive" / "definitive_promotion_receipt.json")
+    monkeypatch.setattr(admission, "DEFINITIVE_VALIDATION", validation)
+    monkeypatch.setattr(admission, "write_state", lambda: {})
+
+    with pytest.raises(admission.ProductiveWriteBlocked, match="definitive_receipt_absent"):
+        admission.validate_write("definitive_promotion")
+
+    report = json.loads(validation.read_text())
+    assert report["verdict"] == "DEFINITIVE_VALIDATION_BLOCKED"
+    assert "definitive_receipt_absent" in report["receipt_checks"]["reasons"]
+
+
+# --- 15. Canon / relations / reverse_html / remote stay protected ---------
+
+
+def test_assert_protected_flags_canon_and_relations_and_reverse_html_mutation(monkeypatch) -> None:
+    before = {"canon_hash": "c1", "relations": {"a": "1"}, "reverse_html": {"b": "2"}}
+    after_canon_mutated = {"canon_hash": "c2", "relations": {"a": "1"}, "reverse_html": {"b": "2"}}
+    after_relations_mutated = {"canon_hash": "c1", "relations": {"a": "2"}, "reverse_html": {"b": "2"}}
+    after_reverse_html_mutated = {"canon_hash": "c1", "relations": {"a": "1"}, "reverse_html": {"b": "3"}}
+
+    monkeypatch.setattr(admission, "_protected_snapshot", lambda: after_canon_mutated)
+    result = admission._assert_protected({"protected_before": before})
+    assert result == {"canon_mutated": True, "relations_mutated": False, "reverse_html_mutated": False, "remote_mutated": False}
+
+    monkeypatch.setattr(admission, "_protected_snapshot", lambda: after_relations_mutated)
+    result = admission._assert_protected({"protected_before": before})
+    assert result == {"canon_mutated": False, "relations_mutated": True, "reverse_html_mutated": False, "remote_mutated": False}
+
+    monkeypatch.setattr(admission, "_protected_snapshot", lambda: after_reverse_html_mutated)
+    result = admission._assert_protected({"protected_before": before})
+    assert result == {"canon_mutated": False, "relations_mutated": False, "reverse_html_mutated": True, "remote_mutated": False}
+
+    monkeypatch.setattr(admission, "_protected_snapshot", lambda: before)
+    result = admission._assert_protected({"protected_before": before})
+    assert result == {"canon_mutated": False, "relations_mutated": False, "reverse_html_mutated": False, "remote_mutated": False}
+
+
 def test_governed_productive_manifest_is_preferred_only_when_family_hashes_bind(monkeypatch, tmp_path: Path) -> None:
     productive = {name: tmp_path / "productive" / name for name in admission.PRODUCTIVE_FAMILIES}
     for name, root in productive.items():

@@ -19,6 +19,7 @@ from typing import Any
 
 import repo_metadata_admission_gate as gate
 import repo_metadata_refresh_patch as refresh
+import audit_repo_lifecycle_authority as lifecycle_oracle
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -715,6 +716,12 @@ def show_s0151_status(
             print("  - sin operaciones seleccionadas")
         if selected.get("operator_warnings"):
             print(f"- advertencias: {', '.join(selected['operator_warnings'])}")
+        refresh_report_path = refresh.refreshed_paths(admission_dir, session="S0151")["report"]
+        if refresh_report_path.exists():
+            total_ops = int(gate.read_json(refresh_report_path).get("operations_preserved") or 0)
+            selected_ops = int(selected.get("selected_operation_count") or 0)
+            print(f"- operaciones en el patch vigente (todos los carriles): {total_ops}")
+            print(f"- fuera de esta selección (otros carriles, no tocados): {total_ops - selected_ops}")
     else:
         print("- selección actual: no definida")
     dry_path = gate.s0151_paths(admission_dir)["dry_run_report"]
@@ -733,7 +740,32 @@ def show_s0151_status(
     else:
         print("- apply ejecutado: NO")
         print("- canon modificado: NO")
+    _print_gate_020_cross_reference()
     return 0
+
+
+def _print_gate_020_cross_reference() -> None:
+    """Read-only cross-reference against relation_admission_gate's GATE-020.
+
+    Reuses audit_repo_lifecycle_authority.py (independent oracle) so this
+    menu can show, without re-deriving anything, how many already-approved
+    relation candidates are blocked only by a missing repo_lifecycle_state,
+    and how many of those would clear once this batch's metadata is applied.
+    Silent no-op when the gate report or canon are unavailable (e.g. no
+    relation admission cycle has run yet) -- this section is informational,
+    never blocking.
+    """
+    try:
+        report = lifecycle_oracle.build_lifecycle_authority_report()
+    except (OSError, json.JSONDecodeError):
+        return
+    cross = report.get("gate_020_cross_reference") or {}
+    if not cross.get("gate_report_found"):
+        return
+    print("- GATE-020 (relaciones ya aprobadas, bloqueadas solo por repo_lifecycle_state ausente):")
+    print(f"  - candidatas bloqueadas: {cross.get('approved_but_blocked_by_gate_020', 0)}")
+    print(f"  - se desbloquearían con esta metadata: {cross.get('would_resolve_via_deterministic_content_match', 0)}")
+    print(f"  - seguirían bloqueadas (endpoint aún sin evidencia determinista): {cross.get('still_requires_human_review', 0)}")
 
 
 def select_s0151_guided(
