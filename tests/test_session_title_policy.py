@@ -16,6 +16,7 @@ from session_title_policy import (  # noqa: E402
     FAMILY_CANONICAL_PREFIX,
     TitleClassification,
     canonical_title_for,
+    classify_thematic_diagnostic_title,
     classify_title,
     needs_normalization,
 )
@@ -117,22 +118,126 @@ class TestWrongFamilyLabel:
         assert "wrong_family_label" in cls.issue
 
 
-# ── Test case 4: Thematic diagnostic is NOT a session ─────────────────────────
+# ── Test case 4: Thematic diagnostic is NOT a session, but DOES have its own
+#    dedicated DT-number-width contract (S0186 Closure Prep, 2026-09-08:
+#    CONTRACT_SHOULD_EVOLVE_TO_UNBOUNDED_NUMERIC_SEQUENCE) ────────────────────
 
-class TestThematicDiagnosticUnchanged:
-    def test_diagnostico_tematico_not_applicable(self) -> None:
+class TestThematicDiagnosticOwnContract:
+    def test_diagnostico_tematico_does_not_get_session_number_policy(self) -> None:
+        """No S-prefix stripping, no session semantics -- still not a session."""
         cls = classify_title(
-            "#### 🌀 Diagnóstico temático 033 = frontera canon/archivo para diagnósticos temáticos",
+            "#### 🌀 Diagnóstico temático S033 = frontera canon",
             "diagnostico_tematico",
         )
-        assert cls.status == "not_applicable"
+        # "S033" is not a valid DT number shape at all -- unlike a session
+        # title, an S-prefix here is not something this family recognizes
+        # or strips; it is just an unparseable DT title.
+        assert cls.status == "manual_review"
+
+    def test_diagnostico_tematico_4digit_is_canonical(self) -> None:
+        cls = classify_title(
+            "#### 🌀 Diagnóstico temático 0033 = frontera canon/archivo para diagnósticos temáticos",
+            "diagnostico_tematico",
+        )
+        assert cls.status == "canonical"
         assert cls.proposed_title is None
 
-    def test_diagnostico_tematico_does_not_need_normalization(self) -> None:
-        assert not needs_normalization(
-            "#### 🌀 Diagnóstico temático 033 = frontera canon",
+    def test_diagnostico_tematico_3digit_is_normalizable_not_rejected(self) -> None:
+        """The historical failure mode this fixes: DT100-DT114 used 3-digit
+
+        titles and were previously classified not_applicable/blocked by an
+        undocumented, code-unenforced 4-digit rule. They must now resolve
+        to a valid canonical form, not be rejected.
+        """
+        cls = classify_title(
+            "#### 🌀 Diagnóstico temático 100 = stress test arquitectónico estático Hermes Agent ↔ TDC",
             "diagnostico_tematico",
         )
+        assert cls.status == "normalizable"
+        assert cls.proposed_title == "#### 🌀 Diagnóstico temático 0100 = stress test arquitectónico estático Hermes Agent ↔ TDC"
+
+    def test_diagnostico_tematico_does_not_need_normalization_when_canonical(self) -> None:
+        assert not needs_normalization(
+            "#### 🌀 Diagnóstico temático 0033 = frontera canon",
+            "diagnostico_tematico",
+        )
+
+    def test_diagnostico_tematico_needs_normalization_when_underpadded(self) -> None:
+        assert needs_normalization(
+            "#### 🌀 Diagnóstico temático 33 = frontera canon",
+            "diagnostico_tematico",
+        )
+
+
+class TestDTNumberWidthContract:
+    """A3: DT01/DT99/DT100/DT114 must all be valid (never rejected as
+
+    malformed); ordering must remain deterministic when sorted by the
+    parsed integer (not the raw title string, which is not guaranteed to
+    lexicographically sort past 4 digits -- an inherent property of any
+    zero-padded-minimum-width scheme, not a defect introduced here).
+    """
+
+    @pytest.mark.parametrize(
+        "raw_num,expected_canonical",
+        [
+            ("01", "0001"),
+            ("99", "0099"),
+            ("100", "0100"),
+            ("114", "0114"),
+            ("0001", "0001"),
+            ("9999", "9999"),
+            ("10000", "10000"),  # future-proofing: never truncated to 4 digits
+        ],
+    )
+    def test_dt_numbers_never_rejected_as_malformed(self, raw_num: str, expected_canonical: str) -> None:
+        title = f"#### 🌀 Diagnóstico temático {raw_num} = ejemplo"
+        cls = classify_title(title, "diagnostico_tematico")
+        assert cls.status in ("canonical", "normalizable")
+        if cls.status == "canonical":
+            assert raw_num == expected_canonical
+        else:
+            assert cls.proposed_title == f"#### 🌀 Diagnóstico temático {expected_canonical} = ejemplo"
+
+    @pytest.mark.parametrize(
+        "bad_title",
+        [
+            "#### 🌀 Diagnóstico temático = missing number",
+            "#### 🌀 Diagnóstico temático abc = non-numeric",
+            "#### 🌀 Diagnóstico temático 0 = zero is not a positive integer",
+            "#### 🌀 Diagnóstico temático -5 = negative",
+            "Not even the right prefix",
+        ],
+    )
+    def test_malformed_dt_titles_rejected(self, bad_title: str) -> None:
+        cls = classify_title(bad_title, "diagnostico_tematico")
+        assert cls.status == "manual_review"
+
+    def test_existing_dt_identities_unchanged_by_canonical_titles(self) -> None:
+        """A DT title that is already canonical must never propose a change --
+
+        this is what keeps every already-4-digit DT record's identity
+        (key/id/canonical_slug, all derived from title) untouched.
+        """
+        for n in ("0001", "0054", "0089", "0097", "0098", "3772"):
+            title = f"#### 🌀 Diagnóstico temático {n} = ejemplo estable"
+            cls = classify_title(title, "diagnostico_tematico")
+            assert cls.status == "canonical"
+            assert cls.proposed_title is None
+
+    def test_ordering_deterministic_by_parsed_integer(self) -> None:
+        titles = [
+            "#### 🌀 Diagnóstico temático 0114 = z",
+            "#### 🌀 Diagnóstico temático 0002 = a",
+            "#### 🌀 Diagnóstico temático 0099 = b",
+        ]
+        # sorting canonical titles by parsed DT number matches numeric order
+        by_number = sorted(titles, key=lambda t: int(t.split("temático ")[1].split(" =")[0]))
+        assert by_number == [
+            "#### 🌀 Diagnóstico temático 0002 = a",
+            "#### 🌀 Diagnóstico temático 0099 = b",
+            "#### 🌀 Diagnóstico temático 0114 = z",
+        ]
 
 
 # ── Test case 5: Microciclo/mesociclo not modified ────────────────────────────
