@@ -95,6 +95,147 @@ def test_cross_batch_reconciliation_uses_closed_semantic_taxonomy() -> None:
     assert current_classes[ambiguous_two["candidate_id"]] == "ambiguous"
 
 
+def _endpoint(canonical_id: str, *, repo_lifecycle_state=None, artifact_family=None, authority_level=None) -> dict:
+    endpoint = {"canonical_id": canonical_id}
+    if repo_lifecycle_state is not None:
+        endpoint["repo_lifecycle_state"] = repo_lifecycle_state
+    if artifact_family is not None:
+        endpoint["artifact_family"] = artifact_family
+    if authority_level is not None:
+        endpoint["authority_level"] = authority_level
+    return endpoint
+
+
+def test_metadata_only_drift_stays_equivalent_exact_production_case() -> None:
+    """Real regression: rc_current_0180066b0091a62521673cb7 -- old carries
+    artifact_family=artefacto_repositorio, authority_level=current_verified,
+    repo_lifecycle_state=current_repo_artifact on both endpoints; current has
+    all three nulled out by an unrelated metadata drift. The relation must
+    still classify equivalent/decision_reusable, not disappeared/new.
+    """
+    source_id = "0abe4b56-172f-5deb-baaf-f7aa6acceb05"
+    target_id = "2029fa31-d868-56f5-9110-28f9aefe21f1"
+    raw_observation = (
+        "from relation_admission_gate import aggregate_canon_hash, "
+        "count_canon_records  # noqa: E402"
+    )
+    old = {
+        "candidate_id": "rc_current_0180066b0091a62521673cb7",
+        "candidate_schema_version": "technical-relation-candidates/v1",
+        "session_origin": "CURRENT",
+        "relation_type": "depende_de",
+        "source": _endpoint(
+            source_id, repo_lifecycle_state="current_repo_artifact",
+            artifact_family="artefacto_repositorio", authority_level="current_verified",
+        ),
+        "target": _endpoint(
+            target_id, repo_lifecycle_state="current_repo_artifact",
+            artifact_family="artefacto_repositorio", authority_level="current_verified",
+        ),
+        "evidence": {
+            "evidence_kind": "content_embedded", "raw_observation": raw_observation,
+            "file": "src/python_scripts/some_module.py", "line": 40,
+            "parser": "python_ast", "technical_evidence_kind": "ast_import",
+        },
+    }
+    current = json.loads(json.dumps(old))
+    current["candidate_id"] = "rc_current_" + "f" * 24
+    current["source"]["repo_lifecycle_state"] = None
+    current["source"]["artifact_family"] = None
+    current["source"]["authority_level"] = None
+    current["target"]["repo_lifecycle_state"] = None
+    current["target"]["artifact_family"] = None
+    current["target"]["authority_level"] = None
+
+    result = reconcile.build_cross_batch_reconciliation([old], [current])
+    old_row = result["old_to_current"][0]
+    current_row = result["current_to_old"][0]
+    assert old_row["classification"] == "equivalent"
+    assert old_row["decision_reusable"] is True
+    assert current_row["classification"] == "equivalent"
+    assert current_row["decision_reusable"] is True
+
+
+def test_metadata_only_drift_general_case_stays_equivalent() -> None:
+    """7a: endpoint/predicate/evidence unchanged, only lifecycle metadata
+    drifts (populated -> null) -- must remain equivalent."""
+    old = _candidate("rc_current_" + "1" * 24, "src/source.py", "src/target.py")
+    old["source"]["repo_lifecycle_state"] = "current_repo_artifact"
+    old["target"]["repo_lifecycle_state"] = "current_repo_artifact"
+    current = json.loads(json.dumps(old))
+    current["candidate_id"] = "rc_current_" + "2" * 24
+    current["source"]["repo_lifecycle_state"] = None
+    current["target"]["repo_lifecycle_state"] = None
+
+    result = reconcile.build_cross_batch_reconciliation([old], [current])
+    assert result["old_to_current"][0]["classification"] == "equivalent"
+    assert result["old_to_current"][0]["decision_reusable"] is True
+    assert result["current_to_old"][0]["classification"] == "equivalent"
+
+
+def test_same_candidate_id_reused_for_different_endpoint_is_not_equivalent() -> None:
+    """7b: identical candidate_id, but the target endpoint genuinely changed
+    -- must NOT be treated as equivalent (candidate_id alone is never
+    sufficient proof of equivalence)."""
+    old = _candidate("rc_current_" + "3" * 24, "src/source.py", "src/target.py")
+    current = _candidate("rc_current_" + "3" * 24, "src/source.py", "src/different-target.py")
+
+    result = reconcile.build_cross_batch_reconciliation([old], [current])
+    assert result["old_to_current"][0]["classification"] != "equivalent"
+    assert result["old_to_current"][0]["decision_reusable"] is False
+    assert result["current_to_old"][0]["classification"] != "equivalent"
+
+
+def test_different_predicate_is_not_equivalent() -> None:
+    """7c: same endpoints, different relation_type -- must NOT be equivalent,
+    even though endpoint identity alone matches."""
+    old = _candidate("rc_current_" + "4" * 24, "src/source.py", "src/target.py", predicate="depende_de")
+    current = _candidate("rc_current_" + "5" * 24, "src/source.py", "src/target.py", predicate="references")
+
+    result = reconcile.build_cross_batch_reconciliation([old], [current])
+    assert result["old_to_current"][0]["classification"] != "equivalent"
+    assert result["current_to_old"][0]["classification"] != "equivalent"
+
+
+def test_endpoint_stable_metadata_rehydrated_stays_equivalent() -> None:
+    """7d: inverse direction of drift -- lifecycle metadata goes from absent
+    (null) to rehydrated/populated while the endpoint identity and evidence
+    stay stable -- must remain equivalent."""
+    old = _candidate("rc_current_" + "6" * 24, "src/source.py", "src/target.py")
+    current = json.loads(json.dumps(old))
+    current["candidate_id"] = "rc_current_" + "7" * 24
+    current["source"]["repo_lifecycle_state"] = "current_repo_artifact"
+    current["source"]["artifact_family"] = "artefacto_repositorio"
+    current["target"]["authority_level"] = "current_verified"
+
+    result = reconcile.build_cross_batch_reconciliation([old], [current])
+    assert result["old_to_current"][0]["classification"] == "equivalent"
+    assert result["old_to_current"][0]["decision_reusable"] is True
+
+
+def test_unrelated_inventory_growth_preserves_decision() -> None:
+    """7e: the inventory growing with unrelated new candidates must not
+    disturb the equivalence/reusability of an existing, unrelated relation
+    (no O(N) re-review forced by growth alone)."""
+    old_target = _candidate("rc_current_" + "8" * 24, "src/source.py", "src/target.py")
+    old_target["source"]["repo_lifecycle_state"] = "current_repo_artifact"
+    current_target = json.loads(json.dumps(old_target))
+    current_target["candidate_id"] = "rc_current_" + "9" * 24
+    current_target["source"]["repo_lifecycle_state"] = None
+
+    old_unrelated = _candidate("rc_current_" + "a" * 24, "src/alpha.py", "src/beta.py")
+    new_unrelated_1 = _candidate("rc_current_" + "b" * 24, "src/gamma.py", "src/delta.py")
+    new_unrelated_2 = _candidate("rc_current_" + "c" * 24, "src/epsilon.py", "src/zeta.py")
+
+    result = reconcile.build_cross_batch_reconciliation(
+        [old_target, old_unrelated],
+        [current_target, old_unrelated, new_unrelated_1, new_unrelated_2],
+    )
+    by_id = {row["candidate_id"]: row for row in result["old_to_current"]}
+    assert by_id[old_target["candidate_id"]]["classification"] == "equivalent"
+    assert by_id[old_target["candidate_id"]]["decision_reusable"] is True
+
+
 def _run(canon: Path, current: Path, productive: Path, out: Path) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     baseline = out / "pre_relational_rag_baseline_manifest.json"

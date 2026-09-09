@@ -27,6 +27,7 @@ from relation_admission_gate import (
     SCHEMA_HUMAN_DECISION_LINE_LEGACY,
     validate_human_review_decision_record,
 )
+import relation_admission_gate as admission_gate
 from current_relational_authority import (
     CurrentRelationalAuthorityError,
     compare_and_swap_current_pointer,
@@ -55,6 +56,12 @@ CURRENT_CANDIDATE_CONFIRMATION_PREFIX = "CONFIRM CANDIDATE"
 MULTI_BATCH_CONFIRMATION_PREFIX = "CONFIRM MULTIPLE REVIEW BATCHES"
 SUPERSESSION_CONFIRMATION = "SUPERSEDE CURRENT HUMAN REVIEW"
 DECISION_SUPERSESSION_CONFIRMATION = "CONFIRM REVIEW SUPERSESSION"
+DECISION_INITIAL_CONFIRMATION = "CONFIRM INITIAL REVIEW DECISION"
+TECHNICAL_SUPERSESSION_CONFIRMATION_PREFIX = "CONFIRM CURRENT TECHNICAL SUPERSESSION"
+TECHNICAL_SUPERSESSION_GATE_FAMILY_PREFIX = "GATE-020"
+TECHNICAL_SUPERSESSION_DECISION = "deferred"
+TECHNICAL_SUPERSESSION_REASON_CODE = "LIFECYCLE_UNRESOLVED"
+TECHNICAL_SUPERSESSION_RECEIPTS_FILE = "current_technical_supersession_receipts.jsonl"
 SUPERSESSION_REASON = "FREE_TEXT_RATIONALE_NOT_AUDITABLE"
 MIGRATION_REPORT_SCHEMA = "human-decision-migration-report/v1"
 MIGRATION_REPORT_FILE = "human_decision_migration_report.json"
@@ -85,6 +92,11 @@ MIGRATION_PRESERVED_FIELDS = (
     "multi_review_operation_id",
     "supersedes_decision_hash",
     "evidence",
+    # S0186 Unit H8 policy-derived provenance fields.
+    "policy_version",
+    "policy_hash",
+    "human_authorization_id",
+    "authorization_scope",
 )
 
 
@@ -239,6 +251,64 @@ def _review_candidate_hash(candidate: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
+def _live_decisions_beyond_bundle(
+    canon_root: Path, pending: set[str], bundle_effective_ids: set[str],
+) -> tuple[set[str], dict[str, Any]]:
+    """Candidates already effectively decided in the LIVE decision authority
+    that the published bundle's own frozen effective_decisions snapshot does
+    not yet know about.
+
+    governed_relation_admission_policy.materialize_authorized_policy() (and,
+    by the same pattern, any other writer) persists decisions straight to
+    current/effective_human_review_decisions.jsonl without republishing a
+    review-state bundle -- exactly the gap S0186 Unit H already fixed for
+    generational preservation (prepare_current_relational_generation.py).
+    This is the SAME gap surfacing in a second consumer: the human batch
+    review surface built its "pending" set purely from the bundle's frozen
+    snapshot, so a candidate decided by policy governance after publish kept
+    reappearing in preview/batches as if still undecided.
+
+    This is deliberately NOT the same thing as current_delta_covered_candidate
+    (a pending candidate present in the BUNDLE's OWN effective_decisions --
+    bundle self-contradiction, real corruption, still fail-closed below).
+    A live-only decision is the normal, expected effect of a decision
+    channel advancing between publish and review; it must be excluded from
+    the reviewable set, not treated as an integrity violation.
+
+    Each candidate is independently re-validated; a candidate whose live row
+    fails validation is NOT excluded (it fails closed back into "pending",
+    to surface the anomaly through review rather than hide it).
+    """
+    current_dir = canon_root / "pipeline" / "relation_candidates" / "current"
+    decisions_path = decision_authority_path(current_dir)
+    report: dict[str, Any] = {
+        "schema_version": "current-human-delta-live-decision-exclusion/v1",
+        "checked": False,
+        "excluded_count": 0,
+        "excluded_candidate_ids": [],
+        "rejected": [],
+    }
+    if not decisions_path.is_file():
+        return set(), report
+    report["checked"] = True
+    live_by_id = {
+        str(row.get("candidate_id") or ""): row
+        for row in load_jsonl(decisions_path)
+    }
+    candidate_ids = (pending & set(live_by_id)) - bundle_effective_ids
+    excluded: set[str] = set()
+    for candidate_id in sorted(candidate_ids):
+        row = live_by_id[candidate_id]
+        errors = validate_human_review_decision_record(row)
+        if errors:
+            report["rejected"].append({"candidate_id": candidate_id, "errors": errors})
+            continue
+        excluded.add(candidate_id)
+    report["excluded_count"] = len(excluded)
+    report["excluded_candidate_ids"] = sorted(excluded)
+    return excluded, report
+
+
 def resolve_current_human_delta_surface(canon_root: Path) -> dict[str, Any]:
     """Resolve the review surface only from the atomically published bundle.
 
@@ -356,7 +426,12 @@ def resolve_current_human_delta_surface(canon_root: Path) -> dict[str, Any]:
             duplicate_ids.add(candidate_id or "<missing>")
         else:
             queue_by_id[candidate_id] = candidate
-    covered = pending & {str(row.get("candidate_id") or "") for row in effective}
+    bundle_effective_ids = {str(row.get("candidate_id") or "") for row in effective}
+    covered = pending & bundle_effective_ids
+    live_excluded_ids, live_exclusion_report = _live_decisions_beyond_bundle(
+        canon_root, pending, bundle_effective_ids,
+    )
+    reviewable_pending = pending - live_excluded_ids
     unaccounted = pending - set(queue_by_id)
     missing_review_reason = set(
         taxonomy_validation["missing_review_reason_candidate_ids"]
@@ -391,7 +466,7 @@ def resolve_current_human_delta_surface(canon_root: Path) -> dict[str, Any]:
         reasons.append("current_delta_conservation_invalid")
 
     candidates = []
-    for candidate_id in sorted(pending):
+    for candidate_id in sorted(reviewable_pending):
         candidate = queue_by_id.get(candidate_id, {})
         candidates.append({
             "candidate_id": candidate_id,
@@ -409,9 +484,24 @@ def resolve_current_human_delta_surface(canon_root: Path) -> dict[str, Any]:
         "relation_generation_id": relation_generation_id,
         "review_state_id": review_state_id,
         "bundle_manifest_hash": authority["bundle_manifest_hash"],
-        "total_pending": len(pending),
-        **{name: sum(value == name for value in classes.values()) for name in CURRENT_DELTA_CLASSES},
-        **taxonomy_validation["review_reason_counts"],
+        "total_pending": len(reviewable_pending),
+        "total_pending_declared_by_bundle": len(pending),
+        "live_decided_excluded": len(live_excluded_ids),
+        "live_decision_exclusion": live_exclusion_report,
+        **{
+            name: sum(
+                1 for candidate_id, value in classes.items()
+                if value == name and candidate_id in reviewable_pending
+            )
+            for name in CURRENT_DELTA_CLASSES
+        },
+        **{
+            reason: sum(
+                1 for candidate_id, value in review_reasons.items()
+                if value == reason and candidate_id in reviewable_pending
+            )
+            for reason in review_taxonomy.ALLOWED_REVIEW_REASONS
+        },
         "invalid": len(invalid), "duplicated": len(duplicate_ids), "covered": len(covered),
         "missing_review_reason": len(missing_review_reason),
         "unsupported_review_reason": len(unsupported_review_reason),
@@ -968,11 +1058,22 @@ def _restore_current_review_pointer_if_owned(
 
 def persist_current_human_delta_batch(
     canon_root: Path, *, batch: dict[str, Any], proposals: list[dict[str, Any]], actor: str,
-    confirmation: str, failure_hook: str | None = None,
+    confirmation: str | None = None, failure_hook: str | None = None, dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Publish all decisions for exactly one current batch or publish nothing."""
-    if confirmation != current_batch_confirmation(str(batch.get("batch_id") or "")):
-        return {"cancelled": True, "decisions_written": False, "receipt_created": False}
+    """Publish all decisions for exactly one current batch or publish nothing.
+
+    dry_run=True runs every staging step -- including the full staged-bundle
+    conservation validation (_validate_staged_current_review_bundle), which
+    is the ONLY thing that can prove a batch of proposals will actually
+    persist -- but returns before touching the real bundle/pointer, and the
+    staging directory is discarded either way (see the shared `finally`
+    below). The human confirmation phrase is not required yet at this point
+    (the operator surface calls this before asking for it); the real write
+    below still requires it unconditionally.
+    """
+    if not dry_run:
+        if confirmation != current_batch_confirmation(str(batch.get("batch_id") or "")):
+            return {"cancelled": True, "decisions_written": False, "receipt_created": False}
 
     surface = resolve_current_human_delta_surface(canon_root)
     if not surface.get("allowed"):
@@ -1021,6 +1122,35 @@ def persist_current_human_delta_batch(
         decision_path = staging / Path(surface["artifacts"]["effective_decisions"]).name
         existing_rows = load_jsonl(decision_path)
         existing = {str(row.get("candidate_id") or ""): row for row in existing_rows}
+        # S0186 Unit H (batch-publish coverage fix): the published bundle's own
+        # effective_decisions snapshot is frozen at publish time and does not
+        # know about decisions written straight to the live decisions file
+        # afterward (e.g. governed_relation_admission_policy.
+        # materialize_authorized_policy(), or any other out-of-band writer) --
+        # resolve_current_human_delta_surface() already recovers and excludes
+        # them from the reviewable set (inventory['live_decision_exclusion']),
+        # but publishing a NEW review-state bundle must fold them into its
+        # own decisions snapshot too, or _validate_staged_current_review_
+        # bundle's coverage conservation check (pending ∪ decided == queue)
+        # fails: the staged pending list still carries them (the bundle
+        # never learned they were decided) while the staged decisions file
+        # does not. This publish is exactly the natural place to catch the
+        # bundle chain back up -- it does not re-run any policy or create
+        # any new decision, it only carries an ALREADY-WRITTEN one forward.
+        live_recovered_ids: list[str] = list(
+            (inventory.get("live_decision_exclusion") or {}).get("excluded_candidate_ids") or []
+        )
+        if live_recovered_ids:
+            live_decisions_path = decision_authority_path(
+                canon_root / "pipeline" / "relation_candidates" / "current"
+            )
+            live_rows = {
+                str(row.get("candidate_id") or ""): row
+                for row in load_jsonl(live_decisions_path)
+            }
+            for candidate_id in live_recovered_ids:
+                if candidate_id in live_rows:
+                    existing[candidate_id] = live_rows[candidate_id]
         if any(proposal["candidate_id"] in existing for proposal in normalized):
             raise CurrentReviewWriteBlocked("review_decision_conflict")
         bindings = current_bindings(staging, canon_root)
@@ -1047,15 +1177,27 @@ def persist_current_human_delta_batch(
                 "source_review_state_id": inventory["review_state_id"],
                 "result_review_state_id": result_review_state_id,
                 "human_confirmation": proposal["human_confirmation"],
+                # S0186 Unit H: preserve the ORIGINAL taxonomy classification
+                # that put this candidate in this batch in the first place --
+                # a uniform batch disposition still records, per candidate,
+                # why it was pending (not just what was decided).
+                "review_reason": fresh.get("review_reason"),
+                "reconciliation_class": fresh.get("reconciliation_class"),
             })
             existing[proposal["candidate_id"]] = record
         atomic_write_jsonl(decision_path, dict(sorted(existing.items())))
 
         consumed = set(fresh["candidate_ids"])
+        # The staged pending_candidate_ids list must drop BOTH this batch's
+        # own consumed ids AND the live-recovered ones folded into `existing`
+        # above -- otherwise the bundle's raw pending list keeps declaring
+        # them pending while the decisions file now covers them, breaking
+        # the pending ∪ decided == queue conservation invariant.
+        removed_from_declared_pending = consumed | set(live_recovered_ids)
         for artifact_name in ("pending_queue", "batch_inventory", "current_human_delta"):
             path = staging / Path(surface["artifacts"][artifact_name]).name
             payload = load_json(path)
-            _rewrite_pending_delta(payload, consumed, result_review_state_id)
+            _rewrite_pending_delta(payload, removed_from_declared_pending, result_review_state_id)
             atomic_write_json(path, payload)
         remaining = inventory["total_pending"] - len(consumed)
 
@@ -1078,6 +1220,18 @@ def persist_current_human_delta_batch(
                 int(rebaseline["current_candidate_partition"].get("human_reviewed_covered") or 0)
                 + len(consumed)
             )
+            # Candidates covered by a decision channel independent of this
+            # batch review (governed policy materialization writing straight
+            # to the live decisions file) belong in independently_covered,
+            # not human_reviewed_covered -- this batch did not review them,
+            # it only carried their already-made decision forward so the
+            # reviewable_total = independently_covered + human_reviewed_covered
+            # + pending_human_review + conflict_blocked + unaccounted
+            # conservation invariant stays true for the new review state.
+            rebaseline["current_candidate_partition"]["independently_covered"] = (
+                int(rebaseline["current_candidate_partition"].get("independently_covered") or 0)
+                + len(live_recovered_ids)
+            )
         atomic_write_json(rebaseline_path, rebaseline)
         decision_checkpoint_path = staging / Path(surface["artifacts"]["decision_checkpoint"]).name
         decision_checkpoint = load_json(decision_checkpoint_path)
@@ -1097,6 +1251,17 @@ def persist_current_human_delta_batch(
             "classification": "current_direct",
             "decision_sha256": decision_hash(existing[candidate_id]).removeprefix("sha256:"),
         } for candidate_id in sorted(consumed) if candidate_id not in prior_hash_ids)
+        # The checkpoint must declare a hash for EVERY candidate now covered
+        # by the decisions file, including the ones folded in from the live
+        # decision authority above (declared_by_id must equal decisions_by_id
+        # in _validate_staged_current_review_bundle) -- a distinct
+        # classification keeps them out of the current_direct/preserved_*
+        # conservation counters below, which this publish does not affect.
+        individual_hashes.extend({
+            "candidate_id": candidate_id,
+            "classification": "live_recovered",
+            "decision_sha256": decision_hash(existing[candidate_id]).removeprefix("sha256:"),
+        } for candidate_id in sorted(live_recovered_ids) if candidate_id not in prior_hash_ids and candidate_id in existing)
         decision_checkpoint["individual_decision_hashes"] = sorted(
             individual_hashes, key=lambda item: str(item.get("candidate_id") or ""),
         )
@@ -1111,6 +1276,13 @@ def persist_current_human_delta_batch(
         decision_checkpoint["preserved_historical"] = classifications[
             "preserved_historical"
         ]
+        # S0186 Unit H: declare this checkpoint's own live_recovered count
+        # explicitly (mirroring the three fields above) so prepare_current_
+        # relational_generation.py's predecessor-checkpoint conservation
+        # check (DECISION_CHECKPOINT_CLASSIFICATIONS) can verify it against
+        # the freshly recomputed classification counter, not silently treat
+        # a missing/stale declared value as drift.
+        decision_checkpoint["live_recovered"] = classifications["live_recovered"]
         atomic_write_json(decision_checkpoint_path, decision_checkpoint)
 
         decisions_hash = semantic_hash([decision_hash(existing[item]) for item in sorted(consumed)])
@@ -1233,6 +1405,22 @@ def persist_current_human_delta_batch(
             protected_canon_hash=protected_canon_hash,
             source_pointer_bytes=source_pointer_bytes,
         )
+        if dry_run:
+            # Proven persistable: the full staged bundle -- decisions,
+            # pending-delta rewrite, checkpoint, receipt, lineage, manifest --
+            # passed the same conservation validation a real write depends
+            # on. Nothing beyond this point has run: no swap, no pointer
+            # update. `finally` below discards `staging` unconditionally.
+            return {
+                "dry_run": True,
+                "status": "READY_TO_CONFIRM",
+                "candidates": len(normalized),
+                "valid": len(normalized),
+                "invalid": 0,
+                "batch_id": fresh["batch_id"],
+                "would_write": len(consumed),
+                "would_remaining_pending": remaining,
+            }
         if failure_hook == "publication":
             raise CurrentReviewWriteBlocked("review_publication_failed")
         if destination.exists():
@@ -1356,6 +1544,107 @@ def persist_current_human_delta_batch(
                 pass
 
 
+def _check_current_batch_proposals_individually(
+    batch: dict[str, Any], proposals: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Per-candidate proposal shape check, mirroring _validate_current_batch_
+    proposals()'s conditions but never raising and never stopping at the
+    first failure -- every candidate gets its own valid/errors verdict, for
+    the operator's pre-confirmation summary (candidates/valid/invalid).
+    """
+    expected_ids = list(batch["candidate_ids"])
+    expected_hashes = dict(zip(expected_ids, batch["candidate_hashes"], strict=True))
+    by_id = {str(p.get("candidate_id") or ""): p for p in proposals}
+    results: list[dict[str, Any]] = []
+    for candidate_id in expected_ids:
+        proposal = by_id.get(candidate_id)
+        errors: list[str] = []
+        if proposal is None:
+            errors.append("no_proposal_for_candidate")
+        else:
+            action = str(proposal.get("action") or proposal.get("decision") or "")
+            reason_code = str(proposal.get("reason_code") or "").strip().upper()
+            note = str(proposal.get("note") or "").strip()
+            confirmation = str(proposal.get("human_confirmation") or "")
+            if proposal.get("candidate_hash") != expected_hashes.get(candidate_id):
+                errors.append("candidate_hash_mismatch")
+            if action not in DECISIONS:
+                errors.append("action_invalid")
+            elif reason_code not in DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES:
+                errors.append("reason_code_invalid_for_action")
+            if reason_code in NOTE_REQUIRED_REASON_CODES and not note:
+                errors.append("note_required_for_reason_code")
+            if action in DECISIONS and confirmation != current_candidate_confirmation(candidate_id, action):
+                errors.append("human_confirmation_mismatch")
+        results.append({"candidate_id": candidate_id, "valid": not errors, "errors": errors})
+    extra_ids = sorted(set(by_id) - set(expected_ids))
+    for candidate_id in extra_ids:
+        results.append({
+            "candidate_id": candidate_id, "valid": False, "errors": ["candidate_not_in_batch"],
+        })
+    return results
+
+
+def validate_current_batch_write_readiness(
+    canon_root: Path, *, surface: dict[str, Any], batch: dict[str, Any],
+    proposals: list[dict[str, Any]], actor: str, sample_limit: int = 5,
+) -> dict[str, Any]:
+    """Read-only: can this exact set of proposals actually be persisted?
+
+    Two layers, cheapest first:
+    1. Per-candidate proposal shape (hash/action/reason_code/confirmation) --
+       fast, no I/O beyond what's already in memory. Reports candidates/
+       valid/invalid with a small sample of candidate_id + error.
+    2. If every proposal is individually valid, a full staged dry-run
+       (persist_current_human_delta_batch(..., dry_run=True)) -- the only
+       way to prove the whole-batch conservation invariants (pending ∪
+       decided == queue, checkpoint hash coverage, rebaseline partition
+       totals, etc.) will hold. This is the layer that actually caught the
+       real 211-candidate batch's failure; per-candidate checks alone
+       cannot see it.
+
+    Never writes anything -- persist_current_human_delta_batch(dry_run=True)
+    discards its staging directory unconditionally before returning.
+    """
+    per_candidate = _check_current_batch_proposals_individually(batch, proposals)
+    invalid = [item for item in per_candidate if not item["valid"]]
+    if invalid:
+        return {
+            "schema_version": "current-batch-write-readiness/v1",
+            "status": "BLOCKED",
+            "stage": "per_candidate_proposal_validation",
+            "candidates": len(per_candidate),
+            "valid": len(per_candidate) - len(invalid),
+            "invalid": len(invalid),
+            "sample_errors": invalid[:sample_limit],
+        }
+    try:
+        outcome = persist_current_human_delta_batch(
+            canon_root, batch=batch, proposals=proposals, actor=actor, dry_run=True,
+        )
+    except CurrentReviewWriteBlocked as error:
+        return {
+            "schema_version": "current-batch-write-readiness/v1",
+            "status": "BLOCKED",
+            "stage": "staged_bundle_conservation_validation",
+            "candidates": len(per_candidate),
+            "valid": len(per_candidate),
+            "invalid": 0,
+            "reason_codes": error.reason_codes,
+            "underlying_cause": str(error.__cause__) if error.__cause__ else None,
+        }
+    return {
+        "schema_version": "current-batch-write-readiness/v1",
+        "status": outcome["status"],
+        "stage": "complete",
+        "candidates": outcome["candidates"],
+        "valid": outcome["valid"],
+        "invalid": outcome["invalid"],
+        "would_write": outcome["would_write"],
+        "would_remaining_pending": outcome["would_remaining_pending"],
+    }
+
+
 def render_current_batch_summary(batch: dict[str, Any]) -> None:
     print("\nLote current no consumido")
     print(f"Batch ID: {batch['batch_id']}")
@@ -1364,6 +1653,192 @@ def render_current_batch_summary(batch: dict[str, Any]) -> None:
     print(f"Relation generation: {batch['relation_generation_id']}")
     print(f"Review state fuente: {batch['review_state_id']}")
     print(f"Batch hash: {batch['batch_hash']}")
+
+
+def _persist_current_batch_or_report(
+    canon_root: Path, *, batch: dict[str, Any], proposals: list[dict[str, Any]],
+    actor: str, confirmation: str,
+) -> int:
+    try:
+        result = persist_current_human_delta_batch(
+            canon_root, batch=batch, proposals=proposals, actor=actor, confirmation=confirmation,
+        )
+    except CurrentReviewWriteBlocked as error:
+        print("CURRENT_REVIEW_WRITE_BLOCKED")
+        print(json.dumps({
+            "allowed": False,
+            "reason_codes": error.reason_codes,
+            "decisions_written": False,
+            "receipt_created": False,
+        }, ensure_ascii=False, indent=2, sort_keys=True))
+        return 2
+    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+def _run_current_batch_uniform_disposition(
+    canon_root: Path, surface: dict[str, Any], batch: dict[str, Any], *, reviewer: str,
+) -> tuple[list[dict[str, Any]], str] | None:
+    """Prompt ONE action/reason_code/note for the whole homogeneous batch.
+
+    Returns (proposals, confirmation) ready for persist_current_human_delta_
+    batch(), or None if the human cancels. Each of batch['candidate_count']
+    candidates still gets its own proposal (own candidate_id, own hash) --
+    only the disposition (action/reason_code/note) is uniform, never an
+    aggregated decision.
+    """
+    by_id = {item["candidate_id"]: item for item in surface["inventory"]["candidates"]}
+    action = input(
+        "Acción para TODO el lote [approved_for_admission/rejected/deferred; q=cancelar]: "
+    ).strip()
+    if action.lower() == "q" or action not in DECISIONS:
+        print("Revisión cancelada; no se escribió ninguna decisión.")
+        return None
+    allowed_codes = sorted(DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES)
+    print("Reason codes permitidos: " + ", ".join(allowed_codes))
+    reason_code = input("Reason code (uniforme para todo el lote): ").strip().upper()
+    if reason_code not in DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES:
+        print("Reason code inválido; no se escribió ninguna decisión.")
+        return None
+    note = input("Nota humana opcional (uniforme para todo el lote): ").strip()
+    if reason_code in NOTE_REQUIRED_REASON_CODES and not note:
+        print(f"Nota requerida para {reason_code}; no se escribió ninguna decisión.")
+        return None
+    proposals = [
+        {
+            "candidate_id": candidate_id,
+            "candidate_hash": by_id[candidate_id]["candidate_hash"],
+            "action": action,
+            "reason_code": reason_code,
+            "note": note,
+            "human_confirmation": current_candidate_confirmation(candidate_id, action),
+        }
+        for candidate_id in batch["candidate_ids"]
+    ]
+
+    readiness = validate_current_batch_write_readiness(
+        canon_root, surface=surface, batch=batch, proposals=proposals, actor=reviewer,
+    )
+    print("\nwrite_validation:")
+    print(json.dumps({
+        "candidates": readiness["candidates"],
+        "valid": readiness["valid"],
+        "invalid": readiness["invalid"],
+        "status": readiness["status"],
+    }, ensure_ascii=False, indent=2, sort_keys=True))
+    if readiness["status"] != "READY_TO_CONFIRM":
+        print(f"Etapa bloqueada: {readiness.get('stage')}")
+        if readiness.get("underlying_cause"):
+            print(f"Causa exacta: {readiness['underlying_cause']}")
+        if readiness.get("reason_codes"):
+            print(f"Reason codes: {', '.join(readiness['reason_codes'])}")
+        if readiness.get("sample_errors"):
+            print("Muestra de candidatas inválidas:")
+            for item in readiness["sample_errors"]:
+                print(f"  - {item['candidate_id']}: {', '.join(item['errors'])}")
+        print("No se solicitará confirmación humana; no se escribió ninguna decisión.")
+        return None
+
+    print("\nResumen final de la disposición uniforme del lote")
+    print(json.dumps({
+        "batch_id": batch["batch_id"],
+        "review_reason": batch["review_reason"],
+        "reconciliation_class": batch["reconciliation_class"],
+        "candidate_count": batch["candidate_count"],
+        "accion_uniforme": action,
+        "reason_code_uniforme": reason_code,
+        "nota_uniforme": note or None,
+        "relation_generation_id": batch["relation_generation_id"],
+        "source_review_state_id": batch["review_state_id"],
+        "batch_hash": batch["batch_hash"],
+        "bundle_manifest_hash": batch["bundle_manifest_hash"],
+        "resultado": f"{batch['candidate_count']} decisiones individuales auditables, una por candidata",
+    }, ensure_ascii=False, indent=2, sort_keys=True))
+    required = current_batch_confirmation(batch["batch_id"])
+    confirmation = input(f"Confirmar lote -- escriba exactamente {required}: ").strip()
+    if confirmation != required:
+        print("Confirmación final inválida; no se escribió ninguna decisión.")
+        return None
+    return proposals, confirmation
+
+
+def _run_current_batch_per_candidate(
+    canon_root: Path, surface: dict[str, Any], batch: dict[str, Any], *, reviewer: str,
+) -> tuple[list[dict[str, Any]], str] | None:
+    """Advanced route: ask action/reason_code/confirmation for each candidate
+    individually. Kept available, but no longer the default for a
+    class-homogeneous batch (see _run_current_batch_uniform_disposition).
+    """
+    by_id = {item["candidate_id"]: item for item in surface["inventory"]["candidates"]}
+    proposals: list[dict[str, Any]] = []
+    for index, candidate_id in enumerate(batch["candidate_ids"], start=1):
+        candidate = by_id[candidate_id]
+        print(f"\nCandidata {index}/{batch['candidate_count']}")
+        print(json.dumps(candidate, ensure_ascii=False, indent=2, sort_keys=True))
+        action = input("Acción [approved_for_admission/rejected/deferred; q=cancelar]: ").strip()
+        if action.lower() == "q" or action not in DECISIONS:
+            print("Revisión cancelada; no se escribió ninguna decisión.")
+            return None
+        allowed_codes = sorted(DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES)
+        print("Reason codes permitidos: " + ", ".join(allowed_codes))
+        reason_code = input("Reason code: ").strip().upper()
+        if reason_code not in DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES:
+            print("Reason code inválido; no se escribió ninguna decisión.")
+            return None
+        note = input("Nota humana opcional: ").strip()
+        required = current_candidate_confirmation(candidate_id, action)
+        candidate_confirmation = input(f"Escriba exactamente {required}: ").strip()
+        if candidate_confirmation != required:
+            print("Confirmación de candidata inválida; no se escribió ninguna decisión.")
+            return None
+        proposals.append({
+            "candidate_id": candidate_id,
+            "candidate_hash": candidate["candidate_hash"],
+            "action": action,
+            "reason_code": reason_code,
+            "note": note,
+            "human_confirmation": candidate_confirmation,
+        })
+    readiness = validate_current_batch_write_readiness(
+        canon_root, surface=surface, batch=batch, proposals=proposals, actor=reviewer,
+    )
+    print("\nwrite_validation:")
+    print(json.dumps({
+        "candidates": readiness["candidates"],
+        "valid": readiness["valid"],
+        "invalid": readiness["invalid"],
+        "status": readiness["status"],
+    }, ensure_ascii=False, indent=2, sort_keys=True))
+    if readiness["status"] != "READY_TO_CONFIRM":
+        print(f"Etapa bloqueada: {readiness.get('stage')}")
+        if readiness.get("underlying_cause"):
+            print(f"Causa exacta: {readiness['underlying_cause']}")
+        if readiness.get("reason_codes"):
+            print(f"Reason codes: {', '.join(readiness['reason_codes'])}")
+        if readiness.get("sample_errors"):
+            print("Muestra de candidatas inválidas:")
+            for item in readiness["sample_errors"]:
+                print(f"  - {item['candidate_id']}: {', '.join(item['errors'])}")
+        print("No se solicitará confirmación humana; no se escribió ninguna decisión.")
+        return None
+
+    print("\nResumen final de decisiones propuestas")
+    print(json.dumps({
+        "batch_id": batch["batch_id"],
+        "review_reason": batch["review_reason"],
+        "candidate_count": batch["candidate_count"],
+        "decisions_summary": Counter(item["action"] for item in proposals),
+        "relation_generation_id": batch["relation_generation_id"],
+        "source_review_state_id": batch["review_state_id"],
+        "batch_hash": batch["batch_hash"],
+        "bundle_manifest_hash": batch["bundle_manifest_hash"],
+    }, ensure_ascii=False, indent=2, sort_keys=True))
+    required = current_batch_confirmation(batch["batch_id"])
+    confirmation = input(f"Escriba exactamente {required}: ").strip()
+    if confirmation != required:
+        print("Confirmación final inválida; no se escribió ninguna decisión.")
+        return None
+    return proposals, confirmation
 
 
 def run_current_single_batch_review(canon_root: Path, actor: str | None = None) -> int:
@@ -1391,70 +1866,29 @@ def run_current_single_batch_review(canon_root: Path, actor: str | None = None) 
             return 0
         render_current_batch_summary(batch)
         reviewer = validate_actor(actor if actor is not None else input("Identidad del revisor humano: "))
-        by_id = {item["candidate_id"]: item for item in surface["inventory"]["candidates"]}
-        proposals: list[dict[str, Any]] = []
-        for index, candidate_id in enumerate(batch["candidate_ids"], start=1):
-            candidate = by_id[candidate_id]
-            print(f"\nCandidata {index}/{batch['candidate_count']}")
-            print(json.dumps(candidate, ensure_ascii=False, indent=2, sort_keys=True))
-            action = input("Acción [approved_for_admission/rejected/deferred; q=cancelar]: ").strip()
-            if action.lower() == "q" or action not in DECISIONS:
-                print("Revisión cancelada; no se escribió ninguna decisión.")
-                return 0
-            allowed_codes = sorted(DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES)
-            print("Reason codes permitidos: " + ", ".join(allowed_codes))
-            reason_code = input("Reason code: ").strip().upper()
-            if reason_code not in DECISION_REASON_CODES[action] | EXCEPTION_REASON_CODES:
-                print("Reason code inválido; no se escribió ninguna decisión.")
-                return 0
-            note = input("Nota humana opcional: ").strip()
-            required = current_candidate_confirmation(candidate_id, action)
-            candidate_confirmation = input(f"Escriba exactamente {required}: ").strip()
-            if candidate_confirmation != required:
-                print("Confirmación de candidata inválida; no se escribió ninguna decisión.")
-                return 0
-            proposals.append({
-                "candidate_id": candidate_id,
-                "candidate_hash": candidate["candidate_hash"],
-                "action": action,
-                "reason_code": reason_code,
-                "note": note,
-                "human_confirmation": candidate_confirmation,
-            })
-        print("\nResumen final de decisiones propuestas")
-        print(json.dumps({
-            "batch_id": batch["batch_id"],
-            "review_reason": batch["review_reason"],
-            "candidate_count": batch["candidate_count"],
-            "decisions_summary": Counter(item["action"] for item in proposals),
-            "relation_generation_id": batch["relation_generation_id"],
-            "source_review_state_id": batch["review_state_id"],
-            "batch_hash": batch["batch_hash"],
-            "bundle_manifest_hash": batch["bundle_manifest_hash"],
-        }, ensure_ascii=False, indent=2, sort_keys=True))
-        required = current_batch_confirmation(batch["batch_id"])
-        confirmation = input(f"Escriba exactamente {required}: ").strip()
-        if confirmation != required:
-            print("Confirmación final inválida; no se escribió ninguna decisión.")
+        mode = input(
+            "Modo de revisión [U=disposición uniforme para todo el lote (recomendado) / "
+            "c=candidata por candidata (avanzado); q=cancelar]: "
+        ).strip().lower()
+        if mode == "q":
+            print("Revisión cancelada; no se escribió ninguna decisión.")
             return 0
+        if mode == "c":
+            outcome = _run_current_batch_per_candidate(canon_root, surface, batch, reviewer=reviewer)
+        elif mode in ("", "u"):
+            outcome = _run_current_batch_uniform_disposition(canon_root, surface, batch, reviewer=reviewer)
+        else:
+            print("Opción inválida; no se escribió ninguna decisión.")
+            return 0
+        if outcome is None:
+            return 0
+        proposals, confirmation = outcome
     except (EOFError, KeyboardInterrupt):
         print("\nRevisión cancelada; no se escribió ninguna decisión.")
         return 0
-    try:
-        result = persist_current_human_delta_batch(
-            canon_root, batch=batch, proposals=proposals, actor=reviewer, confirmation=confirmation,
-        )
-    except CurrentReviewWriteBlocked as error:
-        print("CURRENT_REVIEW_WRITE_BLOCKED")
-        print(json.dumps({
-            "allowed": False,
-            "reason_codes": error.reason_codes,
-            "decisions_written": False,
-            "receipt_created": False,
-        }, ensure_ascii=False, indent=2, sort_keys=True))
-        return 2
-    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
-    return 0
+    return _persist_current_batch_or_report(
+        canon_root, batch=batch, proposals=proposals, actor=reviewer, confirmation=confirmation,
+    )
 
 
 def _canon_record_count(canon_root: Path) -> int:
@@ -1728,6 +2162,8 @@ def build_decision_record(
     review_policy_id: str | None = None, supersedes_decision_hash: str | None = None,
     multi_review_operation_id: str | None = None,
     reviewed_at: str | None = None,
+    policy_version: str | None = None, policy_hash: str | None = None,
+    human_authorization_id: str | None = None, authorization_scope: str | None = None,
 ) -> dict[str, Any]:
     if decision not in DECISIONS:
         raise ValueError(f"unsupported decision: {decision}")
@@ -1755,6 +2191,17 @@ def build_decision_record(
         "reviewed_evidence_paths": [QUEUE_FILE],
         **bindings,
     }
+    if decision_mode == "policy_derived":
+        # S0186 Unit H8: distinguish a machine-derived-from-an-authorized-
+        # policy decision from an individual or batch human review that
+        # actually happened. review_policy_id carries the governed policy's
+        # own identity (RelationPolicy.policy_id); these four fields are
+        # what make that identity verifiable and scope-bound rather than a
+        # free-text label.
+        record["policy_version"] = policy_version
+        record["policy_hash"] = policy_hash
+        record["human_authorization_id"] = human_authorization_id
+        record["authorization_scope"] = authorization_scope
     errors = validate_human_review_decision_record(record)
     if errors:
         raise ValueError("; ".join(errors))
@@ -2852,6 +3299,551 @@ def supersede_individual_decision(
     return record
 
 
+def record_individual_decision(
+    current_dir: Path, canon_root: Path, *, candidate_id: str, decision: str,
+    reason_code: str, note: str, actor: str, confirmation: str,
+) -> dict[str, Any]:
+    """Record the FIRST governed decision for one named CURRENT candidate.
+
+    S0186 Unit H (targeted initial decision): supersede_individual_decision()
+    exists for an already-decided candidate; run_review() and the batch
+    surfaces only ever record an initial decision by traversing/disposing an
+    entire queue or batch. Nothing let an operator record a first decision
+    for exactly one named, currently-undecided candidate_id without either
+    deciding unrelated pending candidates first or requiring a decision that
+    doesn't yet exist. This is that primitive -- same exact-candidate write
+    path as supersede_individual_decision(), inverse precondition (no
+    existing decision; if one exists, fail closed and require the
+    supersession path instead), and no supersedes_decision_hash, since there
+    is no prior decision to chain from.
+    """
+    if confirmation != DECISION_INITIAL_CONFIRMATION:
+        raise ValueError(f"exact confirmation required: {DECISION_INITIAL_CONFIRMATION}")
+    if decision not in DECISIONS:
+        raise ValueError(f"unsupported decision: {decision}")
+    reason_code = reason_code.strip().upper()
+    if reason_code not in DECISION_REASON_CODES[decision] | EXCEPTION_REASON_CODES:
+        raise ValueError(f"reason_code not valid for decision {decision!r}: {reason_code!r}")
+    if not note.strip():
+        raise ValueError("human_review_note required for an individually recorded decision")
+    actor = validate_actor(actor)
+    bindings = current_bindings(current_dir, canon_root)
+    queue = load_jsonl(current_dir / QUEUE_FILE)
+    by_id = {str(row.get("candidate_id") or ""): row for row in queue}
+    if candidate_id not in by_id:
+        raise ValueError("candidate_id is not in current review queue")
+    decisions_path = decision_authority_path(current_dir)
+    decisions = load_existing_decisions(decisions_path, set(by_id), bindings)
+    if candidate_id in decisions:
+        raise ValueError(
+            "candidate already has a current decision; use supersede_individual_decision() instead"
+        )
+    record = build_decision_record(
+        by_id[candidate_id], decision=decision, reason_code=reason_code, note=note,
+        actor=actor, bindings=bindings,
+    )
+    decisions[candidate_id] = record
+    atomic_write_jsonl(decisions_path, decisions)
+    try:
+        append_audit(current_dir / AUDIT_FILE, record)
+    except OSError as error:
+        raise RuntimeError("authoritative decision persisted, but auxiliary audit append failed") from error
+    return record
+
+
+def _resolve_current_effective_decisions_path(current_dir: Path, canon_root: Path) -> Path:
+    """Same 'prefer the published generational authority, fall back to the
+    pipeline/current convenience file' rule the S0186 Unit H final
+    intervention already established for tdc.sh's admission-gate dry-run
+    (resolve_relation_human_review_decisions()) -- reused here for the
+    read-only technically_invalid preview, not reinvented.
+    """
+    try:
+        authority = resolve_current_relational_authority(canon_root)
+        path = authority["artifacts"].get("effective_decisions")
+        if path is not None:
+            return path
+    except CurrentRelationalAuthorityError:
+        pass
+    return decision_authority_path(current_dir)
+
+
+def technically_invalid_approved_candidates(
+    current_dir: Path = DEFAULT_CURRENT_DIR,
+    canon_root: Path = DEFAULT_CANON_ROOT,
+    gate_report: Path = DEFAULT_GATE_REPORT,
+) -> list[dict[str, Any]]:
+    """Read-only: CURRENT approved_for_admission candidates the admission
+    gate marks technically_invalid (GATE-020 and any other admission-gate
+    P0 reason). Reuses relation_admission_gate.build_apply_plan()'s own
+    computation and its own full audit-detail payload per candidate
+    (candidate_id, human_review_decision, gate_reasons, technical_evidence,
+    audit_lineage, admitted=False) -- no new classification logic, zero
+    writes.
+    """
+    candidates = admission_gate.load_jsonl(current_dir / QUEUE_FILE)
+    candidates_by_id = {str(row.get("candidate_id") or ""): row for row in candidates}
+    decisions_path = _resolve_current_effective_decisions_path(current_dir, canon_root)
+    decisions, errors = admission_gate.load_persistent_human_review_decisions(decisions_path)
+    if errors:
+        raise ValueError("; ".join(errors))
+    dry_run_report = admission_gate.load_dry_run_report(gate_report)
+    plan = admission_gate.build_apply_plan(
+        candidates=candidates,
+        canon_glob=str(canon_root / "tiddlers_*.jsonl"),
+        human_review_decisions=decisions,
+        dry_run_report=dry_run_report,
+        dry_run_report_path=gate_report,
+        dry_run_recent=True,
+    )
+    details = list(plan.get("technically_invalid_candidates") or [])
+    for detail in details:
+        candidate = candidates_by_id.get(str(detail.get("candidate_id") or "")) or {}
+        detail["source"] = candidate.get("source") or {}
+        detail["target"] = candidate.get("target") or {}
+        detail["relation_type"] = candidate.get("relation_type") or (candidate.get("relation") or {}).get("type")
+    return details
+
+
+def render_technically_invalid_candidate(detail: dict[str, Any]) -> None:
+    review = detail.get("human_review_decision") or {}
+    source = detail.get("source") or {}
+    target = detail.get("target") or {}
+    print(f"\nCandidate ID: {detail.get('candidate_id')}")
+    print(
+        f"  Relación: {source.get('canonical_id', '?')} -> {target.get('canonical_id', '?')} "
+        f"({detail.get('relation_type', '?')})"
+    )
+    print(f"  Razones GATE: {', '.join(detail.get('gate_reasons') or []) or '(ninguna registrada)'}")
+    print(f"  Decisión humana vigente: {review.get('human_review_decision')} "
+          f"(actor={review.get('human_review_actor')}, "
+          f"razón={review.get('human_review_reason_code')}, "
+          f"fecha={review.get('human_review_timestamp')})")
+    print(f"  Admitida: {detail.get('admitted')}")
+    print(f"  Evidencia técnica: {json.dumps(detail.get('technical_evidence') or {}, ensure_ascii=False, sort_keys=True)}")
+    print(f"  Linaje de auditoría: {json.dumps(detail.get('audit_lineage') or {}, ensure_ascii=False, sort_keys=True)}")
+
+
+def current_technical_supersession_eligible_candidates(
+    current_dir: Path, canon_root: Path, gate_report: Path,
+) -> list[dict[str, Any]]:
+    """Read-only: CURRENT (live) approved_for_admission candidates blocked
+    as technically_invalid whose ENTIRE gate_reasons set belongs
+    exclusively to the GATE-020 (repo lifecycle metadata) family.
+
+    Reuses relation_admission_gate.build_apply_plan()'s own technically_
+    invalid partition -- no new classification logic, zero writes -- and
+    reads the LIVE decision authority (decision_authority_path), never the
+    last published bundle: a candidate already superseded individually but
+    not yet republished must be excluded here, not double-counted.
+
+    Automatically excludes (by construction, via build_apply_plan's own
+    partition): candidates already deferred/rejected, candidates that are
+    not approved_for_admission, admission_ready candidates, candidates
+    already canonically admitted, and anything outside the live CURRENT
+    review queue. Also excludes any candidate carrying even one non-
+    GATE-020 reason alongside GATE-020 ones -- mixed-cause candidates are
+    never eligible for this homogeneous batch.
+    """
+    candidates = admission_gate.load_jsonl(current_dir / QUEUE_FILE)
+    candidates_by_id = {str(row.get("candidate_id") or ""): row for row in candidates}
+    decisions_path = decision_authority_path(current_dir)
+    decisions, errors = admission_gate.load_persistent_human_review_decisions(decisions_path)
+    if errors:
+        raise ValueError("; ".join(errors))
+    dry_run_report = admission_gate.load_dry_run_report(gate_report)
+    plan = admission_gate.build_apply_plan(
+        candidates=candidates,
+        canon_glob=str(canon_root / "tiddlers_*.jsonl"),
+        human_review_decisions=decisions,
+        dry_run_report=dry_run_report,
+        dry_run_report_path=gate_report,
+        dry_run_recent=True,
+    )
+    eligible: list[dict[str, Any]] = []
+    for detail in plan.get("technically_invalid_candidates") or []:
+        reasons = list(detail.get("gate_reasons") or [])
+        if not reasons or any(
+            not str(reason).startswith(TECHNICAL_SUPERSESSION_GATE_FAMILY_PREFIX)
+            for reason in reasons
+        ):
+            continue
+        candidate_id = str(detail.get("candidate_id") or "")
+        candidate = candidates_by_id.get(candidate_id) or {}
+        eligible.append({
+            "candidate_id": candidate_id,
+            "gate_reasons": sorted(reasons),
+            "human_review_decision": detail.get("human_review_decision") or {},
+            "source": candidate.get("source") or {},
+            "target": candidate.get("target") or {},
+            "relation_type": candidate.get("relation_type"),
+        })
+    return sorted(eligible, key=lambda item: str(item["candidate_id"]))
+
+
+def technical_supersession_candidate_set_hash(
+    candidate_ids: list[str], decision: str, reason_code: str, note: str,
+) -> str:
+    payload = {
+        "candidate_ids": sorted(candidate_ids),
+        "decision": decision,
+        "reason_code": reason_code,
+        "note": note.strip(),
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def technical_supersession_operation_id(
+    candidate_set_hash: str, bindings: dict[str, str],
+) -> str:
+    payload = {"candidate_set_hash": candidate_set_hash, "bindings": bindings}
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    return "hrm_" + hashlib.sha256(encoded).hexdigest()[:24]
+
+
+def build_current_technical_supersession_preview(
+    current_dir: Path, canon_root: Path, gate_report: Path, *, note: str,
+) -> dict[str, Any]:
+    """Read-only preview for a single governed operation that supersedes
+    every CURRENT approved_for_admission candidate blocked exclusively by
+    the GATE-020 family, to one uniform deferred/LIFECYCLE_UNRESOLVED
+    decision. Zero writes; only the paired persist function (given this
+    exact preview, unmodified) writes anything.
+    """
+    if not note.strip():
+        raise ValueError("human_review_note required for technical supersession preview")
+    eligible = current_technical_supersession_eligible_candidates(current_dir, canon_root, gate_report)
+    if not eligible:
+        raise ValueError(
+            "no CURRENT approved_for_admission candidates are blocked exclusively by GATE-020"
+        )
+    candidate_ids = [item["candidate_id"] for item in eligible]
+    bindings = current_bindings(current_dir, canon_root)
+    candidate_set_hash = technical_supersession_candidate_set_hash(
+        candidate_ids, TECHNICAL_SUPERSESSION_DECISION, TECHNICAL_SUPERSESSION_REASON_CODE, note,
+    )
+    batch_id = "hrb_" + candidate_set_hash[:24]
+    operation_id = technical_supersession_operation_id(candidate_set_hash, bindings)
+    partitions: dict[tuple[str, ...], list[str]] = defaultdict(list)
+    for item in eligible:
+        partitions[tuple(item["gate_reasons"])].append(item["candidate_id"])
+    pointer_path = canon_root / "audit" / "relation_admission" / "current_generation.json"
+    pointer = load_json(pointer_path) if pointer_path.is_file() else {}
+    return {
+        "schema_version": "current-technical-supersession-preview/v1",
+        "batch_id": batch_id,
+        "operation_id": operation_id,
+        "candidate_set_hash": candidate_set_hash,
+        "relation_generation_id": pointer.get("relation_generation_id"),
+        "review_state_id": pointer.get("review_state_id"),
+        "current_terminal_state": pointer.get("terminal_state"),
+        "candidate_count": len(candidate_ids),
+        "candidate_ids": candidate_ids,
+        "partitions": [
+            {
+                "gate_reasons": list(key),
+                "candidate_count": len(ids),
+                "candidate_ids": sorted(ids),
+            }
+            for key, ids in sorted(partitions.items())
+        ],
+        "current_decisions": {
+            item["candidate_id"]: {
+                "human_review_decision": (item["human_review_decision"] or {}).get(
+                    "human_review_decision"
+                ),
+                "human_review_reason_code": (item["human_review_decision"] or {}).get(
+                    "human_review_reason_code"
+                ),
+            }
+            for item in eligible
+        },
+        "proposed_decision": TECHNICAL_SUPERSESSION_DECISION,
+        "proposed_reason_code": TECHNICAL_SUPERSESSION_REASON_CODE,
+        "proposed_note": note.strip(),
+        "bindings": bindings,
+        "confirmation_required": f"{TECHNICAL_SUPERSESSION_CONFIRMATION_PREFIX} {batch_id}",
+        "writes_performed": False,
+    }
+
+
+def render_current_technical_supersession_preview(preview: dict[str, Any]) -> None:
+    print("\nLote CURRENT GATE-020 -- aprobadas con bloqueo técnico homogéneo")
+    print(f"Batch ID: {preview['batch_id']}")
+    print(f"Operación: {preview['operation_id']}")
+    print(f"relation_generation_id: {preview.get('relation_generation_id')}")
+    print(f"review_state_id: {preview.get('review_state_id')}")
+    print(f"Candidatas: {preview['candidate_count']}")
+    print(f"Decisión propuesta: {preview['proposed_decision']}")
+    print(f"Razón propuesta: {preview['proposed_reason_code']}")
+    print(f"Nota: {preview['proposed_note']}")
+    print("Partición por razones GATE exactas:")
+    for partition in preview["partitions"]:
+        print(
+            f"  - {partition['candidate_count']} candidatas | "
+            + " + ".join(partition["gate_reasons"])
+        )
+    print(f"Hash del lote: {preview['candidate_set_hash']}")
+    print(f"Confirmación requerida: {preview['confirmation_required']}")
+
+
+def persist_current_technical_supersession(
+    current_dir: Path, canon_root: Path, gate_report: Path, *,
+    preview: dict[str, Any], actor: str, confirmation: str,
+) -> dict[str, Any]:
+    """Persist one governed multi-candidate supersession: one individually
+    hashed, individually audited decision record per candidate, all
+    sharing one multi_review_operation_id, written in a single atomic
+    replace of the decision authority file (all-or-nothing -- there is no
+    code path that leaves a subset silently written). Never touches Canon.
+
+    Fail-closed by re-derivation, not by trusting the given preview: the
+    eligible universe, CURRENT bindings, and candidate_set_hash are all
+    recomputed fresh from live CURRENT authority and required to match the
+    preview bit-for-bit. Any drift at all -- a candidate resolved or newly
+    ineligible, canon/candidate/reconciliation state changed since preview,
+    a tampered candidate list -- blocks the WHOLE operation, never a
+    partial or silently-adjusted write.
+    """
+    batch_id = str(preview.get("batch_id") or "")
+    expected_confirmation = f"{TECHNICAL_SUPERSESSION_CONFIRMATION_PREFIX} {batch_id}"
+    if not batch_id or confirmation != expected_confirmation:
+        raise ValueError(f"exact confirmation required: {expected_confirmation}")
+    note = str(preview.get("proposed_note") or "")
+    if not note.strip():
+        raise ValueError("human_review_note required for technical supersession")
+    decision = str(preview.get("proposed_decision") or "")
+    reason_code = str(preview.get("proposed_reason_code") or "")
+    if decision not in DECISIONS:
+        raise ValueError(f"unsupported decision: {decision}")
+    if reason_code not in DECISION_REASON_CODES[decision] | EXCEPTION_REASON_CODES:
+        raise ValueError(f"reason_code not valid for decision {decision!r}: {reason_code!r}")
+    actor = validate_actor(actor)
+    operation_id = str(preview.get("operation_id") or "")
+    if not operation_id:
+        raise ValueError("technical supersession preview is missing operation_id")
+
+    fresh_eligible = current_technical_supersession_eligible_candidates(
+        current_dir, canon_root, gate_report,
+    )
+    fresh_candidate_ids = [item["candidate_id"] for item in fresh_eligible]
+    bindings = current_bindings(current_dir, canon_root)
+    expected_candidate_set_hash = technical_supersession_candidate_set_hash(
+        fresh_candidate_ids, decision, reason_code, note,
+    )
+    if (
+        bindings != (preview.get("bindings") or {})
+        or fresh_candidate_ids != list(preview.get("candidate_ids") or [])
+        or expected_candidate_set_hash != preview.get("candidate_set_hash")
+    ):
+        raise ValueError("current_technical_supersession_batch_stale")
+
+    queue = load_jsonl(current_dir / QUEUE_FILE)
+    by_id = {str(row.get("candidate_id") or ""): row for row in queue}
+    missing = sorted(set(fresh_candidate_ids) - set(by_id))
+    if missing:
+        raise ValueError(f"candidate_id not in current review queue: {missing}")
+
+    decisions_path = decision_authority_path(current_dir)
+    decisions = load_existing_decisions(decisions_path, set(by_id), bindings)
+    missing_previous = sorted(cid for cid in fresh_candidate_ids if cid not in decisions)
+    if missing_previous:
+        raise ValueError(f"candidate has no current decision to supersede: {missing_previous}")
+
+    new_records: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for candidate_id in fresh_candidate_ids:
+        previous = decisions[candidate_id]
+        record = build_decision_record(
+            by_id[candidate_id], decision=decision, reason_code=reason_code, note=note,
+            actor=actor, bindings=bindings, decision_mode="batch",
+            decision_batch_id=batch_id, multi_review_operation_id=operation_id,
+            supersedes_decision_hash=decision_hash(previous),
+        )
+        decisions[candidate_id] = record
+        new_records.append((record, previous))
+
+    # Revalidate immediately before the single atomic replacement, exactly
+    # like the existing single-batch/multi-batch primitives: no subset has
+    # been published at this point.
+    if current_bindings(current_dir, canon_root) != bindings:
+        raise ValueError("current_technical_supersession_batch_stale")
+    atomic_write_jsonl(decisions_path, decisions)
+
+    receipt = {
+        "schema_version": "current-technical-supersession-receipt/v1",
+        "operation_id": operation_id,
+        "batch_id": batch_id,
+        "eligible_count": len(fresh_candidate_ids),
+        "candidate_ids": fresh_candidate_ids,
+        "candidate_decision_hashes": {
+            record["candidate_id"]: decision_hash(record) for record, _ in new_records
+        },
+        "decision": decision,
+        "reason_code": reason_code,
+        "note": note.strip(),
+        "actor": actor,
+        "confirmation": confirmation,
+        "source_review_state_id": preview.get("review_state_id"),
+        "relation_generation_id": preview.get("relation_generation_id"),
+        "canon_hash": bindings["canon_hash"],
+        "decisions_written": len(new_records),
+        "failures": 0,
+        "recorded_at": utc_now(),
+    }
+    append_auxiliary_event(current_dir / TECHNICAL_SUPERSESSION_RECEIPTS_FILE, receipt)
+
+    try:
+        for record, previous in new_records:
+            append_audit(current_dir / AUDIT_FILE, record, previous=previous)
+    except OSError as error:
+        raise RuntimeError(
+            "authoritative technical supersession batch persisted, "
+            "but auxiliary audit append failed"
+        ) from error
+    return receipt
+
+
+def _run_current_technical_supersession_batch(
+    current_dir: Path, canon_root: Path, gate_report: Path,
+) -> int:
+    """Interactive wrapper around build_current_technical_supersession_
+    preview()/persist_current_technical_supersession(): preview is entirely
+    read-only; only the final, explicit, batch-specific confirmation calls
+    the write primitive. The machine never proposes or defers a decision
+    on the human's behalf beyond the single, already-confirmed, uniform
+    deferred/LIFECYCLE_UNRESOLVED proposal for the exact GATE-020-only
+    homogeneous universe.
+    """
+    try:
+        note = input(
+            "Nota común obligatoria para las 170 (o el universo vigente): "
+        ).strip()
+    except EOFError:
+        note = ""
+    if not note:
+        print("Nota obligatoria; no se escribió ninguna decisión.")
+        return 2
+    try:
+        preview = build_current_technical_supersession_preview(
+            current_dir, canon_root, gate_report, note=note,
+        )
+    except ValueError as error:
+        print(f"[ERROR] {error}")
+        return 2
+    render_current_technical_supersession_preview(preview)
+    print(
+        "\nNinguna decisión se ha escrito todavía. La supersesión NO es automática:\n"
+        "usted debe confirmar explícitamente el lote completo."
+    )
+    try:
+        proceed = input("¿Confirmar la supersesión de todo el lote? (s/N): ").strip().lower()
+    except EOFError:
+        proceed = ""
+    if proceed != "s":
+        print("Sin cambios; no se escribió ninguna decisión.")
+        return 0
+    try:
+        actor = input("Identidad del revisor humano: ").strip()
+        confirmation = input(
+            f"Escriba exactamente {preview['confirmation_required']}: "
+        ).strip()
+    except EOFError:
+        print("Entrada incompleta; no se escribió ninguna decisión.")
+        return 2
+    try:
+        receipt = persist_current_technical_supersession(
+            current_dir, canon_root, gate_report,
+            preview=preview, actor=actor, confirmation=confirmation,
+        )
+    except ValueError as error:
+        print(f"[ERROR] {error}")
+        return 2
+    print(f"Lote persistido: {receipt['decisions_written']} decisiones individuales "
+          f"ligadas a la operación {receipt['operation_id']}.")
+    print(json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+def review_technically_invalid_candidates_menu(
+    current_dir: Path = DEFAULT_CURRENT_DIR,
+    canon_root: Path = DEFAULT_CANON_ROOT,
+    gate_report: Path = DEFAULT_GATE_REPORT,
+) -> int:
+    """Operator surface for TASK B: expose the existing, already-governed
+    supersede_individual_decision() primitive for CURRENT approved
+    candidates blocked as technically_invalid. Preview is entirely
+    read-only (zero decision or Canon writes); only the final, explicit
+    confirmation step calls the existing write primitive. The machine
+    never proposes or defers a decision on the human's behalf.
+    """
+    try:
+        candidates = technically_invalid_approved_candidates(current_dir, canon_root, gate_report)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        print(f"[ERROR] no se pudo resolver el universo technically_invalid: {error}")
+        return 2
+    if not candidates:
+        print("No hay candidatas approved_for_admission bloqueadas como technically_invalid en CURRENT.")
+        return 0
+    print(f"\nRevisar aprobadas con bloqueo técnico (CURRENT) -- {len(candidates)} candidatas")
+    for index, detail in enumerate(candidates, start=1):
+        print(f"{index}) {detail.get('candidate_id')}")
+    try:
+        choice = input(
+            "Seleccione número para inspeccionar individualmente, "
+            "'b' para el lote homogéneo GATE-020 [Enter/0 = volver]: "
+        ).strip()
+    except EOFError:
+        choice = ""
+    if not choice or choice == "0":
+        return 0
+    if choice.lower() == "b":
+        return _run_current_technical_supersession_batch(current_dir, canon_root, gate_report)
+    try:
+        selected = candidates[int(choice) - 1]
+    except (ValueError, IndexError):
+        print("Selección inválida.")
+        return 2
+    render_technically_invalid_candidate(selected)
+    candidate_id = str(selected.get("candidate_id") or "")
+    print(
+        "\nEsta candidata permanece approved_for_admission y technically_invalid.\n"
+        "Ninguna decisión se ha escrito todavía. El diferimiento NO es automático:\n"
+        "usted debe elegir explícitamente."
+    )
+    try:
+        proceed = input("¿Proponer una decisión superseding para esta candidata? (s/N): ").strip().lower()
+    except EOFError:
+        proceed = ""
+    if proceed != "s":
+        print("Sin cambios; no se escribió ninguna decisión.")
+        return 0
+    print(f"Decisiones válidas: {sorted(DECISIONS)}")
+    try:
+        new_decision = input("Nueva decisión: ").strip()
+        reason_code = input("Código de razón: ").strip()
+        note = input("Nota (obligatoria): ").strip()
+        actor = input("Identidad del revisor humano: ").strip()
+        confirmation = input(f"Escriba exactamente {DECISION_SUPERSESSION_CONFIRMATION}: ").strip()
+    except EOFError:
+        print("Entrada incompleta; no se escribió ninguna decisión.")
+        return 2
+    if confirmation != DECISION_SUPERSESSION_CONFIRMATION:
+        print("Confirmación inválida; no se escribió ninguna decisión.")
+        return 2
+    try:
+        record = supersede_individual_decision(
+            current_dir, canon_root, candidate_id=candidate_id, decision=new_decision,
+            reason_code=reason_code, note=note, actor=actor, confirmation=confirmation,
+        )
+    except ValueError as error:
+        print(f"[ERROR] {error}")
+        return 2
+    print("Decisión de supersesión persistida:")
+    print(json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
 def render_batch_preview(preview: dict[str, Any]) -> None:
     print(f"\nGrupo: {json.dumps(preview['selection_rule'], ensure_ascii=False, sort_keys=True)}")
     print(f"Batch ID: {preview['batch_id']}")
@@ -3042,6 +4034,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reviewer", default=None, help="identity of the human operator")
     parser.add_argument("--status", action="store_true", help="show review counts without writing")
     parser.add_argument("--preview-batches", action="store_true", help="print deterministic batch previews without writing")
+    parser.add_argument(
+        "--detail", action="store_true",
+        help="with --preview-batches on the current review surface, print full per-candidate rows instead of the compact summary",
+    )
     parser.add_argument("--review-batches", action="store_true", help="open governed batch review")
     parser.add_argument(
         "--review-multiple-batches",
@@ -3056,7 +4052,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--exclude", action="append", default=[], help="candidate ID excluded from batch preview")
     parser.add_argument("--gate-report", type=Path, default=DEFAULT_GATE_REPORT)
     parser.add_argument("--supersede-current", action="store_true", help="archive and retire legacy current authority")
+    parser.add_argument(
+        "--review-technically-invalid", action="store_true",
+        help="inspect CURRENT approved_for_admission candidates blocked as technically_invalid; propose a superseding decision only on explicit confirmation",
+    )
     parser.add_argument("--supersede-candidate", metavar="CANDIDATE_ID")
+    parser.add_argument(
+        "--decide-candidate", metavar="CANDIDATE_ID",
+        help="record the FIRST decision for one named, currently-undecided CURRENT candidate; fails closed if a decision already exists (use --supersede-candidate instead)",
+    )
     parser.add_argument("--decision", choices=sorted(DECISIONS))
     parser.add_argument("--reason-code")
     parser.add_argument("--note", default="")
@@ -3128,6 +4132,10 @@ def main(argv: list[str] | None = None) -> int:
             "pending": len(queue) - len(official), **bindings,
         }, indent=2))
         return 0
+    if args.review_technically_invalid:
+        return review_technically_invalid_candidates_menu(
+            args.current_dir, args.canon_root, args.gate_report,
+        )
     try:
         if args.preview_batches or args.apply_batch:
             preflight = validate_human_review_batch_generation(
@@ -3143,19 +4151,39 @@ def main(argv: list[str] | None = None) -> int:
                 # only a later explicit human decision may select an action.
                 surface = resolve_current_human_delta_surface(args.canon_root)
                 batches = build_current_human_delta_batches(surface)
+                if args.detail:
+                    current_human_delta: dict[str, Any] = surface["inventory"]
+                    review_batches: list[dict[str, Any]] = batches
+                else:
+                    current_human_delta = {
+                        key: value for key, value in surface["inventory"].items()
+                        if key != "candidates"
+                    }
+                    review_batches = [
+                        {
+                            key: value for key, value in batch.items()
+                            if key not in ("candidate_ids", "candidate_hashes")
+                        } | {"candidate_count": len(batch["candidate_ids"])}
+                        for batch in batches
+                    ]
                 print(json.dumps({
                     "schema_version": "current-human-delta-review-preview/v1",
                     "verdict": "BATCH_PREVIEW_READY",
                     "mode": "read_only_preview",
                     "writes_performed": False,
+                    "detail": bool(args.detail),
                     "current_authority": {
                         "relation_generation_id": surface["inventory"]["relation_generation_id"],
                         "review_state_id": surface["inventory"]["review_state_id"],
                         "bundle_manifest_hash": surface["inventory"]["bundle_manifest_hash"],
                     },
-                    "current_human_delta": surface["inventory"],
-                    "review_batches": batches,
+                    "current_human_delta": current_human_delta,
+                    "review_batches": review_batches,
                     "next_action": "HUMAN_SELECTS_ACTION_FOR_CURRENT_DELTA",
+                    "detail_instruction": (
+                        None if args.detail
+                        else "re-run with --detail for full per-candidate rows"
+                    ),
                 }, ensure_ascii=False, indent=2, sort_keys=True))
                 return 0
             if args.apply_batch and preflight.get("current_review_surface"):
@@ -3230,6 +4258,16 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("--decision and --reason-code are required")
             record = supersede_individual_decision(
                 args.current_dir, args.canon_root, candidate_id=args.supersede_candidate,
+                decision=args.decision, reason_code=args.reason_code, note=args.note,
+                actor=actor, confirmation=args.confirmation,
+            )
+            print(json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True))
+            return 0
+        if args.decide_candidate:
+            if not args.decision or not args.reason_code:
+                raise ValueError("--decision and --reason-code are required")
+            record = record_individual_decision(
+                args.current_dir, args.canon_root, candidate_id=args.decide_candidate,
                 decision=args.decision, reason_code=args.reason_code, note=args.note,
                 actor=actor, confirmation=args.confirmation,
             )

@@ -31,6 +31,10 @@ from relation_admission_gate import (
     append_to_log,
     build_dry_run_report,
     build_apply_plan,
+    semantic_apply_plan_id,
+    load_dry_run_report,
+    load_jsonl,
+    load_persistent_human_review_decisions,
     ADMISSION_READY,
     BLOCKED,
     HISTORICAL_BLOCKED_TYPES,
@@ -994,6 +998,13 @@ class TestS0165SafeApplyEngine:
         assert any("missing_dry_run_report" in r for r in report["apply_plan"]["block_reasons"])
 
     def test_apply_blocks_with_p0_reasons(self, tmp_path: Path):
+        # S0186 Unit H (apply-plan partition): with the ONLY approved
+        # candidate P0-blocked and zero candidates ready, this is a clean
+        # (if degenerate) disjoint partition -- 0 ready + 1 technically
+        # invalid -- so the plan reports the precise
+        # 'technically_invalid_candidates_excluded' reason rather than the
+        # old, imprecise 'p0_block_reasons_present'. Apply must still be
+        # fully blocked (code == 1) either way.
         cand = _technical_candidate()
         candidates_file = self._write_candidates(tmp_path, [cand])
         dry_run = self._write_dry_run_report(
@@ -1020,7 +1031,221 @@ class TestS0165SafeApplyEngine:
             terminal_confirmation="APPLY RELATIONS",
         )
         assert code == 1
-        assert "p0_block_reasons_present" in report["apply_plan"]["block_reasons"]
+        assert "technically_invalid_candidates_excluded" in report["apply_plan"]["block_reasons"]
+        assert report["apply_plan"]["technically_invalid_count"] == 1
+        assert report["apply_plan"]["technically_invalid_candidate_ids"] == [cand["candidate_id"]]
+        assert report["apply_plan"]["would_apply_count"] == 0
+
+    def test_apply_plan_partitions_ready_and_technically_invalid_disjointly(
+        self, tmp_path: Path,
+    ):
+        """S0186 Unit H (apply-plan partition): reproduces the real
+        production shape -- 277 approved = 238 admission_ready + 39
+        technically_invalid -- at small scale. The plan must contain ONLY
+        the ready candidate in would_apply_candidate_ids while still
+        reporting the technically_invalid one, fully auditable, in its own
+        field -- never blanking the whole plan just because one approved
+        candidate has a GATE-020-style block reason.
+        """
+        ready_cand = _technical_candidate(candidate_id="rc1_" + "a" * 16)
+        blocked_cand = _technical_candidate(candidate_id="rc1_" + "b" * 16)
+        candidates_file = self._write_candidates(tmp_path, [ready_cand, blocked_cand])
+        dry_run = self._write_dry_run_report(
+            tmp_path,
+            [
+                {"candidate_id": ready_cand["candidate_id"], "gate_status": "ready", "admission_ready_dry_run": True, "all_block_reasons": []},
+                {
+                    "candidate_id": blocked_cand["candidate_id"], "gate_status": "blocked",
+                    "admission_ready_dry_run": False,
+                    "all_block_reasons": ["GATE-020: target.lifecycle_state ausente."],
+                },
+            ],
+            ready=1,
+        )
+        review = self._write_review(tmp_path, [
+            {
+                "candidate_id": ready_cand["candidate_id"],
+                "human_review_decision": "approved_for_admission",
+                "human_review_actor": "operator",
+                "human_review_timestamp": "2026-07-08T00:00:00Z",
+                "human_review_rationale": "Aprobado.",
+                "approval_scope": "canonical_admission",
+                "reviewed_evidence_paths": [],
+                "session_id": "S0165",
+            },
+            {
+                "candidate_id": blocked_cand["candidate_id"],
+                "human_review_decision": "approved_for_admission",
+                "human_review_actor": "operator",
+                "human_review_timestamp": "2026-07-08T00:00:00Z",
+                "human_review_rationale": "Aprobado.",
+                "approval_scope": "canonical_admission",
+                "reviewed_evidence_paths": [],
+                "session_id": "S0165",
+            },
+        ])
+        code, report = guarded_apply_relations(
+            candidates_file=candidates_file,
+            canon_glob=str(tmp_path / "tiddlers_*.jsonl"),
+            human_review_decisions_file=review,
+            dry_run_report_path=dry_run,
+            out_dir=tmp_path / "audit",
+            terminal_confirmation="APPLY RELATIONS",
+        )
+        plan = report["apply_plan"]
+        assert code == 1  # apply itself still fully blocked -- NO Canon write
+        assert plan["approved_count"] == 2
+        assert plan["would_apply_count"] == 1
+        assert plan["would_apply_candidate_ids"] == [ready_cand["candidate_id"]]
+        assert plan["technically_invalid_count"] == 1
+        assert plan["technically_invalid_candidate_ids"] == [blocked_cand["candidate_id"]]
+        assert blocked_cand["candidate_id"] not in plan["would_apply_candidate_ids"]
+        assert plan["approved_count"] == plan["would_apply_count"] + plan["technically_invalid_count"]
+        assert plan["technically_invalid_partition_valid"] is True
+        assert plan["conservation_valid"] is True
+        assert "technically_invalid_candidates_excluded" in plan["block_reasons"]
+        assert "p0_ready_overlap_present" not in plan["block_reasons"]
+
+    def test_technically_invalid_candidate_retains_full_audit_detail(self, tmp_path: Path):
+        cand = _technical_candidate()
+        candidates_file = self._write_candidates(tmp_path, [cand])
+        dry_run = self._write_dry_run_report(
+            tmp_path,
+            [{
+                "candidate_id": cand["candidate_id"], "gate_status": "blocked",
+                "admission_ready_dry_run": False,
+                "all_block_reasons": ["GATE-020: source.lifecycle_state ausente."],
+            }],
+            ready=0,
+        )
+        review = self._write_review(tmp_path, [{
+            "candidate_id": cand["candidate_id"],
+            "human_review_decision": "approved_for_admission",
+            "human_review_actor": "operator",
+            "human_review_timestamp": "2026-07-08T00:00:00Z",
+            "human_review_rationale": "Aprobado.",
+            "approval_scope": "canonical_admission",
+            "reviewed_evidence_paths": [],
+            "session_id": "S0165",
+        }])
+        _code, report = guarded_apply_relations(
+            candidates_file=candidates_file,
+            canon_glob=str(tmp_path / "tiddlers_*.jsonl"),
+            human_review_decisions_file=review,
+            dry_run_report_path=dry_run,
+            out_dir=tmp_path / "audit",
+            terminal_confirmation="APPLY RELATIONS",
+        )
+        detail = report["apply_plan"]["technically_invalid_candidates"][0]
+        assert detail["candidate_id"] == cand["candidate_id"]
+        assert detail["admitted"] is False
+        assert detail["human_review_decision"]["human_review_decision"] == "approved_for_admission"
+        assert "GATE-020: source.lifecycle_state ausente." in detail["gate_reasons"]
+        assert detail["technical_evidence"] == cand["evidence"]
+        assert detail["audit_lineage"]["dry_run_report"] == str(dry_run)
+        # Never fabricated: no repo_lifecycle_state key is ever synthesized here.
+        assert "repo_lifecycle_state" not in detail
+
+    def test_p0_ready_overlap_fails_closed_entire_plan(self, tmp_path: Path):
+        """A candidate the gate marks BOTH ready and P0-blocked is not a
+        clean, disjoint partition -- the whole plan must still blank out,
+        exactly like the pre-fix behavior, rather than guess which side is
+        correct.
+        """
+        cand = _technical_candidate()
+        candidates_file = self._write_candidates(tmp_path, [cand])
+        dry_run = self._write_dry_run_report(
+            tmp_path,
+            [{
+                "candidate_id": cand["candidate_id"], "gate_status": "ready",
+                "admission_ready_dry_run": True,
+                "all_block_reasons": ["GATE-020: target.lifecycle_state ausente."],
+            }],
+            ready=1,
+        )
+        review = self._write_review(tmp_path, [{
+            "candidate_id": cand["candidate_id"],
+            "human_review_decision": "approved_for_admission",
+            "human_review_actor": "operator",
+            "human_review_timestamp": "2026-07-08T00:00:00Z",
+            "human_review_rationale": "Aprobado.",
+            "approval_scope": "canonical_admission",
+            "reviewed_evidence_paths": [],
+            "session_id": "S0165",
+        }])
+        code, report = guarded_apply_relations(
+            candidates_file=candidates_file,
+            canon_glob=str(tmp_path / "tiddlers_*.jsonl"),
+            human_review_decisions_file=review,
+            dry_run_report_path=dry_run,
+            out_dir=tmp_path / "audit",
+            terminal_confirmation="APPLY RELATIONS",
+        )
+        plan = report["apply_plan"]
+        assert code == 1
+        assert plan["would_apply_count"] == 0
+        assert plan["approved_candidate_ids"] == []
+        assert "p0_ready_overlap_present" in plan["block_reasons"]
+        assert plan["p0_ready_overlap_candidate_ids"] == [cand["candidate_id"]]
+
+    def test_stale_authority_fails_closed_when_technically_invalid_set_changes(
+        self, tmp_path: Path,
+    ):
+        """authorization binds exact plan / stale authority fails closed:
+        semantic_apply_plan_id must change if the excluded set changes, even
+        when approved_candidate_ids and would_apply_candidate_ids do not.
+        """
+        ready_cand = _technical_candidate(candidate_id="rc1_" + "a" * 16)
+        blocked_cand = _technical_candidate(candidate_id="rc1_" + "b" * 16)
+        candidates_file = self._write_candidates(tmp_path, [ready_cand, blocked_cand])
+        review = self._write_review(tmp_path, [
+            {
+                "candidate_id": ready_cand["candidate_id"],
+                "human_review_decision": "approved_for_admission",
+                "human_review_actor": "operator",
+                "human_review_timestamp": "2026-07-08T00:00:00Z",
+                "human_review_rationale": "Aprobado.",
+                "approval_scope": "canonical_admission",
+                "reviewed_evidence_paths": [],
+                "session_id": "S0165",
+            },
+            {
+                "candidate_id": blocked_cand["candidate_id"],
+                "human_review_decision": "approved_for_admission",
+                "human_review_actor": "operator",
+                "human_review_timestamp": "2026-07-08T00:00:00Z",
+                "human_review_rationale": "Aprobado.",
+                "approval_scope": "canonical_admission",
+                "reviewed_evidence_paths": [],
+                "session_id": "S0165",
+            },
+        ])
+        decisions, _errors = load_persistent_human_review_decisions(review)
+        candidates = load_jsonl(candidates_file)
+
+        def _plan_with(blocked_reasons: list[str]) -> dict:
+            dry_run = self._write_dry_run_report(
+                tmp_path,
+                [
+                    {"candidate_id": ready_cand["candidate_id"], "gate_status": "ready", "admission_ready_dry_run": True, "all_block_reasons": []},
+                    {
+                        "candidate_id": blocked_cand["candidate_id"], "gate_status": ("ready" if not blocked_reasons else "blocked"),
+                        "admission_ready_dry_run": not blocked_reasons,
+                        "all_block_reasons": blocked_reasons,
+                    },
+                ],
+                ready=(2 if not blocked_reasons else 1),
+            )
+            return build_apply_plan(
+                candidates=candidates, canon_glob=str(tmp_path / "tiddlers_*.jsonl"),
+                human_review_decisions=decisions, dry_run_report=load_dry_run_report(dry_run),
+                dry_run_report_path=dry_run, dry_run_recent=True,
+            )
+
+        blocked_plan = _plan_with(["GATE-020: target.lifecycle_state ausente."])
+        resolved_plan = _plan_with([])  # the deficiency gets remediated later
+        assert blocked_plan["would_apply_candidate_ids"] == resolved_plan["would_apply_candidate_ids"][:1]
+        assert semantic_apply_plan_id(blocked_plan) != semantic_apply_plan_id(resolved_plan)
 
     def test_apply_plan_reports_zero_when_no_approved_candidates(self, tmp_path: Path):
         candidates_file = self._write_candidates(tmp_path, [_technical_candidate()])

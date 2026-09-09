@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 import uuid
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -58,9 +58,15 @@ PREDECESSOR_UNRECOVERABLE_REASONS = frozenset({
 DECISION_RECOMPOSITION_REASONS = frozenset({
     "review_decision_recomposition_required",
     "review_semantic_coverage_regression",
+    "engine_semantic_contract_changed",
 })
 REVIEW_RECEIPTS_FILE = "current_review_batch_receipts.jsonl"
 REVIEW_LINEAGE_FILE = "review_receipt_lineage.json"
+DEEP_HISTORICAL_RECOVERY_MAX_HOPS = 25
+DEEP_HISTORICAL_RECOVERY_ALLOWED_CLASSIFICATIONS = frozenset({"equivalent"})
+DECISION_CHECKPOINT_CLASSIFICATIONS = (
+    "current_direct", "preserved_equivalent", "preserved_historical", "live_recovered",
+)
 
 
 def _trace_event(**event: Any) -> None:
@@ -338,6 +344,110 @@ def producer_bindings() -> dict[str, Path]:
         "human_review_contract": Path(human_review.__file__).resolve(),
         "cross_generation_reconciler": Path(reconciliation.__file__).resolve(),
     }
+
+
+# --- S0186 Unit H, Alternative D: relation engine semantic contract --------
+#
+# relation_generation_id must move when the engine's DECLARED cross-
+# generation equivalence/preservation semantics change, and must NOT move
+# for a purely cosmetic edit to the orchestrator or reconciler (a refactor,
+# a comment, a rename) -- the physical byte hash of those files is never an
+# acceptable proxy for "did the engine's behavior change". This block is
+# the single declared surface both concerns consult.
+RELATION_ENGINE_CONTRACT_VERSION = "v1-s0186-unit-h"
+
+
+def relation_engine_semantic_contract_payload() -> dict[str, Any]:
+    """The engine's declared cross-generation semantic contract.
+
+    Deterministic and side-effect-free: describes what the engine promises
+    about equivalence classification and decision-preservation policy, not
+    the literal source of the modules that implement it.
+    """
+    return {
+        "schema_version": "current-relation-engine-semantic-contract-payload/v1",
+        "contract_version": RELATION_ENGINE_CONTRACT_VERSION,
+        "cross_generation_equivalence_contract": {
+            "reconciliation_classes": sorted(reconciliation.S0183_RECONCILIATION_CLASSES),
+            "identity_fields": ["source", "target", "predicate"],
+            "base_fingerprint_excludes": ["evidence"],
+        },
+        "decision_preservation_policy": {
+            "deep_historical_recovery_max_hops": DEEP_HISTORICAL_RECOVERY_MAX_HOPS,
+            "deep_historical_recovery_allowed_classifications": sorted(
+                DEEP_HISTORICAL_RECOVERY_ALLOWED_CLASSIFICATIONS
+            ),
+        },
+    }
+
+
+def relation_engine_semantic_contract_hash() -> str:
+    return semantic_hash(relation_engine_semantic_contract_payload())
+
+
+def relation_engine_semantic_contract_record(
+    *, previous_manifest: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Declare the contract in effect for THIS generation, and whether it
+    transitioned relative to whatever the predecessor bundle declared.
+
+    A predecessor manifest with no engine_semantic_contract entry at all
+    (an authority produced before this feature existed) is treated exactly
+    like a declared-but-different version -- never as "nothing to compare",
+    which would silently let a real transition through unrecomposed.
+    """
+    previous = (previous_manifest or {}).get("engine_semantic_contract") or {}
+    previous_version = previous.get("contract_version")
+    previous_hash = previous.get("semantic_contract_hash")
+    current_hash = relation_engine_semantic_contract_hash()
+    transitioned = (
+        False if previous_manifest is None
+        else previous_hash is None or previous_hash != current_hash
+    )
+    return {
+        "schema_version": "current-relation-engine-semantic-contract/v1",
+        "contract_version": RELATION_ENGINE_CONTRACT_VERSION,
+        "semantic_contract_hash": current_hash,
+        "contract_transitioned_this_generation": transitioned,
+        "observed_previous_contract_version": previous_version,
+    }
+
+
+def _current_engine_semantic_contract_for_manifest(paths: Paths) -> dict[str, Any]:
+    """Self-contained helper for bundle-manifest construction sites: resolve
+    the immediate predecessor read-only and declare the contract record
+    against it, without requiring the caller to thread one through."""
+    predecessor = _analysis_review_predecessor(paths)
+    previous_manifest = predecessor["manifest"] if predecessor is not None else None
+    return relation_engine_semantic_contract_record(previous_manifest=previous_manifest)
+
+
+def _engine_semantic_contract_transition_reasons(paths: Paths) -> list[str]:
+    """Detect a declared engine semantic-contract change from the LIVE
+    generational_decision_preservation.json report -- the record of what
+    contract was in effect the last time CURRENT's decision authority was
+    (re)composed -- against what today's running code actually declares.
+
+    A report with no engine_semantic_contract key at all (an authority
+    produced before this feature existed) is treated exactly like a
+    declared-but-different hash -- never as "nothing to compare", which is
+    the exact production incident this guard closes (see
+    test_missing_previously_recorded_engine_semantic_contract_triggers_
+    recomposition).
+    """
+    report_path = paths.current_dir / "generational_decision_preservation.json"
+    if not report_path.is_file():
+        return []
+    try:
+        report = read_json(report_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return []
+    declared_hash = (report.get("engine_semantic_contract") or {}).get(
+        "semantic_contract_hash"
+    )
+    if declared_hash is None or declared_hash != relation_engine_semantic_contract_hash():
+        return ["engine_semantic_contract_changed"]
+    return []
 
 
 def validate_source_generation(paths: Paths, canon: dict[str, Any]) -> dict[str, Path]:
@@ -749,15 +859,18 @@ def _load_review_bundle(
         )
         or any(
             int(checkpoint.get(field) or 0) != classifications[field]
-            for field in (
-                "current_direct", "preserved_equivalent", "preserved_historical",
-            )
+            for field in DECISION_CHECKPOINT_CLASSIFICATIONS
+            # "live_recovered" was declared as an explicit top-level count
+            # only once this classification bucket existed; a checkpoint
+            # written before that addition legitimately has rows classified
+            # "live_recovered" with no matching declared count field --
+            # backward-compatible, never re-litigated retroactively. Every
+            # OTHER bucket has always been declared and is still enforced.
+            if field != "live_recovered" or "live_recovered" in checkpoint
         )
         or sum(
             classifications[field]
-            for field in (
-                "current_direct", "preserved_equivalent", "preserved_historical",
-            )
+            for field in DECISION_CHECKPOINT_CLASSIFICATIONS
         ) != len(decisions)
     )
     if checkpoint_invalid:
@@ -784,7 +897,9 @@ def _load_review_bundle(
     }
 
 
-def _review_batch_surface(record: dict[str, Any]) -> dict[str, Any]:
+def _review_batch_surface(
+    record: dict[str, Any], *, exclude_candidate_ids: Iterable[str] = (),
+) -> dict[str, Any]:
     manifest = record["manifest"]
     bundle = record["bundle"]
     delta = read_json(_bundle_artifact_path(bundle, manifest, "pending_queue"))
@@ -794,7 +909,11 @@ def _review_batch_surface(record: dict[str, Any]) -> dict[str, Any]:
         str(row.get("candidate_id") or ""): row
         for row in delta.get("review_candidates") or []
     }
-    pending = [str(value) for value in delta.get("pending_candidate_ids") or []]
+    excluded = set(exclude_candidate_ids)
+    pending = [
+        str(value) for value in delta.get("pending_candidate_ids") or []
+        if str(value) not in excluded
+    ]
     if len(set(pending)) != len(pending) or not set(pending).issubset(queue_by_id):
         raise PreparationBlocked(["review_receipt_lineage_invalid"])
     candidates = [{
@@ -938,6 +1057,7 @@ def _validate_review_receipt_lineage(
         })
         ordered.extend(segment_ordered)
     consumed_candidate_ids = _lineage_consumed_candidate_ids(ordered)
+    live_recovered_candidate_ids: set[str] = set()
     cache: dict[tuple[str, str], dict[str, Any]] = {
         (
             str(record["manifest"].get("relation_generation_id") or ""),
@@ -968,8 +1088,24 @@ def _validate_review_receipt_lineage(
         }:
             raise PreparationBlocked(["review_receipt_lineage_invalid"])
         identity_schema = "v1" if receipt_schema.endswith("/v1") else "v2"
+        candidate_ids = [str(value) for value in receipt.get("candidate_ids") or []]
+        source_decisions = source["decision_by_id"]
+        result_decisions = result["decision_by_id"]
+        # S0186 Unit H: a bundle-republish (persist_current_human_delta_batch)
+        # folds forward any decision written straight to the live decisions
+        # file since the source bundle (governed policy materialization,
+        # supersede_individual_decision, etc.) alongside this receipt's own
+        # batch -- the only two ways a candidate absent from source can be
+        # present in result. Reconstructing that exclusion set from the
+        # bundles themselves (never trusted as a receipt-declared field)
+        # keeps the replayed batch identical to the one actually confirmed.
+        live_recovered_ids = sorted(
+            set(result_decisions) - set(source_decisions) - set(candidate_ids)
+        )
+        live_recovered_candidate_ids.update(live_recovered_ids)
         batches = human_review.build_current_human_delta_batches(
-            _review_batch_surface(source), identity_schema=identity_schema,
+            _review_batch_surface(source, exclude_candidate_ids=live_recovered_ids),
+            identity_schema=identity_schema,
         )
         matching = [
             batch for batch in batches
@@ -987,16 +1123,24 @@ def _validate_review_receipt_lineage(
         for key in ("batch_hash", "candidate_ids", "candidate_hashes"):
             if batch[key] != receipt.get(key):
                 raise PreparationBlocked(["review_receipt_lineage_invalid"])
-        candidate_ids = [str(value) for value in receipt.get("candidate_ids") or []]
-        source_decisions = source["decision_by_id"]
-        result_decisions = result["decision_by_id"]
         if (
             set(candidate_ids).intersection(source_decisions)
-            or set(result_decisions) != set(source_decisions).union(candidate_ids)
+            or set(result_decisions)
+            != set(source_decisions).union(candidate_ids).union(live_recovered_ids)
             or any(
                 human_review.decision_hash(source_decisions[item])
                 != human_review.decision_hash(result_decisions[item])
                 for item in source_decisions
+            )
+            or any(
+                human_review.validate_human_review_decision_record(
+                    result_decisions[item],
+                )
+                for item in live_recovered_ids
+            )
+            or any(
+                result_decisions[item].get("decision_mode") == "batch"
+                for item in live_recovered_ids
             )
         ):
             raise PreparationBlocked(["review_receipt_lineage_invalid"])
@@ -1056,6 +1200,7 @@ def _validate_review_receipt_lineage(
         "receipt_count": len(ordered),
         "receipt_ids": [str(item["receipt_id"]) for item in ordered],
         "consumed_candidate_ids": consumed_candidate_ids,
+        "live_recovered_candidate_ids": sorted(live_recovered_candidate_ids),
         "integrity_verified": True,
     }
     if len(segment_results) > 1:
@@ -1069,6 +1214,195 @@ def _decision_authority_signature(record: dict[str, Any]) -> dict[str, Any]:
         for field in human_review.MIGRATION_PRESERVED_FIELDS
         if field != "evidence"
     }
+
+
+def _valid_governed_supersession(expected: dict[str, Any], live: dict[str, Any]) -> bool:
+    """S0186 Unit H (final closure blocker): a live decision legitimately
+    supersedes the predecessor bundle's expected decision for the SAME
+    candidate only when it explicitly, verifiably chains to it via
+    supersedes_decision_hash -- never inferred merely from disagreement.
+    This is not a new decision model: it reuses the existing
+    current_relation_human_review.supersede_individual_decision() lineage
+    field and the existing per-record schema validator. Fails closed
+    (returns False) on any broken, missing, or unverifiable chain; the
+    caller then treats the mismatch as a real review_decision_conflict,
+    exactly as before this fix existed.
+    """
+    supersedes_hash = str(live.get("supersedes_decision_hash") or "")
+    if not supersedes_hash:
+        return False
+    if supersedes_hash != human_review.decision_hash(expected):
+        return False
+    return not human_review.validate_human_review_decision_record(live)
+
+
+def _live_decisions_recoverable_from_current(
+    paths: Paths, predecessor: dict[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Recover decisions written to the live current/ directory that were
+    never checkpointed into a published review-state bundle.
+
+    Ordinary batch/individual review confirmations
+    (current_relation_human_review.persist_current_human_delta_batch)
+    republish a new review-state bundle immediately, so the bundle chain
+    _resolve_monotonic_review_predecessor() walks always reflects them.
+    governed_relation_admission_policy.materialize_authorized_policy()
+    does not: it writes policy_derived decisions straight to
+    current/effective_human_review_decisions.jsonl and never publishes a
+    bundle, so the next prepare run's predecessor resolution -- which by
+    design (see _load_review_bundle's docstring) trusts only certified,
+    immutable bundles, never the mutable live directory -- never sees them.
+
+    This recovers them, but only as a verified superset of the bundle it
+    would otherwise supersede: each bundle-certified candidate still present
+    in the (possibly regenerated) live inventory under a stable semantic
+    identity, its decision reproduced unchanged OR replaced by a verified
+    governed supersession (see below), and each additional row independently
+    re-validated. Any violation -- other than a candidate simply having
+    disappeared from the regenerated inventory, which cross-generation
+    reconciliation classifies elsewhere -- falls back to recovering nothing
+    (the bundle-only set is still used) rather than trusting an unverified
+    live file.
+
+    S0186 Unit H (final closure blocker): a bundle-certified row that
+    changed in the live file is not automatically unauthorized drift -- it
+    may be a governed supersession (current_relation_human_review
+    .supersede_individual_decision(), verified here by the SAME
+    cryptographic hash-chain check _valid_governed_supersession() already
+    uses for the analogous readiness-recomposition gate). Before this fix,
+    ANY divergence -- including a perfectly valid, audited supersession --
+    aborted this whole recovery and silently fell back to the STALE
+    published bundle's decisions for every candidate, reintroducing
+    already-superseded decisions into the next generation. Anything that
+    is not a verified supersession still aborts recovery exactly as
+    before this fix existed.
+    """
+    report: dict[str, Any] = {
+        "schema_version": "current-live-decision-recovery/v1",
+        "attempted": False,
+        "recovered_count": 0,
+        "recovered_candidate_ids": [],
+        "superseded_candidate_ids": [],
+        "missing_from_live_candidate_ids": [],
+        "rejected": [],
+        "reason": None,
+    }
+    live_dir = paths.current_dir
+    bundle_candidates_path = predecessor.get("candidates_path")
+    if not live_dir.is_dir() or bundle_candidates_path is None:
+        report["reason"] = "live_directory_or_bundle_candidates_unavailable"
+        return [], report
+    live_candidates_file = live_dir / "relation_candidates.jsonl"
+    if not live_candidates_file.is_file():
+        report["reason"] = "live_candidates_missing"
+        return [], report
+    report["attempted"] = True
+    # S0186 Unit H (final closure blocker, part 2): a whole-file byte-identity
+    # requirement here made this function reject EVERY candidate the instant
+    # a technical rebuild also occurred (Canon growth regenerating
+    # relation_candidates.jsonl with new canon_hash/candidate_manifest_hash
+    # bindings on every row, plus any genuinely new/disappeared candidates)
+    # -- exactly the case rebuild_source_generation() exists to handle, and
+    # exactly the real-world sequence that reintroduced the original bug in
+    # a different guise: the per-row supersession check below was correct
+    # but never reached, because this earlier gate already returned [].
+    # Candidate identity is judged per-row instead, by the same semantic
+    # fingerprint cross_generation reconciliation already uses to decide a
+    # candidate is "equivalent" across generations (source/target/predicate/
+    # evidence, deliberately excluding volatile canon/manifest bindings). A
+    # candidate_id absent from the regenerated inventory is not a recovery
+    # failure -- cross-generation reconciliation classifies it as
+    # disappeared, never manufacturing or discarding a decision here.
+    bundle_candidate_by_id: dict[str, Any] = predecessor.get("candidate_by_id") or {}
+    live_candidates = read_jsonl(live_candidates_file)
+    live_candidate_by_id = {
+        str(row.get("candidate_id") or ""): row for row in live_candidates
+    }
+    if len(live_candidate_by_id) != len(live_candidates) or "" in live_candidate_by_id:
+        report["reason"] = "live_candidates_malformed"
+        return [], report
+    stable_ids: set[str] = set()
+    for candidate_id, bundle_candidate in bundle_candidate_by_id.items():
+        live_candidate = live_candidate_by_id.get(candidate_id)
+        if live_candidate is None:
+            continue
+        if reconciliation._payload_hash(
+            reconciliation.candidate_semantic_payload(bundle_candidate)
+        ) != reconciliation._payload_hash(
+            reconciliation.candidate_semantic_payload(live_candidate)
+        ):
+            report["reason"] = "live_candidate_identity_reused_for_different_semantics"
+            return [], report
+        stable_ids.add(candidate_id)
+    live_decisions_path = human_review.decision_authority_path(live_dir)
+    if not live_decisions_path.is_file():
+        report["reason"] = "no_live_decisions_file"
+        return [], report
+    live_rows = read_jsonl(live_decisions_path)
+    live_by_id = {str(row.get("candidate_id") or ""): row for row in live_rows}
+    if len(live_by_id) != len(live_rows) or "" in live_by_id:
+        report["reason"] = "live_decisions_malformed"
+        return [], report
+    bundle_by_id: dict[str, Any] = predecessor.get("decision_by_id") or {}
+    # S0186 Unit H (final closure blocker, part 3): a bundle-certified
+    # candidate simply ABSENT from the live file -- e.g. a decision that
+    # never round-tripped through a republish for reasons unrelated to any
+    # of the OTHER candidates in this same live file -- is not, by itself,
+    # an unverifiable divergence for that one candidate. Before this fix,
+    # a wholesale "every bundle row must be present" gate aborted recovery
+    # of every OTHER, perfectly verified, governed supersession
+    # (supersede_individual_decision()/persist_current_technical_
+    # supersession()) in the same live file whenever even one unrelated
+    # candidate's decision happened to be missing -- reintroducing the
+    # exact "one bad apple blanks the whole batch" pattern this function's
+    # per-row divergence check already exists to avoid. A missing row is
+    # judged per-candidate, exactly like a disappeared inventory row: it
+    # contributes neither a recovered nor a superseded decision here, and
+    # the normal cross-generation preservation pass falls back to the
+    # bundle's own certified row for it, unchanged.
+    missing_from_live = sorted(set(bundle_by_id) - set(live_by_id))
+    superseded_ids: list[str] = []
+    for candidate_id, bundle_row in bundle_by_id.items():
+        if candidate_id not in stable_ids:
+            # Disappeared from the regenerated inventory: not this
+            # function's concern (see comment above); it contributes
+            # neither a recovered nor a superseded decision here.
+            continue
+        if candidate_id in missing_from_live:
+            continue
+        if human_review.decision_hash(live_by_id[candidate_id]) == human_review.decision_hash(bundle_row):
+            continue
+        if not _valid_governed_supersession(bundle_row, live_by_id[candidate_id]):
+            report["reason"] = "live_decision_diverges_from_certified_bundle_row"
+            return [], report
+        superseded_ids.append(candidate_id)
+    # A live decision file is never pruned when a candidate's identity
+    # retires (e.g. an evidence change mints a brand-new candidate_id for
+    # the same conceptual edge) -- such stale, orphaned rows must never be
+    # treated as recoverable: only ids still present in the predecessor's
+    # OWN candidate inventory can legitimately be "reviewed live but never
+    # republished".
+    extra_ids = sorted(
+        (set(live_by_id) - set(bundle_by_id)).intersection(bundle_candidate_by_id)
+    )
+    extra_decisions: list[dict[str, Any]] = []
+    for candidate_id in extra_ids:
+        row = live_by_id[candidate_id]
+        errors = human_review.validate_human_review_decision_record(row)
+        if errors:
+            report["rejected"].append({"candidate_id": candidate_id, "errors": errors})
+            continue
+        extra_decisions.append(row)
+    for candidate_id in sorted(superseded_ids):
+        extra_decisions.append(live_by_id[candidate_id])
+    report["recovered_count"] = len(extra_decisions)
+    report["recovered_candidate_ids"] = [
+        str(row.get("candidate_id") or "") for row in extra_decisions
+    ]
+    report["superseded_candidate_ids"] = sorted(superseded_ids)
+    report["missing_from_live_candidate_ids"] = missing_from_live
+    report["reason"] = "ok"
+    return extra_decisions, report
 
 
 def _resolve_monotonic_review_predecessor(paths: Paths) -> dict[str, Any]:
@@ -1131,9 +1465,24 @@ def _resolve_monotonic_review_predecessor(paths: Paths) -> dict[str, Any]:
                 if previous_receipt_ids else None
             )
             shared = current_ids.intersection(previous_ids)
+            # A signature mismatch on a shared candidate between two already-
+            # published bundles under the same relation_generation_id is only
+            # a genealogy conflict when it is NOT a verifiably chained,
+            # governed supersession (current's row explicitly, hash-
+            # verifiably supersedes previous's row -- see
+            # _valid_governed_supersession(), the same check
+            # _validate_review_semantic_monotonicity(), inspect_review_
+            # coverage(), and _live_decisions_recoverable_from_current()
+            # already apply for the analogous live-vs-certified case). Newer
+            # authority winning over older via an explicit, verified chain is
+            # not corruption; anything that does not verifiably chain still
+            # fails closed exactly as before.
             if any(
                 _decision_authority_signature(current["decision_by_id"][item])
                 != _decision_authority_signature(previous["decision_by_id"][item])
+                and not _valid_governed_supersession(
+                    previous["decision_by_id"][item], current["decision_by_id"][item],
+                )
                 for item in shared
             ):
                 raise PreparationBlocked(["review_decision_conflict"])
@@ -1164,8 +1513,17 @@ def _resolve_monotonic_review_predecessor(paths: Paths) -> dict[str, Any]:
                     raise PreparationBlocked(["review_receipt_lineage_missing"])
                 if not previous_receipt_ids.issubset(current_receipt_ids):
                     raise PreparationBlocked(["review_predecessor_ambiguous"])
+                # A candidate newly present in current relative to previous is
+                # legitimate either because a receipt in the lineage consumed
+                # it (ordinary batch review) or because it was folded forward
+                # from a live-direct decision (governed policy materialization,
+                # supersede_individual_decision) -- already independently
+                # verified, per receipt segment, by _validate_review_receipt_
+                # lineage's own conservation check.
                 if not (current_ids - previous_ids).issubset(
-                    set(current_lineage["consumed_candidate_ids"])
+                    set(current_lineage["consumed_candidate_ids"]).union(
+                        current_lineage["live_recovered_candidate_ids"]
+                    )
                 ):
                     raise PreparationBlocked(["review_receipt_lineage_invalid"])
                 current["receipt_lineage"] = current_lineage
@@ -1195,7 +1553,7 @@ def _resolve_monotonic_review_predecessor(paths: Paths) -> dict[str, Any]:
 
 
 def _previous_authority(
-    paths: Paths,
+    paths: Paths, *, permit_authority_change: bool = False,
 ) -> tuple[Path | None, Path | None, dict[str, Any] | None, dict[str, Any] | None]:
     if paths.pointer.is_file():
         try:
@@ -1206,7 +1564,8 @@ def _previous_authority(
             ) or {}
             external_path = Path(str(external.get("path") or ""))
             if (
-                manifest.get("terminal_state") == TERMINAL_AUTHORIZATION
+                not permit_authority_change
+                and manifest.get("terminal_state") == TERMINAL_AUTHORIZATION
                 and external_path.is_file()
                 and sha256_file(external_path) != external.get("sha256")
             ):
@@ -1214,6 +1573,11 @@ def _previous_authority(
                     ["decision_preservation_failed"],
                     "decision authority changed after READY_FOR_AUTHORIZATION",
                 )
+            extra_decisions, live_recovery_report = _live_decisions_recoverable_from_current(
+                paths, predecessor,
+            )
+            predecessor["live_recovered_decisions"] = extra_decisions
+            predecessor["live_recovery_report"] = live_recovery_report
             return (
                 predecessor["candidates_path"], predecessor["decisions_path"],
                 manifest, predecessor,
@@ -1515,6 +1879,214 @@ def _stage_governed_review_rebaseline(paths: Paths, staged_current: Path) -> dic
     }
 
 
+def _rebind_preservation_record(
+    old: dict[str, Any],
+    candidate: dict[str, Any],
+    current_id: str,
+    *,
+    bindings: dict[str, str],
+    preservation_source: str,
+    old_id: str | None = None,
+    previous_manifest: dict[str, Any] | None = None,
+    extra_generational_fields: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Rebind one historical decision onto a current candidate.
+
+    Shared by the ordinary same-generation/live-recovered preservation pass
+    and deep historical lineage recovery -- the resulting record shape is
+    identical either way, distinguished only by generational_preservation's
+    preservation_source and whatever extra provenance fields the caller adds.
+    """
+    rebound = dict(old)
+    historical_chain = {
+        key: rebound.pop(key)
+        for key in (
+            "preserved_from_candidate_id",
+            "preserved_from_decision_hash",
+            "preserved_from_bindings",
+            "preservation_classification",
+            "preservation_manifest_hash",
+        )
+        if key in rebound
+    }
+    generational_preservation: dict[str, Any] = {
+        "classification": "equivalent",
+        "previous_candidate_id": old_id if old_id is not None else str(old.get("candidate_id") or ""),
+        "previous_decision_hash": human_review.decision_hash(old),
+        "previous_relation_generation_id": (previous_manifest or {}).get(
+            "relation_generation_id"
+        ),
+        "historical_preservation_chain": historical_chain,
+        "preservation_source": preservation_source,
+    }
+    if extra_generational_fields:
+        generational_preservation.update(extra_generational_fields)
+    rebound.update({
+        "candidate_id": current_id,
+        "source_canon_id": human_review.candidate_endpoint(candidate, "source"),
+        "target_canon_id": human_review.candidate_endpoint(candidate, "target"),
+        "predicate": str(candidate.get("relation_type") or ""),
+        "relation_schema_version": str(
+            candidate.get("candidate_schema_version")
+            or candidate.get("schema_version")
+            or ""
+        ),
+        "evidence": candidate.get("evidence") or {},
+        "generational_preservation": generational_preservation,
+        **bindings,
+    })
+    return rebound
+
+
+def _ambiguity_guard_fingerprint(candidate: dict[str, Any]) -> str | None:
+    """Semantic fingerprint for the self-ambiguity guard, independent of
+    candidate_id validity: candidate_semantic_payload() gates on the id's
+    format because it is also used to reject malformed inventory rows
+    elsewhere, but two candidates being indistinguishable is a property of
+    their content, not of whether their id happens to parse. The id itself
+    never enters the hashed payload, so substituting a placeholder that
+    satisfies the format check changes nothing about what gets compared.
+    """
+    probe = dict(candidate)
+    probe["candidate_id"] = "rc_current_" + "0" * 16
+    return reconciliation._payload_hash(reconciliation.candidate_semantic_payload(probe))
+
+
+def _recover_certified_lineage_decisions(
+    paths: Paths,
+    *,
+    pending_candidates: list[dict[str, Any]],
+    current_batch_candidates: list[dict[str, Any]],
+    immediate_predecessor: dict[str, Any],
+    bindings: dict[str, str],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Walk PAST the immediate predecessor into older, certified generations
+    to recover a decision for a candidate still pending after the ordinary
+    preservation pass -- additive only, and only ever consulted for
+    candidates nothing newer (bundle-certified or live-recovered) already
+    resolved, so a later governed re-decision always wins by construction.
+
+    Two independent self-ambiguity guards apply, both fail-closed to
+    "leave it pending" rather than guess: (1) a pending candidate whose
+    semantic fingerprint is shared by ANY other candidate in the FULL
+    current batch -- pending or already decided -- can never be told
+    apart from its sibling, so neither may borrow a historical decision;
+    (2) within one scanned ancestor, an old candidate that itself maps to
+    more than one current candidate is likewise never a safe unique match.
+    """
+    manifest: dict[str, Any] = {
+        "schema_version": "current-deep-historical-authority-recovery/v1",
+        "scanned_generations": [],
+        "recovered_decisions": [],
+        "not_recoverable_candidate_ids": [],
+        "final_pending_delta": len(pending_candidates),
+    }
+    pending_by_id = {
+        str(row.get("candidate_id") or ""): row for row in pending_candidates
+    }
+    if not pending_by_id:
+        return [], manifest
+
+    fingerprint_counts: Counter[str] = Counter(
+        _ambiguity_guard_fingerprint(row) for row in current_batch_candidates
+    )
+    not_recoverable: set[str] = set()
+    still_pending: dict[str, dict[str, Any]] = {}
+    for candidate_id, candidate in pending_by_id.items():
+        fingerprint = _ambiguity_guard_fingerprint(candidate)
+        if fingerprint is None or fingerprint_counts[fingerprint] > 1:
+            not_recoverable.add(candidate_id)
+            continue
+        still_pending[candidate_id] = candidate
+    manifest["not_recoverable_candidate_ids"] = sorted(not_recoverable)
+    if not still_pending:
+        return [], manifest
+
+    recovered: dict[str, dict[str, Any]] = {}
+    cursor_checkpoint = immediate_predecessor.get("checkpoint") or {}
+    raw_previous = str(cursor_checkpoint.get("previous_checkpoint_or_receipt") or "")
+    hops = 0
+    while raw_previous and still_pending and hops < DEEP_HISTORICAL_RECOVERY_MAX_HOPS:
+        hops += 1
+        previous_path = Path(raw_previous)
+        if not previous_path.is_absolute():
+            previous_path = REPO_ROOT / previous_path
+        if previous_path.is_file():
+            previous_path = previous_path.parent
+        declared_hash = str(
+            cursor_checkpoint.get("previous_bundle_manifest_hash") or ""
+        )
+        try:
+            ancestor = _load_review_bundle(
+                paths, previous_path, expected_manifest_hash=declared_hash or None,
+            )
+        except PreparationBlocked:
+            break
+        ancestor_generation_id = str(
+            ancestor["manifest"].get("relation_generation_id") or ""
+        )
+        manifest["scanned_generations"].append({
+            "relation_generation_id": ancestor_generation_id,
+            "review_state_id": ancestor["manifest"].get("review_state_id"),
+            "bundle_path": str(ancestor["bundle"]),
+        })
+        ancestor_candidates = list(ancestor["candidate_by_id"].values())
+        cross = reconciliation.build_cross_batch_reconciliation(
+            ancestor_candidates, current_batch_candidates,
+        )
+        mapping_counts = Counter(
+            str(item.get("counterpart_candidate_id") or "")
+            for item in cross["old_to_current"]
+            if str(item.get("classification") or "")
+            in DEEP_HISTORICAL_RECOVERY_ALLOWED_CLASSIFICATIONS
+        )
+        for item in cross["old_to_current"]:
+            classification = str(item.get("classification") or "")
+            if classification not in DEEP_HISTORICAL_RECOVERY_ALLOWED_CLASSIFICATIONS:
+                continue
+            current_id = str(item.get("counterpart_candidate_id") or "")
+            if current_id not in still_pending or mapping_counts[current_id] != 1:
+                continue
+            old_id = str(item.get("candidate_id") or "")
+            old_decision = ancestor["decision_by_id"].get(old_id)
+            if old_decision is None:
+                continue
+            if human_review.validate_human_review_decision_record(old_decision):
+                continue
+            candidate = still_pending[current_id]
+            fingerprint = reconciliation._payload_hash(
+                reconciliation.candidate_semantic_payload(candidate)
+            )
+            recovered_row = _rebind_preservation_record(
+                old_decision, candidate, current_id,
+                bindings=bindings,
+                preservation_source="deep_historical_lineage_recovery",
+                old_id=old_id,
+                previous_manifest=ancestor["manifest"],
+                extra_generational_fields={
+                    "source_generation_id": ancestor_generation_id,
+                    "recovery_classification": classification,
+                    "source_decision_hash": human_review.decision_hash(old_decision),
+                    "semantic_equivalence_fingerprint": fingerprint,
+                },
+            )
+            if human_review.validate_human_review_decision_record(recovered_row):
+                continue
+            recovered[current_id] = recovered_row
+            manifest["recovered_decisions"].append({
+                "current_candidate_id": current_id,
+                "source_generation_id": ancestor_generation_id,
+                "source_candidate_id": old_id,
+                "source_decision_hash": human_review.decision_hash(old_decision),
+            })
+            del still_pending[current_id]
+        cursor_checkpoint = ancestor.get("checkpoint") or {}
+        raw_previous = str(cursor_checkpoint.get("previous_checkpoint_or_receipt") or "")
+
+    manifest["final_pending_delta"] = len(pending_by_id) - len(recovered)
+    return list(recovered.values()), manifest
+
+
 def _preserve_equivalent_decisions(
     *,
     paths: Paths,
@@ -1537,7 +2109,17 @@ def _preserve_equivalent_decisions(
     }
     if len(historical_by_id) != len(historical_candidates):
         raise PreparationBlocked(["cross_generation_reconciliation_failed"])
-    old_decisions = read_jsonl(previous_decisions) if previous_decisions else []
+    live_recovered_rows = (previous_record or {}).get("live_recovered_decisions") or []
+    live_recovered_ids = {
+        str(row.get("candidate_id") or "") for row in live_recovered_rows
+    }
+    old_decisions_by_source: dict[str, dict[str, Any]] = {
+        str(row.get("candidate_id") or ""): row
+        for row in (read_jsonl(previous_decisions) if previous_decisions else [])
+    }
+    for row in live_recovered_rows:
+        old_decisions_by_source[str(row.get("candidate_id") or "")] = row
+    old_decisions = list(old_decisions_by_source.values())
     decisions_by_id: dict[str, dict[str, Any]] = {}
     for row in old_decisions:
         candidate_id = str(row.get("candidate_id") or "")
@@ -1583,40 +2165,16 @@ def _preserve_equivalent_decisions(
                 ["decision_preservation_failed"],
                 f"many-to-one equivalent mapping: {current_id}",
             )
-        rebound = dict(old)
-        historical_chain = {
-            key: rebound.pop(key)
-            for key in (
-                "preserved_from_candidate_id",
-                "preserved_from_decision_hash",
-                "preserved_from_bindings",
-                "preservation_classification",
-                "preservation_manifest_hash",
-            )
-            if key in rebound
-        }
-        rebound.update({
-            "candidate_id": current_id,
-            "source_canon_id": human_review.candidate_endpoint(candidate, "source"),
-            "target_canon_id": human_review.candidate_endpoint(candidate, "target"),
-            "predicate": str(candidate.get("relation_type") or ""),
-            "relation_schema_version": str(
-                candidate.get("candidate_schema_version")
-                or candidate.get("schema_version")
-                or ""
+        rebound = _rebind_preservation_record(
+            old, candidate, current_id,
+            bindings=bindings,
+            preservation_source=(
+                "live_recovered_not_yet_published"
+                if old_id in live_recovered_ids else "published_bundle"
             ),
-            "evidence": candidate.get("evidence") or {},
-            "generational_preservation": {
-                "classification": "equivalent",
-                "previous_candidate_id": old_id,
-                "previous_decision_hash": human_review.decision_hash(old),
-                "previous_relation_generation_id": (
-                    previous_manifest or {}
-                ).get("relation_generation_id"),
-                "historical_preservation_chain": historical_chain,
-            },
-            **bindings,
-        })
+            old_id=old_id,
+            previous_manifest=previous_manifest,
+        )
         errors = human_review.validate_human_review_decision_record(rebound)
         if errors:
             raise PreparationBlocked(
@@ -1624,6 +2182,25 @@ def _preserve_equivalent_decisions(
                 f"{current_id}: {'; '.join(errors)}",
             )
         preserved[current_id] = rebound
+
+    deep_recovery_manifest: dict[str, Any] | None = None
+    still_pending_ids = sorted(set(queue_by_id) - set(preserved))
+    if previous_record is not None and still_pending_ids:
+        pending_candidates = [queue_by_id[candidate_id] for candidate_id in still_pending_ids]
+        deep_recovered, deep_recovery_manifest = _recover_certified_lineage_decisions(
+            paths,
+            pending_candidates=pending_candidates,
+            current_batch_candidates=current_candidates,
+            immediate_predecessor=previous_record,
+            bindings=bindings,
+        )
+        for row in deep_recovered:
+            preserved[str(row["candidate_id"])] = row
+        write_json(
+            staged_current / "deep_historical_authority_recovery_manifest.json",
+            deep_recovery_manifest,
+        )
+
     decision_target = staged_current / (
         EFFECTIVE_DECISIONS_FILE
         if preserve_source_decisions else "human_review_decisions.jsonl"
@@ -1632,6 +2209,10 @@ def _preserve_equivalent_decisions(
         decision_target,
         (preserved[key] for key in sorted(preserved)),
     )
+    preservation_sources = Counter(
+        str((row.get("generational_preservation") or {}).get("preservation_source") or "")
+        for row in preserved.values()
+    )
     report = {
         "schema_version": "current-generational-decision-preservation/v1",
         "previous_relation_generation_id": (previous_manifest or {}).get(
@@ -1639,6 +2220,16 @@ def _preserve_equivalent_decisions(
         ),
         "historical_decisions": len(decisions_by_id),
         "preserved_equivalent": len(preserved),
+        "preserved_from_published_bundle": preservation_sources["published_bundle"],
+        "preserved_from_live_recovery": preservation_sources["live_recovered_not_yet_published"],
+        "preserved_from_deep_historical_lineage_recovery": preservation_sources[
+            "deep_historical_lineage_recovery"
+        ],
+        "live_recovery": (previous_record or {}).get("live_recovery_report"),
+        "deep_historical_recovery": deep_recovery_manifest,
+        "engine_semantic_contract": relation_engine_semantic_contract_record(
+            previous_manifest=previous_manifest,
+        ),
         "pending_delta": len(queue) - len(preserved),
         "disappeared_provenance": sum(
             item["classification"] == "disappeared" for item in provenance
@@ -1858,7 +2449,7 @@ def recompose_current_decision_authority(
         (
             previous_candidates, previous_decisions, previous_manifest,
             previous_record,
-        ) = _previous_authority(paths)
+        ) = _previous_authority(paths, permit_authority_change=True)
         if not previous_candidates or not previous_decisions or not previous_record:
             raise PreparationBlocked(["review_predecessor_not_resolved"])
         preservation = _preserve_equivalent_decisions(
@@ -1921,8 +2512,9 @@ def generation_ids(
         "producer_fingerprints": {
             name: sha256_file(path)
             for name, path in sorted(producer_bindings().items())
-            if name in {"candidate_generator", "candidate_validator", "cross_generation_reconciler"}
+            if name in {"candidate_generator", "candidate_validator"}
         },
+        "engine_semantic_contract": relation_engine_semantic_contract_hash(),
     })[:24]
     gate_identity = {
         "summary": {
@@ -2110,6 +2702,68 @@ def previous_published_review_classes(
     return result
 
 
+def previous_published_review_classes_per_candidate(
+    previous_reference: str | None,
+    current_to_predecessor: list[dict[str, Any]],
+    pending_candidate_ids: list[str],
+) -> dict[str, str]:
+    """Recover a certified review class per still-continuous pending candidate.
+
+    A weaker fallback to previous_published_review_classes(): that function
+    requires the WHOLE pending batch to be byte-identical to the previous
+    publication, so any unrelated candidate appearing/disappearing elsewhere
+    defeats it entirely. Here, each current pending candidate is judged
+    individually via its own cross-generation reconciliation row: it must be
+    an "equivalent", decision_reusable match, and its counterpart must have
+    genuinely been part of the previous bundle's OWN certified pending set --
+    never inferred merely from id equality, and never picked when the
+    previous bundle itself declares the counterpart under more than one
+    certified class (an internal contradiction, not resolved arbitrarily).
+    """
+    if not previous_reference:
+        return {}
+    bundle = Path(previous_reference)
+    delta_path = bundle / "human_delta.json"
+    if not bundle.is_dir() or not delta_path.is_file():
+        return {}
+    delta = read_json(delta_path)
+    previous_pending = {
+        str(value) for value in delta.get("pending_candidate_ids") or []
+    }
+    class_by_id: dict[str, str] = {}
+    contradictory: set[str] = set()
+    for classification in review_taxonomy.RECONCILIATION_CLASS_TO_REVIEW_REASON:
+        for raw_candidate_id in delta.get(classification) or []:
+            candidate_id = str(raw_candidate_id)
+            if candidate_id in class_by_id:
+                contradictory.add(candidate_id)
+                continue
+            class_by_id[candidate_id] = classification
+    for candidate_id in contradictory:
+        class_by_id.pop(candidate_id, None)
+    row_by_candidate_id = {
+        str(row.get("candidate_id") or ""): row for row in current_to_predecessor
+    }
+    result: dict[str, str] = {}
+    for candidate_id in pending_candidate_ids:
+        row = row_by_candidate_id.get(candidate_id)
+        if row is None:
+            continue
+        if (
+            row.get("classification") != "equivalent"
+            or row.get("decision_reusable") is not True
+        ):
+            continue
+        counterpart_id = str(row.get("counterpart_candidate_id") or "")
+        if not counterpart_id or counterpart_id not in previous_pending:
+            continue
+        classification = class_by_id.get(counterpart_id)
+        if classification is None:
+            continue
+        result[candidate_id] = classification
+    return result
+
+
 def load_and_classify_decisions(
     paths: Paths, inputs: dict[str, Path], canon: dict[str, Any],
 ) -> tuple[human_review.ExistingDecisions, list[dict[str, Any]], dict[str, str]]:
@@ -2176,11 +2830,19 @@ def _validate_review_semantic_monotonicity(
     decisions: human_review.ExistingDecisions,
 ) -> dict[str, Any]:
     expected = _expected_equivalent_decisions(predecessor, inputs)
-    conflicts = sorted(
-        candidate_id for candidate_id in set(expected).intersection(decisions)
+    shared = set(expected).intersection(decisions)
+    mismatched = {
+        candidate_id for candidate_id in shared
         if _decision_authority_signature(expected[candidate_id])
         != _decision_authority_signature(decisions[candidate_id])
+    }
+    superseded_candidate_ids = sorted(
+        candidate_id for candidate_id in mismatched
+        if _valid_governed_supersession(
+            expected[candidate_id], decisions[candidate_id],
+        )
     )
+    conflicts = sorted(mismatched - set(superseded_candidate_ids))
     if conflicts:
         raise PreparationBlocked(
             ["review_decision_conflict"], ", ".join(conflicts),
@@ -2205,6 +2867,7 @@ def _validate_review_semantic_monotonicity(
             "review_state_id"
         ),
         "receipt_count": len(predecessor["receipts"]),
+        "superseded_candidate_ids": superseded_candidate_ids,
         "monotonic": True,
     }
 
@@ -2234,6 +2897,9 @@ def inspect_review_coverage(paths: Paths) -> dict[str, Any]:
             candidate_id for candidate_id in set(expected).intersection(current)
             if _decision_authority_signature(expected[candidate_id])
             != _decision_authority_signature(current[candidate_id])
+            and not _valid_governed_supersession(
+                expected[candidate_id], current[candidate_id],
+            )
         }
         if conflicts:
             raise PreparationBlocked(["review_decision_conflict"])
@@ -2385,6 +3051,9 @@ def validate_plan_conservation(plan: dict[str, Any]) -> None:
 def analyze(paths: Paths) -> dict[str, Any]:
     canon = canon_snapshot(paths.local_root)
     inputs = validate_source_generation(paths, canon)
+    contract_transition_reasons = _engine_semantic_contract_transition_reasons(paths)
+    if contract_transition_reasons:
+        raise PreparationBlocked(contract_transition_reasons)
     predecessor = _analysis_review_predecessor(paths)
     try:
         decisions, queue, bindings = load_and_classify_decisions(
@@ -2405,6 +3074,7 @@ def analyze(paths: Paths) -> dict[str, Any]:
             "effective_pending": max(0, len(queue) - len(decisions)),
             "predecessor_review_state_id": None,
             "receipt_count": 0,
+            "superseded_candidate_ids": [],
             "monotonic": True,
         }
     )
@@ -2424,21 +3094,31 @@ def analyze(paths: Paths) -> dict[str, Any]:
     published_classes = previous_published_review_classes(
         previous_reference, inputs["candidate_batch"], pending_ids,
     )
-    if published_classes:
+    # The whole-batch reuse above requires byte-identical, fully-conserved
+    # pending sets -- an unrelated candidate appearing/disappearing anywhere
+    # defeats it entirely. The per-candidate fallback recovers a certified
+    # class for whichever individual candidates remain lineage-continuous
+    # even when the batch as a whole drifted; whole-batch results still win
+    # wherever both apply.
+    per_candidate_classes = previous_published_review_classes_per_candidate(
+        previous_reference, cross["current_to_old"], pending_ids,
+    )
+    combined_published_classes = {**per_candidate_classes, **published_classes}
+    if combined_published_classes:
         cross["current_to_old"] = [
             {
                 **row,
-                "classification": published_classes.get(
+                "classification": combined_published_classes.get(
                     str(row.get("candidate_id") or ""), row.get("classification")
                 ),
                 "decision_reusable": (
                     False
-                    if str(row.get("candidate_id") or "") in published_classes
+                    if str(row.get("candidate_id") or "") in combined_published_classes
                     else row.get("decision_reusable")
                 ),
                 "classification_source": (
                     "published_current_human_delta"
-                    if str(row.get("candidate_id") or "") in published_classes
+                    if str(row.get("candidate_id") or "") in combined_published_classes
                     else row.get("classification_source")
                 ),
             }
@@ -2668,7 +3348,14 @@ def _bundle_retry_semantics(bundle: Path, manifest: dict[str, Any]) -> dict[str,
     manifest_projection = {
         key: value for key, value in manifest.items()
         if key not in {
-            "artifacts", "created_at", "published_at",
+            # producer_fingerprints is provenance-only: it records what the
+            # orchestrator/reconciler/etc. hashed to at publish time, not a
+            # currentness-relevant identity field. A retry whose ONLY
+            # difference from an already-published destination is a fresh
+            # (possibly cosmetically drifted) producer fingerprint is still
+            # semantically the same publication -- see FIX 1, S0186 Unit H
+            # bundle_publication_failed.
+            "artifacts", "created_at", "published_at", "producer_fingerprints",
         }
     }
     return {
@@ -3210,6 +3897,7 @@ def _execute_human_delta(
             "previous_relation_generation_id": analysis[
                 "previous_relation_generation_id"
             ],
+            "engine_semantic_contract": _current_engine_semantic_contract_for_manifest(paths),
             "source_bindings": _bundle_source_bindings(analysis),
             "artifacts": artifacts,
             "terminal_state": TERMINAL_HUMAN,
@@ -3966,6 +4654,7 @@ def execute(
             "run_id": "run_" + readiness_id[3:],
             **ids,
             "previous_relation_generation_id": analysis["previous_relation_generation_id"],
+            "engine_semantic_contract": _current_engine_semantic_contract_for_manifest(paths),
             "source_bindings": _bundle_source_bindings(analysis),
             "producer_fingerprints": producer_fingerprints(),
             "artifacts": {
@@ -4174,13 +4863,43 @@ def read_current_bundle_status(local_root: Path) -> dict[str, Any]:
             ):
                 continue
             if sha256_file(path) != (item or {}).get("sha256"):
-                reasons.append(f"current_bundle_binding_stale:{name}")
+                # FIX 3 (S0186 Unit H bundle_publication_failed): a source
+                # binding whose bundle carries its own immutable artifact copy
+                # is judged on the SAME semantic projection retry-publication
+                # already treats as equivalent (_retry_semantic_value), not
+                # the raw physical byte hash -- a volatile field (generated_at,
+                # etc.) drifting on the live file is not a real currentness
+                # change. Anything without a bundle-local copy to compare
+                # against, or a genuine semantic difference, still blocks.
+                bundle_artifact = (manifest.get("artifacts") or {}).get(name) or {}
+                bundle_artifact_path = bundle / str(bundle_artifact.get("path") or "")
+                semantically_stale = True
+                if path.suffix == ".json" and bundle_artifact_path.is_file():
+                    try:
+                        live_semantic = _retry_semantic_value(read_json(path))
+                        bundle_semantic = _retry_semantic_value(read_json(bundle_artifact_path))
+                    except (OSError, ValueError, json.JSONDecodeError):
+                        semantically_stale = True
+                    else:
+                        semantically_stale = live_semantic != bundle_semantic
+                if semantically_stale:
+                    reasons.append(f"current_bundle_binding_stale:{name}")
         if manifest.get("authorization_present") is not False or manifest.get("apply_executed") is not False:
             reasons.append("current_bundle_must_remain_unauthorized_and_unexecuted")
+        # FIX 2 (S0186 Unit H bundle_publication_failed): producer_fingerprints
+        # is provenance-only -- the per-item loop above already treats it (and
+        # any binding whose currentness_role is provenance_only) as never
+        # currentness-relevant. Re-deriving a SEPARATE, unconditional
+        # producer_fingerprint_stale reason from the same data contradicted
+        # that and invalidated an otherwise-correct bundle merely because the
+        # orchestrator/reconciler's file drifted cosmetically since publish.
+        # Drift is still surfaced (as audit/info), just never as a reason to
+        # invalidate or change next_action.
         expected_fingerprints = manifest.get("producer_fingerprints") or {}
-        for name, expected in expected_fingerprints.items():
-            if name in producer_bindings() and expected != sha256_file(producer_bindings()[name]):
-                reasons.append("producer_fingerprint_stale")
+        producer_fingerprint_drift = sorted(
+            name for name, expected in expected_fingerprints.items()
+            if name in producer_bindings() and expected != sha256_file(producer_bindings()[name])
+        )
         authority_artifacts = authority.get("artifacts") or {}
         ready_path = authority_artifacts.get("ready_queue")
         effective_path = authority_artifacts.get("effective_decisions")
@@ -4256,6 +4975,7 @@ def read_current_bundle_status(local_root: Path) -> dict[str, Any]:
             },
             "terminal_state": manifest.get("terminal_state"),
             "next_action": manifest.get("next_action"),
+            "producer_fingerprint_drift": producer_fingerprint_drift,
         }
     except (OSError, ValueError, json.JSONDecodeError, PreparationBlocked, current_authority.CurrentRelationalAuthorityError) as error:
         if not reasons:

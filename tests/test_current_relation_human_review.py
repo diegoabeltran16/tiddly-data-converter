@@ -618,6 +618,191 @@ def test_current_delta_covered_candidate_cannot_reenter_preview(
     assert surface["inventory"]["covered"] == 1
 
 
+def _write_live_decision(
+    local: Path, candidate: dict, *, decision: str = "approved_for_admission",
+    reason_code: str = "DIRECT_CODE_DEPENDENCY_CONFIRMED", decision_mode: str = "policy_derived",
+    **extra: str,
+) -> dict:
+    """Seed a decision directly into the LIVE current/ decisions file, the
+    same write pattern governed_relation_admission_policy.materialize_
+    authorized_policy() uses -- straight to the file, no bundle republish.
+    """
+    current_dir = local / "pipeline" / "relation_candidates" / "current"
+    decisions_path = review.decision_authority_path(current_dir)
+    existing = {
+        str(row["candidate_id"]): row
+        for row in review.load_jsonl(decisions_path)
+    }
+    kwargs: dict[str, str | None] = dict(
+        review_policy_id="PYTHON_AST_IMPORT_DEPENDENCY_V1", policy_version="1.0.0",
+        policy_hash="sha256:" + "ab" * 32, human_authorization_id="auth_" + "cd" * 12,
+        authorization_scope="CURRENT_BATCH",
+    ) if decision_mode == "policy_derived" else {}
+    kwargs.update(extra)
+    record = review.build_decision_record(
+        candidate, decision=decision, reason_code=reason_code, actor="fixture-actor",
+        bindings={
+            "canon_hash": "1" * 64, "candidate_manifest_hash": "2" * 64,
+            "reconciliation_manifest_hash": "3" * 64,
+        },
+        decision_mode=decision_mode, reviewed_at="2026-09-02T18:00:00+00:00", **kwargs,
+    )
+    existing[str(candidate["candidate_id"])] = record
+    review.atomic_write_jsonl(decisions_path, dict(sorted(existing.items())))
+    return record
+
+
+def test_live_policy_derived_decision_excluded_from_current_delta_pending(
+    tmp_path: Path,
+) -> None:
+    local, _bundle, queue = _current_delta_authority_fixture(tmp_path)
+    decided = queue[0]
+    _write_live_decision(local, decided)
+
+    surface = review.resolve_current_human_delta_surface(local)
+
+    assert surface["allowed"] is True
+    inventory = surface["inventory"]
+    assert inventory["total_pending"] == 2
+    assert inventory["total_pending_declared_by_bundle"] == 3
+    assert inventory["live_decided_excluded"] == 1
+    assert inventory["live_decision_exclusion"]["excluded_candidate_ids"] == [decided["candidate_id"]]
+    pending_ids = {item["candidate_id"] for item in inventory["candidates"]}
+    assert decided["candidate_id"] not in pending_ids
+    assert inventory["covered"] == 0  # not a bundle self-contradiction
+
+
+def test_live_decided_candidate_not_treated_as_bundle_corruption(tmp_path: Path) -> None:
+    """current_delta_covered_candidate (bundle self-contradiction, real
+    corruption) must stay disjoint from the new, expected live-exclusion
+    path -- a live-only decision must never fail-close the whole surface.
+    """
+    local, _bundle, queue = _current_delta_authority_fixture(tmp_path)
+    _write_live_decision(local, queue[0])
+
+    surface = review.resolve_current_human_delta_surface(local)
+
+    assert "current_delta_covered_candidate" not in surface["reason_codes"]
+    assert surface["reason_codes"] == []
+
+
+def test_batches_union_excludes_all_effectively_decided_candidates(tmp_path: Path) -> None:
+    local, _bundle, queue = _current_delta_authority_fixture(tmp_path)
+    _write_live_decision(local, queue[0], decision_mode="policy_derived")
+    _write_live_decision(
+        local, queue[1], decision="deferred", reason_code="INSUFFICIENT_CONTEXT",
+        decision_mode="individual",
+    )
+
+    surface = review.resolve_current_human_delta_surface(local)
+    batches = review.build_current_human_delta_batches(surface)
+    union_ids = {candidate_id for batch in batches for candidate_id in batch["candidate_ids"]}
+
+    assert union_ids == {queue[2]["candidate_id"]}
+    assert sum(batch["candidate_count"] for batch in batches) == 1
+    live_decided = {queue[0]["candidate_id"], queue[1]["candidate_id"]}
+    assert union_ids.isdisjoint(live_decided)
+
+
+def test_invalid_live_decision_row_is_not_excluded_and_stays_pending(tmp_path: Path) -> None:
+    local, _bundle, queue = _current_delta_authority_fixture(tmp_path)
+    current_dir = local / "pipeline" / "relation_candidates" / "current"
+    decisions_path = review.decision_authority_path(current_dir)
+    broken = {
+        "schema_version": review.SCHEMA_HUMAN_DECISION_LINE,
+        "candidate_id": queue[0]["candidate_id"],
+        "human_review_decision": "approved_for_admission",
+        "decision_mode": "policy_derived",
+        # governed fields (review_policy_id, policy_hash, ...) missing on purpose
+        "human_review_actor": "fixture", "human_review_timestamp": "2026-09-02T18:00:00+00:00",
+        "human_review_reason_code": "DIRECT_CODE_DEPENDENCY_CONFIRMED",
+    }
+    review.atomic_write_jsonl(decisions_path, {queue[0]["candidate_id"]: broken})
+
+    surface = review.resolve_current_human_delta_surface(local)
+
+    assert surface["inventory"]["live_decided_excluded"] == 0
+    assert surface["inventory"]["live_decision_exclusion"]["rejected"]
+    pending_ids = {item["candidate_id"] for item in surface["inventory"]["candidates"]}
+    assert queue[0]["candidate_id"] in pending_ids  # fails closed back into pending
+
+
+def test_preview_stays_read_only_with_live_decisions_present(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    local, bundle, queue = _current_delta_authority_fixture(tmp_path)
+    _write_live_decision(local, queue[0])
+    pointer = local / "audit/relation_admission/current_generation.json"
+    before_pointer = pointer.read_bytes()
+    before_bundle = {
+        path.relative_to(bundle).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in bundle.rglob("*") if path.is_file()
+    }
+
+    assert review.main([
+        "--canon-root", str(local), "--current-dir", str(tmp_path / "mutable-pipeline"),
+        "--preview-batches",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["writes_performed"] is False
+    assert output["current_human_delta"]["total_pending"] == 2
+    assert output["current_human_delta"]["live_decided_excluded"] == 1
+    assert "candidates" not in output["current_human_delta"]  # compact by default
+    for batch in output["review_batches"]:
+        assert "candidate_ids" not in batch and "candidate_hashes" not in batch
+        assert "candidate_count" in batch
+    assert pointer.read_bytes() == before_pointer
+    assert before_bundle == {
+        path.relative_to(bundle).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in bundle.rglob("*") if path.is_file()
+    }
+
+
+def test_preview_detail_flag_restores_full_candidate_rows(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    local, _bundle, queue = _current_delta_authority_fixture(tmp_path)
+    _write_live_decision(local, queue[0])
+
+    assert review.main([
+        "--canon-root", str(local), "--current-dir", str(tmp_path / "mutable-pipeline"),
+        "--preview-batches", "--detail",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["detail"] is True
+    assert len(output["current_human_delta"]["candidates"]) == 2
+    assert all("candidate_ids" in batch for batch in output["review_batches"])
+
+
+def test_batch_confirmation_fails_closed_when_candidate_becomes_live_decided_after_preview(
+    tmp_path: Path,
+) -> None:
+    local, _bundle, queue = _current_delta_authority_fixture(tmp_path)
+    surface = review.resolve_current_human_delta_surface(local)
+    stale_batch = next(
+        batch for batch in review.build_current_human_delta_batches(surface)
+        if queue[0]["candidate_id"] in batch["candidate_ids"]
+    )
+    # Between preview and confirmation, policy governance decides candidate 0.
+    _write_live_decision(local, queue[0])
+    current_dir = tmp_path / "mutable-pipeline"
+
+    with pytest.raises(review.CurrentReviewWriteBlocked):
+        review.persist_current_human_delta_batch(
+            local, batch=stale_batch,
+            proposals=[{
+                "candidate_id": item, "candidate_hash": next(
+                    h for cid, h in zip(stale_batch["candidate_ids"], stale_batch["candidate_hashes"])
+                    if cid == item
+                ),
+                "action": "approved_for_admission", "reason_code": "DIRECT_CODE_DEPENDENCY_CONFIRMED",
+                "note": "", "human_confirmation": review.current_candidate_confirmation(item, "approved_for_admission"),
+            } for item in stale_batch["candidate_ids"]],
+            actor="fixture-reviewer",
+            confirmation=review.current_batch_confirmation(stale_batch["batch_id"]),
+        )
+
+
 def test_current_delta_invalid_candidate_cannot_enter_preview(
     tmp_path: Path,
 ) -> None:
@@ -979,7 +1164,7 @@ def test_current_menu_reaches_final_confirmation_and_invalid_input_writes_nothin
     batch = review.build_current_human_delta_batches(surface)[0]
     candidate_id = batch["candidate_ids"][0]
     answers = iter((
-        batch["batch_id"], "operator", "approved_for_admission",
+        batch["batch_id"], "operator", "c", "approved_for_admission",
         "DIRECT_CODE_DEPENDENCY_CONFIRMED", "",
         review.current_candidate_confirmation(candidate_id, "approved_for_admission"),
         "NO ES LA CONFIRMACION FINAL",
@@ -995,6 +1180,252 @@ def test_current_menu_reaches_final_confirmation_and_invalid_input_writes_nothin
     assert "Confirmación final inválida" in output
     assert pointer.read_bytes() == before
     assert not (source_bundle / "current_review_batch_receipts.jsonl").exists()
+
+
+def test_uniform_batch_disposition_writes_one_decision_per_candidate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """S0186 Unit H: a class-homogeneous batch must accept ONE uniform
+    action/reason_code/note and still persist a full, individually
+    auditable decision per candidate -- never one opaque aggregate row.
+    """
+    ids = ["rc_current_" + f"{number:024x}" for number in range(1, 4)]
+    local, _bundle, _queue = _current_delta_authority_fixture(
+        tmp_path, candidate_count=3, classes={"new": ids, "modified": [], "ambiguous": []},
+    )
+    surface = review.resolve_current_human_delta_surface(local)
+    batch = review.build_current_human_delta_batches(surface)[0]
+    assert batch["candidate_count"] == 3
+
+    answers = iter((
+        batch["batch_id"], "operator", "u",  # select batch, actor, uniform mode
+        "deferred", "MANUAL_TECHNICAL_REVIEW_REQUIRED", "revisión técnica manual pendiente",
+        review.current_batch_confirmation(batch["batch_id"]),
+    ))
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+
+    assert review.run_current_single_batch_review(local) == 0
+
+    output = capsys.readouterr().out
+    assert "disposición uniforme del lote" in output
+    assert "3 decisiones individuales auditables" in output
+
+    authority = review.resolve_current_relational_authority(local)
+    decisions_path = authority["artifacts"]["effective_decisions"]
+    rows = {row["candidate_id"]: row for row in review.load_jsonl(decisions_path)}
+    assert set(rows) == set(ids)
+    for candidate_id in ids:
+        row = rows[candidate_id]
+        assert row["human_review_decision"] == "deferred"
+        assert row["human_review_reason_code"] == "MANUAL_TECHNICAL_REVIEW_REQUIRED"
+        assert row["human_review_note"] == "revisión técnica manual pendiente"
+        assert row["decision_mode"] == "batch"
+        assert row["candidate_id"] == candidate_id
+        assert row["evidence"]  # preserved from the original candidate
+        assert row["review_reason"] == "reconciliation_new"
+        assert row["reconciliation_class"] == "new"
+        assert row["relation_generation_id"] == batch["relation_generation_id"]
+        assert row["source_review_state_id"] == batch["review_state_id"]
+        assert row["human_confirmation"] == review.current_candidate_confirmation(candidate_id, "deferred")
+
+
+def test_uniform_batch_end_to_end_with_preexisting_policy_derived_decisions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Reproduces the exact shape of the real production failure: some
+    candidates already have a policy_derived decision living only in the
+    LIVE file (never folded into the published bundle), and a separate,
+    still-pending, class-homogeneous batch gets reviewed with a uniform
+    disposition. Before the fix, persisting this batch raised
+    CurrentReviewWriteBlocked('review_write_validation_failed') because the
+    staged bundle's coverage/rebaseline conservation invariants did not
+    account for the live-only decisions -- even though every individual
+    proposal was perfectly valid. Exercises the full menu-visible path:
+    preview -> select batch -> uniform deferred -> pre-write validation
+    PASS -> batch confirmation -> persist -> N individual decisions ->
+    bundle published -> receipt created -> pending decreases by exactly N.
+    """
+    batch_ids = ["rc_current_" + f"{number:024x}" for number in range(1, 11)]
+    policy_ids = ["rc_current_" + f"{number:024x}" for number in range(11, 14)]
+    local, _bundle, queue = _current_delta_authority_fixture(
+        tmp_path, candidate_count=13,
+        # The 3 policy candidates need a declared reconciliation class too
+        # (they were "new" in the published bundle, same as the batch, just
+        # already decided by policy governance afterward) -- otherwise
+        # taxonomy validation itself would reject the bundle before we even
+        # get to the bug this test targets.
+        classes={"new": batch_ids + policy_ids, "modified": [], "ambiguous": []},
+    )
+    by_id = {c["candidate_id"]: c for c in queue}
+    for candidate_id in policy_ids:
+        _write_live_decision(local, by_id[candidate_id])
+
+    surface = review.resolve_current_human_delta_surface(local)
+    assert surface["allowed"] is True
+    assert surface["inventory"]["total_pending"] == 10  # policy_ids excluded
+    assert surface["inventory"]["live_decided_excluded"] == 3
+    batches = review.build_current_human_delta_batches(surface)
+    assert len(batches) == 1
+    batch = batches[0]
+    assert batch["candidate_count"] == 10
+    assert set(batch["candidate_ids"]) == set(batch_ids)
+
+    answers = iter((
+        batch["batch_id"], "operator", "u",
+        "deferred", "MANUAL_TECHNICAL_REVIEW_REQUIRED", "",
+        review.current_batch_confirmation(batch["batch_id"]),
+    ))
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+
+    assert review.run_current_single_batch_review(local) == 0
+
+    output = capsys.readouterr().out
+    assert '"status": "READY_TO_CONFIRM"' in output
+    assert '"candidates": 10' in output
+    assert '"invalid": 0' in output
+
+    authority = review.resolve_current_relational_authority(local)
+    decisions_path = authority["artifacts"]["effective_decisions"]
+    rows = {row["candidate_id"]: row for row in review.load_jsonl(decisions_path)}
+    # All 3 pre-existing policy_derived decisions carried forward unchanged.
+    for candidate_id in policy_ids:
+        assert rows[candidate_id]["decision_mode"] == "policy_derived"
+        assert rows[candidate_id]["review_policy_id"] == "PYTHON_AST_IMPORT_DEPENDENCY_V1"
+    # All 10 batch candidates got their own individual, auditable decision.
+    for candidate_id in batch_ids:
+        assert rows[candidate_id]["human_review_decision"] == "deferred"
+        assert rows[candidate_id]["decision_mode"] == "batch"
+        assert rows[candidate_id]["review_reason"] == "reconciliation_new"
+    assert len(rows) == 13
+
+    checkpoint = review.load_json(authority["artifacts"]["decision_checkpoint"])
+    assert checkpoint["pending_delta"] == 0
+    assert checkpoint["total_decisions"] == 13
+    rebaseline = review.load_json(authority["artifacts"]["review_rebaseline"])
+    partition = rebaseline["current_candidate_partition"]
+    assert partition["independently_covered"] == 3
+    assert partition["human_reviewed_covered"] == 10
+    assert partition["pending_human_review"] == 0
+    assert (
+        partition["independently_covered"] + partition["human_reviewed_covered"]
+        + partition["pending_human_review"] + partition.get("conflict_blocked", 0)
+        + partition.get("unaccounted", 0)
+        == partition["reviewable_total"]
+    )
+    assert not (authority["artifacts"].get("review_receipts") is None)
+
+
+def test_invalid_proposal_blocked_before_human_confirmation(tmp_path: Path) -> None:
+    """REQUISITO OPERACIONAL: an invalid proposal must be caught by the
+    pre-write validation surface (stage: per_candidate_proposal_validation)
+    without ever reaching the staged-bundle write -- and without needing
+    the human's final confirmation phrase at all.
+    """
+    ids = ["rc_current_" + f"{number:024x}" for number in range(1, 4)]
+    local, _bundle, _queue = _current_delta_authority_fixture(
+        tmp_path, candidate_count=3, classes={"new": ids, "modified": [], "ambiguous": []},
+    )
+    surface = review.resolve_current_human_delta_surface(local)
+    batch = review.build_current_human_delta_batches(surface)[0]
+    by_id = {item["candidate_id"]: item for item in surface["inventory"]["candidates"]}
+    proposals = [
+        {
+            "candidate_id": candidate_id,
+            # Candidate 0 gets a deliberately wrong hash -- as if its
+            # underlying candidate changed between preview and this check.
+            "candidate_hash": (
+                "sha256:" + "0" * 64 if candidate_id == ids[0]
+                else by_id[candidate_id]["candidate_hash"]
+            ),
+            "action": "deferred",
+            "reason_code": "MANUAL_TECHNICAL_REVIEW_REQUIRED",
+            "note": "",
+            "human_confirmation": review.current_candidate_confirmation(candidate_id, "deferred"),
+        }
+        for candidate_id in batch["candidate_ids"]
+    ]
+
+    readiness = review.validate_current_batch_write_readiness(
+        local, surface=surface, batch=batch, proposals=proposals, actor="operator",
+    )
+
+    assert readiness["status"] == "BLOCKED"
+    assert readiness["stage"] == "per_candidate_proposal_validation"
+    assert readiness["candidates"] == 3
+    assert readiness["valid"] == 2
+    assert readiness["invalid"] == 1
+    assert readiness["sample_errors"][0]["candidate_id"] == ids[0]
+    assert "candidate_hash_mismatch" in readiness["sample_errors"][0]["errors"]
+
+    # Nothing was written or published as a result of this read-only check.
+    authority = review.resolve_current_relational_authority(local)
+    assert authority["review_state_id"] == surface["inventory"]["review_state_id"]
+    decisions_path = review.decision_authority_path(
+        local / "pipeline" / "relation_candidates" / "current"
+    )
+    assert not decisions_path.exists()
+
+
+def test_uniform_batch_disposition_wrong_final_confirmation_writes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    ids = ["rc_current_" + f"{number:024x}" for number in range(1, 4)]
+    local, _bundle, _queue = _current_delta_authority_fixture(
+        tmp_path, candidate_count=3, classes={"new": ids, "modified": [], "ambiguous": []},
+    )
+    surface = review.resolve_current_human_delta_surface(local)
+    batch = review.build_current_human_delta_batches(surface)[0]
+    pointer = local / "audit/relation_admission/current_generation.json"
+    before = pointer.read_bytes()
+
+    answers = iter((
+        batch["batch_id"], "operator", "u",
+        "deferred", "MANUAL_TECHNICAL_REVIEW_REQUIRED", "",
+        "NO ES LA CONFIRMACION",
+    ))
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+
+    assert review.run_current_single_batch_review(local) == 0
+
+    assert "Confirmación final inválida" in capsys.readouterr().out
+    assert pointer.read_bytes() == before
+
+
+def test_uniform_batch_disposition_stale_batch_fails_closed(tmp_path: Path) -> None:
+    """Requirement 7/STALE_BATCH_FAIL_CLOSED: if the candidate set changes
+    between building the uniform proposals and persisting, the write must
+    be refused wholesale -- exercised directly against the shared write
+    path the interactive uniform flow calls into.
+    """
+    ids = ["rc_current_" + f"{number:024x}" for number in range(1, 4)]
+    local, bundle, _queue = _current_delta_authority_fixture(
+        tmp_path, candidate_count=3, classes={"new": ids, "modified": [], "ambiguous": []},
+    )
+    surface = review.resolve_current_human_delta_surface(local)
+    batch = review.build_current_human_delta_batches(surface)[0]
+    proposals = [
+        {
+            "candidate_id": candidate_id,
+            "candidate_hash": candidate_hash,
+            "action": "deferred",
+            "reason_code": "MANUAL_TECHNICAL_REVIEW_REQUIRED",
+            "note": "",
+            "human_confirmation": review.current_candidate_confirmation(candidate_id, "deferred"),
+        }
+        for candidate_id, candidate_hash in zip(batch["candidate_ids"], batch["candidate_hashes"], strict=True)
+    ]
+    # Canon/candidate set drifts after the batch was built, before persisting.
+    manifest_path = bundle / "current_candidate_manifest.json"
+    manifest = review.load_json(manifest_path)
+    manifest["canon_binding"]["record_count"] = 999
+    _write(manifest_path, manifest)
+    _refresh_current_bundle_hashes(local, bundle)
+
+    with pytest.raises(review.CurrentReviewWriteBlocked):
+        review.persist_current_human_delta_batch(
+            local, batch=batch, proposals=proposals, actor="operator",
+            confirmation=review.current_batch_confirmation(batch["batch_id"]),
+        )
 
 
 def test_current_last_batch_stops_before_readiness_and_authorization(tmp_path: Path) -> None:
@@ -1987,6 +2418,156 @@ def test_supersession_requires_exact_confirmation_and_complete_evidence(tmp_path
     assert (current / review.DECISIONS_FILE).read_bytes() == decisions_before
 
 
+# ── S0186 Unit H (targeted initial decision): record_individual_decision ────
+
+
+def test_record_individual_decision_succeeds_for_pending_candidate_without_decision(
+    tmp_path: Path,
+) -> None:
+    current, canon, (candidate,) = _fixture(tmp_path)
+    record = review.record_individual_decision(
+        current, canon, candidate_id=candidate["candidate_id"], decision="deferred",
+        reason_code="LIFECYCLE_UNRESOLVED", note="Diferida por GATE-020.", actor="Naveen",
+        confirmation=review.DECISION_INITIAL_CONFIRMATION,
+    )
+    assert record["candidate_id"] == candidate["candidate_id"]
+    assert record["human_review_decision"] == "deferred"
+    assert record["human_review_reason_code"] == "LIFECYCLE_UNRESOLVED"
+    assert record["human_review_actor"] == "Naveen"
+    assert record["supersedes_decision_hash"] is None
+    on_disk = review.load_jsonl(current / review.DECISIONS_FILE)
+    assert len(on_disk) == 1
+    assert on_disk[0]["candidate_id"] == candidate["candidate_id"]
+    assert not review.validate_human_review_decision_record(record)
+    event = review.load_jsonl(current / review.AUDIT_FILE)[0]
+    assert event["action"] == "decision_recorded"
+    assert event["candidate_id"] == candidate["candidate_id"]
+    assert event.get("previous_decision") is None
+
+
+def test_record_individual_decision_refuses_when_decision_already_exists(tmp_path: Path) -> None:
+    current, canon, (candidate,) = _fixture(tmp_path)
+    previous = _decision(current, canon, candidate)
+    review.atomic_write_jsonl(current / review.DECISIONS_FILE, {candidate["candidate_id"]: previous})
+    with pytest.raises(ValueError, match="use supersede_individual_decision"):
+        review.record_individual_decision(
+            current, canon, candidate_id=candidate["candidate_id"], decision="deferred",
+            reason_code="LIFECYCLE_UNRESOLVED", note="Intento inválido.", actor="Naveen",
+            confirmation=review.DECISION_INITIAL_CONFIRMATION,
+        )
+    assert review.load_jsonl(current / review.DECISIONS_FILE) == [previous]
+    assert not (current / review.AUDIT_FILE).exists()
+
+
+def test_record_individual_decision_fails_closed_for_unknown_candidate(tmp_path: Path) -> None:
+    current, canon, (candidate,) = _fixture(tmp_path)
+    with pytest.raises(ValueError, match="not in current review queue"):
+        review.record_individual_decision(
+            current, canon, candidate_id="rc_current_doesnotexist00000000",
+            decision="deferred", reason_code="LIFECYCLE_UNRESOLVED", note="Nota.",
+            actor="Naveen", confirmation=review.DECISION_INITIAL_CONFIRMATION,
+        )
+    assert not (current / review.DECISIONS_FILE).exists()
+
+
+def test_record_individual_decision_fails_closed_on_invalid_inputs(tmp_path: Path) -> None:
+    current, canon, (candidate,) = _fixture(tmp_path)
+    cid = candidate["candidate_id"]
+
+    with pytest.raises(ValueError, match="reason_code not valid"):
+        review.record_individual_decision(
+            current, canon, candidate_id=cid, decision="deferred",
+            reason_code="NOT_A_REAL_REASON", note="Nota.", actor="Naveen",
+            confirmation=review.DECISION_INITIAL_CONFIRMATION,
+        )
+    with pytest.raises(ValueError, match="actor"):
+        review.record_individual_decision(
+            current, canon, candidate_id=cid, decision="deferred",
+            reason_code="LIFECYCLE_UNRESOLVED", note="Nota.", actor="   ",
+            confirmation=review.DECISION_INITIAL_CONFIRMATION,
+        )
+    with pytest.raises(ValueError, match="human_review_note required"):
+        review.record_individual_decision(
+            current, canon, candidate_id=cid, decision="deferred",
+            reason_code="LIFECYCLE_UNRESOLVED", note="   ", actor="Naveen",
+            confirmation=review.DECISION_INITIAL_CONFIRMATION,
+        )
+    with pytest.raises(ValueError, match="exact confirmation required"):
+        review.record_individual_decision(
+            current, canon, candidate_id=cid, decision="deferred",
+            reason_code="LIFECYCLE_UNRESOLVED", note="Nota.", actor="Naveen",
+            confirmation="WRONG CONFIRMATION",
+        )
+    assert not (current / review.DECISIONS_FILE).exists()
+    assert not (current / review.AUDIT_FILE).exists()
+
+
+def test_record_individual_decision_never_touches_other_pending_candidates(tmp_path: Path) -> None:
+    x, y = _candidate("rc_current_1111111111111111"), _candidate("rc_current_2222222222222222")
+    current, canon, (cand_x, cand_y) = _fixture(tmp_path, candidates=[x, y])
+    review.record_individual_decision(
+        current, canon, candidate_id=cand_x["candidate_id"], decision="deferred",
+        reason_code="LIFECYCLE_UNRESOLVED", note="Solo X.", actor="Naveen",
+        confirmation=review.DECISION_INITIAL_CONFIRMATION,
+    )
+    on_disk = {row["candidate_id"]: row for row in review.load_jsonl(current / review.DECISIONS_FILE)}
+    assert set(on_disk) == {cand_x["candidate_id"]}
+    assert cand_y["candidate_id"] not in on_disk
+    audit = review.load_jsonl(current / review.AUDIT_FILE)
+    assert len(audit) == 1
+    assert audit[0]["candidate_id"] == cand_x["candidate_id"]
+
+
+def test_record_then_supersede_individual_decision_full_lifecycle(tmp_path: Path) -> None:
+    """The exact two-hop history a restored decision must reproduce: an
+    initial decision (no supersedes_decision_hash) followed by a governed
+    supersession that correctly chains from it -- proving the new primitive
+    and the existing one compose without weakening either.
+    """
+    current, canon, (candidate,) = _fixture(tmp_path)
+    initial = review.record_individual_decision(
+        current, canon, candidate_id=candidate["candidate_id"], decision="approved_for_admission",
+        reason_code="EXPLICIT_REFERENCE_CONFIRMED", note="Decisión inicial.", actor="Naveen",
+        confirmation=review.DECISION_INITIAL_CONFIRMATION,
+    )
+    assert initial["supersedes_decision_hash"] is None
+    superseded = review.supersede_individual_decision(
+        current, canon, candidate_id=candidate["candidate_id"], decision="deferred",
+        reason_code="LIFECYCLE_UNRESOLVED", note="Diferida por GATE-020.", actor="Naveen",
+        confirmation=review.DECISION_SUPERSESSION_CONFIRMATION,
+    )
+    assert superseded["supersedes_decision_hash"] == review.decision_hash(initial)
+    audit = review.load_jsonl(current / review.AUDIT_FILE)
+    assert [event["action"] for event in audit] == ["decision_recorded", "decision_superseded"]
+
+
+def test_batch_completeness_contract_unchanged_by_new_primitive(tmp_path: Path) -> None:
+    """S0186 Unit H (targeted initial decision), regression H: adding
+    record_individual_decision() must not weaken batch-review completeness --
+    a proposal set missing any batch member is still flagged invalid.
+    """
+    a, b = _candidate("rc_current_3333333333333333"), _candidate("rc_current_4444444444444444")
+    batch = {
+        "candidate_ids": [a["candidate_id"], b["candidate_id"]],
+        "candidate_hashes": [
+            review._review_candidate_hash(a), review._review_candidate_hash(b),
+        ],
+    }
+    proposals = [{
+        "candidate_id": a["candidate_id"],
+        "candidate_hash": review._review_candidate_hash(a),
+        "action": "deferred",
+        "reason_code": "LIFECYCLE_UNRESOLVED",
+        "note": "Nota.",
+        "human_confirmation": review.current_candidate_confirmation(a["candidate_id"], "deferred"),
+    }]
+    results = review._check_current_batch_proposals_individually(batch, proposals)
+    by_id = {item["candidate_id"]: item for item in results}
+    assert by_id[a["candidate_id"]]["valid"] is True
+    assert by_id[b["candidate_id"]]["valid"] is False
+    assert "no_proposal_for_candidate" in by_id[b["candidate_id"]]["errors"]
+
+
 def test_individual_supersession_records_previous_hash_and_note(tmp_path: Path) -> None:
     current, canon, (candidate,) = _fixture(tmp_path)
     previous = _decision(current, canon, candidate)
@@ -2023,3 +2604,117 @@ def test_empty_actor_is_rejected_before_queue_is_loaded(tmp_path: Path, monkeypa
     assert review.main([
         "--current-dir", str(tmp_path), "--canon-root", str(tmp_path), "--reviewer", "  ",
     ]) == 2
+
+
+# ── S0186 Unit H (final closure blocker): TASK B operator route ─────────────
+
+
+def _technically_invalid_fixture(tmp_path: Path) -> tuple[Path, Path, list[dict], Path]:
+    """One approved-but-technically_invalid candidate (GATE-020), one
+    approved-and-ready candidate -- exercises the exact partition
+    scoping the operator route must apply."""
+    invalid = _candidate("rc_current_" + "1" * 24)
+    invalid["source"]["canonical_id"] = "src-invalid"
+    invalid["target"]["canonical_id"] = "tgt-invalid"
+    ready = _candidate("rc_current_" + "2" * 24)
+    ready["source"]["canonical_id"] = "src-ready"
+    ready["target"]["canonical_id"] = "tgt-ready"
+    current, canon, candidates = _fixture(tmp_path, candidates=[invalid, ready])
+
+    bindings = review.current_bindings(current, canon)
+    decisions = {}
+    for candidate in candidates:
+        decisions[candidate["candidate_id"]] = review.build_decision_record(
+            candidate, decision="approved_for_admission",
+            reason_code="DIRECT_CODE_DEPENDENCY_CONFIRMED", actor="Naveen",
+            bindings=bindings, reviewed_at="2026-09-03T00:00:00+00:00",
+        )
+    review.atomic_write_jsonl(current / review.EFFECTIVE_DECISIONS_FILE, decisions)
+
+    gate_report = current / "admission_gate_dry_run.json"
+    _write(gate_report, {
+        "schema_version": "relation-admission-gate-dry-run/v1",
+        "items": [
+            {
+                "candidate_id": invalid["candidate_id"], "gate_status": "blocked",
+                "admission_ready_dry_run": False,
+                "all_block_reasons": ["GATE-020: source.lifecycle_state ausente."],
+            },
+            {
+                "candidate_id": ready["candidate_id"], "gate_status": "ready",
+                "admission_ready_dry_run": True, "all_block_reasons": [],
+            },
+        ],
+    })
+    return current, canon, candidates, gate_report
+
+
+def test_technically_invalid_approved_candidates_scopes_exactly_the_blocked_ones(tmp_path: Path) -> None:
+    current, canon, candidates, gate_report = _technically_invalid_fixture(tmp_path)
+
+    details = review.technically_invalid_approved_candidates(current, canon, gate_report)
+
+    assert [detail["candidate_id"] for detail in details] == [candidates[0]["candidate_id"]]
+    detail = details[0]
+    assert detail["human_review_decision"]["human_review_decision"] == "approved_for_admission"
+    assert "GATE-020: source.lifecycle_state ausente." in detail["gate_reasons"]
+    assert detail["source"]["canonical_id"] == "src-invalid"
+    assert detail["target"]["canonical_id"] == "tgt-invalid"
+    assert detail["admitted"] is False
+
+
+def test_review_technically_invalid_menu_preview_writes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    current, canon, _candidates, gate_report = _technically_invalid_fixture(tmp_path)
+    decisions_path = review.decision_authority_path(current)
+    before = decisions_path.read_bytes()
+
+    answers = iter(("1", "n"))
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+
+    assert review.review_technically_invalid_candidates_menu(current, canon, gate_report) == 0
+    assert decisions_path.read_bytes() == before
+
+
+def test_review_technically_invalid_menu_confirmed_supersession_writes_governed_decision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    current, canon, candidates, gate_report = _technically_invalid_fixture(tmp_path)
+    decisions_path = review.decision_authority_path(current)
+    original = next(
+        row for row in review.load_jsonl(decisions_path)
+        if row["candidate_id"] == candidates[0]["candidate_id"]
+    )
+
+    answers = iter((
+        "1", "s", "deferred", "INSUFFICIENT_CONTEXT",
+        "lifecycle evidence pending human review", "operator-2",
+        review.DECISION_SUPERSESSION_CONFIRMATION,
+    ))
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+
+    assert review.review_technically_invalid_candidates_menu(current, canon, gate_report) == 0
+
+    live = next(
+        row for row in review.load_jsonl(decisions_path)
+        if row["candidate_id"] == candidates[0]["candidate_id"]
+    )
+    assert live["human_review_decision"] == "deferred"
+    assert live["supersedes_decision_hash"] == review.decision_hash(original)
+    event = review.load_jsonl(current / review.AUDIT_FILE)[0]
+    assert event["action"] == "decision_superseded"
+
+
+def test_review_technically_invalid_menu_rejects_wrong_confirmation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    current, canon, _candidates, gate_report = _technically_invalid_fixture(tmp_path)
+    decisions_path = review.decision_authority_path(current)
+    before = decisions_path.read_bytes()
+
+    answers = iter(("1", "s", "deferred", "INSUFFICIENT_CONTEXT", "note", "operator", "WRONG PHRASE"))
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+
+    assert review.review_technically_invalid_candidates_menu(current, canon, gate_report) == 2
+    assert decisions_path.read_bytes() == before
