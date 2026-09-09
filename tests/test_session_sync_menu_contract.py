@@ -57,3 +57,20 @@ def test_menu_requires_scope_and_session_filter_before_scan(monkeypatch) -> None
     assert observed["scope"] == "missing"
     assert observed["filter_type"] == "session_id"
     assert observed["filter_value"] == "m04-s0183"
+
+
+def test_menu_accepts_thematic_diagnostic_family_filter(monkeypatch) -> None:
+    answers = iter(["1", "3", "thematic_diagnostic", "0"])
+    observed: dict[str, object] = {}
+
+    def fake_scan(**kwargs):
+        observed.update(kwargs)
+        return _inventory()
+
+    monkeypatch.setattr(menu, "prompt", lambda _message: next(answers))
+    monkeypatch.setattr(menu, "scan_session_sync", fake_scan)
+    menu.option_session_sync(menu.MenuState())
+
+    assert observed["scope"] == "missing"
+    assert observed["filter_type"] == "family"
+    assert observed["filter_value"] == "thematic_diagnostic"

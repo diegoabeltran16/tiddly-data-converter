@@ -419,9 +419,50 @@ def _cmd_validate_dir(args: argparse.Namespace) -> int:
     if not paths:
         print(f"No .md.json files found under {sessions_dir}", file=sys.stderr)
         return 1
-    # Reuse validate logic
-    args.paths = [str(p) for p in paths]
-    return _cmd_validate(args)
+
+    # Route each artifact to its owning family before selecting a schema.
+    # This directory recurses over every family under sessions_dir (including
+    # 06_diagnoses/tema/, owned by diagnostic_governance, not the session
+    # schema below) — applying validate_deliverable_file unconditionally to
+    # every path produced false "missing session_id/module/..." errors for
+    # families that never carry those fields.  Deferred import: artifact_routing
+    # imports validate_deliverable_file from this module at top level, so a
+    # module-level import here would cycle.
+    from artifact_routing import route_artifact, validate_routed_artifact
+
+    all_errors: list[tuple[Path, list[str]]] = []
+    for path in paths:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            all_errors.append((path, [f"  ✗ [json] invalid JSON: {exc}"]))
+            continue
+        if not isinstance(payload, dict):
+            all_errors.append((path, ["  ✗ [root] root must be a JSON object"]))
+            continue
+
+        route = route_artifact(path, payload, sessions_dir)
+        result = validate_routed_artifact(route, path, payload, sessions_dir)
+        if result["valid"]:
+            continue
+        errors = result["errors"] or ["unresolved family owner"]
+        if route.family == "session_deliverable":
+            # validate_deliverable_file errors are already formatted via SchemaError.__str__.
+            all_errors.append((path, list(errors)))
+        else:
+            all_errors.append((path, [f"  ✗ [{route.family}] {msg}" for msg in errors]))
+
+    if not all_errors:
+        print(f"✓ All {len(paths)} file(s) valid.")
+        return 0
+
+    for path, errs in all_errors:
+        print(f"\n✗ {path}")
+        for e in errs:
+            print(e)
+
+    print(f"\n{sum(len(e) for _, e in all_errors)} error(s) in {len(all_errors)} file(s).")
+    return 1
 
 
 def main() -> int:

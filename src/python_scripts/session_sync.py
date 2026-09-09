@@ -51,6 +51,7 @@ from session_artifact_governance import (  # noqa: E402
 )
 from session_title_policy import needs_normalization  # noqa: E402
 from generate_session_deliverables import validate_deliverable_file  # noqa: E402
+from artifact_routing import route_artifact, validate_routed_artifact  # noqa: E402
 
 
 DEFAULT_SESSION_SYNC_DIR = REPO_ROOT / "data" / "tmp" / "session_sync"
@@ -275,6 +276,87 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
     )
 
 
+def build_thematic_diagnostic_candidate(path: Path, sessions_dir: Path) -> SessionArtifactCandidate:
+    """Prepare a non-authoritative thematic-diagnostic record.
+
+    The diagnostic family owns path validation; this adapter only maps its
+    already-valid durable representation into the same normalisation boundary
+    used by session deliverables.  In particular, it does not derive an id
+    from a filename: ``_run_normalize`` remains the CURRENT identity producer.
+    """
+    payload = _load_session_tiddler(path)
+    title = _safe_str(payload.get("title"))
+    canonical_slug = _safe_str(payload.get("canonical_slug"))
+    if not title or not canonical_slug:
+        raise ValueError("thematic diagnostic requires title and canonical_slug")
+
+    source_type = _validated_source_type(_safe_str(payload.get("type")), path)
+    source_path = as_display_path(path)
+    text = _artifact_text(payload)
+    created = _safe_str(payload.get("created")) or "19700101000000000"
+    modified = _safe_str(payload.get("modified")) or created
+    tags = [str(tag) for tag in payload.get("tags", []) if isinstance(tag, str)]
+    record = {
+        "schema_version": "v0",
+        "id": "",
+        "key": title,
+        "title": title,
+        "canonical_slug": canonical_slug,
+        "version_id": "",
+        "content_type": "text/markdown",
+        "modality": "text",
+        "encoding": "utf-8",
+        "is_binary": False,
+        "is_reference_only": False,
+        "role_primary": "diagnostico",
+        "tags": tags,
+        "taxonomy_path": ["diagnostics", "thematic_diagnostic"],
+        "semantic_text": None,
+        "content": {"plain": text},
+        "raw_payload_ref": "",
+        "mime_type": source_type,
+        "document_id": canonical_slug,
+        "section_path": ["diagnostics", "thematic_diagnostic", canonical_slug],
+        # Each thematic diagnostic is its own standalone, one-part document
+        # (document_id/section_path above are scoped per-diagnostic, never
+        # shared across multiple diagnostics the way a session's seven
+        # deliverables share one document_id) -- so position 1 of 1 is the
+        # only value consistent with what order_in_document means elsewhere
+        # in this contract (position within a multi-part document).
+        "order_in_document": 1,
+        "relations": [],
+        "source_tags": list(tags),
+        "normalized_tags": list(tags),
+        "source_fields": {
+            "artifact_family": "thematic_diagnostic",
+            "canonical_status": CANON_STATUS_CANDIDATE,
+            "provenance_ref": source_path,
+            "source_path": source_path,
+            # G5 (S0186): session_origin is a generic origin/family dedup key
+            # (see admit_session_candidates._session_family_key), not a
+            # literal claim of session membership -- canonical_slug is this
+            # family's own stable, non-fabricated origin identity, exactly
+            # analogous to session_id's role for session_deliverable.
+            "session_origin": canonical_slug,
+        },
+        "source_role": "evidence",
+        "text": text,
+        "source_type": source_type,
+        "source_position": source_path,
+        "created": created,
+        "modified": modified,
+    }
+    return SessionArtifactCandidate(
+        source_path=path,
+        session_id="",
+        artifact_family="thematic_diagnostic",
+        record=record,
+        contract_session_id="",
+        contract_module="",
+        contract_session="",
+    )
+
+
 def _normalize_candidates(
     candidates: list[SessionArtifactCandidate],
     run_dir: Path,
@@ -421,6 +503,7 @@ def scan_session_sync(
     prepared: list[SessionArtifactCandidate] = []
     invalid: list[dict[str, Any]] = []
     unsupported: list[dict[str, Any]] = []
+    family_decisions: list[dict[str, Any]] = []
 
     for path in md_paths:
         # Step 1: JSON parse check — preserve "invalid" classification for
@@ -439,26 +522,64 @@ def scan_session_sync(
             )
             continue
 
-        # Step 2: S0128 schema validation — fail-fast on authoring errors
-        # (wrong 'type', 'created_at', S-prefix titles, list-format root, etc.)
-        schema_errors = validate_deliverable_file(path)
-        if schema_errors:
+        # Step 2: route before selecting any family schema.  The legacy session
+        # validator remains the session adapter; thematic diagnostics are owned
+        # by diagnostic_governance and must never pass through that schema.
+        try:
+            payload = _load_session_tiddler(path)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            invalid.append(
+                {
+                    "path": as_display_path(path),
+                    "classification": "invalid",
+                    "message": str(exc),
+                }
+            )
+            continue
+        route = route_artifact(path, payload, sessions_dir)
+        validation = validate_routed_artifact(route, path, payload, sessions_dir)
+        source_hash = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        family_decisions.append(
+            {
+                "path": as_display_path(path),
+                "source_hash": source_hash,
+                "family": route.family,
+                "family_contract": route.owner,
+                "route_reason": route.reason,
+                "schema_valid": validation["valid"],
+                "schema_errors": validation["errors"],
+                "candidate_status": "not_evaluated",
+            }
+        )
+        if not validation["valid"]:
             invalid.append(
                 {
                     "path": as_display_path(path),
                     "classification": "schema_invalid",
-                    "message": "; ".join(str(e) for e in schema_errors),
-                    "schema_errors": [
-                        {"field": e.field, "message": e.message}
-                        for e in schema_errors
-                    ],
+                    "message": "; ".join(validation["errors"]),
+                    "schema_errors": validation["errors"],
+                    "family": route.family,
                 }
             )
             continue
 
-        # Step 3: build candidate (existing behavior)
+        # Step 3: family-owned candidate adapter.  All output remains prepared
+        # material in the selected run directory; no admission or canon write
+        # is available from this command.
         try:
-            prepared.append(build_candidate_from_artifact(path, sessions_dir))
+            if route.family == "session_deliverable":
+                prepared.append(build_candidate_from_artifact(path, sessions_dir))
+            elif route.family == "thematic_diagnostic":
+                prepared.append(build_thematic_diagnostic_candidate(path, sessions_dir))
+            else:
+                unsupported.append(
+                    {
+                        "path": as_display_path(path),
+                        "classification": "unsupported_family",
+                        "family": route.family,
+                        "message": "family is routable but not synchronizable in this unit",
+                    }
+                )
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             invalid.append(
                 {
@@ -507,14 +628,18 @@ def scan_session_sync(
             continue
         seen_ids[rec_id] = summary["source_path"]
 
-        if candidate.artifact_family not in SESSION_DELIVERABLE_FAMILIES:
-            excluded_non_session.append(
-                {**summary, "classification": "excluded_non_session", "message": "artifact family is outside the seven session deliverables"}
-            )
-            continue
-
         existing = canon_index.by_id.get(rec_id)
         if existing is None:
+            title_matches = canon_index.by_title.get(summary["title"], [])
+            if any(_safe_str(match.record.get("id")) != rec_id for match in title_matches):
+                blocked_same_id_different_content.append(
+                    {
+                        **summary,
+                        "classification": "blocking_conflict",
+                        "message": "title exists in canon under a different identity",
+                    }
+                )
+                continue
             source_match = canon_index.by_source_path.get(summary["source_path"])
             if source_match is not None:
                 source_path_identity_drift.append(
@@ -566,6 +691,28 @@ def scan_session_sync(
             if _matches_filter(candidate, filter_type, filter_value):
                 replacement_records.append(candidate.record)
 
+    # Enrich each route receipt with its final sync decision.  This is kept
+    # compact and deterministic except for the existing run metadata.
+    decision_by_path: dict[str, str] = {}
+    for items, decision in (
+        (existing_by_id, "SAME"),
+        (missing_by_id, "MISSING"),
+        (replaceable_same_id_different_content, "REPLACEMENT"),
+        (blocked_same_id_different_content, "CONFLICT"),
+        (source_path_identity_drift, "UNRESOLVED"),
+    ):
+        for item in items:
+            decision_by_path[item["source_path"]] = decision
+    for item in family_decisions:
+        item["canonical_compare"] = decision_by_path.get(item["path"], "UNRESOLVED")
+        item["candidate_status"] = {
+            "MISSING": "prepared_non_authoritative",
+            "REPLACEMENT": "prepared_non_authoritative",
+            "SAME": "no_op",
+            "CONFLICT": "blocked",
+            "UNRESOLVED": "blocked",
+        }[item["canonical_compare"]]
+
     if scope == "missing":
         selected_records = missing_records
     elif scope == "replacement":
@@ -614,6 +761,7 @@ def scan_session_sync(
         "blocking_conflict": blocked_same_id_different_content,
         "source_path_identity_drift": source_path_identity_drift,
         "excluded_non_session": excluded_non_session,
+        "family_decisions": family_decisions,
         "unsupported_auxiliary": unsupported,
         "invalid_session_deliverable": invalid,
         "selection": {
