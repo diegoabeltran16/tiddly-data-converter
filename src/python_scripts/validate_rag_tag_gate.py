@@ -26,17 +26,21 @@ from tag_sanitation_policy import (
     parse_tags,
     stable_json,
 )
+from path_governance import DEFAULT_AI_DIR, DEFAULT_ENRICHED_DIR, DEFAULT_LOCAL_OUT_DIR, DEFAULT_MICROSOFT_COPILOT_DIR
 
 
 DEFAULT_INVENTORY = DEFAULT_OUT_DIR / "tag_inventory.json"
 DEFAULT_REPORT = DEFAULT_OUT_DIR / "rag_tag_gate_report.json"
 DEFAULT_REPORT_MD = DEFAULT_OUT_DIR / "rag_tag_gate_report.md"
+# S0187 D23-A B4-5: these were REPO_ROOT-relative -- workspace-owned;
+# migrated to the governed owners (3 of 5 entries already existed as
+# dedicated DEFAULT_* constants in path_governance, reused directly).
 DEFAULT_SCAN_ROOTS = [
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "semantic_text",
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "semantic_text_authority",
-    REPO_ROOT / "data" / "out" / "local" / "enriched",
-    REPO_ROOT / "data" / "out" / "local" / "ai",
-    REPO_ROOT / "data" / "out" / "local" / "microsoft_copilot",
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "semantic_text",
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "semantic_text_authority",
+    DEFAULT_ENRICHED_DIR,
+    DEFAULT_AI_DIR,
+    DEFAULT_MICROSOFT_COPILOT_DIR,
 ]
 TEXT_EXTENSIONS = {".md", ".txt", ".csv"}
 JSON_EXTENSIONS = {".json", ".jsonl"}

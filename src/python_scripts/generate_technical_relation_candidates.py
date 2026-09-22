@@ -12,6 +12,7 @@ import ast
 import csv
 import hashlib
 import json
+import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -19,7 +20,17 @@ from pathlib import Path
 from typing import Any, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CANON_ROOT = REPO_ROOT / "data" / "out" / "local"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_CANON_DIR  # noqa: E402
+
+# S0187 D23-A: DEFAULT_CANON_ROOT was a hardcoded REPO_ROOT-relative literal
+# -- dead at the real tdc.sh call site (--canon-root "$CANON_DIR" passed
+# explicitly, already governed via D17), live as this script's own CLI
+# default for direct invocation. The --canon-root CLI override itself is
+# unchanged.
+DEFAULT_CANON_ROOT = DEFAULT_CANON_DIR
 DEFAULT_SESSION = "S0161"
 DEFAULT_OUT_DIR = DEFAULT_CANON_ROOT / "pipeline" / "relation_candidates" / "s0161"
 

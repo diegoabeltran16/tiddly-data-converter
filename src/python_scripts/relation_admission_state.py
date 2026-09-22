@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,7 +21,14 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-LOCAL_ROOT = REPO_ROOT / "data" / "out" / "local"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+# S0187 Unit D finding: LOCAL_ROOT was a hardcoded REPO_ROOT-relative literal.
+# The `audit` command (invoked from tdc.sh's relations menu with no
+# --local-root override) writes relational_operational_state.json and
+# relational_audit_index.json under LOCAL_ROOT/audit/relation_admission --
+# a confirmed active write to what is now the governed workspace root.
+from path_governance import DEFAULT_CANON_DIR as LOCAL_ROOT  # noqa: E402
 CURRENT_DIR = LOCAL_ROOT / "pipeline" / "relation_candidates" / "current"
 AUDIT_DIR = LOCAL_ROOT / "audit" / "relation_admission" / "current"
 S0180_AUDIT = LOCAL_ROOT / "audit" / "s0180"

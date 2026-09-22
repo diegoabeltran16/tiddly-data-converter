@@ -9,6 +9,8 @@ import sys
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
+import audit_tags_inventory as ati  # noqa: E402
+import path_governance as pg  # noqa: E402
 from audit_tags_inventory import build_inventory, read_canon_records  # noqa: E402
 from build_tag_sanitation_plan import build_plan  # noqa: E402
 from tag_sanitation_policy import classify_tag, classify_tag_for_rag, filter_tags_for_rag, load_policy, write_default_policy  # noqa: E402
@@ -373,3 +375,10 @@ def test_tag_sanitation_plan_does_not_modify_canon(tmp_path: Path) -> None:
     assert inventory["summary"]["canon_modified"] is False
     assert plan["canon_modified"] is False
     assert _hash(canon) == before
+
+
+def test_default_canon_glob_and_out_dir_are_workspace_governed() -> None:
+    # S0187 D23-A B4-5: these were REPO_ROOT-relative; must now resolve
+    # against the governed workspace root, not the repository checkout.
+    assert ati.DEFAULT_CANON_GLOB == str(pg.DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
+    assert ati.DEFAULT_OUT_DIR == pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "tag_sanitation" / "s0169"

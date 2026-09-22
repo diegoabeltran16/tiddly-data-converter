@@ -23,8 +23,19 @@ import semantic_text_builder as base
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
 DEFAULT_SESSION = "S0149"
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "semantic_text_authority" / "s0149"
+# S0187 D23-A: DEFAULT_OUT_DIR was REPO_ROOT-relative, and this file's own
+# REPO_ROOT (SCRIPT_DIR.parent) is itself wrong (resolves to src/, not the
+# repo root -- the same INCIDENTAL_PREEXISTING_PATH_BUG class already found
+# and fixed in mcp_env_manager.py during B2). Dead at the real
+# repo_metadata_review_menu.py call site (which passes --out-dir
+# explicitly, already governed), live for direct standalone invocation.
+# Migrating to the governed owner fixes both issues at once.
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "semantic_text_authority" / "s0149"
 SCHEMA = "semantic-text-authority-aware-build/v1"
 SEMANTIC_TEXT_VERSION = "semantic-text-authority-aware/v1"
 

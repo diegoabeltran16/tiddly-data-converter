@@ -19,8 +19,11 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
+import audit_relation_inventory as ari
+import path_governance as pg
 from audit_relation_inventory import (
     audit_canon,
+    build_parser,
     write_audit_json,
     write_review_csv,
     write_summary_md,
@@ -305,3 +308,16 @@ class TestCase10_ConsistentAggregates:
             rows = list(csv.DictReader(f))
         assert len(rows) >= 1
         assert "source_id" in rows[0]
+
+
+class TestDefaultPathsAreWorkspaceGoverned:
+    # S0187 D23-A B4-5: DEFAULT_CANON_ROOT/DEFAULT_OUT_DIR were REPO_ROOT-
+    # relative; must now resolve against the governed workspace root.
+    def test_default_canon_root_and_out_dir_match_governed_paths(self):
+        assert ari.DEFAULT_CANON_ROOT == pg.DEFAULT_CANON_DIR
+        assert ari.DEFAULT_OUT_DIR == pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_inventory" / "s0136"
+
+    def test_explicit_canon_root_override_wins_over_default(self, tmp_path):
+        args = build_parser().parse_args(["--canon-root", str(tmp_path)])
+        assert args.canon_root == tmp_path
+        assert args.canon_root != ari.DEFAULT_CANON_ROOT

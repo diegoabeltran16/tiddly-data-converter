@@ -27,11 +27,22 @@ from rag_derivative_writers import (
     verify_productive_state_matches_snapshot,
 )
 from s0174_governance import build_governance_gate, build_post_write_validation, build_producer_inventory
+# S0187 Unit D finding: LOCAL_ROOT was a hardcoded REPO_ROOT-relative literal
+# with NO override mechanism anywhere in this module's CLI (main()'s
+# argparse has no --local-root option) -- every write command reachable from
+# operator_menu.py's "8) Derivados / RAG" menu (refresh-governance,
+# authorize-trial, trial-write, validate-trial, rollback-trial,
+# authorize-definitive, promote-definitive, validate-definitive, finalize,
+# audit) used it unconditionally. Confirmed this module never writes Canon
+# shards itself (see module docstring and grep for tiddlers_*.jsonl writes:
+# none) -- only staging/authorization/receipt state under pipeline/rag_admission
+# and audit/rag_admission, which data/README.md itself already documents as
+# "no son canon". Fixing the path does not touch admission semantics.
+from path_governance import DEFAULT_CANON_DIR as LOCAL_ROOT
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-LOCAL_ROOT = REPO_ROOT / "data" / "out" / "local"
 PIPELINE_ROOT = LOCAL_ROOT / "pipeline" / "rag_admission"
 AUDIT_ROOT = LOCAL_ROOT / "audit" / "rag_admission"
 STAGING_ROOT = PIPELINE_ROOT / "staging"

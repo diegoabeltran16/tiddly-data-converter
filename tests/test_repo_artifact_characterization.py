@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import characterize_repo_artifacts as cra  # noqa: E402
+import path_governance as pg  # noqa: E402
 
 
 def _record(
@@ -271,9 +272,15 @@ def test_default_repo_root_resolves_to_the_actual_repository_root() -> None:
     # SCRIPT_DIR.parents[1] convention relation_admission_gate.py uses.
     script_dir = Path(cra.__file__).resolve().parent
     assert cra.REPO_ROOT == script_dir.parents[1]
-    assert (cra.REPO_ROOT / "data" / "out" / "local").is_dir()
     assert (cra.REPO_ROOT / "src" / "python_scripts").is_dir()
-    assert cra.DEFAULT_CANON_GLOB == str(cra.REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
+    # S0187 D23-A B4-5: DEFAULT_CANON_GLOB/DEFAULT_OUT_DIR are workspace-
+    # owned, not repository-owned -- REPO_ROOT/data/out/local is no longer
+    # the authority for them (that assumption is exactly what D23-A is
+    # erradicating). The governed contract is path_governance's
+    # DEFAULT_CANON_DIR/DEFAULT_LOCAL_OUT_DIR, which may resolve anywhere.
+    assert pg.DEFAULT_CANON_DIR.is_dir()
+    assert cra.DEFAULT_CANON_GLOB == str(pg.DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
+    assert cra.DEFAULT_OUT_DIR == pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_artifacts" / "s0146"
 
 
 def test_does_not_modify_input_canon_jsonl(tmp_path: Path, monkeypatch) -> None:

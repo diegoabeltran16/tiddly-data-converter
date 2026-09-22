@@ -58,7 +58,16 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_SESSIONS_DIR  # noqa: E402
+
+# S0187 D23-A: DEFAULT_SESSIONS_DIR was a hardcoded REPO_ROOT-relative
+# literal, duplicating (not reusing) path_governance's own governed
+# constant of the same name. This is the canonical session-deliverables
+# generator (see tiddlers_sesiones.instructions.md) -- not menu-wired, but
+# the documented standard tool. Now imports the single governed owner
+# instead of redefining it.
 
 # ── Schema constants ──────────────────────────────────────────────────────────
 

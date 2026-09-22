@@ -32,8 +32,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 from derive_layers import classify_role, derive_taxonomy_and_section, VALID_ROLES
+from path_governance import DEFAULT_AI_DIR
 
-AI_DIR = REPO_ROOT / "data" / "out" / "local" / "ai"
+# S0187 D23-A: was a hardcoded REPO_ROOT-relative literal -- migrated so
+# this test reads from the governed root instead of the old materialization.
+# Content expectations (EXPECTED_TOTAL, EXPECTED_ROLE_DISTRIBUTION below)
+# are deliberately left untouched: this test is already known-failing on
+# content drift (pre-existing, D20-R baseline), and that is explicitly out
+# of D23-A's scope. The goal here is only that it fail for that same,
+# already-known reason -- not for looking at the wrong materialization.
+AI_DIR = DEFAULT_AI_DIR
 
 # ── Distribution constants ─────────────────────────────────────────────────────
 

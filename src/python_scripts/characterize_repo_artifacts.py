@@ -33,19 +33,23 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # relation_admission_gate.py and generate_technical_relation_candidates.py.
 REPO_ROOT = SCRIPT_DIR.parents[1]
 
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
 SCHEMA = "repo-artifact-characterization/v1"
-DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
+# S0187 D23-A B4-5: these were REPO_ROOT-relative -- workspace-owned canon/
+# pipeline paths, not repository paths. Migrated to the governed owners;
+# REPO_ROOT itself stays (still used below for compare_content()'s repo-file
+# comparison, the git-file fallback, and display_path() -- genuinely
+# repository-owned concerns, not touched by this migration).
+DEFAULT_CANON_GLOB = str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
 DEFAULT_S0145_CANDIDATES = (
-    REPO_ROOT
-    / "data"
-    / "out"
-    / "local"
+    DEFAULT_LOCAL_OUT_DIR
     / "pipeline"
     / "unknown_artifact_family"
     / "s0145"
     / "s0145_unknown_classification_candidates.jsonl"
 )
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_artifacts" / "s0146"
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_artifacts" / "s0146"
 
 REVIEW_COLUMNS = [
     "id",

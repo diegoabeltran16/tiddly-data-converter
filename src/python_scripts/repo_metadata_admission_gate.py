@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 import shutil
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,26 +23,32 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
 
-S0147_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals -- dead at
+# the real repo_metadata_review_menu.py call sites (which always pass an
+# explicit dir), but live as this script's own CLI defaults for direct
+# standalone invocation. Migrated to the governed owners; subdirectory
+# taxonomy (repo_artifacts/s0146, repo_metadata_review/s0147+s0148,
+# repo_metadata_admission/...) unchanged, only the base locator.
+S0147_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_review" / "s0147"
 DEFAULT_PATCH_PREVIEW = S0147_DIR / "s0147_repo_metadata_patch_preview.jsonl"
 DEFAULT_REVIEW_BATCHES = S0147_DIR / "s0147_repo_metadata_review_batches.json"
 DEFAULT_PATCH_HASHES = S0147_DIR / "s0147_repo_metadata_patch_hashes.json"
 DEFAULT_DRY_RUN_REPORT = S0147_DIR / "s0147_repo_metadata_dry_run_report.json"
 DEFAULT_CLASSIFICATION = (
-    REPO_ROOT
-    / "data"
-    / "out"
-    / "local"
+    DEFAULT_LOCAL_OUT_DIR
     / "pipeline"
     / "repo_artifacts"
     / "s0146"
     / "s0146_repo_artifact_classification.jsonl"
 )
-DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0148"
+DEFAULT_CANON_GLOB = str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_review" / "s0148"
 DEFAULT_HUMAN_DECISIONS = DEFAULT_OUT_DIR / "s0148_repo_metadata_human_decisions.json"
-DEFAULT_ADMISSION_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission"
+DEFAULT_ADMISSION_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_admission"
 DEFAULT_S0149_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0149"
 DEFAULT_S0149_SELECTED_BATCHES = DEFAULT_S0149_OUT_DIR / "s0149_selected_batches.json"
 DEFAULT_S0151_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0151"

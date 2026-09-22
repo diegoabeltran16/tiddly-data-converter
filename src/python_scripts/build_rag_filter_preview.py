@@ -21,17 +21,19 @@ from tag_sanitation_policy import (
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
+# S0187 D23-A B4-5: these were REPO_ROOT-relative -- workspace-owned
+# pipeline paths. Migrated to the governed owner; REPO_ROOT stays defined
+# but is now unused in this file (left in place per minimal-mutation policy).
 DEFAULT_CANDIDATES = (
-    REPO_ROOT
-    / "data"
-    / "out"
-    / "local"
+    DEFAULT_LOCAL_OUT_DIR
     / "pipeline"
     / "metadata_promotion"
     / "s0171"
     / "metadata_promotion_candidates.jsonl"
 )
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_filters" / "s0171"
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_filters" / "s0171"
 
 
 def read_jsonl(path: Path | str) -> list[dict[str, Any]]:

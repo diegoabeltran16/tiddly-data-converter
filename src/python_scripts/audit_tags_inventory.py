@@ -23,10 +23,15 @@ from tag_sanitation_policy import (
     parse_tags,
     stable_json,
 )
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR
 
 
-DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169"
+# S0187 D23-A B4-5: these were REPO_ROOT-relative literals -- workspace-owned
+# canon/pipeline paths, not repository paths -- so they broke the moment
+# WORKSPACE_ROOT diverged from REPO_ROOT. Migrated to the governed owners;
+# REPO_ROOT (imported above) is left in place though now unused in this file.
+DEFAULT_CANON_GLOB = str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "tag_sanitation" / "s0169"
 INVENTORY_COLUMNS = [
     "tag",
     "count",

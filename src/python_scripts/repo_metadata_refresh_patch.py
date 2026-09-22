@@ -14,6 +14,7 @@ import glob
 import hashlib
 import json
 import re
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,13 +23,20 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_ADMISSION_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission"
-DEFAULT_S0147_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals -- CLI
+# defaults for direct standalone invocation (S0150/S0151 flows). Migrated to
+# the governed owners; subdirectory taxonomy unchanged.
+DEFAULT_ADMISSION_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_admission"
+DEFAULT_S0147_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_review" / "s0147"
 DEFAULT_S0150_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0150"
 DEFAULT_S0151_OUT_DIR = DEFAULT_ADMISSION_DIR / "s0151"
 DEFAULT_OUT_DIR = DEFAULT_S0150_OUT_DIR
 DEFAULT_LATEST_MANIFEST = DEFAULT_ADMISSION_DIR / "latest_metadata_patch_manifest.json"
-DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
+DEFAULT_CANON_GLOB = str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
 SESSION_TITLE_RE = re.compile(
     r"^#### .*?(sesión|sesion|diagnóstico|diagnostico|hipótesis|hipotesis|procedencia|balance|propuesta|contrato)",
     re.IGNORECASE,

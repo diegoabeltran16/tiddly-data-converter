@@ -20,18 +20,28 @@ from typing import Any
 import repo_metadata_admission_gate as gate
 import repo_metadata_refresh_patch as refresh
 import audit_repo_lifecycle_authority as lifecycle_oracle
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0147"
-DEFAULT_S0148_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_review" / "s0148"
-DEFAULT_S0149_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0149"
-DEFAULT_S0151_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "s0151"
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals. Confirmed
+# LIVE and reachable: operator_menu.py calls option_repo_metadata_admission_menu()
+# with zero arguments at 3 real menu call sites, relying entirely on these
+# defaults. Migrated to the single governed owner; subdirectory semantics
+# (s0147/s0148/s0149/s0151/semantic_text_authority) unchanged, only the base.
+# DEFAULT_CANON_GLOB is a derived convenience (not a new path owner) that
+# de-duplicates the 9 identical `canon_glob or str(REPO_ROOT / ...)`
+# fallback expressions below into a single governed expression.
+DEFAULT_CANON_GLOB = str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_review" / "s0147"
+DEFAULT_S0148_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_review" / "s0148"
+DEFAULT_S0149_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_admission" / "s0149"
+DEFAULT_S0151_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_admission" / "s0151"
 DEFAULT_LATEST_METADATA_PATCH_MANIFEST = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "repo_metadata_admission" / "latest_metadata_patch_manifest.json"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "repo_metadata_admission" / "latest_metadata_patch_manifest.json"
 )
-DEFAULT_SEMANTIC_AUTHORITY_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "semantic_text_authority" / "s0149"
+DEFAULT_SEMANTIC_AUTHORITY_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "semantic_text_authority" / "s0149"
 
 APPROVAL_REQUIRES_TERMINAL_TOKEN = "approval_requires_terminal_token"
 
@@ -353,7 +363,7 @@ def run_gate_dry_run(
         patch_hashes=_paths(out_dir)["hashes"],
         dry_run_report=_paths(out_dir)["dry_run"],
         human_decisions=gate.s0148_paths(decision_dir)["human_decisions"],
-        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         s0146_classification=s0146_classification
         or (
             REPO_ROOT
@@ -423,7 +433,7 @@ def run_s0149_gate_dry_run(
         patch_hashes=_paths(out_dir)["hashes"],
         dry_run_report=_paths(out_dir)["dry_run"],
         selected_batches=selected,
-        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         s0146_classification=s0146_classification
         or (
             REPO_ROOT
@@ -484,7 +494,7 @@ def apply_s0149_metadata_from_menu(
         s0147_dry_run_report=_paths(out_dir)["dry_run"],
         dry_run_report_path=gate.s0149_paths(admission_dir)["dry_run_report"],
         selected_batches=gate.s0149_paths(admission_dir)["selected_batches"],
-        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         s0146_classification=s0146_classification
         or (
             REPO_ROOT
@@ -517,7 +527,7 @@ def run_semantic_authority(mode: str, *, canon_glob: str | None = None, out_dir:
         sys.executable,
         str(script),
         "--canon-glob",
-        canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob or DEFAULT_CANON_GLOB,
         "--out-dir",
         str(out_dir),
         "--session",
@@ -698,7 +708,7 @@ def show_s0151_status(
     try:
         hash_doc = gate.s0151_hash_verification(
             manifest=manifest,
-            canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+            canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         )
     except Exception as exc:  # noqa: BLE001 - operator-facing menu
         print(f"- patch vigente: inválido ({exc})")
@@ -829,7 +839,7 @@ def refresh_s0151_patch_from_menu(
         patch_preview=Path(source["patch_preview"]),
         review_batches=Path(source["review_batches"]),
         patch_hashes=Path(source["patch_hashes"]),
-        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         out_dir=admission_dir,
         session="S0151",
         source_session=str(source["source_session"]),
@@ -849,7 +859,7 @@ def _manifest_needs_refresh(manifest: Path, *, canon_glob: str | None = None) ->
     try:
         return not gate.s0151_hash_verification(
             manifest=manifest,
-            canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+            canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         )["all_hashes_match"]
     except Exception:  # noqa: BLE001 - operator-facing menu
         return True
@@ -924,7 +934,7 @@ def run_s0151_gate_dry_run(
     report = gate.run_s0151_dry_run(
         manifest=manifest,
         selected_batches=selected,
-        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         out_dir=admission_dir,
     )
     print("Dry-run ejecutado.")
@@ -975,7 +985,7 @@ def apply_s0151_metadata_from_menu(
         manifest=manifest,
         dry_run_report_path=gate.s0151_paths(admission_dir)["dry_run_report"],
         selected_batches=gate.s0151_paths(admission_dir)["selected_batches"],
-        canon_glob=canon_glob or str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl"),
+        canon_glob=canon_glob or DEFAULT_CANON_GLOB,
         out_dir=admission_dir,
         apply_token=apply_token,
     )

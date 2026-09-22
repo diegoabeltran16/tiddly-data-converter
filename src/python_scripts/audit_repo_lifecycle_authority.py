@@ -48,7 +48,20 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_LOCAL_ROOT = REPO_ROOT / "data" / "out" / "local"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
+# S0187 D23-A: DEFAULT_LOCAL_ROOT was a hardcoded REPO_ROOT-relative literal --
+# confirmed LIVE (repo_metadata_review_menu.py calls
+# build_lifecycle_authority_report() with zero args). REPO_ROOT itself is
+# deliberately left unchanged below: classify_content_authority()'s own
+# repo_root parameter genuinely inspects the repository checkout (it builds
+# `repo_root / real_path` to test whether content physically exists in the
+# repo), a distinct authority from where Canon/workspace evidence lives.
+# This function already had the correct two-parameter separation; only one
+# of the two defaults was mismaterialized.
+DEFAULT_LOCAL_ROOT = DEFAULT_LOCAL_OUT_DIR
 DEFAULT_GATE_REPORT = (
     DEFAULT_LOCAL_ROOT / "audit" / "relation_admission" / "current" / "admission_gate_dry_run.json"
 )

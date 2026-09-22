@@ -81,10 +81,22 @@ from characterize_repo_artifacts import (  # noqa: E402
     load_canon,
 )
 from normalize_session_titles import _recompute_version_id  # noqa: E402
-from path_governance import sorted_canon_shards  # noqa: E402
+from path_governance import (  # noqa: E402
+    DEFAULT_AUDIT_DIR,
+    DEFAULT_CANON_DIR as _PG_DEFAULT_CANON_DIR,
+    sorted_canon_shards,
+)
 
-DEFAULT_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "repo_artifact_content_refresh"
+# S0187 D22: these were hardcoded REPO_ROOT-relative literals, structurally
+# blind to the D13 workspace cutover -- confirmed a live writer to the old
+# root via discover_live_stale()'s own internal scratch dir (see
+# normalize_scratch below), missed by D14-D17's classification because this
+# module's canon_dir/repo_root parameters ARE overridable (and correctly
+# overridden by tests/test_repo_artifact_content_refresh.py's tmp_path
+# fixtures) while DEFAULT_OUT_DIR itself was not. Migrated to the same
+# single owner every other audit-writing module uses.
+DEFAULT_CANON_DIR = _PG_DEFAULT_CANON_DIR
+DEFAULT_OUT_DIR = DEFAULT_AUDIT_DIR / "repo_artifact_content_refresh"
 
 ALLOWED_CHANGED_TOP_LEVEL_FIELDS = frozenset({"text", "version_id", "content"})
 IDENTITY_FIELDS = ("id", "key", "title", "canonical_slug")
