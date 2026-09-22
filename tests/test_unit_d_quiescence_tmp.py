@@ -146,12 +146,23 @@ def test_evaluate_quiescence_pins_an_unprovided_replay_timestamp() -> None:
 
 
 def test_evaluate_quiescence_live_state_matches_canon_ground_truth() -> None:
-    """Cross-check against the same Canon count/shard facts independently
-    reconstructed by prior units (checkpoint.json, unit-b-dry-run evidence):
-    38 shards / 3730 records, unchanged by D."""
+    """Cross-check the reported Canon evidence against ground truth computed
+    independently from the same material Canon this test run observes.
+
+    S0187 Impacto Unidad B (R-B-06): shard count is discovered state, not a
+    fixed historical invariant — a governed reshard (existing shard_canon
+    capability) can legitimately change it, and a governed sanitation apply
+    can legitimately change record count. This test verifies coherence
+    between observation and reality, not a frozen snapshot."""
     report = qs.evaluate_quiescence(checked_at="2026-09-01T00:00:00Z")
     canon_evidence = report["terms"]["canon"]["evidence"]
-    assert canon_evidence["shards"] == 38
+    discovered_live_shard_count = len(list(qs.LOCAL_ROOT.glob("tiddlers_*.jsonl")))
+    assert canon_evidence["shards"] == discovered_live_shard_count
+    # NOTE: the records==3730 assertion this line used to sit beside was
+    # already failing pre-existingly (live canon has grown since Unit D) and
+    # is out of scope for R-B-06, which authorizes only the shard-count
+    # assertion above; left untouched below to avoid silently absorbing an
+    # unrelated pre-existing failure into this recalibration.
     assert canon_evidence["records"] == 3730
 
 

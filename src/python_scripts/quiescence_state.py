@@ -42,12 +42,30 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-LOCAL_ROOT = REPO_ROOT / "data" / "out" / "local"
-TMP_ROOT = REPO_ROOT / "data" / "tmp"
-DEFAULT_CHECKPOINT = TMP_ROOT / "s0186-impact" / "checkpoint.json"
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+
+# S0187 D20: TMP_ROOT is the CURRENT/ACTIVE tmp authority -- previously a
+# hardcoded REPO_ROOT-relative literal, independent of path_governance, so
+# this module's own CURRENT quiescence classification was silently observing
+# the pre-binding root rather than the workspace-active one. HISTORICAL_TMP_ROOT
+# is kept as an explicitly separate, differently-named constant for deliberate
+# inspection of pre-binding material -- it is NEVER a fallback for TMP_ROOT.
+#
+# S0187 D22: LOCAL_ROOT had the exact same defect -- REPO_ROOT-relative,
+# never migrated -- surfaced only when repo/data/out was decommissioned this
+# tranche and this module's own Canon-evidence reader broke immediately.
+from path_governance import (  # noqa: E402
+    DEFAULT_LOCAL_OUT_DIR as LOCAL_ROOT,
+    DEFAULT_TMP_DIR as TMP_ROOT,
+    HISTORICAL_TMP_ROOT,
+)
+# s0186-impact is historical-only material -- it was never migrated with the
+# D-H4 cutover (D9 explicitly excluded tmp/ from the D11 copy) and only ever
+# existed under the pre-binding root, so this checkpoint reference correctly
+# stays pinned to HISTORICAL_TMP_ROOT rather than following TMP_ROOT.
+DEFAULT_CHECKPOINT = HISTORICAL_TMP_ROOT / "s0186-impact" / "checkpoint.json"
 
 import relation_admission_gate as admission_gate  # noqa: E402
 import relation_admission_state as admission_state  # noqa: E402
@@ -87,6 +105,15 @@ _STAGING_OWNERS: dict[str, str] = {
     # a real named default-path constant too, just not yet grep-verified
     # when the dict above was first built.
     "canonical_quality": "operator_menu.py:QUALITY_REPORT_DIR (option_canon_quality; src/rust/doctor canonical-line-gate + deep-node-inspect)",
+    # S0187 D20-R: this entry did not exist because material_inventory.py's
+    # own TMP_ROOT constant did not exist yet when _STAGING_OWNERS was first
+    # built (S0186) -- an obsolete historical gap, not an intentional
+    # exclusion. Confirmed unambiguous: material_inventory.py:TMP_ROOT
+    # (= DEFAULT_TMP_DIR / "material_inventory") is update_inventory()'s own
+    # default `tmp_root` parameter (its work_dir = tmp_root / run_id), the
+    # single top-level, menu-invoked producer of this directory -- same
+    # evidentiary shape as every other entry in this dict.
+    "material_inventory": "material_inventory.py:TMP_ROOT",
 }
 
 # Entries with no hardcoded default-path constant in current source, but
@@ -183,11 +210,18 @@ def classify_tmp_lifecycle(
             "entries": [],
             "counts_by_lifecycle": {},
         }
+    try:
+        tmp_root_display = str(tmp_root.relative_to(REPO_ROOT))
+    except ValueError:
+        tmp_root_display = str(tmp_root)
     entries: list[dict[str, Any]] = []
     for child in sorted(tmp_root.iterdir(), key=lambda p: p.name):
         info = classify_tmp_entry(child.name, active_session_id)
         entries.append({
-            "path": f"data/tmp/{child.name}",
+            # S0187 D20: was a hardcoded "data/tmp/{name}" literal, misleading
+            # once tmp_root moved off REPO_ROOT (it would still claim
+            # "data/tmp/..." while actually describing Toshiba content).
+            "path": f"{tmp_root_display}/{child.name}",
             "is_dir": child.is_dir(),
             **info,
         })
@@ -195,10 +229,6 @@ def classify_tmp_lifecycle(
     for entry in entries:
         counts[entry["lifecycle"]] = counts.get(entry["lifecycle"], 0) + 1
     counts.setdefault("INBOX", 0)
-    try:
-        tmp_root_display = str(tmp_root.relative_to(REPO_ROOT))
-    except ValueError:
-        tmp_root_display = str(tmp_root)
     return {
         "schema_version": "quiescence-tmp-lifecycle/v1",
         "tmp_root": tmp_root_display,
