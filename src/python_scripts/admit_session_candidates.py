@@ -18,10 +18,16 @@ from pathlib import Path
 from typing import Any
 
 from path_governance import (
+    DEFAULT_AUDIT_DIR,
     DEFAULT_CANON_DIR,
     DEFAULT_INPUT_HTML,
+    DEFAULT_SESSIONS_DIR,
+    DEFAULT_TMP_DIR as GOVERNED_DEFAULT_TMP_DIR,
+    LOGICAL_LOCATOR_NAMESPACE,
     REPO_ROOT,
+    LogicalLocatorError,
     as_display_path,
+    resolve_logical_locator,
     resolve_repo_path,
     sorted_canon_shards,
 )
@@ -30,9 +36,19 @@ from path_governance import (
 CANON_STATUS_CANDIDATE = "candidate_not_admitted"
 CANON_STATUS_ADMITTED = "local_admitted"
 
-DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
-DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp" / "session_admission"
-DEFAULT_REPORT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "admissions"
+# DEFAULT_SESSIONS_DIR now comes from path_governance above (S0187 Unit D
+# finding: this was previously a hardcoded REPO_ROOT-relative literal,
+# independent of workspace_root -- the admission gate is the most critical
+# active writer in this pattern since session_sync.py's own default flows
+# through it). DEFAULT_TMP_DIR keeps its script-specific "session_admission"
+# subdirectory but is now derived from the governed tmp root instead of
+# REPO_ROOT directly.
+DEFAULT_TMP_DIR = GOVERNED_DEFAULT_TMP_DIR / "session_admission"
+# S0187 D23-A: DEFAULT_REPORT_DIR was still a hardcoded REPO_ROOT-relative
+# literal -- dead at the two real operator_menu.py subprocess call sites
+# (both pass --report-dir explicitly, already governed), live as this
+# script's own CLI default for direct standalone invocation.
+DEFAULT_REPORT_DIR = DEFAULT_AUDIT_DIR / "admissions"
 SESSION_ID_RE = re.compile(r"^(m\d+)-s([0-9]+[a-z]?)-(.+)$")
 
 REQUIRED_CANON_FIELDS = (
@@ -462,7 +478,16 @@ def _generate_contract_candidate_file(sessions_dir: Path, report_dir: Path) -> P
 def _validate_source_path(raw_path: str, sessions_dir: Path) -> tuple[bool, str]:
     if not raw_path:
         return False, "source_path is empty"
-    resolved = resolve_repo_path(raw_path, sessions_dir)
+    # S0187 PI-15: a value in the logical namespace resolves through the
+    # governed workspace; other values keep repo-relative/absolute semantics.
+    normalized = raw_path.replace("\\", "/")
+    if normalized == LOGICAL_LOCATOR_NAMESPACE or normalized.startswith(LOGICAL_LOCATOR_NAMESPACE + "/"):
+        try:
+            resolved = resolve_logical_locator(normalized)
+        except LogicalLocatorError as exc:
+            return False, f"source_path is not a valid logical locator: {exc}"
+    else:
+        resolved = resolve_repo_path(raw_path, sessions_dir)
     try:
         resolved.relative_to(sessions_dir.resolve())
     except ValueError:
@@ -475,7 +500,16 @@ def _validate_source_path(raw_path: str, sessions_dir: Path) -> tuple[bool, str]
 def _validate_provenance_path(raw_path: str, sessions_dir: Path) -> tuple[bool, str]:
     if not raw_path:
         return False, "provenance_ref is empty"
-    resolved = resolve_repo_path(raw_path, sessions_dir)
+    # S0187 PI-15: a value in the logical namespace resolves through the
+    # governed workspace; other values keep repo-relative/absolute semantics.
+    normalized = raw_path.replace("\\", "/")
+    if normalized == LOGICAL_LOCATOR_NAMESPACE or normalized.startswith(LOGICAL_LOCATOR_NAMESPACE + "/"):
+        try:
+            resolved = resolve_logical_locator(normalized)
+        except LogicalLocatorError as exc:
+            return False, f"provenance_ref is not a valid logical locator: {exc}"
+    else:
+        resolved = resolve_repo_path(raw_path, sessions_dir)
     try:
         resolved.relative_to(sessions_dir.resolve())
     except ValueError:

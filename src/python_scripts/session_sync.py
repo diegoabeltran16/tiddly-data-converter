@@ -36,9 +36,14 @@ from admit_session_candidates import (  # noqa: E402
     _write_jsonl,
 )
 from path_governance import (  # noqa: E402
+    DEFAULT_AUDIT_DIR,
     DEFAULT_CANON_DIR,
+    DEFAULT_TMP_DIR,
     REPO_ROOT,
+    LogicalLocatorError,
     as_display_path,
+    as_logical_locator,
+    canonical_logical_locator,
     resolve_repo_path,
 )
 from session_artifact_governance import (  # noqa: E402
@@ -54,8 +59,12 @@ from generate_session_deliverables import validate_deliverable_file  # noqa: E40
 from artifact_routing import route_artifact, validate_routed_artifact  # noqa: E402
 
 
-DEFAULT_SESSION_SYNC_DIR = REPO_ROOT / "data" / "tmp" / "session_sync"
-DEFAULT_SESSION_SYNC_EVIDENCE_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "session_sync"
+# S0187 Unit D finding: both were previously hardcoded REPO_ROOT-relative
+# literals, independent of workspace_root, even though this module already
+# correctly imports DEFAULT_CANON_DIR (governed) right above. Now derived
+# from the governed tmp/audit roots instead.
+DEFAULT_SESSION_SYNC_DIR = DEFAULT_TMP_DIR / "session_sync"
+DEFAULT_SESSION_SYNC_EVIDENCE_DIR = DEFAULT_AUDIT_DIR / "session_sync"
 
 
 @dataclass
@@ -196,9 +205,14 @@ def _is_migration_equivalent_path(old_path: str, new_path: str) -> bool:
 
 def _provenance_ref(session_id: str, source_path: Path, sessions_dir: Path) -> str:
     provenance_path = sessions_dir / "01_procedencia" / f"{session_id}.md.json"
-    if provenance_path.exists():
-        return as_display_path(provenance_path)
-    return as_display_path(source_path)
+    target = provenance_path if provenance_path.exists() else source_path
+    # S0187 PI-15: persist the logical locator, never the physical workspace
+    # path. Paths outside the workspace out/local surface (test fixtures) keep
+    # the presentation path.
+    try:
+        return as_logical_locator(target)
+    except LogicalLocatorError:
+        return as_display_path(target)
 
 
 def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArtifactCandidate:
@@ -217,7 +231,10 @@ def build_candidate_from_artifact(path: Path, sessions_dir: Path) -> SessionArti
     text = _artifact_text(payload)
     created = _safe_str(payload.get("created")) or "19700101000000000"
     modified = _safe_str(payload.get("modified")) or created
-    source_path = as_display_path(path)
+    try:
+        source_path = as_logical_locator(path)  # S0187 PI-15: logical, not physical
+    except LogicalLocatorError:
+        source_path = as_display_path(path)
     tags = build_session_tags(session_id, artifact_family)
 
     content_type = "application/json" if source_type == "application/json" else "text/markdown"
@@ -291,7 +308,10 @@ def build_thematic_diagnostic_candidate(path: Path, sessions_dir: Path) -> Sessi
         raise ValueError("thematic diagnostic requires title and canonical_slug")
 
     source_type = _validated_source_type(_safe_str(payload.get("type")), path)
-    source_path = as_display_path(path)
+    try:
+        source_path = as_logical_locator(path)  # S0187 PI-15: logical, not physical
+    except LogicalLocatorError:
+        source_path = as_display_path(path)
     text = _artifact_text(payload)
     created = _safe_str(payload.get("created")) or "19700101000000000"
     modified = _safe_str(payload.get("modified")) or created
@@ -658,7 +678,26 @@ def scan_session_sync(
             continue
 
         projected = _project_candidate_record_as_admitted(candidate.record)
-        if existing.serialized == _canonical_json(candidate.record) or existing.serialized == _canonical_json(projected):
+        # S0187 PI-15 / D5: compare path fields by canonical logical locator so a
+        # record persisted with a physical path equals the same object persisted
+        # as a locator. Comparison only; the stored record is not rewritten.
+        existing_view = {**existing.record, "source_fields": dict(existing.record.get("source_fields") or {})}
+        for holder, field in (
+            (existing_view["source_fields"], "source_path"),
+            (existing_view["source_fields"], "provenance_ref"),
+            (existing_view, "source_position"),
+        ):
+            try:
+                holder[field] = canonical_logical_locator(holder[field])
+            except (KeyError, LogicalLocatorError):
+                pass
+        existing_view_serialized = _canonical_json(existing_view)
+        if (
+            existing.serialized == _canonical_json(candidate.record)
+            or existing.serialized == _canonical_json(projected)
+            or existing_view_serialized == _canonical_json(candidate.record)
+            or existing_view_serialized == _canonical_json(projected)
+        ):
             existing_by_id.append(
                 {
                     **summary,
@@ -680,7 +719,8 @@ def scan_session_sync(
                     **item,
                     "classification": "replacement_by_same_id",
                     "existing_source_path": existing_source_path,
-                    "source_path_changed": existing_source_path != summary["source_path"],
+                    "source_path_changed": _safe_str(existing_view["source_fields"].get("source_path"))
+                    != summary["source_path"],
                     "source_path_migrated": _is_migration_equivalent_path(
                         existing_source_path, summary["source_path"]
                     ),
@@ -704,7 +744,12 @@ def scan_session_sync(
         for item in items:
             decision_by_path[item["source_path"]] = decision
     for item in family_decisions:
-        item["canonical_compare"] = decision_by_path.get(item["path"], "UNRESOLVED")
+        # S0187 PI-15: decisions are keyed by the persisted (logical) source_path.
+        try:
+            decision_key = canonical_logical_locator(item["path"])
+        except LogicalLocatorError:
+            decision_key = item["path"]
+        item["canonical_compare"] = decision_by_path.get(decision_key, "UNRESOLVED")
         item["candidate_status"] = {
             "MISSING": "prepared_non_authoritative",
             "REPLACEMENT": "prepared_non_authoritative",
