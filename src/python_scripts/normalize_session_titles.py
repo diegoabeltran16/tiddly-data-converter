@@ -33,7 +33,10 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from path_governance import (  # noqa: E402
+    DEFAULT_AUDIT_DIR,
     DEFAULT_CANON_DIR,
+    DEFAULT_LOCAL_OUT_DIR,
+    DEFAULT_SESSIONS_DIR,
     REPO_ROOT,
     as_display_path,
     sorted_canon_shards,
@@ -47,9 +50,15 @@ from session_title_policy import (  # noqa: E402
     classify_title,
 )
 
-DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
-DEFAULT_AUDIT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit"
-DEFAULT_BACKUP_DIR = REPO_ROOT / "data" / "out" / "local" / "backups"
+# DEFAULT_SESSIONS_DIR and DEFAULT_AUDIT_DIR come from path_governance above
+# (S0187 Unit D finding: this module previously redefined both as hardcoded
+# REPO_ROOT-relative literals, independently of workspace_root -- a residual
+# writer that would keep targeting the old root after a storage cutover even
+# though DEFAULT_CANON_DIR, imported the same way, already followed it
+# correctly). DEFAULT_BACKUP_DIR is not yet centralized in path_governance,
+# so it is derived here from the same governed DEFAULT_LOCAL_OUT_DIR rather
+# than from REPO_ROOT directly.
+DEFAULT_BACKUP_DIR = DEFAULT_LOCAL_OUT_DIR / "backups"
 
 # ── Canon identity helpers (S34 policy) ──────────────────────────────────────
 # These mirror the Go implementations in go/canon/identity.go and
@@ -431,6 +440,20 @@ def apply_normalization_plan(
     normalizable = [e for e in plan.entries if e.status == "normalizable"]
     if not normalizable:
         return False, "no hay entradas normalizables en el plan", plan
+
+    # S0187 Unit E (F-02): verify the plan matches current canon state before
+    # any write, same drift guard already enforced by canon_sanitation.py's
+    # apply_elimination_plan().
+    current_hash = _canon_hash(canon_dir)
+    if plan.canon_hash_before and plan.canon_hash_before != current_hash:
+        return (
+            False,
+            (
+                "el hash del canon actual no coincide con el hash del plan; "
+                "el canon pudo haber cambiado desde que se generó el plan"
+            ),
+            plan,
+        )
 
     if not confirm:
         plan.dry_run = True
