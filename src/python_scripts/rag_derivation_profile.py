@@ -16,32 +16,29 @@ from typing import Any
 from metadata_promotion_policy import POLICY_VERSION as METADATA_POLICY_VERSION
 from rag_derivative_writers import require_nonproductive_evidence_target
 from tag_sanitation_policy import POLICY_VERSION as TAG_POLICY_VERSION
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 PROFILE_SCHEMA_VERSION = "rag-derivation-profile/v1"
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals -- dead at
+# the real derive_layers.py menu call sites (which always pass --profile
+# explicitly), but live as derive_layers.py's own --profile argparse
+# default for direct standalone invocation ("the sole productive
+# orchestrator" per this module's docstring). Migrated to preserve that
+# capability without narrowing its configurability.
 DEFAULT_PROFILE_PATH = (
-    REPO_ROOT
-    / "data"
-    / "out"
-    / "local"
-    / "pipeline"
-    / "rag_derivation"
-    / "s0172"
-    / "rag_derivation_profile.json"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_derivation" / "s0172" / "rag_derivation_profile.json"
 )
 DEFAULT_TAG_POLICY_PATH = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169" / "tag_sanitation_policy.json"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "tag_sanitation" / "s0169" / "tag_sanitation_policy.json"
 )
 DEFAULT_METADATA_POLICY_PATH = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
 )
 DEFAULT_SEMANTIC_TYPE_POLICY_PATH = (
-    REPO_ROOT
-    / "data"
-    / "out"
-    / "local"
+    DEFAULT_LOCAL_OUT_DIR
     / "pipeline"
     / "relation_type_governance"
     / "s0139"

@@ -242,6 +242,33 @@ class TestApplyPlan:
             rec = json.loads(f.readline())
         assert rec["title"] == "#### 🌀 Contrato de sesión 0111 = dry-run gobernado"
 
+    def test_apply_fails_when_canon_hash_mismatch(self, tmp_path: Path) -> None:
+        """S0187 Unit E (F-02): apply must refuse a plan built against a
+        canon state that has since drifted, mirroring the drift guard
+        canon_sanitation.py already enforces in apply_elimination_plan()."""
+        canon_dir = tmp_path / "canon"
+        sessions_dir = tmp_path / "sessions"
+        backup_dir = tmp_path / "backup"
+        _write_shard(canon_dir, "tiddlers_1.jsonl", [
+            _make_canon_record("id-001", "#### 🌀 Contrato de sesión S0111 = dry-run gobernado"),
+        ])
+        entries = audit_canon(canon_dir)
+        plan = build_normalization_plan(entries, canon_dir)
+        # Canon changes after the plan was built (e.g. a concurrent writer).
+        _write_shard(canon_dir, "tiddlers_2.jsonl", [
+            _make_canon_record("id-999", "otro título sin relación"),
+        ])
+        success, msg, updated = apply_normalization_plan(
+            plan, canon_dir, sessions_dir, backup_dir=backup_dir, confirm=True
+        )
+        assert not success
+        assert "hash" in msg.lower()
+        assert updated.applied is False
+        # The drifted shard must be untouched — no write occurred.
+        with (canon_dir / "tiddlers_1.jsonl").open(encoding="utf-8") as f:
+            rec = json.loads(f.readline())
+        assert rec["title"] == "#### 🌀 Contrato de sesión S0111 = dry-run gobernado"
+
     def test_apply_canon_recomputes_identity_fields(self, tmp_path: Path) -> None:
         """Canon apply updates key, version_id, canonical_slug in addition to title."""
         canon_dir = tmp_path / "canon"

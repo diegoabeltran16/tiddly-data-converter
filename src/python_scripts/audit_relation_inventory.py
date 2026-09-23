@@ -33,13 +33,21 @@ from pathlib import Path
 from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+# S0187 D23-A B4-5: REPO_ROOT here is SCRIPT_DIR.parent (one level short of
+# the actual repository root -- resolves to src/), a pre-existing bug. It is
+# left unfixed and unused rather than repaired: its only consumer
+# (DEFAULT_CANON_ROOT below) is migrated off REPO_ROOT entirely, so after
+# this migration REPO_ROOT has zero live consumers in this file. Repairing
+# its value would be fixing dead code.
 REPO_ROOT = SCRIPT_DIR.parent
-DEFAULT_CANON_ROOT = REPO_ROOT / "data" / "out" / "local"
-DEFAULT_OUT_DIR = DEFAULT_CANON_ROOT / "pipeline" / "relation_inventory" / "s0136"
 
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from relation_candidate_contract import ALLOWED_RELATION_TYPES  # noqa: E402
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
+DEFAULT_CANON_ROOT = DEFAULT_CANON_DIR
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_inventory" / "s0136"
 
 SCHEMA = "relation-inventory-audit/v1"
 

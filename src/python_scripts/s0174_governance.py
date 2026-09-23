@@ -28,11 +28,18 @@ from rag_derivative_writers import (
     verify_productive_state_matches_snapshot,
 )
 from validate_productive_equivalence import build_equivalence_report
+# S0187 Unit D finding: LOCAL_ROOT was a hardcoded REPO_ROOT-relative
+# literal. build_producer_inventory()'s default productive_root=LOCAL_ROOT
+# is called with no override from rag_admission_state.py's active
+# refresh-governance/audit commands -- meaning the governance-gate report
+# those commands write (correctly, post-fix, to the new root) would have
+# been built from a STALE READ of the OLD root's enriched/ai/microsoft_copilot
+# state. Fixing this closes that correctness gap, not just a write-location one.
+from path_governance import DEFAULT_CANON_DIR as LOCAL_ROOT, as_logical_locator
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-LOCAL_ROOT = REPO_ROOT / "data" / "out" / "local"
 S0173_PIPELINE_ROOT = LOCAL_ROOT / "pipeline" / "rag_derivation" / "s0173"
 S0173_AUDIT_ROOT = LOCAL_ROOT / "audit" / "rag_derivation" / "s0173"
 S0174_PIPELINE_ROOT = LOCAL_ROOT / "pipeline" / "rag_derivation" / "s0174"
@@ -103,7 +110,7 @@ def _root_manifest() -> dict[str, Any]:
         files = _tree_files(root)
         families.append({
             "artifact_family": family,
-            "path": str(root.relative_to(REPO_ROOT)),
+            "path": as_logical_locator(root),
             "status": "present" if root.exists() else "not_present",
             "file_count": len(files),
             "files": files,

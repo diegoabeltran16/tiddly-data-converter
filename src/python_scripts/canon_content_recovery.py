@@ -61,6 +61,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from rag_derivation_profile import stable_json  # noqa: E402
 from normalize_session_titles import _recompute_version_id as _tdc_recompute_version_id  # noqa: E402
+from path_governance import DEFAULT_AUDIT_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
 
 SCHEMA_PLAN = "canon-content-recovery-plan/v1"
 SCHEMA_AUTHORIZATION = "canon-content-recovery-authorization/v1"
@@ -90,8 +91,14 @@ VALID_REASON_CODES = (
     REASON_VERSION_ID_CONTRACT_VIOLATION,
 )
 
-DEFAULT_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
-CERTIFIED_EVIDENCE_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit"
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals -- dead at
+# the real operator_menu.py call site (which passes its own governed
+# DEFAULT_CANON_DIR explicitly), but live as this script's own --canon-dir
+# CLI default for direct standalone invocation. Migrated to preserve that
+# capability without narrowing its configurability.
+DEFAULT_CANON_DIR = DEFAULT_LOCAL_OUT_DIR
+CERTIFIED_EVIDENCE_ROOT = DEFAULT_AUDIT_DIR
+# data/in is deliberately repo-pinned, never workspace-relative -- unchanged.
 CORROBORATING_EVIDENCE_ROOT = REPO_ROOT / "data" / "in"
 CANON_GO_DIR = REPO_ROOT / "src" / "go" / "canon"
 

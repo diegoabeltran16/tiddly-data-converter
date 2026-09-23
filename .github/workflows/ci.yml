@@ -1,4 +1,4 @@
-name: CI — Rust + Go
+name: CI — Rust + Go + Python
 
 on:
   push:
@@ -130,6 +130,25 @@ jobs:
             src/go/canon/go.sum
       - name: Verify baseline golden files by strict diff
         run: bash src/shell_scripts/baseline_verify.sh
+
+  python-pytest:
+    name: "Python · governance gates"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python3 -m pip install -r requirements.txt
+      # S0187 K6: tests/ contains historical and productive-state suites that
+      # are not yet hermetic CI tests. Publish only the gates proven portable;
+      # expand this allowlist as those suites acquire explicit test fixtures.
+      - name: Run Python governance gates
+        run: |
+          python3 -m pytest -q \
+            tests/test_pytest_collection_boundary.py \
+            tests/test_normalize_session_titles.py
 
   pipeline-smoke:
     name: "Pipeline · smoke (Extractor → Doctor → Ingesta → Canon → JSONL)"

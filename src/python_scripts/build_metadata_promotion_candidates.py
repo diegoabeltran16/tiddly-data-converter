@@ -31,7 +31,12 @@ from template_set_classifier import classify_template_record, template_mapping_r
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171"
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
+# S0187 D23-A B4-5: this was REPO_ROOT-relative -- workspace-owned pipeline
+# path. Migrated to the governed owner; REPO_ROOT stays defined but is now
+# unused in this file (left in place per minimal-mutation policy).
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "metadata_promotion" / "s0171"
 
 
 def _sha256_bytes(path: Path) -> str:

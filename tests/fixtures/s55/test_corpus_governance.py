@@ -13,6 +13,7 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import corpus_governance  # noqa: E402
 import derive_layers  # noqa: E402
+import path_governance as pg  # noqa: E402
 
 
 class CorpusGovernanceTests(unittest.TestCase):
@@ -71,6 +72,58 @@ class CorpusGovernanceTests(unittest.TestCase):
         self.assertEqual(report["status"], "ok")
         self.assertEqual(report["ai_alignment"]["mismatched_corpus_state"], 0)
         self.assertEqual(report["ai_alignment"]["mismatched_rule_id"], 0)
+
+    def test_locator_and_layer_path_alignment_pass(self) -> None:
+        """S0187 D23-A locator contract, isolated from content freshness.
+
+        GLOBAL_STATUS_TEST != LOCATOR_CONTRACT_TEST: report["status"] mixes
+        locator alignment with derived-layer content freshness (AI/enriched
+        record counts), which can legitimately go stale independent of
+        whether paths are correctly governed. This test proves only the
+        locator contract -- declared bundle/registry locators match the
+        governed WORKSPACE_ROOT-relative shape, and required layers resolve
+        to real, existing governed paths -- and must stay green regardless
+        of AI/enriched content drift.
+        """
+        report = corpus_governance.validate_repository_alignment()
+
+        for field, info in report["bundle_alignment"].items():
+            self.assertTrue(info["aligned"], f"bundle field {field} not aligned: {info}")
+
+        for layer_id, info in report["layer_path_alignment"].items():
+            self.assertTrue(info["aligned"], f"layer {layer_id} path not aligned: {info}")
+
+        # Independent proof, not a re-check of corpus_governance's own math:
+        # the declared locators must match as_workspace_locator() computed
+        # directly from path_governance's governed DEFAULT_* Path objects.
+        expected_bundle_locators = {
+            "local_output_root": pg.as_workspace_locator(pg.DEFAULT_LOCAL_OUT_DIR),
+            "remote_output_root": pg.as_workspace_locator(pg.DEFAULT_REMOTE_OUT_DIR),
+            "session_proposal_artifact_pattern": pg.as_workspace_locator(pg.DEFAULT_PROPOSALS_FILE),
+            "reverse_html_root": pg.as_workspace_locator(pg.DEFAULT_REVERSE_HTML_DIR),
+        }
+        for field, expected in expected_bundle_locators.items():
+            self.assertEqual(report["bundle_alignment"][field]["actual"], expected)
+
+        governed_layer_paths = {
+            "canon": pg.DEFAULT_CANON_DIR,
+            "proposals": pg.DEFAULT_PROPOSALS_FILE,
+            "enriched": pg.DEFAULT_ENRICHED_DIR,
+            "ai": pg.DEFAULT_AI_DIR,
+            "audit": pg.DEFAULT_AUDIT_DIR,
+            "reverse_html": pg.DEFAULT_REVERSE_HTML_DIR,
+            "export": pg.DEFAULT_EXPORT_DIR,
+            "microsoft_copilot": pg.DEFAULT_MICROSOFT_COPILOT_DIR,
+            "remote": pg.DEFAULT_REMOTE_OUT_DIR,
+        }
+        for layer in report["layer_presence"]:
+            governed_path = governed_layer_paths[layer["layer_id"]]
+            self.assertEqual(layer["exists"], governed_path.exists())
+            if layer["presence"] == "required":
+                self.assertTrue(
+                    governed_path.exists(),
+                    f"required governed layer path does not exist: {governed_path}",
+                )
 
 
 if __name__ == "__main__":

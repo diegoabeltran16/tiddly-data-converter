@@ -4,9 +4,33 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-CANON_DIR="${CANON_DIR:-data/out/local}"
-RELATION_OUT_DIR="${RELATION_OUT_DIR:-data/out/local/pipeline/relation_candidates/current}"
-AUDIT_DIR="${AUDIT_DIR:-data/out/local/audit/relation_admission/current}"
+# S0187 Unit D (D17): CANON_DIR resolves from the SAME single workspace/path
+# owner Python already uses (path_governance.py), instead of a hardcoded
+# REPO_ROOT-relative literal -- so tdc.sh follows a persisted storage
+# cutover (.tdc/workspace_storage.json) instead of silently staying pinned
+# to repo/data/out/local. Precedence is NOT reimplemented here:
+# path_governance.resolve_workspace_root() alone owns
+# TDC_WORKSPACE_ROOT > persisted config > default repo/data; this only asks
+# it for the current answer, once, at startup, and ONLY when CANON_DIR isn't
+# already set (isolated test fixtures set it explicitly and must never
+# trigger this python3 call, which some fixtures intercept via PATH to
+# assert "no python invoked yet" on early-cancel paths). AUDIT_DIR and
+# RELATION_OUT_DIR are then derived from CANON_DIR in bash alone --
+# structurally correct because path_governance.DEFAULT_CANON_DIR IS
+# DEFAULT_LOCAL_OUT_DIR, the exact same parent DEFAULT_AUDIT_DIR derives
+# from, so no second python query is needed and no second precedence
+# system is introduced.
+if [[ -z "${CANON_DIR:-}" ]]; then
+    CANON_DIR="$(python3 - <<'PY'
+import sys
+sys.path.insert(0, "src/python_scripts")
+from path_governance import DEFAULT_CANON_DIR, as_display_path
+print(as_display_path(DEFAULT_CANON_DIR))
+PY
+)"
+fi
+RELATION_OUT_DIR="${RELATION_OUT_DIR:-$CANON_DIR/pipeline/relation_candidates/current}"
+AUDIT_DIR="${AUDIT_DIR:-$CANON_DIR/audit/relation_admission/current}"
 # S0186 Unit H8 (second diagnostic pass): decisions written after CURRENT was
 # last prepared -- batch confirmations, and now policy_derived materialization
 # -- land in effective_human_review_decisions.jsonl when it exists, exactly
@@ -132,7 +156,7 @@ tdc_relations_validate_candidates() {
     python3 src/python_scripts/reconcile_current_relation_candidates.py \
         --canon-root "$CANON_DIR" \
         --current-dir "$RELATION_OUT_DIR" \
-        --audit-dir data/out/local/audit/s0180
+        --audit-dir "$CANON_DIR/audit/s0180"
 }
 
 tdc_relations_dry_run_gate() {
@@ -192,7 +216,7 @@ tdc_relations_show_blocked() {
 
 tdc_relations_show_history() {
     echo "Historia relacional (solo consulta):"
-    find data/out/local/pipeline/relation_candidates data/out/local/audit/relation_admission/history -mindepth 1 -maxdepth 1 -type d -printf '%p\n' 2>/dev/null | sort || true
+    find "$CANON_DIR/pipeline/relation_candidates" "$CANON_DIR/audit/relation_admission/history" -mindepth 1 -maxdepth 1 -type d -printf '%p\n' 2>/dev/null | sort || true
 }
 
 tdc_relations_show_decisions() {

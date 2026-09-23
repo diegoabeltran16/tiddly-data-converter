@@ -11,26 +11,41 @@ from typing import Any, Mapping
 import hashlib
 import json
 import shutil
+import sys
 from datetime import datetime, timezone
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-PRODUCTIVE_DERIVATIVE_ROOTS = (
-    REPO_ROOT / "data" / "out" / "local" / "enriched",
-    REPO_ROOT / "data" / "out" / "local" / "ai",
-    REPO_ROOT / "data" / "out" / "local" / "microsoft_copilot",
-    REPO_ROOT / "data" / "out" / "local" / "reverse_html",
+sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import (  # noqa: E402
+    DEFAULT_AI_DIR,
+    DEFAULT_AUDIT_DIR,
+    DEFAULT_ENRICHED_DIR,
+    DEFAULT_LOCAL_OUT_DIR,
+    DEFAULT_MICROSOFT_COPILOT_DIR,
+    DEFAULT_REVERSE_HTML_DIR,
 )
-CANON_ROOT = REPO_ROOT / "data" / "out" / "local"
+
+# S0187 P7-C: productive/evidence authority is the governed workspace
+# (path_governance), not REPO_ROOT/data/out/local. REPO_ROOT stays only to keep
+# operational evidence OUT of the repository tree (D3): a target inside the repo
+# is rejected unless it lies under a governed evidence root.
+PRODUCTIVE_DERIVATIVE_ROOTS = (
+    DEFAULT_ENRICHED_DIR,
+    DEFAULT_AI_DIR,
+    DEFAULT_MICROSOFT_COPILOT_DIR,
+    DEFAULT_REVERSE_HTML_DIR,
+)
+CANON_ROOT = DEFAULT_LOCAL_OUT_DIR
 EVIDENCE_ROOTS = (
     CANON_ROOT / "pipeline",
-    CANON_ROOT / "audit",
+    DEFAULT_AUDIT_DIR,
 )
 PRODUCTIVE_FAMILIES = {
-    "enriched": REPO_ROOT / "data" / "out" / "local" / "enriched",
-    "ai": REPO_ROOT / "data" / "out" / "local" / "ai",
-    "microsoft_copilot": REPO_ROOT / "data" / "out" / "local" / "microsoft_copilot",
+    "enriched": DEFAULT_ENRICHED_DIR,
+    "ai": DEFAULT_AI_DIR,
+    "microsoft_copilot": DEFAULT_MICROSOFT_COPILOT_DIR,
 }
 
 
@@ -57,7 +72,13 @@ def require_nonproductive_evidence_target(path: Path | str) -> Path:
         raise ProductiveWriteBlocked(f"supporting evidence target overlaps productive derivatives: {target}")
     if target == CANON_ROOT.resolve() or _is_within(CANON_ROOT, target):
         raise ProductiveWriteBlocked(f"supporting evidence target overlaps canon root: {target}")
-    if _is_within(target, REPO_ROOT) and not any(_is_within(target, root) for root in EVIDENCE_ROOTS):
+    in_evidence_root = any(_is_within(target, root) for root in EVIDENCE_ROOTS)
+    # The governed workspace's Canon surface (shards, sessions, export, ...) is
+    # protected: only its evidence roots (pipeline/, audit/) accept evidence.
+    if _is_within(target, CANON_ROOT) and not in_evidence_root:
+        raise ProductiveWriteBlocked(f"supporting evidence target is inside the canon surface outside governed evidence roots: {target}")
+    # D3: operational evidence does not live in the repository tree by default.
+    if _is_within(target, REPO_ROOT) and not in_evidence_root:
         raise ProductiveWriteBlocked(f"supporting evidence target is outside governed evidence roots: {target}")
     return target
 

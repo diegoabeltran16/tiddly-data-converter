@@ -1,11 +1,11 @@
 {
   "schema_version": "v0",
   "canon_artifact_role": "canon_export",
-  "local_output_root": "data/out/local",
-  "remote_output_root": "data/out/remote",
+  "local_output_root": "out/local",
+  "remote_output_root": "out/remote",
   "session_semantic_close_default": "data_sessions_staging",
-  "session_proposal_artifact_pattern": "data/out/local/proposals.jsonl",
-  "reverse_html_root": "data/out/local/reverse_html",
+  "session_proposal_artifact_pattern": "out/local/proposals.jsonl",
+  "reverse_html_root": "out/local/reverse_html",
   "direct_canon_write_default": "prohibited_by_default_requires_local_admission",
   "required_fields": [
     "schema_version",

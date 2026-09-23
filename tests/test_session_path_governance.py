@@ -24,8 +24,10 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import admit_session_candidates as asc
+import corpus_governance as cg
 import generate_session_deliverables as deliverables
 import mcp_env_manager as mgr
+import path_governance as pg
 
 
 # ---------------------------------------------------------------------------
@@ -35,11 +37,16 @@ import mcp_env_manager as mgr
 class TestDefaultSessionsDir:
 
     def test_default_sessions_dir_is_data_out_local_sessions(self):
-        expected = REPO_ROOT / "data" / "out" / "local" / "sessions"
-        assert asc.DEFAULT_SESSIONS_DIR == expected, (
+        # Contract, not physical locator (S0187 Unit D made workspace_root
+        # configurable): asc.DEFAULT_SESSIONS_DIR must be exactly whatever
+        # path_governance's own governed resolver says, and must carry the
+        # "out/local/sessions" relative structure -- not literally start
+        # with REPO_ROOT/"data", which was only ever the pre-D4 default.
+        assert asc.DEFAULT_SESSIONS_DIR == pg.DEFAULT_SESSIONS_DIR, (
             f"DEFAULT_SESSIONS_DIR={asc.DEFAULT_SESSIONS_DIR!r} "
-            f"expected {expected!r}"
+            f"expected path_governance's governed value {pg.DEFAULT_SESSIONS_DIR!r}"
         )
+        assert asc.DEFAULT_SESSIONS_DIR.as_posix().endswith("out/local/sessions")
 
     def test_default_sessions_dir_does_not_use_data_sessions(self):
         path_str = str(asc.DEFAULT_SESSIONS_DIR).replace("\\", "/")
@@ -48,16 +55,23 @@ class TestDefaultSessionsDir:
         )
 
     def test_default_sessions_dir_string_representation(self):
-        """as_display_path(DEFAULT_SESSIONS_DIR) must contain data/out/local/sessions."""
-        display = asc.as_display_path(asc.DEFAULT_SESSIONS_DIR)
-        assert "data/out/local/sessions" in display.replace("\\", "/"), (
-            f"Display path {display!r} must contain data/out/local/sessions"
+        """as_display_path(DEFAULT_SESSIONS_DIR) must carry the out/local/sessions
+        relative structure. Contract, not physical locator -- see comment on
+        test_default_sessions_dir_is_data_out_local_sessions above."""
+        display = asc.as_display_path(asc.DEFAULT_SESSIONS_DIR).replace("\\", "/")
+        assert display.endswith("out/local/sessions") or "out/local/sessions" in display, (
+            f"Display path {display!r} must carry the out/local/sessions relative structure"
         )
 
     def test_session_deliverable_generator_uses_repo_root_not_src(self):
-        expected = REPO_ROOT / "data" / "out" / "local" / "sessions"
+        # REPOSITORY ROOT != WORKSPACE DATA ROOT (S0187 D23-A): the script's
+        # own REPO_ROOT stays pinned to the checkout (it may still need the
+        # repo for code/resources), but DEFAULT_SESSIONS_DIR is workspace-
+        # owned and must follow path_governance's governed value, not a
+        # REPO_ROOT-relative literal -- WORKSPACE_ROOT may resolve anywhere.
         assert deliverables.REPO_ROOT == REPO_ROOT
-        assert deliverables.DEFAULT_SESSIONS_DIR == expected
+        assert deliverables.DEFAULT_SESSIONS_DIR == pg.DEFAULT_SESSIONS_DIR
+        assert "/src/out/local/sessions" not in str(deliverables.DEFAULT_SESSIONS_DIR)
         assert "/src/data/out/local/sessions" not in str(deliverables.DEFAULT_SESSIONS_DIR)
 
 
@@ -206,18 +220,20 @@ class TestCanonPolicyBundleFixture:
         )
 
     def test_data_out_sessions_policy_bundle_matches_fixture_if_present(self):
-        """If the canonical bundle exists locally, it must match the fixture."""
+        """If the canonical bundle exists (wherever WORKSPACE_ROOT currently
+        resolves to), it must match the fixture. S0187 D23-A: this must not
+        hardcode REPO_ROOT/data/out -- the canonical bundle is workspace-owned
+        and may be mounted anywhere; use the same governed owner
+        corpus_governance.py itself reads from."""
         import json
-        canonical = REPO_ROOT / "data" / "out" / "local" / "sessions" / "00_contratos" / "policy" / "canon_policy_bundle.json"
+        canonical = cg.CANON_POLICY_BUNDLE_PATH
         if not canonical.is_file():
-            pytest.skip("Canonical bundle not present (expected in CI — data/out gitignored)")
+            pytest.skip("Canonical bundle not present (expected in CI — workspace out/ is gitignored)")
         fixture_data = json.loads(self.FIXTURE_PATH.read_text(encoding="utf-8"))
         canonical_data = json.loads(canonical.read_text(encoding="utf-8"))
         assert fixture_data == canonical_data, (
-            "tests/fixtures/canon_policy_bundle.json must match "
-            "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json. "
-            "Run: cp data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json "
-            "tests/fixtures/canon_policy_bundle.json"
+            f"tests/fixtures/canon_policy_bundle.json must match {canonical}. "
+            f"Run: cp {canonical} tests/fixtures/canon_policy_bundle.json"
         )
 
 

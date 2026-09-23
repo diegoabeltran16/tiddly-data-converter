@@ -20,15 +20,21 @@ from path_governance import (
     DEFAULT_REMOTE_OUT_DIR,
     DEFAULT_REVERSE_HTML_DIR,
     as_display_path,
+    as_workspace_locator,
     sorted_canon_shards,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CANON_POLICY_BUNDLE_REL = "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json"
-DERIVED_LAYERS_REGISTRY_REL = "data/out/local/sessions/00_contratos/projections/derived_layers_registry.json"
-CANON_POLICY_BUNDLE_PATH = REPO_ROOT / CANON_POLICY_BUNDLE_REL
-DERIVED_LAYERS_REGISTRY_PATH = REPO_ROOT / DERIVED_LAYERS_REGISTRY_REL
+# S0187 D22: these were hardcoded REPO_ROOT-relative literals, structurally
+# blind to the D13 workspace cutover -- broke test collection outright for
+# 11 test files the instant repo/data/out was decommissioned this tranche.
+# DEFAULT_LOCAL_OUT_DIR was already imported above but unused for these two;
+# migrated to the same single owner every other constant in this file uses.
+CANON_POLICY_BUNDLE_REL = "sessions/00_contratos/policy/canon_policy_bundle.json"
+DERIVED_LAYERS_REGISTRY_REL = "sessions/00_contratos/projections/derived_layers_registry.json"
+CANON_POLICY_BUNDLE_PATH = DEFAULT_LOCAL_OUT_DIR / CANON_POLICY_BUNDLE_REL
+DERIVED_LAYERS_REGISTRY_PATH = DEFAULT_LOCAL_OUT_DIR / DERIVED_LAYERS_REGISTRY_REL
 
 PATHISH_SUFFIX_RE = re.compile(r"\.[A-Za-z0-9._-]+$")
 
@@ -417,11 +423,17 @@ def validate_repository_alignment(
     errors.extend(validate_layer_registry(registry))
     warnings: list[str] = []
 
+    # DECLARED LOCATOR ALIGNMENT != PHYSICAL EXISTENCE CHECK (S0187 D23-A):
+    # the bundle/registry store WORKSPACE_ROOT-relative locators (e.g.
+    # "out/local"), never absolute paths or REPO_ROOT-relative strings.
+    # Alignment compares locator-to-locator; existence is checked through
+    # the governed DEFAULT_* Path objects directly, never by reconstructing
+    # a path from REPO_ROOT/WORKSPACE_ROOT + the declared string.
     expected_bundle_paths = {
-        "local_output_root": as_display_path(DEFAULT_LOCAL_OUT_DIR),
-        "remote_output_root": as_display_path(DEFAULT_REMOTE_OUT_DIR),
-        "session_proposal_artifact_pattern": as_display_path(DEFAULT_PROPOSALS_FILE),
-        "reverse_html_root": as_display_path(DEFAULT_REVERSE_HTML_DIR),
+        "local_output_root": as_workspace_locator(DEFAULT_LOCAL_OUT_DIR),
+        "remote_output_root": as_workspace_locator(DEFAULT_REMOTE_OUT_DIR),
+        "session_proposal_artifact_pattern": as_workspace_locator(DEFAULT_PROPOSALS_FILE),
+        "reverse_html_root": as_workspace_locator(DEFAULT_REVERSE_HTML_DIR),
     }
     bundle_alignment: dict[str, dict] = {}
     for field, expected in expected_bundle_paths.items():
@@ -431,24 +443,25 @@ def validate_repository_alignment(
         if not aligned:
             errors.append(f"bundle path mismatch for {field}: expected {expected}, found {actual}")
 
-    expected_layer_paths = {
-        "canon": as_display_path(DEFAULT_CANON_DIR),
-        "proposals": as_display_path(DEFAULT_PROPOSALS_FILE),
-        "enriched": as_display_path(DEFAULT_ENRICHED_DIR),
-        "ai": as_display_path(DEFAULT_AI_DIR),
-        "audit": as_display_path(DEFAULT_AUDIT_DIR),
-        "reverse_html": as_display_path(DEFAULT_REVERSE_HTML_DIR),
-        "export": as_display_path(DEFAULT_EXPORT_DIR),
-        "microsoft_copilot": as_display_path(DEFAULT_MICROSOFT_COPILOT_DIR),
-        "remote": as_display_path(DEFAULT_REMOTE_OUT_DIR),
+    governed_layer_paths = {
+        "canon": DEFAULT_CANON_DIR,
+        "proposals": DEFAULT_PROPOSALS_FILE,
+        "enriched": DEFAULT_ENRICHED_DIR,
+        "ai": DEFAULT_AI_DIR,
+        "audit": DEFAULT_AUDIT_DIR,
+        "reverse_html": DEFAULT_REVERSE_HTML_DIR,
+        "export": DEFAULT_EXPORT_DIR,
+        "microsoft_copilot": DEFAULT_MICROSOFT_COPILOT_DIR,
+        "remote": DEFAULT_REMOTE_OUT_DIR,
     }
     layer_map = {layer["layer_id"]: layer for layer in registry["layers"]}
     layer_path_alignment: dict[str, dict] = {}
     layer_presence: list[dict] = []
-    for layer_id, expected_path in expected_layer_paths.items():
+    for layer_id, governed_path in governed_layer_paths.items():
+        expected_path = as_workspace_locator(governed_path)
         actual_path = layer_map[layer_id]["path"]
         aligned = actual_path == expected_path
-        exists = (REPO_ROOT / actual_path).exists()
+        exists = governed_path.exists()
         presence = layer_map[layer_id]["presence"]
         layer_path_alignment[layer_id] = {
             "expected": expected_path,

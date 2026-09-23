@@ -71,7 +71,11 @@ from path_governance import (
     DEFAULT_CANON_DIR,
     DEFAULT_ENRICHED_DIR,
     DEFAULT_EXPORT_DIR,
+    DEFAULT_LOCAL_OUT_DIR,
     DEFAULT_MICROSOFT_COPILOT_DIR,
+    DEFAULT_REVERSE_HTML_DIR,
+    LOGICAL_LOCATOR_NAMESPACE,
+    resolve_logical_locator,
     as_display_path,
     resolve_repo_path,
     sorted_canon_shards,
@@ -230,13 +234,21 @@ HUB_FAMILY_MIN_COUNT = 10
 # S0172: the authoritative producer can run the same orchestration against an
 # isolated preview root.  These defaults are evidence paths, never productive
 # output paths.
-RAG_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0172"
+#
+# S0187 D23-A: these 4 roots were hardcoded REPO_ROOT-relative literals.
+# _assert_preview_target_isolated() validates every caller-supplied
+# --out-dir/--gate-report path (e.g. from operator_menu.py's S0173/S0174
+# derivation commands) against RAG_DERIVATION_EVIDENCE_ROOT/
+# RAG_ADMISSION_AUDIT_ROOT via _is_within() -- migrated together with those
+# operator_menu.py constants in the same change, since migrating only the
+# producer or only the validator would break that isolation check.
+RAG_DERIVATION_ROOT = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_derivation" / "s0172"
 RAG_DERIVATION_EVIDENCE_ROOT = RAG_DERIVATION_ROOT.parent
 RAG_DERIVATION_PREVIEW_ROOT = RAG_DERIVATION_ROOT / "preview"
-RAG_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0172"
+RAG_DERIVATION_AUDIT_ROOT = DEFAULT_AUDIT_DIR / "rag_derivation" / "s0172"
 RAG_DERIVATION_AUDIT_EVIDENCE_ROOT = RAG_DERIVATION_AUDIT_ROOT.parent
-RAG_ADMISSION_PIPELINE_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_admission"
-RAG_ADMISSION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_admission"
+RAG_ADMISSION_PIPELINE_ROOT = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_admission"
+RAG_ADMISSION_AUDIT_ROOT = DEFAULT_AUDIT_DIR / "rag_admission"
 DEFAULT_METADATA_CANDIDATES = (
     REPO_ROOT
     / "data"
@@ -2937,6 +2949,12 @@ def _pct_local(part: int, total: int) -> float:
 def _resolve_rag_path(value: str | None, default: Path) -> Path:
     candidate = Path(value) if value else default
     if not candidate.is_absolute():
+        # A value in the stored logical-locator namespace ("data/out/local/...", e.g. the
+        # policy paths inside the signed derivation profile) is workspace material: resolve it
+        # through path_governance, never against REPO_ROOT (fail closed on a malformed locator).
+        text = str(candidate).replace("\\", "/")
+        if text == LOGICAL_LOCATOR_NAMESPACE or text.startswith(LOGICAL_LOCATOR_NAMESPACE + "/"):
+            return resolve_logical_locator(text).resolve()
         candidate = REPO_ROOT / candidate
     return candidate.resolve()
 
@@ -2960,7 +2978,11 @@ def _assert_preview_target_isolated(path: Path, *, label: str, allow_audit: bool
         DEFAULT_ENRICHED_DIR.resolve(),
         DEFAULT_AI_DIR.resolve(),
         DEFAULT_MICROSOFT_COPILOT_DIR.resolve(),
-        (REPO_ROOT / "data" / "out" / "local" / "reverse_html").resolve(),
+        # S0187 D23-A: was a hardcoded REPO_ROOT-relative literal, the one
+        # sibling in this tuple missed when the others were governed --
+        # reuses path_governance's own DEFAULT_REVERSE_HTML_DIR (fixed in
+        # D23-A B1) rather than reconstructing it locally.
+        DEFAULT_REVERSE_HTML_DIR.resolve(),
     )
     if any(_is_within(path, productive) or _is_within(productive, path) for productive in productive_roots):
         raise ValueError(f"{label} must not overlap a productive derivative root: {path}")

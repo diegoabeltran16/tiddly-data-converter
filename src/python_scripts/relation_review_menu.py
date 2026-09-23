@@ -38,16 +38,30 @@ from relation_admission_gate import (  # noqa: E402
 )
 import relation_batch_review as batch_review  # noqa: E402
 
+SCRIPT_DIR_FOR_IMPORT: Path = Path(__file__).resolve().parent
+if str(SCRIPT_DIR_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR_FOR_IMPORT))
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # Rutas
 # ---------------------------------------------------------------------------
+#
+# S0187 D22: these were hardcoded REPO_ROOT-relative literals, structurally
+# blind to the D13 workspace cutover -- confirmed a live residual writer via
+# tests/test_relation_review_menu.py::test_validate_candidates_real_run_does_not_modify_canon,
+# which calls option_validate_candidates() unmocked and so genuinely wrote
+# into repo/data/out/local on every full-suite run, missed by D14-D17's
+# classification because this module is not imported/reachable from
+# operator_menu.py's live menu (a different implementation,
+# option_canonical_relations_menu, serves that surface) -- only its own test
+# suite calls it directly. Migrated to the same single owner every other
+# out/local consumer uses.
 
 REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 SCRIPT_DIR: Path = Path(__file__).resolve().parent
 
-RELATIONS_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relations_candidates"
-)
+RELATIONS_DIR: Path = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relations_candidates"
 DEFAULT_CANDIDATES_INPUT: Path = (
     RELATIONS_DIR / "relations_candidates.sample.jsonl"
 )
@@ -57,39 +71,39 @@ DEFAULT_VALIDATION_REPORT: Path = (
 DEFAULT_HUMAN_REVIEW: Path = (
     RELATIONS_DIR / "relations_candidates.human_review.md"
 )
-CANON_ROOT: Path = REPO_ROOT / "data" / "out" / "local"
+CANON_ROOT: Path = DEFAULT_LOCAL_OUT_DIR
 VALIDATOR_SCRIPT: Path = SCRIPT_DIR / "validate_relation_candidates.py"
 ADMISSION_GATE_SCRIPT: Path = SCRIPT_DIR / "relation_admission_gate.py"
 DEFAULT_VALID_CANDIDATES_FILE: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline"
     / "relations_candidates" / "s0129" / "valid_candidates.jsonl"
 )
 S0140_REVIEW_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_review" / "s0140"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_review" / "s0140"
 )
 S0141_REVIEW_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_review" / "s0141"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_review" / "s0141"
 )
 S0141_ADMISSION_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admission" / "s0141"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admission" / "s0141"
 )
 S0142_REVIEW_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_review" / "s0142"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_review" / "s0142"
 )
 S0142_ADMISSION_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admission" / "s0142"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admission" / "s0142"
 )
 S0143_ADMISSION_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admission" / "s0143"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admission" / "s0143"
 )
 S0143_MENU_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_menu" / "s0143"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_menu" / "s0143"
 )
 S0139_TYPE_POLICY_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_type_governance" / "s0139"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_type_governance" / "s0139"
 )
 S0132_ADMISSIBILITY_REPORT: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admissibility"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admissibility"
     / "s0132" / "s0132_relation_admissibility_report.json"
 )
 
@@ -588,7 +602,7 @@ _ADVANCED_MENU_HEADER = """\
 
 # Ruta de salida del plan de admisión (S0135)
 _ADMISSION_PLAN_DIR: Path = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relations_admission" / "s0135"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relations_admission" / "s0135"
 )
 _ADMISSION_PLAN_SCRIPT: Path = SCRIPT_DIR / "build_relation_admission_plan.py"
 
@@ -776,7 +790,7 @@ def run_relation_admission_gate_dry_run(
         "--review-dir",
         str(review_dir),
         "--admissibility-report",
-        str(admissibility_report or (REPO_ROOT / "data" / "out" / "local" / "pipeline"
+        str(admissibility_report or (DEFAULT_LOCAL_OUT_DIR / "pipeline"
                                      / "relation_admissibility" / "s0132"
                                      / "s0132_relation_admissibility_report.json")),
         "--out-dir",

@@ -103,13 +103,19 @@ def test_select_session_range_keeps_absent_sessions_as_placeholders(tmp_path: Pa
 
 
 def test_microcycle_filename_route_and_title_are_exact():
-    assert scd.MICRO_DIAG_DIR.as_posix().endswith("data/out/local/sessions/06_diagnoses/micro-ciclo")
+    # Contract: MICRO_DIAG_DIR is DEFAULT_SESSIONS_DIR/06_diagnoses/micro-ciclo,
+    # wherever the active workspace_root currently resolves to (S0187 Unit D
+    # made this configurable) -- not a literal "data/out/local/..." physical
+    # locator. See test_routes_do_not_use_prohibited_roots_or_unhyphenated_cycle_names
+    # for the naming-convention invariant.
+    assert scd.MICRO_DIAG_DIR == scd.DEFAULT_SESSIONS_DIR / "06_diagnoses" / "micro-ciclo"
     assert scd.microcycle_filename("m04", 85, 94) == "m04-micro-ciclo-s085-s094-diagnostico.md.json"
     assert scd.microcycle_title(85, 94) == "#### 🌀 Diagnóstico de microciclo = sesiones S85-S94"
 
 
 def test_mesocycle_filename_route_and_title_are_exact():
-    assert scd.MESO_DIAG_DIR.as_posix().endswith("data/out/local/sessions/06_diagnoses/meso-ciclo")
+    # Contract, not physical locator -- see comment above.
+    assert scd.MESO_DIAG_DIR == scd.DEFAULT_SESSIONS_DIR / "06_diagnoses" / "meso-ciclo"
     assert scd.mesocycle_filename("m04", 64, 94) == "m04-meso-ciclo-s064-s094-diagnostico.md.json"
     assert scd.mesocycle_title(64, 94) == "#### 🌀 Diagnóstico de mesociclo = microciclos S64-S94"
 

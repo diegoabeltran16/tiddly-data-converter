@@ -34,7 +34,7 @@ def test_tdc_menu_keeps_critical_access_after_top_level_migration() -> None:
     assert "Tiddly Data Converter - Operador local" in result.stdout
     assert "TDC · Tiddly Data Converter" not in result.stdout
     assert "6) Relaciones canónicas" in result.stdout
-    assert "3) Exportador de repositorio" in result.stdout
+    assert "3) Inventario material / repositorio" in result.stdout
     assert "9) Configurar MCP / mirror remoto" in result.stdout
     assert "4) Sincronizar artefactos al canon" in result.stdout
 

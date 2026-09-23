@@ -640,7 +640,8 @@ def action_pull_and_admit() -> None:
     client_id = refresh_token = ""
 
     print()
-    inbox = REPO_ROOT / "data" / "tmp" / "remote_inbox"
+    from path_governance import DEFAULT_TMP_DIR
+    inbox = DEFAULT_TMP_DIR / "remote_inbox"
     candidates = list(inbox.glob("*.md.json")) if inbox.exists() else []
     if candidates:
         print(f"  {len(candidates)} candidato(s) en staging. Ejecutar admision?")
@@ -653,19 +654,28 @@ def action_pull_and_admit() -> None:
                 env=os.environ.copy(),
             )
     else:
-        print("  data/tmp/remote_inbox/ no tiene candidatos .md.json todavia.")
+        print("  tmp/remote_inbox/ no tiene candidatos .md.json todavia.")
 
 
 def action_show_last_sync() -> None:
     """Show the last sync/pull summary from persistent audit if available."""
     import glob as _glob
-    reports_dir = REPO_ROOT / "data" / "out" / "local" / "audit" / "admissions"
+    # S0187 D23-A: this was REPO_ROOT / "data" / "out" / "local" / "audit" /
+    # "admissions" -- this module's own REPO_ROOT is SCRIPT_DIR.parent
+    # (src/), not the actual repo root, a pre-existing bug independent of
+    # workspace cutover that made this glob always resolve to a nonexistent
+    # path (src/data/...). Migrating to the governed constant fixes both the
+    # workspace-locator issue and this latent bug at once. The
+    # K5: remote_inbox now follows DEFAULT_TMP_DIR, the governed TMP owner.
+    from path_governance import DEFAULT_AUDIT_DIR
+    reports_dir = DEFAULT_AUDIT_DIR / "admissions"
     pattern = str(reports_dir / "*.json")
     matches = sorted(_glob.glob(pattern), reverse=True)
     if not matches:
         print("  No hay reportes de admision en data/out/local/audit/admissions/.")
-        print("  data/tmp/remote_inbox/ es staging temporal; promover antes de cierre o admision.")
-        inbox = REPO_ROOT / "data" / "tmp" / "remote_inbox"
+        print("  tmp/remote_inbox/ es staging temporal; promover antes de cierre o admision.")
+        from path_governance import DEFAULT_TMP_DIR
+        inbox = DEFAULT_TMP_DIR / "remote_inbox"
         if inbox.exists():
             candidates = list(inbox.glob("*.md.json"))
             print(f"  Candidatos actuales en staging: {len(candidates)}")

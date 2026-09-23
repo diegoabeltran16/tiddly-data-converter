@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from rag_derivation_profile import stable_json
+from path_governance import resolve_logical_locator
 from rag_derivation_plan import canonical_snapshot
 from rag_derivative_writers import (
     require_nonproductive_evidence_target,
@@ -55,19 +56,27 @@ def repo_relative(path: Path) -> str:
         return str(path)
 
 
-def productive_derivatives_manifest(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
+def productive_derivatives_manifest(repo_root: Path | None = None) -> dict[str, Any]:
+    """Describe the productive derivative families.
+
+    PRODUCTIVE_FAMILIES values are stored LOGICAL locators ("data/out/local/<family>").
+    Physical reads resolve them through path_governance (the governed workspace); an
+    explicit ``repo_root`` keeps working as an injected base for fixtures. Persisted
+    paths are always the locator (locator + family-relative tail), never a physical path.
+    """
+
     files: list[dict[str, Any]] = []
     families: list[dict[str, Any]] = []
-    for family, relative in PRODUCTIVE_FAMILIES.items():
-        root = repo_root / relative
+    for family, locator in PRODUCTIVE_FAMILIES.items():
+        root = resolve_logical_locator(locator) if repo_root is None else repo_root / locator
         if not root.exists():
-            families.append({"artifact_family": family, "path": relative, "status": "not_present"})
+            families.append({"artifact_family": family, "path": locator, "status": "not_present"})
             continue
         family_files = sorted((path for path in root.rglob("*") if path.is_file()), key=lambda item: str(item))
         families.append(
             {
                 "artifact_family": family,
-                "path": relative,
+                "path": locator,
                 "status": "present",
                 "file_count": len(family_files),
             }
@@ -76,7 +85,7 @@ def productive_derivatives_manifest(repo_root: Path = REPO_ROOT) -> dict[str, An
             stat = path.stat()
             files.append(
                 {
-                    "path": repo_relative(path),
+                    "path": f"{locator}/{path.relative_to(root).as_posix()}",
                     "artifact_family": family,
                     "size_bytes": stat.st_size,
                     "line_count": line_count(path),

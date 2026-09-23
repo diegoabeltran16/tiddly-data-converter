@@ -25,10 +25,14 @@ from path_governance import (  # noqa: E402
     DEFAULT_ENRICHED_DIR,
     DEFAULT_EXPORT_DIR,
     DEFAULT_INPUT_HTML,
+    DEFAULT_LOCAL_OUT_DIR,
     DEFAULT_MICROSOFT_COPILOT_DIR,
     DEFAULT_REVERSE_HTML,
     DEFAULT_REVERSE_REPORT,
+    DEFAULT_SESSIONS_DIR,
+    DEFAULT_TMP_DIR,
     REPO_ROOT,
+    WORKSPACE_ROOT,
     as_display_path,
     sorted_canon_shards,
 )
@@ -49,7 +53,13 @@ from canon_sanitation import (  # noqa: E402
     search_canon_by_title,
 )
 from normalize_session_titles import (  # noqa: E402
-    DEFAULT_AUDIT_DIR,
+    # NOTE (S0187 Unit D): normalize_session_titles.DEFAULT_AUDIT_DIR is
+    # deliberately NOT imported here -- it is a hardcoded REPO_ROOT-relative
+    # constant that previously shadowed path_governance's governed,
+    # workspace_root-derived DEFAULT_AUDIT_DIR imported above, silently
+    # routing session-title-normalization reports to the wrong (old) root
+    # after a storage cutover. The bare DEFAULT_AUDIT_DIR name used below in
+    # option_title_normalization() now correctly resolves to the governed one.
     DEFAULT_SESSIONS_DIR as NORM_SESSIONS_DIR,
     apply_normalization_plan,
     audit_canon as audit_titles_canon,
@@ -60,6 +70,9 @@ from normalize_session_titles import (  # noqa: E402
     save_plan as save_norm_plan,
 )
 import canon_content_recovery  # noqa: E402
+import material_inventory  # noqa: E402
+import workspace_storage_ops  # noqa: E402
+import path_governance  # noqa: E402
 from tdc_cat import (  # noqa: E402
     tdc_cat_error,
     tdc_cat_loading,
@@ -86,30 +99,41 @@ from rag_admission_state import (  # noqa: E402
 from tdc_menu_registry import menu_text as registry_menu_text, resolve_choice as resolve_main_choice  # noqa: E402
 
 
-DEFAULT_SESSIONS_DIR = REPO_ROOT / "data" / "out" / "local" / "sessions"
-DEFAULT_TMP_DIR = REPO_ROOT / "data" / "tmp"
+# DEFAULT_SESSIONS_DIR and DEFAULT_TMP_DIR now come from path_governance
+# above (S0187 Unit D finding: DEFAULT_SESSIONS_DIR was previously a
+# hardcoded REPO_ROOT-relative literal that shadowed the governed one, and
+# was explicitly passed into scan_session_sync() as sessions_dir= --
+# overriding session_sync.py's own already-fixed default and silently
+# keeping the session-sync menu flow pinned to the old root even after a
+# storage cutover; DEFAULT_TMP_DIR was the same pattern one level up).
 DEFAULT_ADMISSION_TMP_DIR = DEFAULT_TMP_DIR / "session_admission"
-DEFAULT_ADMISSION_REPORT_DIR = REPO_ROOT / "data" / "out" / "local" / "audit" / "admissions"
+# S0187 Unit D finding: DEFAULT_ADMISSION_REPORT_DIR, CANON_CONTENT_RECOVERY_ROOT,
+# and the RAG_DERIVATION_*/RAG_TAG_*/RAG_METADATA_* constants below were all
+# hardcoded REPO_ROOT-relative literals -- confirmed active write destinations
+# (write_plan/write_text calls and explicit --out-dir/--profile/etc subprocess
+# args to derive_layers.py from the "8) Derivados / RAG" menu), now derived
+# from the governed DEFAULT_AUDIT_DIR/DEFAULT_LOCAL_OUT_DIR instead.
+DEFAULT_ADMISSION_REPORT_DIR = DEFAULT_AUDIT_DIR / "admissions"
 HTML_EXPORT_DIR = DEFAULT_TMP_DIR / "html_export"
 RECONSTRUCTION_DIR = DEFAULT_TMP_DIR / "reconstruction"
 QUALITY_REPORT_DIR = DEFAULT_TMP_DIR / "canonical_quality"
 MAIN_SEED_HTML = REPO_ROOT / "data" / "in" / "objeto_de_estudio_trazabilidad_y_desarrollo.html"
 BOOTSTRAP_AUX_HTML = REPO_ROOT / "data" / "in" / "empty-store.html"
 CANON_SHARD_MAX_LINES = 100
-RAG_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0172"
+RAG_DERIVATION_ROOT = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_derivation" / "s0172"
 RAG_DERIVATION_PREVIEW_ROOT = RAG_DERIVATION_ROOT / "preview"
-RAG_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0172"
+RAG_DERIVATION_AUDIT_ROOT = DEFAULT_AUDIT_DIR / "rag_derivation" / "s0172"
 RAG_DERIVATION_PROFILE = RAG_DERIVATION_ROOT / "rag_derivation_profile.json"
 RAG_DERIVATION_PLAN = RAG_DERIVATION_ROOT / "rag_derivation_plan.json"
 RAG_DERIVATION_PREVIEW_MANIFEST = RAG_DERIVATION_ROOT / "preview_manifest.json"
 RAG_DERIVATION_GATE_REPORT = RAG_DERIVATION_AUDIT_ROOT / "rag_gate_report.json"
 RAG_DERIVATION_GATE_REPORT_MD = RAG_DERIVATION_AUDIT_ROOT / "rag_gate_report.md"
-RAG_TAG_POLICY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169" / "tag_sanitation_policy.json"
-RAG_TAG_INVENTORY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "tag_sanitation" / "s0169" / "tag_inventory.json"
-RAG_METADATA_POLICY = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
-RAG_METADATA_CANDIDATES = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_candidates.jsonl"
+RAG_TAG_POLICY = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "tag_sanitation" / "s0169" / "tag_sanitation_policy.json"
+RAG_TAG_INVENTORY = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "tag_sanitation" / "s0169" / "tag_inventory.json"
+RAG_METADATA_POLICY = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
+RAG_METADATA_CANDIDATES = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_candidates.jsonl"
 
-CANON_CONTENT_RECOVERY_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "canon_content_recovery"
+CANON_CONTENT_RECOVERY_ROOT = DEFAULT_AUDIT_DIR / "canon_content_recovery"
 CANON_CONTENT_RECOVERY_REQUEST = CANON_CONTENT_RECOVERY_ROOT / "request.json"
 CANON_CONTENT_RECOVERY_PLAN = CANON_CONTENT_RECOVERY_ROOT / "plan.json"
 CANON_CONTENT_RECOVERY_DRYRUN_REPORT = CANON_CONTENT_RECOVERY_ROOT / "dry_run_report.json"
@@ -118,10 +142,19 @@ CANON_CONTENT_RECOVERY_SNAPSHOT_MANIFEST = CANON_CONTENT_RECOVERY_SNAPSHOT_DIR /
 CANON_CONTENT_RECOVERY_AUTHORIZATION = CANON_CONTENT_RECOVERY_ROOT / "authorization.json"
 CANON_CONTENT_RECOVERY_RECEIPT = CANON_CONTENT_RECOVERY_ROOT / "apply_receipt.json"
 CANON_CONTENT_RECOVERY_WORK_DIR = CANON_CONTENT_RECOVERY_ROOT / "work"
-S0173_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0173"
-S0173_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0173"
-S0174_DERIVATION_ROOT = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_derivation" / "s0174"
-S0174_DERIVATION_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "rag_derivation" / "s0174"
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals, missed when
+# the sibling S0172 constants above (RAG_DERIVATION_ROOT/RAG_DERIVATION_AUDIT_ROOT)
+# were migrated -- an inconsistency between session-numbered siblings, not a
+# deliberate choice. Migrated together with derive_layers.py's
+# RAG_DERIVATION_EVIDENCE_ROOT/RAG_DERIVATION_AUDIT_EVIDENCE_ROOT/
+# RAG_ADMISSION_PIPELINE_ROOT/RAG_ADMISSION_AUDIT_ROOT in the same change,
+# since derive_layers.py validates every caller-supplied path here against
+# those roots (_assert_preview_target_isolated) -- migrating only one side
+# would break that validation.
+S0173_DERIVATION_ROOT = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_derivation" / "s0173"
+S0173_DERIVATION_AUDIT_ROOT = DEFAULT_AUDIT_DIR / "rag_derivation" / "s0173"
+S0174_DERIVATION_ROOT = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_derivation" / "s0174"
+S0174_DERIVATION_AUDIT_ROOT = DEFAULT_AUDIT_DIR / "rag_derivation" / "s0174"
 
 
 @dataclass
@@ -502,6 +535,9 @@ def run_reconstruction_gate(
         mode,
         "--output-target",
         str(output_target),
+        # P7-C: Python resolves the workspace authority, Rust only validates.
+        "--workspace-root",
+        str(WORKSPACE_ROOT),
     ]
     if input_jsonl is not None:
         args.extend(["--input-jsonl", str(input_jsonl)])
@@ -753,7 +789,10 @@ def option_preparation() -> None:
 
     if shutil.which("cargo") and (REPO_ROOT / "src" / "rust" / "doctor").exists():
         result = run_command(
-            ["cargo", "run", "--quiet", "--bin", "audit", "--", "perimeter", str(REPO_ROOT)],
+            [
+                "cargo", "run", "--quiet", "--bin", "audit", "--", "perimeter", str(REPO_ROOT),
+                "--workspace-root", str(WORKSPACE_ROOT),
+            ],
             cwd=REPO_ROOT / "src" / "rust" / "doctor",
         )
         state = "OK" if result.returncode == 0 else "ERROR"
@@ -1123,6 +1162,8 @@ def run_doctor_quality_report(kind: str, input_path: Path, report_path: Path) ->
             str(input_path),
             "--report",
             str(report_path),
+            "--workspace-root",
+            str(WORKSPACE_ROOT),
         ],
         cwd=REPO_ROOT / "src" / "rust" / "doctor",
     )
@@ -1831,6 +1872,8 @@ def _rag_admission_staging_command() -> list[str]:
         "--run-id", "rag-admission-staging",
         "--preview-manifest", str(RAG_ADMISSION_STAGING_MANIFEST),
         "--gate-report", str(RAG_ADMISSION_TECHNICAL_GATE),
+        # explicit markdown twin: without it derive_layers defaults to the S0172 audit report
+        "--gate-report-md", str(RAG_ADMISSION_TECHNICAL_GATE.with_suffix(".md")),
         "--plan-out", str(RAG_ADMISSION_ROOT / "staging_derived_plan.json"),
     ]
 
@@ -1932,6 +1975,10 @@ def option_derivatives(state: MenuState) -> None:
         print("Opción inválida.")
 
 
+# Store policy of the PRODUCTIVE canonical reconstruction (PRODUCTIVE_CANON_RECONSTRUCTION requires replace).
+REVERSE_PRODUCTIVE_STORE_POLICY = "replace"
+
+
 def option_reverse(state: MenuState) -> None:
     html = choose_html(state)
     if not html:
@@ -1977,6 +2024,11 @@ def option_reverse(state: MenuState) -> None:
             str(DEFAULT_REVERSE_REPORT),
             "--mode",
             "authoritative-upsert",
+            # P7-C-R1: canonical reconstruction requires store_policy=replace, stated
+            # explicitly (not inherited from the CLI default "preserve"): under preserve a
+            # Canon deletion resurrects from the historical base HTML.
+            "--store-policy",
+            REVERSE_PRODUCTIVE_STORE_POLICY,
         ],
         cwd=REPO_ROOT / "src" / "go" / "bridge",
     )
@@ -2121,6 +2173,8 @@ def run_reconstruction_rollback_gate(report_path: Path) -> tuple[bool, dict[str,
             str(REPO_ROOT),
             "--report",
             str(report_path),
+            "--workspace-root",
+            str(WORKSPACE_ROOT),
         ],
         cwd=REPO_ROOT / "src" / "rust" / "doctor",
     )
@@ -2583,6 +2637,357 @@ def option_canon_sanitation() -> None:
             print("Opción inválida.")
 
 
+MATERIAL_STATUS_DEFAULT_DETAIL_LIMIT = 20
+_MATERIAL_STATUS_PRIORITY = {
+    material_inventory.CHANGE_UNKNOWN: 0,
+    material_inventory.CHANGE_REMOVED: 1,
+    material_inventory.CHANGE_CONTENT_CHANGED: 2,
+    material_inventory.CHANGE_POSSIBLE_MOVE: 3,
+    material_inventory.CHANGE_ADDED: 4,
+    material_inventory.CHANGE_POSSIBLE_COPY: 5,
+    material_inventory.CHANGE_METADATA_CHANGED: 6,
+}
+_MATERIAL_DELTA_TYPES = frozenset(_MATERIAL_STATUS_PRIORITY)
+
+
+def _material_status_event_path(event: dict[str, Any]) -> str:
+    return str(
+        event.get("relative_path")
+        or event.get("new_relative_path")
+        or event.get("old_relative_path")
+        or "<sin-ruta-unica>"
+    )
+
+
+def _material_status_event_class(event: dict[str, Any]) -> str:
+    record = event.get("after") or event.get("before") or {}
+    return str(record.get("material_class") or "UNKNOWN")
+
+
+def build_material_status_view(
+    status: dict[str, Any], *, detail_limit: int = MATERIAL_STATUS_DEFAULT_DETAIL_LIMIT
+) -> dict[str, Any]:
+    """Build a bounded human projection without altering the full status object."""
+
+    all_events = list(status.get("events") or [])
+    delta_events = [event for event in all_events if event.get("change_type") in _MATERIAL_DELTA_TYPES]
+    advisories = [
+        event
+        for event in all_events
+        if event.get("change_type") == material_inventory.CHANGE_DUPLICATED_CONTENT
+    ]
+    delta_events.sort(
+        key=lambda event: (
+            _MATERIAL_STATUS_PRIORITY.get(str(event.get("change_type")), 99),
+            _material_status_event_path(event),
+        )
+    )
+
+    by_class: dict[str, dict[str, int]] = {}
+    for event in delta_events:
+        class_counts = by_class.setdefault(_material_status_event_class(event), {})
+        change_type = str(event.get("change_type") or material_inventory.CHANGE_UNKNOWN)
+        class_counts[change_type] = class_counts.get(change_type, 0) + 1
+
+    counts = status.get("counts") or {}
+    material_change_count = sum(
+        int(counts.get(key, 0) or 0)
+        for key in (
+            "added_count",
+            "removed_count",
+            "content_changed_count",
+            "possible_move_count",
+            "possible_copy_count",
+            "unknown_count",
+        )
+    )
+    return {
+        "status": status.get("status"),
+        "persisted_snapshot_id": status.get("persisted_snapshot_id"),
+        "live_snapshot_id": status.get("snapshot_id"),
+        "last_observed_at": status.get("last_observed_at"),
+        "checked_at": status.get("checked_at"),
+        "verification_mode": status.get("verification_mode"),
+        "counts": counts,
+        "material_change_count": material_change_count,
+        "metadata_only_count": int(counts.get("metadata_changed_count", 0) or 0),
+        "unchanged_count": int(counts.get("unchanged_count", 0) or 0),
+        "delta_event_count": len(delta_events),
+        "advisory_count": len(advisories),
+        "full_machine_event_count": len(all_events),
+        "by_class": {name: by_class[name] for name in sorted(by_class)},
+        "default_detail": delta_events[: max(detail_limit, 0)],
+        "default_detail_limit": max(detail_limit, 0),
+        "detail_omitted_count": max(len(delta_events) - max(detail_limit, 0), 0),
+    }
+
+
+def _print_material_status_events(
+    events: list[dict[str, Any]], title: str, *, limit: int = MATERIAL_STATUS_DEFAULT_DETAIL_LIMIT
+) -> None:
+    ordered = sorted(
+        events,
+        key=lambda event: (
+            _MATERIAL_STATUS_PRIORITY.get(str(event.get("change_type")), 99),
+            _material_status_event_path(event),
+        ),
+    )
+    print(f"\n{title} ({len(ordered)})")
+    if not ordered:
+        print("Sin eventos en esta selección.")
+        return
+    for index, event in enumerate(ordered[:limit], start=1):
+        changed_fields = event.get("changed_fields") or []
+        suffix = f" [{', '.join(changed_fields)}]" if changed_fields else ""
+        print(f"E{index:04d} {event.get('change_type')}: {_material_status_event_path(event)}{suffix}")
+    if len(ordered) > limit:
+        print(f"Mostrando {limit} de {len(ordered)} eventos. Use búsqueda de ruta para inspección puntual.")
+
+
+def print_material_inventory_status(
+    status: dict[str, Any], *, detail_limit: int = MATERIAL_STATUS_DEFAULT_DETAIL_LIMIT
+) -> dict[str, Any]:
+    """Print the bounded first view and return its testable projection."""
+
+    view = build_material_status_view(status, detail_limit=detail_limit)
+    print("\nInventario material")
+    print(f"Estado: {view['status']}")
+    if view["last_observed_at"]:
+        print(f"Última observación persistida: {view['last_observed_at']}")
+    if view["checked_at"]:
+        print(f"Comprobación viva: {view['checked_at']}")
+    if view["verification_mode"]:
+        print(f"Modo de verificación: {view['verification_mode']}")
+    if view["persisted_snapshot_id"]:
+        print(f"Snapshot persistido: {str(view['persisted_snapshot_id'])[:12]}...")
+    if view["live_snapshot_id"]:
+        print(f"Snapshot observado:  {str(view['live_snapshot_id'])[:12]}...")
+
+    if view["status"] == "CURRENT":
+        print(f"Artefactos: {status.get('live_artifact_count', status.get('persisted_artifact_count', '-'))}")
+        print("Comparación: sin cambios en el momento de la comprobación.")
+        print(f"Tiempo: {float(status.get('scan_seconds', 0.0)):.2f}s")
+        return view
+    if view["status"] != "CHANGES_DETECTED":
+        print("La observación no produjo una comparación current completa.")
+        return view
+
+    counts = view["counts"]
+    print("\nResumen")
+    print(f"+ Añadidos:              {int(counts.get('added_count', 0) or 0)}")
+    print(f"- Eliminados:            {int(counts.get('removed_count', 0) or 0)}")
+    print(f"~ Contenido modificado:  {int(counts.get('content_changed_count', 0) or 0)}")
+    print(f"m Solo metadata:         {view['metadata_only_count']}")
+    print(f"? Posible move/rename:   {int(counts.get('possible_move_count', 0) or 0)}")
+    print(f"c Posible copia:         {int(counts.get('possible_copy_count', 0) or 0)}")
+    print(f"! Error/desconocido:     {int(counts.get('unknown_count', 0) or 0)}")
+    print(f"= Sin cambios:           {view['unchanged_count']}")
+    print(f"Cambios materiales relevantes: {view['material_change_count']}")
+    print(f"Cambios metadata-only:         {view['metadata_only_count']}")
+
+    if view["by_class"]:
+        print("\nPor clase/superficie")
+        for class_name, class_counts in view["by_class"].items():
+            compact = " ".join(f"{name}={count}" for name, count in sorted(class_counts.items()))
+            print(f"{class_name}: {compact}")
+
+    if view["advisory_count"]:
+        print(
+            f"\nAvisos del estado actual: {view['advisory_count']} grupos de contenido duplicado "
+            "(no se cuentan como cambios entre snapshots)."
+        )
+
+    _print_material_status_events(
+        list(view["default_detail"]),
+        f"Detalle prioritario (máximo {view['default_detail_limit']})",
+        limit=view["default_detail_limit"],
+    )
+    if view["detail_omitted_count"]:
+        print(
+            f"Detalle acotado: {view['detail_omitted_count']} eventos adicionales permanecen "
+            "disponibles en el resultado completo y en la revisión interactiva."
+        )
+    return view
+
+
+def review_material_inventory_status(status: dict[str, Any]) -> None:
+    """Bounded drill-down over the already computed, full in-memory diff."""
+
+    events = list(status.get("events") or [])
+    delta = [event for event in events if event.get("change_type") in _MATERIAL_DELTA_TYPES]
+    while True:
+        print(
+            "\nRevisar cambios\n"
+            "1) Ver cambios materiales relevantes\n"
+            "2) Ver añadidos\n"
+            "3) Ver eliminados\n"
+            "4) Ver contenido modificado\n"
+            "5) Ver posibles moves/copias\n"
+            "6) Ver cambios solo de metadata\n"
+            "7) Ver por clase/superficie\n"
+            "8) Buscar una ruta\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        selected: list[dict[str, Any]]
+        title: str
+        if choice == "1":
+            selected = [e for e in delta if e.get("change_type") != material_inventory.CHANGE_METADATA_CHANGED]
+            title = "Cambios materiales relevantes"
+        elif choice == "2":
+            selected = [e for e in delta if e.get("change_type") == material_inventory.CHANGE_ADDED]
+            title = "Añadidos"
+        elif choice == "3":
+            selected = [e for e in delta if e.get("change_type") == material_inventory.CHANGE_REMOVED]
+            title = "Eliminados"
+        elif choice == "4":
+            selected = [e for e in delta if e.get("change_type") == material_inventory.CHANGE_CONTENT_CHANGED]
+            title = "Contenido modificado"
+        elif choice == "5":
+            selected = [
+                e
+                for e in delta
+                if e.get("change_type")
+                in {material_inventory.CHANGE_POSSIBLE_MOVE, material_inventory.CHANGE_POSSIBLE_COPY}
+            ]
+            title = "Posibles moves/copias"
+        elif choice == "6":
+            selected = [e for e in delta if e.get("change_type") == material_inventory.CHANGE_METADATA_CHANGED]
+            title = "Cambios solo de metadata"
+        elif choice == "7":
+            class_name = prompt("Clase/superficie: ").strip().upper()
+            selected = [e for e in delta if _material_status_event_class(e).upper() == class_name]
+            title = f"Clase/superficie {class_name or '<vacía>'}"
+        elif choice == "8":
+            query = prompt("Fragmento de ruta: ").strip().casefold()
+            selected = [e for e in delta if query and query in _material_status_event_path(e).casefold()]
+            title = f"Coincidencias de ruta: {query or '<vacía>'}"
+        else:
+            print("Opción inválida.")
+            continue
+        _print_material_status_events(selected, title)
+
+
+def option_material_inventory() -> None:
+    """S0187 Unit C: material inventory / repository submenu.
+
+    Reoriented from the historical "Exportador de repositorio" (option 3),
+    which is retired from this visible surface but kept reachable directly
+    (Avanzado / mantenimiento -> compatibility dispatch) for any remaining
+    consumer of the tiddler-JSON export flow -- see option_repository_exporter.
+    """
+
+    while True:
+        print(
+            "\nInventario material / repositorio\n"
+            "1) Actualizar inventario (repositorio)\n"
+            "2) Comprobar estado / cambios (repositorio)\n"
+            "3) Generar estructura ASCII\n"
+            "4) Ayuda\n"
+            "5) Actualizar inventario (workspace/data) [S0187 D22]\n"
+            "6) Comprobar estado / cambios (workspace/data) [S0187 D22]\n"
+            "0) Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+        if choice == "1":
+            try:
+                result = material_inventory.update_inventory()
+            except material_inventory.MaterialInventoryError as exc:
+                tdc_cat_error(f"Actualización de inventario bloqueada: {exc}")
+                continue
+            summary = result["change_summary"]
+            tdc_cat_success(
+                f"Inventario actualizado: {summary['result']} "
+                f"(artefactos={result['manifest']['artifact_count']}, "
+                f"snapshot_id={result['snapshot_id'][:12]}...)"
+            )
+            print(json.dumps(summary, indent=2, ensure_ascii=False, default=str))
+        elif choice == "2":
+            try:
+                status = material_inventory.check_status()
+            except material_inventory.MaterialInventoryError as exc:
+                tdc_cat_error(f"Comprobación de inventario bloqueada: {exc}")
+                continue
+            print_material_inventory_status(status)
+            if status.get("status") == "CHANGES_DETECTED":
+                review_material_inventory_status(status)
+        elif choice == "3":
+            try:
+                result = material_inventory.render_ascii_structure()
+            except material_inventory.MaterialInventoryError as exc:
+                tdc_cat_error(f"Generación de estructura bloqueada: {exc}")
+                continue
+            if result["status"] == "NO_CURRENT_INVENTORY":
+                tdc_cat_error(
+                    "No existe inventario current. Ejecute primero "
+                    "'1) Actualizar inventario'."
+                )
+            else:
+                tdc_cat_success(
+                    f"Estructura ASCII regenerada en {display(Path(result['output_path']))} "
+                    f"({result['artifact_count']} artefactos)."
+                )
+        elif choice == "4":
+            print(
+                "\nInventario material / repositorio\n"
+                "Observa la realidad material del repositorio (qué existe, su hash,\n"
+                "tamaño y estado Git) sin admitirla al Canon. El estado current es\n"
+                "reemplazable y reconstruible; la historia de cambios se conserva\n"
+                "como recibos de transición durables solo cuando hay un cambio\n"
+                "material real. La estructura ASCII se regenera a partir del\n"
+                "inventario current, no de un escaneo independiente.\n"
+                "CURRENT_INCREMENTAL describe la calidad de la última observación\n"
+                "persistida, no una garantía de vigencia permanente. La opción 2\n"
+                "calcula currentness viva bajo demanda y nunca persiste el resultado.\n"
+                "No modifica data/out/local/tiddlers_*.jsonl (Canon).\n\n"
+                "Opciones 5/6 (S0187 D22): mismo motor, scope distinto -- observan\n"
+                "qué constituye materialmente el WORKSPACE activo (out/refs/tmp bajo\n"
+                "WORKSPACE_ROOT) en lugar del checkout del repositorio. Guardan su\n"
+                "propio inventario current, separado del de la opción 1/2, para que\n"
+                "un scope nunca sobrescriba al otro."
+            )
+        elif choice == "5":
+            try:
+                result = material_inventory.update_inventory(
+                    profile=material_inventory.workspace_data_profile(),
+                    tmp_root=material_inventory.WORKSPACE_DATA_TMP_ROOT,
+                    transitions_dir=material_inventory.WORKSPACE_DATA_TRANSITIONS_DIR,
+                    inventory_path=material_inventory.WORKSPACE_DATA_CURRENT_INVENTORY_PATH,
+                    manifest_path=material_inventory.WORKSPACE_DATA_CURRENT_MANIFEST_PATH,
+                    lock_path=material_inventory.WORKSPACE_DATA_LOCK_PATH,
+                )
+            except material_inventory.MaterialInventoryError as exc:
+                tdc_cat_error(f"Actualización de inventario (workspace/data) bloqueada: {exc}")
+                continue
+            summary = result["change_summary"]
+            tdc_cat_success(
+                f"Inventario (workspace/data) actualizado: {summary['result']} "
+                f"(artefactos={result['manifest']['artifact_count']}, "
+                f"root={result['manifest']['root_locator']}, "
+                f"snapshot_id={result['snapshot_id'][:12]}...)"
+            )
+            print(json.dumps(summary, indent=2, ensure_ascii=False, default=str))
+        elif choice == "6":
+            try:
+                status = material_inventory.check_status(
+                    profile=material_inventory.workspace_data_profile(),
+                    inventory_path=material_inventory.WORKSPACE_DATA_CURRENT_INVENTORY_PATH,
+                    manifest_path=material_inventory.WORKSPACE_DATA_CURRENT_MANIFEST_PATH,
+                )
+            except material_inventory.MaterialInventoryError as exc:
+                tdc_cat_error(f"Comprobación de inventario (workspace/data) bloqueada: {exc}")
+                continue
+            print_material_inventory_status(status)
+            if status.get("status") == "CHANGES_DETECTED":
+                review_material_inventory_status(status)
+        else:
+            print("Opción inválida.")
+
+
 def option_repository_exporter() -> None:
     print("\nExportador de repositorio")
     print("Exporta archivos del repositorio como tiddlers JSON. No modifica el canon local.")
@@ -2732,7 +3137,9 @@ def option_relational_audit() -> None:
 
 
 def option_relational_rollback_status() -> None:
-    state_path = REPO_ROOT / "data/out/local/audit/relation_admission/current/relational_operational_state.json"
+    # S0187 D23-A: was REPO_ROOT-relative -- migrated to the governed owner,
+    # same relative_admission/current subpath, semantics unchanged.
+    state_path = DEFAULT_AUDIT_DIR / "relation_admission" / "current" / "relational_operational_state.json"
     result = run_command(["python3", "src/python_scripts/relation_admission_state.py", "state"])
     if result.returncode != 0:
         print_command_result(result)
@@ -2907,39 +3314,10 @@ def option_tmp_quiescence() -> None:
             print("Opción inválida.")
 
 
-# S0186 Unit I -- the two blockers demonstrated by the RAG equivalence
-# investigation, certified via read-only historical bisection this
-# session. Prefilling from these exact, already-verified paths is a
-# convenience only; the human still reviews the plan, dry-run, and
-# authorization phrase explicitly before any Apply.
-_S0186_UNIT_I_KNOWN_REQUESTS: list[dict[str, Any]] = [
-    {
-        "mode": canon_content_recovery.MODE_RESTORE_MISSING_SAME_ID,
-        "target_record_id": "4667737e-bac0-583f-91ba-53ecc9ac10de",
-        "certified_source_path": str(
-            REPO_ROOT
-            / "data/out/local/audit/admissions/backups/admit-20260802004923-multi-session/tiddlers_1.jsonl"
-        ),
-        "corroborating_source_path": str(
-            REPO_ROOT / "data/in/# 1_objeto_de_estudio_trazabilidad_y_desarrollo.json"
-        ),
-    },
-    {
-        "mode": canon_content_recovery.MODE_REPAIR_EXISTING_TARGET,
-        "target_record_id": "ab0f1850-e42c-5dcf-a85a-0e786e590147",
-        "predecessor_record_id": "aafec109-c197-5979-b9ac-5bd8636650f6",
-        "predecessor_certified_source_path": str(
-            REPO_ROOT
-            / "data/out/local/audit/admissions/backups/admit-20260901213051-multi-session/tiddlers_29.jsonl"
-        ),
-    },
-]
-
-
 def option_canon_content_recovery() -> None:
     """Recuperación de contenido canónico -- superficie mínima gobernada
 
-    (S0186 Unit I) para exactamente dos clases contractuales: restaurar un
+    para exactamente dos clases contractuales: restaurar un
     id ausente desde evidencia certificada (RESTORE_MISSING_SAME_ID), o
     reparar el contenido de un target vacío desde un predecessor probado
     (REPAIR_EXISTING_TARGET_FROM_PROVEN_PREDECESSOR). No es un editor
@@ -2948,16 +3326,14 @@ def option_canon_content_recovery() -> None:
 
     while True:
         print(
-            "\nRecuperación de contenido canónico (S0186 Unit I)\n"
+            "\nRecuperación de contenido canónico\n"
             "Canon: SOLO LECTURA salvo Aplicar con confirmación explícita\n\n"
-            "1) Ver hallazgos conocidos de S0186 Unit I\n"
-            "2) Construir plan desde solicitud (JSON)\n"
-            "3) Construir plan con los 2 hallazgos conocidos de S0186 Unit I\n"
-            "4) Dry-run del último plan\n"
-            "5) Preparar snapshot de rollback (requerido antes de autorizar)\n"
-            "6) Solicitar autorización para el último plan (requiere snapshot ya preparado)\n"
-            "7) Aplicar el último plan autorizado (requiere confirmación exacta)\n"
-            "8) Rollback desde un snapshot\n"
+            "1) Construir plan desde solicitud (JSON)\n"
+            "2) Dry-run del último plan\n"
+            "3) Preparar snapshot de rollback (requerido antes de autorizar)\n"
+            "4) Solicitar autorización para el último plan (requiere snapshot ya preparado)\n"
+            "5) Aplicar el último plan autorizado (requiere confirmación exacta)\n"
+            "6) Rollback desde un snapshot\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
@@ -2965,10 +3341,6 @@ def option_canon_content_recovery() -> None:
             return
 
         if choice == "1":
-            for request in _S0186_UNIT_I_KNOWN_REQUESTS:
-                print(json.dumps(request, indent=2, ensure_ascii=False))
-
-        elif choice == "2":
             request_path = prompt(f"Archivo de solicitud JSON [{as_display_path(CANON_CONTENT_RECOVERY_REQUEST)}]: ").strip()
             request_file = Path(request_path) if request_path else CANON_CONTENT_RECOVERY_REQUEST
             if not request_file.exists():
@@ -2983,27 +3355,9 @@ def option_canon_content_recovery() -> None:
             print(f"Plan {plan.plan_id} escrito en {as_display_path(CANON_CONTENT_RECOVERY_PLAN)}")
             print(f"canon_before_hash={plan.canon_before_hash} expected_canon_after_count={plan.expected_canon_after_count}")
 
-        elif choice == "3":
-            CANON_CONTENT_RECOVERY_ROOT.mkdir(parents=True, exist_ok=True)
-            CANON_CONTENT_RECOVERY_REQUEST.write_text(
-                json.dumps(_S0186_UNIT_I_KNOWN_REQUESTS, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-            )
-            try:
-                plan = canon_content_recovery._build_plan_from_request_file(
-                    CANON_CONTENT_RECOVERY_REQUEST, DEFAULT_CANON_DIR
-                )
-            except (canon_content_recovery.RecoveryPlanError, canon_content_recovery.RecoveryAuthorizationError) as exc:
-                print(f"Plan bloqueado: {exc}")
-                continue
-            canon_content_recovery.write_plan(plan, CANON_CONTENT_RECOVERY_PLAN)
-            print(f"Plan {plan.plan_id} escrito en {as_display_path(CANON_CONTENT_RECOVERY_PLAN)}")
-            print(f"canon_before_hash={plan.canon_before_hash} expected_canon_after_count={plan.expected_canon_after_count}")
-            for op in plan.operations:
-                print(f"  - {op.operation_mode} target={op.target_record_id} delta={op.expected_record_count_delta}")
-
-        elif choice == "4":
+        elif choice == "2":
             if not CANON_CONTENT_RECOVERY_PLAN.exists():
-                print("No hay plan construido todavía (opciones 2 o 3).")
+                print("No hay plan construido todavía (opción 1).")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             canon_dir_from_plan = Path(plan_dict["canon_dir"])
@@ -3023,9 +3377,9 @@ def option_canon_content_recovery() -> None:
             CANON_CONTENT_RECOVERY_DRYRUN_REPORT.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print(json.dumps(report, indent=2, ensure_ascii=False))
 
-        elif choice == "5":
+        elif choice == "3":
             if not CANON_CONTENT_RECOVERY_PLAN.exists():
-                print("No hay plan construido todavía (opciones 2 o 3).")
+                print("No hay plan construido todavía (opción 1).")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             operations = [canon_content_recovery.RecoveryOperation(**{**op, "recovered_record": {}}) for op in plan_dict["operations"]]
@@ -3040,12 +3394,12 @@ def option_canon_content_recovery() -> None:
                 f"(hash={canon_content_recovery.sha256_path(manifest_path)}). Canon no fue modificado."
             )
 
-        elif choice == "6":
+        elif choice == "4":
             if not CANON_CONTENT_RECOVERY_PLAN.exists():
-                print("No hay plan construido todavía (opciones 2 o 3).")
+                print("No hay plan construido todavía (opción 1).")
                 continue
             if not CANON_CONTENT_RECOVERY_SNAPSHOT_MANIFEST.exists():
-                print("Se requiere un snapshot de rollback ya preparado (opción 5) antes de autorizar.")
+                print("Se requiere un snapshot de rollback ya preparado (opción 3) antes de autorizar.")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             operations = [canon_content_recovery.RecoveryOperation(**{**op, "recovered_record": {}}) for op in plan_dict["operations"]]
@@ -3069,9 +3423,9 @@ def option_canon_content_recovery() -> None:
             )
             print(f"Autorización {authorization['authorization_id']} creada y vinculada al plan {plan.plan_id}.")
 
-        elif choice == "7":
+        elif choice == "5":
             if not CANON_CONTENT_RECOVERY_PLAN.exists() or not CANON_CONTENT_RECOVERY_AUTHORIZATION.exists():
-                print("Se requiere un plan y una autorización previos (opciones 2/3 y 6).")
+                print("Se requiere un plan y una autorización previos (opciones 1 y 4).")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             canon_dir_from_plan = Path(plan_dict["canon_dir"])
@@ -3099,7 +3453,7 @@ def option_canon_content_recovery() -> None:
             CANON_CONTENT_RECOVERY_RECEIPT.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print(json.dumps(receipt, indent=2, ensure_ascii=False))
 
-        elif choice == "8":
+        elif choice == "6":
             snapshot_path = prompt("Ruta a rollback_manifest.json: ").strip()
             if not snapshot_path:
                 print("Cancelado.")
@@ -3145,6 +3499,169 @@ def option_advanced_maintenance(state: MenuState) -> None:
             print("Opcion invalida.")
 
 
+def _print_workspace_status() -> None:
+    status = path_governance.current_workspace_status()
+    print("\nAlmacenamiento del workspace")
+    print(f"  Workspace activo:    {status['workspace']}")
+    print(f"  Tipo de storage:     {status['storage_type']}")
+    print(f"  Ubicacion resuelta:  {status['workspace_root']}")
+    origin = {
+        "runtime_override_env": "override de runtime (TDC_WORKSPACE_ROOT)",
+        "persisted_config": "configuracion guardada (.tdc/workspace_storage.json)",
+        "default_repo_relative": "valor por defecto (repo/data, sin configuracion explicita)",
+    }.get(status["workspace_root_source"], status["workspace_root_source"])
+    print(f"  Origen:              {origin}")
+    print(f"  Disponible ahora:    {'si' if status['workspace_root_exists'] else 'NO'}")
+    print(
+        "  Nota: data/in permanece junto al checkout del repositorio (no se "
+        "mueve con el workspace). refs/ ahora sigue al workspace activo "
+        "(S0187 D22) -- ver 'refs' bajo la ubicacion resuelta arriba."
+    )
+    persisted = path_governance.load_workspace_storage_config()
+    if persisted:
+        print("\n  Configuracion persistida (.tdc/workspace_storage.json):")
+        for key in ("workspace", "storage_type", "workspace_root", "updated_at"):
+            print(f"    {key}: {persisted.get(key)}")
+        if status["workspace_root_source"] != "persisted_config" and status["workspace_root_source"] != "runtime_override_env":
+            print(
+                "    (nota: existe configuracion persistida pero esta sesion todavia no "
+                "la resolvio -- reinicia TDC para que un proceso nuevo la tome en cuenta)"
+            )
+
+
+def option_workspace_storage() -> None:
+    """Almacenamiento primario del workspace (S0187 Unit D).
+
+    Distinto de 'Configurar MCP / mirror remoto' (accion mcp_remote_config):
+    PRIMARY WORKSPACE STORAGE != REMOTE MIRROR.
+    """
+    while True:
+        print(
+            "\nAlmacenamiento del workspace\n\n"
+            "1. Ver configuracion actual\n"
+            "2. Cambiar ubicacion del workspace/datos\n"
+            "3. Validar una ubicacion\n"
+            "4. Previsualizar migracion\n"
+            "5. Aplicar migracion\n"
+            "6. Ver ultimo reporte\n"
+            "0. Volver"
+        )
+        choice = prompt("> ").strip()
+        if choice == "0" or choice == "":
+            return
+
+        if choice == "1":
+            _print_workspace_status()
+
+        elif choice == "2":
+            target = prompt("Ruta candidata para el workspace: ").strip()
+            if not target:
+                print("Operacion cancelada.")
+                continue
+            validation = workspace_storage_ops.validate_location(target)
+            if not validation["ok"]:
+                print("\nLa ubicacion NO puede activarse todavia:")
+                for warning in validation["warnings"]:
+                    print(f"  - {warning}")
+                continue
+            current_status = path_governance.current_workspace_status()
+            print(f"\nUbicacion candidata valida: {validation['path']}")
+            print(f"Ubicacion activa actual:    {current_status['workspace_root']} (origen: {current_status['workspace_root_source']})")
+            print(
+                "\nEsta accion NO copia datos. Solo persiste la ubicacion elegida en "
+                "la configuracion del workspace (.tdc/workspace_storage.json), no secreta. "
+                "Si el destino no contiene ya el material esperado (por ejemplo, tras un "
+                "D11 COPY + D12 VERIFY exitosos fuera de este menu), TDC resolvera hacia un "
+                "workspace incompleto o vacio en ese destino."
+            )
+            confirmation = prompt("Escribe ACTIVAR para persistir esta ubicacion: ").strip()
+            if confirmation != "ACTIVAR":
+                print("Operacion cancelada.")
+                continue
+            config_path = path_governance.save_workspace_storage_config(target)
+            print(f"\nConfiguracion persistida en: {as_display_path(config_path)}")
+            print(
+                "El cambio queda persistido para nuevas invocaciones de TDC. Esta misma "
+                "sesion de menu ya tiene path_governance cargado en memoria con la "
+                "ubicacion anterior; reinicia/reinvoca TDC para que la nueva resolucion "
+                "tome efecto en un proceso nuevo (WORKSPACE_ROOT se resuelve una vez, al "
+                "importar el modulo)."
+            )
+
+        elif choice == "3":
+            target = prompt("Ruta a validar: ").strip()
+            if not target:
+                print("Operacion cancelada.")
+                continue
+            validation = workspace_storage_ops.validate_location(target)
+            print(f"\nRuta:            {validation['path']}")
+            print(f"Existe:          {validation['exists']}")
+            print(f"Montaje:         {validation['mount'].get('device')} ({validation['mount'].get('fstype')}) en {validation['mount'].get('mountpoint')}")
+            print(f"Opciones mount:  {','.join(validation['mount'].get('options') or [])}")
+            print(f"Solo lectura:    {validation['read_only_mount']}")
+            print(f"Espacio libre:   {validation['free_bytes']:,} bytes" if validation.get("free_bytes") is not None else "Espacio libre:   desconocido")
+            print(f"Resultado:       {'VALIDA' if validation['ok'] else 'NO VALIDA'}")
+            for warning in validation["warnings"]:
+                print(f"  - {warning}")
+
+        elif choice == "4":
+            target = prompt("Ruta destino a previsualizar: ").strip()
+            if not target:
+                print("Operacion cancelada.")
+                continue
+            preview = workspace_storage_ops.preview_migration(target)
+            print(f"\nOrigen:               {preview['source_workspace_root']}")
+            print(f"Destino propuesto:    {preview['proposed_target']}")
+            print(f"Artefactos a migrar:  {preview['expected_artifact_count']:,}")
+            print(f"Bytes a migrar:       {preview['expected_byte_count']:,}")
+            print(f"Espacio libre destino:{preview['available_target_free_bytes']:,}" if preview.get("available_target_free_bytes") is not None else "Espacio libre destino: desconocido")
+            print("\nNO migra (permanece donde esta):")
+            for label, stats in preview["will_not_migrate"].items():
+                print(f"  - {label}: {stats.get('file_count', 0)} archivos")
+            print(f"\nOrden de migracion: {preview['migration_order']}")
+            print(f"Cutover requiere:   {preview['cutover_requires']}")
+            print(f"\nReporte guardado en: {as_display_path(workspace_storage_ops.PREVIEW_REPORT)}")
+
+        elif choice == "5":
+            target = prompt("Ruta destino para aplicar migracion: ").strip()
+            if not target:
+                print("Operacion cancelada.")
+                continue
+            report = workspace_storage_ops.apply_migration(target)
+            print(f"\nEstado: {report['status']}")
+            print(f"Motivo: {report['reason']}")
+            if report["status"] == "REFUSED":
+                for warning in report["detail"].get("warnings", []):
+                    print(f"  - {warning}")
+            else:
+                print(
+                    "Se requiere Gate D-H3 (habilitar RW en el dispositivo, solo por "
+                    "un humano desde su propio terminal) y Gate D-H4 (cutover) antes "
+                    "de que esta operacion pueda ejecutar una copia real."
+                )
+
+        elif choice == "6":
+            checkpoint = workspace_storage_ops.load_last_report(workspace_storage_ops.CHECKPOINT_REPORT)
+            preview = workspace_storage_ops.load_last_report(workspace_storage_ops.PREVIEW_REPORT)
+            migration = workspace_storage_ops.load_last_report(workspace_storage_ops.MIGRATION_REPORT)
+            if checkpoint is None and preview is None and migration is None:
+                print("No hay reportes guardados todavia.")
+                continue
+            if checkpoint:
+                print(f"\nUltimo checkpoint: {checkpoint['timestamp_utc']}")
+                print(f"  canon: {checkpoint['canon']['shard_count']} shards, {checkpoint['canon']['record_count']} registros")
+            if preview:
+                print(f"\nUltima previsualizacion: {preview['timestamp_utc']}")
+                print(f"  destino propuesto: {preview['proposed_target']}")
+                print(f"  artefactos a migrar: {preview['expected_artifact_count']:,}")
+            if migration:
+                print(f"\nUltimo intento de migracion: {migration['timestamp_utc']}")
+                print(f"  estado: {migration['status']}")
+
+        else:
+            print("Opcion invalida.")
+
+
 def dispatch_main_choice(choice: str, state: MenuState) -> bool:
     resolved = resolve_main_choice(choice)
     if resolved is None:
@@ -3171,13 +3688,15 @@ def dispatch_main_choice(choice: str, state: MenuState) -> bool:
     elif action == "rollback":
         option_rollback_menu()
     elif action == "repository_exporter":
-        option_repository_exporter()
+        option_material_inventory()
     elif action == "mcp_remote_config":
         option_mcp_manager()
     elif action == "advanced_maintenance":
         option_advanced_maintenance(state)
     elif action == "tmp_quiescence":
         option_tmp_quiescence()
+    elif action == "workspace_storage":
+        option_workspace_storage()
     elif action == "metadata_admission":
         option_repo_metadata_admission_menu()
     else:

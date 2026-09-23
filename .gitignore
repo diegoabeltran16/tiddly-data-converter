@@ -56,3 +56,8 @@ data/sessions
 /AGENTS.md
 /.github/instructions/
 /estructura.txt
+/data/refs
+
+# Non-secret, machine-local workspace/storage locator (S0187 Unit D).
+# Never place credentials here -- see path_governance.py D5 boundary.
+/.tdc

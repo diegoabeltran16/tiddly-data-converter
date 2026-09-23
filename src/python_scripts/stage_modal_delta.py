@@ -22,8 +22,10 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from path_governance import (
+    DEFAULT_AUDIT_DIR,
     DEFAULT_CANON_DIR,
     DEFAULT_INPUT_HTML,
+    DEFAULT_TMP_DIR,
     REPO_ROOT,
     as_display_path,
     resolve_repo_path,
@@ -32,9 +34,14 @@ from path_governance import (
 
 
 SESSION_ID = "m04-s77-canonical-staging-and-controlled-modal-admission-v0"
-DEFAULT_NORMALIZED_JSONL = REPO_ROOT / "data" / "tmp" / "s76-modal-export" / "local-normalized-modal.jsonl"
-DEFAULT_REPORT_ROOT = REPO_ROOT / "data" / "tmp" / "s77-modal-admission"
-DEFAULT_PERSISTENT_AUDIT_ROOT = REPO_ROOT / "data" / "out" / "local" / "audit" / "modal_delta"
+# S0187 Unit D finding: all three were hardcoded REPO_ROOT-relative
+# literals. operator_menu.py invokes this script with --run-id/--run-gates
+# only (no --out-dir), so DEFAULT_REPORT_ROOT and DEFAULT_PERSISTENT_AUDIT_ROOT
+# were confirmed active write destinations for the real "staging del delta
+# modal" capability.
+DEFAULT_NORMALIZED_JSONL = DEFAULT_TMP_DIR / "s76-modal-export" / "local-normalized-modal.jsonl"
+DEFAULT_REPORT_ROOT = DEFAULT_TMP_DIR / "s77-modal-admission"
+DEFAULT_PERSISTENT_AUDIT_ROOT = DEFAULT_AUDIT_DIR / "modal_delta"
 
 
 @dataclass

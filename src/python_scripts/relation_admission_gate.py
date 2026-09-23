@@ -48,16 +48,30 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_CANON_GLOB = str(REPO_ROOT / "data" / "out" / "local" / "tiddlers_*.jsonl")
+sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import (  # noqa: E402
+    DEFAULT_CANON_DIR,
+    DEFAULT_LOCAL_OUT_DIR,
+    LOGICAL_LOCATOR_NAMESPACE,
+    LogicalLocatorError,
+    canonical_logical_locator,
+    resolve_logical_locator,
+)
+
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals -- confirmed
+# LIVE via tdc.sh (2 call sites), but both pass --canon-glob/--out-dir
+# explicitly (already governed via $CANON_DIR/$AUDIT_DIR since D17), so
+# these are dead at the real shell call sites and live only for direct
+# standalone invocation. Migrated to preserve that capability; the
+# --canon-glob/--out-dir CLI overrides themselves are untouched.
+DEFAULT_CANON_GLOB = str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl")
 DEFAULT_CANDIDATES_FILE = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline"
     / "relations_candidates" / "s0129" / "valid_candidates.jsonl"
 )
 DEFAULT_OUT_DIR = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admission" / "s0137"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admission" / "s0137"
 )
-
-sys.path.insert(0, str(SCRIPT_DIR))
 
 from relation_candidate_contract import (  # noqa: E402
     ADMISSION_HUMAN_REVIEW_DECISION,
@@ -169,13 +183,13 @@ ADMITTED_RELATION_FAMILIES: frozenset[str] = frozenset({
 })
 
 S0140_REVIEW_DIR = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_review" / "s0140"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_review" / "s0140"
 )
 S0140_TYPE_POLICY_DIR = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_type_governance" / "s0139"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_type_governance" / "s0139"
 )
 S0140_ADMISSIBILITY_REPORT = (
-    REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admissibility"
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admissibility"
     / "s0132" / "s0132_relation_admissibility_report.json"
 )
 
@@ -506,24 +520,66 @@ def confidence_score_for(candidate: dict[str, Any]) -> float:
     }.get(evidence_confidence, 0.0)
 
 
+def _normalize_repo_path(repo_path: str) -> str:
+    """Slash-normalise and drop LITERAL leading "./" segments.
+
+    (`str.lstrip("./")` strips a character SET: it turned "/abs/x" into
+    "abs/x" and ".github/x" into "github/x".)"""
+    value = repo_path.replace("\\", "/").strip()
+    while value.startswith("./"):
+        value = value[2:]
+    return value
+
+
 def is_build_artifact_path(repo_path: str) -> bool:
-    normalized = repo_path.replace("\\", "/").lstrip("./")
+    normalized = _normalize_repo_path(repo_path)
     if not normalized:
         return False
     if normalized.startswith(BUILD_ARTIFACT_PREFIXES):
         return True
+    # A physical path under the governed workspace is compared through its
+    # stored logical locator (the vocabulary BUILD_ARTIFACT_PREFIXES uses).
+    if normalized.startswith("/"):
+        try:
+            if canonical_logical_locator(normalized).startswith(BUILD_ARTIFACT_PREFIXES):
+                return True
+        except LogicalLocatorError:
+            pass
     return any(part in BUILD_ARTIFACT_PATH_PARTS for part in normalized.split("/"))
 
 
+def resolve_endpoint_path(normalized: str) -> Path | None:
+    """Physical path an endpoint `repo_path` denotes, or None if it cannot be
+    resolved under the contract (=> caller reports it stale).
+
+    - absolute path                       -> itself (never made relative)
+    - logical locator "data/out/local/.." -> DEFAULT_LOCAL_OUT_DIR (workspace)
+    - any other relative path             -> REPO_ROOT (a repo-owned path)
+
+    Independent of the process cwd."""
+    if normalized.startswith("/"):
+        return Path(normalized)
+    parts = normalized.split("/")
+    if ".." in parts:
+        return None
+    if normalized == LOGICAL_LOCATOR_NAMESPACE or normalized.startswith(LOGICAL_LOCATOR_NAMESPACE + "/"):
+        try:
+            return resolve_logical_locator(normalized)
+        except LogicalLocatorError:
+            return None
+    return REPO_ROOT / normalized
+
+
 def repo_path_status(repo_path: str, lifecycle: str) -> str:
-    normalized = repo_path.replace("\\", "/").lstrip("./")
+    normalized = _normalize_repo_path(repo_path)
     if not normalized:
         return "not_applicable"
     if is_build_artifact_path(normalized):
         return "build_artifact"
     if lifecycle in HISTORICAL_REPO_LIFECYCLE_STATES:
         return "historical"
-    if Path(normalized).exists():
+    physical = resolve_endpoint_path(normalized)
+    if physical is not None and physical.exists():
         return "current"
     return "stale"
 

@@ -21,12 +21,20 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from path_governance import DEFAULT_SESSIONS_DIR, REPO_ROOT, as_display_path  # noqa: E402
+from path_governance import (  # noqa: E402
+    DEFAULT_CANON_DIR as GOVERNED_DEFAULT_CANON_DIR,
+    DEFAULT_SESSIONS_DIR,
+    REPO_ROOT,
+    as_display_path,
+)
 
 
 MICRO_DIAG_DIR = DEFAULT_SESSIONS_DIR / "06_diagnoses" / "micro-ciclo"
 MESO_DIAG_DIR = DEFAULT_SESSIONS_DIR / "06_diagnoses" / "meso-ciclo"
-DEFAULT_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
+# S0187 D23-A: was a hardcoded REPO_ROOT-relative literal, not reachable
+# from the menu/shell but a real, tested capability (micro/meso-cycle
+# session diagnostics) meant for standalone invocation. Semantics unchanged.
+DEFAULT_CANON_DIR = GOVERNED_DEFAULT_CANON_DIR
 PROHIBITED_SESSION_ROOTS = (
     REPO_ROOT / "data" / "sessions",
     REPO_ROOT / "data" / "out" / "sessions",
@@ -429,7 +437,9 @@ def parse_tw_tags(value: Any) -> list[str]:
 
 
 def load_existing_tags(
-    canon_dir: Path = REPO_ROOT / "data" / "out" / "local",
+    canon_dir: Path = DEFAULT_CANON_DIR,
+    # fixture_path stays repo-pinned: tests/fixtures/canon_policy_bundle.json
+    # is a tracked, committed fixture, not workspace-owned material.
     fixture_path: Path = REPO_ROOT / "tests" / "fixtures" / "canon_policy_bundle.json",
 ) -> set[str]:
     tags: set[str] = set()

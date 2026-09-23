@@ -31,7 +31,6 @@ BASE_CONTRACT_SOURCE = (
     / "m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
 )
 REAL_CANON_DIR = REPO_ROOT / "data" / "out" / "local"
-DATA_TMP = REPO_ROOT / "data" / "tmp"
 BASE_SESSION_ORIGIN = "m04-s98-propagacion-relacional-chunks-ai-y-rule23"
 ALT_EXISTING_SOURCE = (
     "tests/fixtures/s69/sessions/01_procedencia/m04-s98-propagacion-relacional-chunks-ai-y-rule23.md.json"
@@ -165,9 +164,16 @@ def report_payload(summary: dict) -> dict:
 
 class SessionAdmissionFixtureTests(unittest.TestCase):
     def setUp(self) -> None:
-        DATA_TMP.mkdir(parents=True, exist_ok=True)
         self.real_canon_before = canon_hash(REAL_CANON_DIR)
-        self.tmp = tempfile.TemporaryDirectory(prefix="s69_admission_", dir=DATA_TMP)
+        # S0187 D20-R: no dir= override -- this test's own scratch space must
+        # never live under either TDC-governed tmp surface (repo/data/tmp,
+        # the historical pre-binding root, or the active workspace tmp root).
+        # tempfile's OS-default location (outside the repo entirely) is the
+        # correct isolation; nothing here depends on sharing a filesystem
+        # with either surface (all paths handed to admit_session_candidates.py
+        # below are absolute, and REPO_ROOT / <absolute path> correctly
+        # discards REPO_ROOT per Path's own semantics).
+        self.tmp = tempfile.TemporaryDirectory(prefix="s69_admission_")
         self.tmp_dir = Path(self.tmp.name)
         # S0186 Unit J1: report/work dirs must live inside this test's own
         # TemporaryDirectory, not under a fixed shared data/tmp path -- a

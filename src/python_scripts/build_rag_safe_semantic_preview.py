@@ -22,8 +22,19 @@ from tag_sanitation_policy import DEFAULT_POLICY_PATH, filter_tags_for_rag, load
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_OUT_DIR = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "rag_sanitation" / "s0170"
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
+# S0187 D23-A B4-5: this was REPO_ROOT-relative -- workspace-owned pipeline
+# path. Migrated to the governed owner; REPO_ROOT stays defined but is now
+# unused in this file (left in place per minimal-mutation policy). Preserves
+# preview_only_supporting / authority=none-for-productive-outputs / no
+# menu wiring / no derive_layers.py import -- this migration touches only
+# where the preview writes, not what it is authorized to write.
+DEFAULT_OUT_DIR = DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_sanitation" / "s0170"
 DEFAULT_PREVIEW_DIR = DEFAULT_OUT_DIR / "preview"
+DEFAULT_METADATA_PROMOTION_POLICY_PATH = (
+    DEFAULT_LOCAL_OUT_DIR / "pipeline" / "metadata_promotion" / "s0171" / "metadata_promotion_policy.json"
+)
 
 
 def collect_tag_review(records: list[dict[str, Any]], policy: dict[str, Any]) -> dict[str, Any]:
@@ -113,7 +124,7 @@ def main() -> int:
     if args.metadata_candidates:
         promotion_policy = load_metadata_promotion_policy(
             args.metadata_promotion_policy
-            or "data/out/local/pipeline/metadata_promotion/s0171/metadata_promotion_policy.json"
+            or str(DEFAULT_METADATA_PROMOTION_POLICY_PATH)
         )
         promoted_metadata = build_promoted_metadata_index(
             read_jsonl(args.metadata_candidates),

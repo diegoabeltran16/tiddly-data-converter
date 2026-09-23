@@ -14,6 +14,9 @@ from template_set_classifier import (  # noqa: E402
     classify_template_record,
     template_mapping_report,
 )
+import build_metadata_promotion_candidates as bmpc  # noqa: E402
+import build_rag_filter_preview as brfp  # noqa: E402
+import path_governance as pg  # noqa: E402
 from build_metadata_promotion_candidates import build_candidates  # noqa: E402
 from build_rag_filter_preview import (  # noqa: E402
     build_preview_records,
@@ -294,3 +297,22 @@ def test_semantic_builder_promoted_mode_redacts_raw_p1_everywhere(tmp_path: Path
     assert "topic: rag_safe" in output
     assert "normalized_promoted_metadata_only" in output
     assert hashlib.sha256(canon.read_bytes()).hexdigest() == before
+
+
+def test_build_rag_filter_preview_defaults_are_workspace_governed() -> None:
+    # S0187 D23-A B4-5: DEFAULT_CANDIDATES/DEFAULT_OUT_DIR were REPO_ROOT-
+    # relative; must resolve against the governed workspace root instead.
+    assert brfp.DEFAULT_CANDIDATES == (
+        pg.DEFAULT_LOCAL_OUT_DIR
+        / "pipeline"
+        / "metadata_promotion"
+        / "s0171"
+        / "metadata_promotion_candidates.jsonl"
+    )
+    assert brfp.DEFAULT_OUT_DIR == pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "rag_filters" / "s0171"
+
+
+def test_build_metadata_promotion_candidates_default_out_dir_is_workspace_governed() -> None:
+    # S0187 D23-A B4-5: DEFAULT_OUT_DIR was REPO_ROOT-relative; must resolve
+    # against the governed workspace root instead.
+    assert bmpc.DEFAULT_OUT_DIR == pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "metadata_promotion" / "s0171"

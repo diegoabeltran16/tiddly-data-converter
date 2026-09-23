@@ -24,6 +24,8 @@ from rag_derivation_profile import build_profile, stable_json  # noqa: E402
 from rag_derivative_writers import ProductiveWriteBlocked, require_nonproductive_evidence_target  # noqa: E402
 from tag_sanitation_policy import write_default_policy as write_tag_policy  # noqa: E402
 from validate_rag_tag_gate import build_gate_report  # noqa: E402
+import path_governance as pg  # noqa: E402
+import validate_rag_tag_gate as vrtg  # noqa: E402
 
 
 def _write_json(path: Path, value: dict) -> Path:
@@ -369,13 +371,21 @@ def test_s0172_preview_does_not_modify_productive_derivatives(tmp_path: Path) ->
 
 
 def test_preview_rejects_productive_output_overlap(tmp_path: Path) -> None:
+    # Target the ACTIVE productive AI root via derive_layers' own
+    # path_governance-derived DEFAULT_AI_DIR (S0187 Unit D made the
+    # workspace root configurable) rather than a hardcoded
+    # REPO_ROOT-relative literal. A hardcoded literal stops genuinely
+    # overlapping the productive root once workspace_root points
+    # elsewhere, which would make this test exercise a different guard
+    # branch than the one it is named for -- OVER_SPECIFIED_TEST, not a
+    # runtime defect (see D15 evidence for the full analysis).
     paths = _fixture_paths(tmp_path)
     result = subprocess.run(
         [
             sys.executable, str(SCRIPTS / "derive_layers.py"),
             "--mode", "preview", "--dry-run",
             "--input-dir", str(paths["canon"]),
-            "--out-dir", str(REPO_ROOT / "data" / "out" / "local" / "ai" / "s0172-test"),
+            "--out-dir", str(derive_layers.DEFAULT_AI_DIR / "s0172-test"),
             "--profile", str(paths["profile"]),
             "--metadata-candidates", str(paths["candidates"]),
             "--tag-inventory", str(paths["inventory"]),
@@ -394,8 +404,13 @@ def test_run_derivation_cannot_bypass_authoritative_projection() -> None:
 
 
 def test_supporting_evidence_writer_rejects_productive_destination() -> None:
+    # S0187 P7-C: the productive roots are the governed workspace's, not
+    # REPO_ROOT/data/out/local (which is a repo path, blocked by the D3 rule).
     with pytest.raises(ProductiveWriteBlocked, match="overlaps productive derivatives"):
-        require_nonproductive_evidence_target(REPO_ROOT / "data" / "out" / "local" / "ai" / "blocked.json")
+        require_nonproductive_evidence_target(pg.DEFAULT_AI_DIR / "blocked.json")
+    if pg.WORKSPACE_ROOT != pg.REPO_DATA_DIR:  # split layout only; in repo layout the two coincide
+        with pytest.raises(ProductiveWriteBlocked, match="outside governed evidence roots"):
+            require_nonproductive_evidence_target(REPO_ROOT / "data" / "out" / "local" / "ai" / "blocked.json")
 
 
 def test_rag_gate_audits_nested_microsoft_copilot_entity_tags(tmp_path: Path) -> None:
@@ -533,3 +548,17 @@ def test_experimental_builder_not_reachable_from_normal_menu() -> None:
     source = (SCRIPTS / "operator_menu.py").read_text(encoding="utf-8")
     assert '"src/python_scripts/build_semantic_text_authority_aware.py"' not in source
     assert '"src/python_scripts/s45_derive_layers.py"' not in source
+
+
+def test_rag_tag_gate_default_scan_roots_are_workspace_governed() -> None:
+    # S0187 D23-A B4-5: DEFAULT_SCAN_ROOTS was REPO_ROOT-relative; must
+    # resolve against the governed workspace root instead. derive_layers.py
+    # always passes explicit roots to build_gate_report(), so this default
+    # only matters for direct/standalone invocation -- unaffected here.
+    assert vrtg.DEFAULT_SCAN_ROOTS == [
+        pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "semantic_text",
+        pg.DEFAULT_LOCAL_OUT_DIR / "pipeline" / "semantic_text_authority",
+        pg.DEFAULT_ENRICHED_DIR,
+        pg.DEFAULT_AI_DIR,
+        pg.DEFAULT_MICROSOFT_COPILOT_DIR,
+    ]

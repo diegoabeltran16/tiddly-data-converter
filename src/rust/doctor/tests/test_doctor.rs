@@ -10,8 +10,10 @@
 
 use std::path::{Path, PathBuf};
 use tdc_doctor::{
-    audit, audit_canonical_lines, audit_perimeter, audit_reconstruction_plan,
-    audit_reconstruction_plan_with_artifacts, audit_reconstruction_rollback,
+    audit, audit_canonical_lines, audit_canonical_lines_in_workspace, audit_perimeter,
+    audit_perimeter_in_workspace, audit_reconstruction_plan,
+    audit_reconstruction_plan_in_workspace, audit_reconstruction_plan_with_artifacts,
+    audit_reconstruction_rollback,
     canonical_canon_tree_hash, inspect_deep_nodes, CanonicalLineVerdict, DoctorError,
     DoctorVerdict, PerimeterVerdict, ReconstructionMode, ReconstructionPlanVerdict,
     ReconstructionRollbackVerdict, ReconstructionSourceRole,
@@ -63,10 +65,13 @@ fn write_minimal_role_contract(root: &Path) {
     );
 }
 
+/// Minimal reversible TiddlyWiki surface (one tiddler-store block).
+const STORE_HTML: &str = "<html><script class=\"tiddlywiki-tiddler-store\" type=\"application/json\">[{\"title\":\"$:/SiteTitle\",\"text\":\"x\"}]</script></html>";
+
 fn write_minimal_perimeter_fixture(root: &Path) {
     write_file(
         &root.join("data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html"),
-        "<html>seed</html>",
+        STORE_HTML,
     );
     write_file(&root.join("data/in/empty-store.html"), "<html>empty</html>");
     write_file(
@@ -964,4 +969,230 @@ fn test_rollback_guiado_rechaza_hash_before_ambiguo() {
         && check.status == "error"));
 
     std::fs::remove_dir_all(root).expect("cleanup reconstruction rollback mismatch fixture");
+}
+
+
+// ── P7-C: explicit physical workspace root (Python resolves, Rust validates) ──
+
+/// Repo checkout (code + data/in) and an EXTERNAL workspace (out/, tmp/): the
+/// layout in which the repo no longer contains data/out/local.
+fn write_split_layout(name: &str) -> (PathBuf, PathBuf) {
+    let repo = temp_repo_root(&format!("{name}_repo"));
+    let workspace = temp_repo_root(&format!("{name}_ws"));
+    write_file(
+        &repo.join("data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html"),
+        STORE_HTML,
+    );
+    write_file(&repo.join("data/in/empty-store.html"), "<html>empty</html>");
+    write_file(
+        &repo.join("data/in/tiddly-data-converter (Saved).html"),
+        "<html>saved</html>",
+    );
+    write_file(&repo.join("src/shell_scripts/tdc.sh"), "#!/usr/bin/env bash\n");
+    write_file(
+        &repo.join("README.md"),
+        "# tdc\n\n```bash\n./src/shell_scripts/tdc.sh\n```\n",
+    );
+    std::fs::create_dir_all(workspace.join("out/local/sessions")).expect("sessions dir");
+    std::fs::create_dir_all(workspace.join("out/local/reverse_html")).expect("reverse dir");
+    std::fs::create_dir_all(workspace.join("tmp")).expect("tmp dir");
+    write_file(&workspace.join("out/local/tiddlers_1.jsonl"), "{}\n");
+    write_file(
+        &workspace.join("out/local/sessions/00_contratos/policy/canon_policy_bundle.json"),
+        minimal_policy_bundle(),
+    );
+    write_file(
+        &workspace.join("out/local/sessions/00_contratos/projections/derived_layers_registry.json"),
+        r#"{
+          "source_of_truth_layer": "canon",
+          "layer_classes": {
+            "canon": {"is_canonical": true},
+            "session_staging": {"is_canonical": false},
+            "derived": {"is_canonical": false},
+            "reverse_projection": {"is_canonical": false}
+          }
+        }"#,
+    );
+    (repo, workspace)
+}
+
+fn cleanup_split(repo: PathBuf, workspace: PathBuf) {
+    std::fs::remove_dir_all(repo).expect("cleanup repo");
+    std::fs::remove_dir_all(workspace).expect("cleanup workspace");
+}
+
+#[test]
+fn test_plan_reverse_projection_acepta_destino_bajo_workspace_explicito() {
+    let (repo, workspace) = write_split_layout("plan_ws_ok");
+    let source = repo.join("data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html");
+    let target = workspace.join("out/local/reverse_html/tiddly-data-converter.derived.html");
+
+    let report = audit_reconstruction_plan_in_workspace(
+        &repo,
+        &workspace,
+        &source,
+        ReconstructionSourceRole::Seed,
+        ReconstructionMode::ReverseProjection,
+        &target,
+        None,
+        None,
+        false,
+        true,
+    );
+    assert_eq!(report.verdict, ReconstructionPlanVerdict::Allowed);
+    assert_eq!(report.errors, 0);
+    cleanup_split(repo, workspace);
+}
+
+#[test]
+fn test_plan_reverse_projection_rechaza_destino_repo_pinned_con_workspace_explicito() {
+    let (repo, workspace) = write_split_layout("plan_ws_reject_repo_pinned");
+    let source = repo.join("data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html");
+    // The repo-pinned location must NOT be accepted as authority once the
+    // workspace is explicit.
+    let target = repo.join("data/out/local/reverse_html/x.html");
+
+    let report = audit_reconstruction_plan_in_workspace(
+        &repo,
+        &workspace,
+        &source,
+        ReconstructionSourceRole::Seed,
+        ReconstructionMode::ReverseProjection,
+        &target,
+        None,
+        None,
+        false,
+        true,
+    );
+    assert_eq!(report.verdict, ReconstructionPlanVerdict::Rejected);
+    assert!(report
+        .checks
+        .iter()
+        .any(|c| c.check_id == "plan-target-reverse-projection" && c.status == "error"));
+    cleanup_split(repo, workspace);
+}
+
+#[test]
+fn test_plan_sin_workspace_explicito_conserva_semantica_repo_layout() {
+    let root = temp_repo_root("plan_default_layout");
+    write_minimal_perimeter_fixture(&root);
+    let source = root.join("data/in/objeto_de_estudio_trazabilidad_y_desarrollo.html");
+    let report = audit_reconstruction_plan(
+        &root,
+        &source,
+        ReconstructionSourceRole::Seed,
+        ReconstructionMode::ReverseProjection,
+        &root.join("data/out/local/reverse_html/x.html"),
+        false,
+        true,
+    );
+    assert_eq!(report.verdict, ReconstructionPlanVerdict::Allowed);
+    std::fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn test_perimetro_en_workspace_externo_produce_ok() {
+    let (repo, workspace) = write_split_layout("perimeter_ws");
+    let report = audit_perimeter_in_workspace(&repo, &workspace);
+    assert_eq!(report.verdict, PerimeterVerdict::Ok, "{:?}", report.checks);
+    // the repo alone (legacy call) has no data/out/local: proves the split
+    assert_eq!(audit_perimeter(&repo).verdict, PerimeterVerdict::Error);
+    cleanup_split(repo, workspace);
+}
+
+#[test]
+fn test_canonical_line_gate_carga_role_contract_del_workspace_y_conserva_locator_logico() {
+    let (repo, workspace) = write_split_layout("canonical_line_ws");
+    let input = workspace.join("tmp/candidates.jsonl");
+    write_file(
+        &input,
+        &format!(
+            "{}\n",
+            complete_canon_line("#### 🌀 Sesión 99 = canonical-line-ok", "detalles_de_sesion", 1)
+        ),
+    );
+    let report = audit_canonical_lines_in_workspace(&repo, &workspace, &input);
+    assert_eq!(report.role_contract_audit.counts.role_ok, 1);
+    assert!(!report.role_contract_audit.canonical_roles.is_empty());
+    assert_eq!(
+        report.role_contract_audit.contract_ref,
+        "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json"
+    );
+    // legacy call (repo layout) cannot see the workspace contract
+    let legacy = audit_canonical_lines(&repo, &input);
+    assert!(legacy.role_contract_audit.canonical_roles.is_empty());
+    cleanup_split(repo, workspace);
+}
+
+
+// ── P7-C-R1: reverse_projection requires a reversible (tiddler-store) source ──
+
+fn reverse_plan_verdict(name: &str, html: &str, mode: ReconstructionMode) -> (ReconstructionPlanVerdict, Vec<String>) {
+    let (repo, workspace) = write_split_layout(name);
+    let source = repo.join("data/in/tema-cambiante.html");
+    write_file(&source, html);
+    let target = match mode {
+        ReconstructionMode::Staging => workspace.join("tmp/html_export/run-1"),
+        _ => workspace.join("out/local/reverse_html/x.html"),
+    };
+    let report = audit_reconstruction_plan_in_workspace(
+        &repo,
+        &workspace,
+        &source,
+        ReconstructionSourceRole::Working,
+        mode,
+        &target,
+        None,
+        None,
+        false,
+        true,
+    );
+    let failed: Vec<String> = report
+        .checks
+        .iter()
+        .filter(|c| c.status == "error")
+        .map(|c| c.check_id.clone())
+        .collect();
+    cleanup_split(repo, workspace);
+    (report.verdict, failed)
+}
+
+#[test]
+fn test_reverse_projection_con_store_valido_es_allowed() {
+    let (verdict, failed) = reverse_plan_verdict("rev_store_ok", STORE_HTML, ReconstructionMode::ReverseProjection);
+    assert_eq!(verdict, ReconstructionPlanVerdict::Allowed, "{:?}", failed);
+}
+
+#[test]
+fn test_reverse_projection_sin_store_es_rechazado() {
+    let (verdict, failed) = reverse_plan_verdict("rev_store_none", "<html>sin store</html>", ReconstructionMode::ReverseProjection);
+    assert_eq!(verdict, ReconstructionPlanVerdict::Rejected);
+    assert_eq!(failed, vec!["plan-reverse-source-store".to_string()]);
+}
+
+#[test]
+fn test_reverse_projection_rechaza_store_no_parseable_y_store_duplicado() {
+    let bad = "<script class=\"tiddlywiki-tiddler-store\" type=\"application/json\">[{\"title\":}]</script>";
+    let (v1, f1) = reverse_plan_verdict("rev_store_bad", bad, ReconstructionMode::ReverseProjection);
+    assert_eq!(v1, ReconstructionPlanVerdict::Rejected);
+    assert!(f1.contains(&"plan-reverse-source-store".to_string()));
+    let two = format!("{STORE_HTML}{STORE_HTML}");
+    let (v2, f2) = reverse_plan_verdict("rev_store_two", &two, ReconstructionMode::ReverseProjection);
+    assert_eq!(v2, ReconstructionPlanVerdict::Rejected);
+    assert!(f2.contains(&"plan-reverse-source-store".to_string()));
+}
+
+#[test]
+fn test_otros_modos_no_adquieren_la_restriccion_de_store() {
+    // staging/diagnostic on an HTML without store keep their previous verdicts
+    let (v, f) = reverse_plan_verdict("staging_nostore", "<html>working topic</html>", ReconstructionMode::Staging);
+    assert_eq!(v, ReconstructionPlanVerdict::StagingOnly, "{:?}", f);
+    assert!(!f.contains(&"plan-reverse-source-store".to_string()));
+}
+
+#[test]
+fn test_store_no_se_decide_por_nombre_de_archivo() {
+    // same content under a different name gives the same verdict (no filename allowlist)
+    let (v, _) = reverse_plan_verdict("rev_store_name", STORE_HTML, ReconstructionMode::ReverseProjection);
+    assert_eq!(v, ReconstructionPlanVerdict::Allowed);
 }

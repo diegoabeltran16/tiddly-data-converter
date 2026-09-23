@@ -58,13 +58,23 @@ from path_governance import (  # noqa: E402
     REPO_ROOT,
     DEFAULT_CANON_DIR,
     DEFAULT_AUDIT_DIR,
+    DEFAULT_TMP_DIR,
+    HISTORICAL_TMP_ROOT,
     as_display_path,
     sorted_canon_shards,
 )
 import quiescence_state  # noqa: E402
 from admit_session_candidates import _canon_hash  # noqa: E402
 
-TMP_ROOT = REPO_ROOT / "data" / "tmp"
+# S0187 D20: TMP_ROOT is the CURRENT/ACTIVE tmp authority this module governs
+# -- previously a hardcoded REPO_ROOT-relative literal, meaning this
+# retention/lifecycle tooling was silently observing the pre-binding root
+# rather than the workspace-active one that recent writers (session_sync.py,
+# material_inventory.py, admit_session_candidates.py, stage_modal_delta.py)
+# already resolve to. HISTORICAL_TMP_ROOT (imported above, re-exported here)
+# is available for a future reconciliation tool to deliberately inspect
+# pre-binding material -- it is NEVER substituted for TMP_ROOT automatically.
+TMP_ROOT = DEFAULT_TMP_DIR
 ADMISSIONS_AUDIT_DIR = DEFAULT_AUDIT_DIR / "admissions"
 SESSION_SYNC_AUDIT_DIR = DEFAULT_AUDIT_DIR / "session_sync"
 LIFECYCLE_AUDIT_DIR = DEFAULT_AUDIT_DIR / "tmp_lifecycle"
@@ -1045,10 +1055,21 @@ def build_retention_report() -> dict[str, Any]:
     canonical_quality = classify_canonical_quality()
     reverse_verification_bundles = classify_reverse_verification_bundles()
     direct_patch_operations = classify_direct_patch_operations(current_index=current_index, content_body_index=body_index)
-    direct_patch_dirs = {
-        (TMP_ROOT / Path(entry["path"]).relative_to("data/tmp").parts[0])
-        for entry in direct_patch_operations
-    }
+    # entry["path"] is as_display_path(manifest_path): relative to REPO_ROOT
+    # when the manifest happens to live under it, else an absolute string --
+    # TMP_ROOT itself may now be either, so resolve robustly rather than
+    # assuming a literal "data/tmp" prefix (that assumption broke silently
+    # for any entry found once TMP_ROOT moved off REPO_ROOT).
+    direct_patch_dirs: set[Path] = set()
+    for entry in direct_patch_operations:
+        entry_path = Path(entry["path"])
+        if not entry_path.is_absolute():
+            entry_path = REPO_ROOT / entry_path
+        try:
+            top_level_name = entry_path.relative_to(TMP_ROOT).parts[0]
+        except (ValueError, IndexError):
+            continue
+        direct_patch_dirs.add(TMP_ROOT / top_level_name)
     promoted_evidence = classify_promoted_evidence(exclude_top_level_dirs=direct_patch_dirs)
 
     def _bytes_by_action(entries: list[dict[str, Any]], bytes_key: str) -> dict[str, int]:
@@ -1081,6 +1102,12 @@ def build_retention_report() -> dict[str, Any]:
     return {
         "schema_version": "tmp-lifecycle-governance-retention-report/v2",
         "generated_at": utc_now(),
+        # S0187 D20: explicit visibility for which tmp root this report just
+        # scanned and whether it currently exists -- an absent/empty active
+        # root must be visible as such, never silently substituted with
+        # historical_tmp_root.
+        "active_tmp_root": {"path": str(TMP_ROOT), "exists": TMP_ROOT.is_dir()},
+        "historical_tmp_root": str(HISTORICAL_TMP_ROOT),
         "canon_index_size": len(current_index),
         "current_canon_hash": current_canon_hash_value,
         "session_admission": session_admission,

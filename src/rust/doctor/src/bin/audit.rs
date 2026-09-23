@@ -2,10 +2,10 @@
 //!
 //! Uso:
 //!   audit <raw_path>
-//!   audit perimeter <repo_root>
-//!   audit reconstruction-plan <repo_root> --source-html <path> --source-role <role> --mode <mode> --output-target <path> [--input-jsonl <path>] [--reconstruction-run-dir <path>] --requires-backup <true|false> --requires-hash-report <true|false>
-//!   audit reconstruction-rollback <repo_root> --report <path>
-//!   audit canonical-line-gate <repo_root> --input <path> [--report <path>]
+//!   audit perimeter <repo_root> [--workspace-root <path>]
+//!   audit reconstruction-plan <repo_root> --source-html <path> --source-role <role> --mode <mode> --output-target <path> [--input-jsonl <path>] [--reconstruction-run-dir <path>] --requires-backup <true|false> --requires-hash-report <true|false> [--workspace-root <path>]
+//!   audit reconstruction-rollback <repo_root> --report <path> [--workspace-root <path>]
+//!   audit canonical-line-gate <repo_root> --input <path> [--report <path>] [--workspace-root <path>]
 //!   audit deep-node-inspect <repo_root> --input <path> [--report <path>]
 //!
 //! Audita la integridad estructural mínima del artefacto raw producido por
@@ -26,14 +26,24 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!(
-            "[doctor] uso: audit <raw_path> | audit perimeter <repo_root> | audit reconstruction-plan <repo_root> --source-html <path> --source-role <role> --mode <mode> --output-target <path> [--input-jsonl <path>] [--reconstruction-run-dir <path>] --requires-backup <true|false> --requires-hash-report <true|false> | audit reconstruction-rollback <repo_root> --report <path> | audit canonical-line-gate <repo_root> --input <path> [--report <path>] | audit deep-node-inspect <repo_root> --input <path> [--report <path>]"
+            "[doctor] uso: audit <raw_path> | audit perimeter <repo_root> [--workspace-root <path>] | audit reconstruction-plan <repo_root> --source-html <path> --source-role <role> --mode <mode> --output-target <path> [--input-jsonl <path>] [--reconstruction-run-dir <path>] --requires-backup <true|false> --requires-hash-report <true|false> [--workspace-root <path>] | audit reconstruction-rollback <repo_root> --report <path> [--workspace-root <path>] | audit canonical-line-gate <repo_root> --input <path> [--report <path>] [--workspace-root <path>] | audit deep-node-inspect <repo_root> --input <path> [--report <path>]"
         );
         process::exit(1);
     }
 
     if args[1] == "perimeter" {
         let repo_root = args.get(2).map(String::as_str).unwrap_or(".");
-        let report = tdc_doctor::audit_perimeter(Path::new(repo_root));
+        let flags = parse_flags(args.get(3..).unwrap_or(&[])).unwrap_or_else(|message| {
+            eprintln!("[doctor] ERROR: {}", message);
+            process::exit(1);
+        });
+        let report = match flags.get("workspace-root") {
+            Some(workspace_root) => tdc_doctor::audit_perimeter_in_workspace(
+                Path::new(repo_root),
+                Path::new(workspace_root),
+            ),
+            None => tdc_doctor::audit_perimeter(Path::new(repo_root)),
+        };
         let json = serde_json::to_string_pretty(&report).unwrap_or_else(|e| {
             eprintln!("[doctor] ERROR al serializar reporte de perímetro: {}", e);
             process::exit(2);
@@ -80,17 +90,32 @@ fn main() {
             process::exit(1);
         });
 
-        let report = tdc_doctor::audit_reconstruction_plan_with_artifacts(
-            Path::new(repo_root),
-            Path::new(source_html),
-            source_role,
-            mode,
-            Path::new(output_target),
-            input_jsonl.map(|path| Path::new(path.as_str())),
-            reconstruction_run_dir.map(|path| Path::new(path.as_str())),
-            requires_backup,
-            requires_hash_report,
-        );
+        let workspace_root = flags.get("workspace-root");
+        let report = match workspace_root {
+            Some(workspace_root) => tdc_doctor::audit_reconstruction_plan_in_workspace(
+                Path::new(repo_root),
+                Path::new(workspace_root),
+                Path::new(source_html),
+                source_role,
+                mode,
+                Path::new(output_target),
+                input_jsonl.map(|path| Path::new(path.as_str())),
+                reconstruction_run_dir.map(|path| Path::new(path.as_str())),
+                requires_backup,
+                requires_hash_report,
+            ),
+            None => tdc_doctor::audit_reconstruction_plan_with_artifacts(
+                Path::new(repo_root),
+                Path::new(source_html),
+                source_role,
+                mode,
+                Path::new(output_target),
+                input_jsonl.map(|path| Path::new(path.as_str())),
+                reconstruction_run_dir.map(|path| Path::new(path.as_str())),
+                requires_backup,
+                requires_hash_report,
+            ),
+        };
         let json = serde_json::to_string_pretty(&report).unwrap_or_else(|e| {
             eprintln!("[doctor] ERROR al serializar reporte de plan: {}", e);
             process::exit(2);
@@ -113,8 +138,17 @@ fn main() {
             process::exit(1);
         });
         let report_path = required_flag(&flags, "report");
-        let report =
-            tdc_doctor::audit_reconstruction_rollback(Path::new(repo_root), Path::new(report_path));
+        let report = match flags.get("workspace-root") {
+            Some(workspace_root) => tdc_doctor::audit_reconstruction_rollback_in_workspace(
+                Path::new(repo_root),
+                Path::new(workspace_root),
+                Path::new(report_path),
+            ),
+            None => tdc_doctor::audit_reconstruction_rollback(
+                Path::new(repo_root),
+                Path::new(report_path),
+            ),
+        };
         let json = serde_json::to_string_pretty(&report).unwrap_or_else(|e| {
             eprintln!("[doctor] ERROR al serializar reporte de rollback: {}", e);
             process::exit(2);
@@ -137,7 +171,14 @@ fn main() {
             process::exit(1);
         });
         let input_path = required_flag(&flags, "input");
-        let report = tdc_doctor::audit_canonical_lines(Path::new(repo_root), Path::new(input_path));
+        let report = match flags.get("workspace-root") {
+            Some(workspace_root) => tdc_doctor::audit_canonical_lines_in_workspace(
+                Path::new(repo_root),
+                Path::new(workspace_root),
+                Path::new(input_path),
+            ),
+            None => tdc_doctor::audit_canonical_lines(Path::new(repo_root), Path::new(input_path)),
+        };
         let json = serde_json::to_string_pretty(&report).unwrap_or_else(|e| {
             eprintln!("[doctor] ERROR al serializar canonical-line gate: {}", e);
             process::exit(2);
