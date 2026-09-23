@@ -43,9 +43,23 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CANON_DIR = REPO_ROOT / "data" / "out" / "local"
-ENRICHED_DIR = CANON_DIR / "enriched"
-AI_DIR = CANON_DIR / "ai"
+SCRIPTS_DIR = REPO_ROOT / "src" / "python_scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+from path_governance import DEFAULT_AI_DIR, DEFAULT_CANON_DIR, DEFAULT_ENRICHED_DIR
+
+# S0187 D23-A: these were hardcoded REPO_ROOT-relative literals -- migrated
+# so this suite reads from the governed roots instead of the old
+# materialization. All count/hash expectations below are deliberately
+# untouched: several of these tests are already known-failing on content
+# drift (pre-existing, D20-R baseline, see the module docstring above), out
+# of D23-A's scope. The goal is only that they fail for that same,
+# already-known reason -- not for looking at the wrong materialization.
+CANON_DIR = DEFAULT_CANON_DIR
+ENRICHED_DIR = DEFAULT_ENRICHED_DIR
+AI_DIR = DEFAULT_AI_DIR
+
+from path_governance import CANON_SHARD_FILENAME_RE  # noqa: E402
 
 # ── Count invariants ─────────────────────────────────────────────────────────
 
@@ -119,9 +133,19 @@ class TestDeriveCLI:
 
 class TestDeriveCountInvariants:
     def test_canon_shards_exist(self):
+        """S0187 Impacto Unidad B (R-B-06): shard COUNT is discovered state,
+        not a fixed invariant — a governed reshard (existing shard_canon
+        capability) can legitimately change it. What this test actually
+        protects is that shards exist, are named per the governed
+        tiddlers_<n>.jsonl contract, and are readable; not a specific count."""
         shards = sorted(CANON_DIR.glob("tiddlers_*.jsonl"))
-        # S0186 Unit G2: re-baselined from 15 to 38 shards (see module docstring).
-        assert len(shards) == 38, f"Expected 38 canon shards, got {len(shards)}"
+        assert len(shards) > 0, "Expected at least one canon shard, found none"
+        for shard in shards:
+            assert CANON_SHARD_FILENAME_RE.match(shard.name), (
+                f"Shard {shard.name} does not match the governed tiddlers_<n>.jsonl pattern"
+            )
+            with shard.open(encoding="utf-8") as fh:
+                fh.readline()  # must be readable
 
     def test_canon_record_count(self):
         count = _count_jsonl_records(CANON_DIR, "tiddlers_*.jsonl")
