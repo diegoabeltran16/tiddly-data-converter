@@ -30,14 +30,17 @@ def test_dispatch_alias_16_opens_canonical_relations(monkeypatch, capsys) -> Non
     assert "Relaciones canónicas" in capsys.readouterr().out
 
 
-def test_dispatch_alias_17_opens_repository_exporter(monkeypatch, capsys) -> None:
+def test_dispatch_alias_17_opens_material_inventory(monkeypatch, capsys) -> None:
+    # S0187 Unit C: alias 17 still targets action "repository_exporter", but
+    # that action now dispatches to the reoriented material-inventory
+    # submenu (option_material_inventory), not the retired exporter label.
     called: list[str] = []
-    monkeypatch.setattr(operator_menu, "option_repository_exporter", lambda: called.append("exporter"))
+    monkeypatch.setattr(operator_menu, "option_material_inventory", lambda: called.append("inventory"))
 
     assert operator_menu.dispatch_main_choice("17", operator_menu.MenuState()) is True
 
-    assert called == ["exporter"]
-    assert "Exportador de repositorio" in capsys.readouterr().out
+    assert called == ["inventory"]
+    assert "Inventario material / repositorio" in capsys.readouterr().out
 
 
 def test_dispatch_alias_14_opens_mcp(monkeypatch, capsys) -> None:

@@ -9,7 +9,7 @@ from typing import Any
 MAIN_MENU_ITEMS: list[dict[str, str]] = [
     {"id": "1", "label": "Preparación / preflight", "action": "preparation"},
     {"id": "2", "label": "Construir o importar canon", "action": "build_or_import_canon"},
-    {"id": "3", "label": "Exportador de repositorio", "action": "repository_exporter"},
+    {"id": "3", "label": "Inventario material / repositorio", "action": "repository_exporter"},
     {"id": "4", "label": "Sincronizar artefactos al canon", "action": "session_sync"},
     {"id": "5", "label": "Exportar / consultar canon", "action": "export_or_consult_canon"},
     {"id": "6", "label": "Relaciones canónicas", "action": "canonical_relations"},
@@ -19,6 +19,7 @@ MAIN_MENU_ITEMS: list[dict[str, str]] = [
     {"id": "10", "label": "Rollback", "action": "rollback"},
     {"id": "11", "label": "Temporales / quiescencia", "action": "tmp_quiescence"},
     {"id": "12", "label": "Avanzado / mantenimiento", "action": "advanced_maintenance"},
+    {"id": "19", "label": "Almacenamiento del workspace", "action": "workspace_storage"},
 ]
 
 # S0186 Unit H (final intervention, top-level UX migration): "Revisión /
@@ -49,7 +50,11 @@ COMPATIBILITY_ALIASES: dict[str, dict[str, str]] = {
     "17": {
         "target": "3",
         "action": "repository_exporter",
-        "message": "La numeración del menú principal fue reorganizada (S0186 Unit H). Abriendo Exportador de repositorio...",
+        "message": (
+            "La numeración del menú principal fue reorganizada (S0186 Unit H). "
+            "'Exportador de repositorio' fue reorientado a Inventario material / "
+            "repositorio (S0187 Unit C). Abriendo Inventario material / repositorio..."
+        ),
     },
     "18": {
         "target": "4",
@@ -96,6 +101,7 @@ def menu_mapping() -> dict[str, Any]:
             "derivatives": "8",
             "session_sync": "4.1",
             "tmp_quiescence": "11 and alias 13",
+            "workspace_storage": "19 (S0187 Unit D -- separate from mcp_remote_config/9: PRIMARY WORKSPACE STORAGE != REMOTE MIRROR)",
         },
         "authoritative_derivation": {
             "menu_option": "8",

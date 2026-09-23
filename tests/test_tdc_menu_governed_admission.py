@@ -24,7 +24,7 @@ def test_main_menu_reflects_s0186_top_level_migration() -> None:
 
     assert "1) Preparación / preflight" in text
     assert "2) Construir o importar canon" in text
-    assert "3) Exportador de repositorio" in text
+    assert "3) Inventario material / repositorio" in text
     assert "4) Sincronizar artefactos al canon" in text
     assert "5) Exportar / consultar canon" in text
     assert "6) Relaciones canónicas" in text
@@ -52,7 +52,7 @@ def test_tdc_shows_simplified_menu() -> None:
     assert "TDC · Tiddly Data Converter" not in result.stdout
     assert "6) Relaciones canónicas" in result.stdout
     assert "Revisión / admisión gobernada" not in result.stdout
-    assert "Exportador de repositorio" in result.stdout
+    assert "Inventario material / repositorio" in result.stdout
     assert "Configurar MCP / mirror remoto" in result.stdout
     assert "Avanzado / mantenimiento" in result.stdout
     assert "Temporales / quiescencia" in result.stdout
@@ -187,3 +187,43 @@ def test_menu_mapping_declares_metadata_and_relation_access() -> None:
     assert mapping["critical_functions_preserved"]["metadata_admission"] == "4.2 and alias 18"
     assert mapping["critical_functions_preserved"]["repository_exporter"] == "3 and alias 17"
     assert mapping["relational_operation"]["state_engine"] == "src/python_scripts/relation_admission_state.py"
+
+def _rag_staging_flag(cmd: list[str], name: str) -> str:
+    return cmd[cmd.index(name) + 1]
+
+
+def test_rag_admission_staging_gate_report_md_is_explicit_twin() -> None:
+    cmd = menu._rag_admission_staging_command()
+    assert "--gate-report-md" in cmd
+    assert _rag_staging_flag(cmd, "--gate-report") == str(menu.RAG_ADMISSION_TECHNICAL_GATE)
+    assert _rag_staging_flag(cmd, "--gate-report-md") == str(
+        menu.RAG_ADMISSION_TECHNICAL_GATE.with_suffix(".md")
+    )
+    assert _rag_staging_flag(cmd, "--gate-report-md").endswith(
+        "audit/rag_admission/technical_gate_report.md"
+    )
+
+
+def test_rag_admission_staging_does_not_target_s0172_report() -> None:
+    cmd = menu._rag_admission_staging_command()
+    for value in cmd:
+        assert "rag_derivation/s0172/rag_gate_report" not in value
+    assert _rag_staging_flag(cmd, "--gate-report-md") != str(
+        menu.RAG_DERIVATION_GATE_REPORT_MD
+    )
+
+
+def test_rag_admission_staging_preserves_other_operator_flags() -> None:
+    cmd = menu._rag_admission_staging_command()
+    for name in (
+        "--input-dir",
+        "--out-dir",
+        "--profile",
+        "--metadata-candidates",
+        "--tag-inventory",
+        "--preview-manifest",
+        "--plan-out",
+    ):
+        assert name in cmd
+    assert _rag_staging_flag(cmd, "--mode") == "staging"
+    assert "--dry-run" in cmd

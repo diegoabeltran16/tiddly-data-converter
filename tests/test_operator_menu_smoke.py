@@ -24,9 +24,17 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = REPO_ROOT / "src" / "python_scripts"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from path_governance import DEFAULT_LOCAL_OUT_DIR  # noqa: E402
+
 MENU_SCRIPT = REPO_ROOT / "src" / "python_scripts" / "operator_menu.py"
 TDC_SH = REPO_ROOT / "src" / "shell_scripts" / "tdc.sh"
-CANON_DIR = REPO_ROOT / "data" / "out" / "local"
+# S0187 D22: was hardcoded REPO_ROOT-relative, broke the instant
+# repo/data/out was decommissioned -- now follows the same single owner
+# every other Canon consumer uses.
+CANON_DIR = DEFAULT_LOCAL_OUT_DIR
 
 
 def _run_menu(input_seq: str, timeout: int = 30) -> subprocess.CompletedProcess:
@@ -105,11 +113,11 @@ class TestMenuExitsCleanly:
             f"'Avanzado / mantenimiento' not found in menu output:\n{result.stdout[:600]}"
         )
 
-    def test_menu_shows_repository_exporter(self):
-        """S0138: menu must show repository exporter option."""
+    def test_menu_shows_material_inventory(self):
+        """S0187 Unit C: option 3 was reoriented from exporter to inventory."""
         result = _run_menu("0\n")
-        assert "Exportador de repositorio" in result.stdout, (
-            f"'Exportador de repositorio' not found in menu output:\n{result.stdout[:600]}"
+        assert "Inventario material / repositorio" in result.stdout, (
+            f"'Inventario material / repositorio' not found in menu output:\n{result.stdout[:600]}"
         )
 
     def test_menu_does_not_crash_on_invalid_option(self):
