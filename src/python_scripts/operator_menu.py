@@ -3314,47 +3314,10 @@ def option_tmp_quiescence() -> None:
             print("Opción inválida.")
 
 
-# S0186 Unit I -- the two blockers demonstrated by the RAG equivalence
-# investigation, certified via read-only historical bisection this
-# session. Prefilling from these exact, already-verified paths is a
-# convenience only; the human still reviews the plan, dry-run, and
-# authorization phrase explicitly before any Apply.
-_S0186_UNIT_I_KNOWN_REQUESTS: list[dict[str, Any]] = [
-    {
-        "mode": canon_content_recovery.MODE_RESTORE_MISSING_SAME_ID,
-        "target_record_id": "4667737e-bac0-583f-91ba-53ecc9ac10de",
-        # S0187 D23-A: base migrated from REPO_ROOT to DEFAULT_AUDIT_DIR --
-        # verified byte-identical (SHA-256) between old and active roots
-        # before this change; the admission-id/date/filename below are
-        # historical evidence and are preserved exactly.
-        "certified_source_path": str(
-            DEFAULT_AUDIT_DIR
-            / "admissions/backups/admit-20260802004923-multi-session/tiddlers_1.jsonl"
-        ),
-        "corroborating_source_path": str(
-            REPO_ROOT / "data/in/# 1_objeto_de_estudio_trazabilidad_y_desarrollo.json"
-        ),
-    },
-    {
-        "mode": canon_content_recovery.MODE_REPAIR_EXISTING_TARGET,
-        "target_record_id": "ab0f1850-e42c-5dcf-a85a-0e786e590147",
-        "predecessor_record_id": "aafec109-c197-5979-b9ac-5bd8636650f6",
-        # S0187 D23-A: base migrated from REPO_ROOT to DEFAULT_AUDIT_DIR --
-        # verified byte-identical (SHA-256) between old and active roots
-        # before this change; the admission-id/date/filename below are
-        # historical evidence and are preserved exactly.
-        "predecessor_certified_source_path": str(
-            DEFAULT_AUDIT_DIR
-            / "admissions/backups/admit-20260901213051-multi-session/tiddlers_29.jsonl"
-        ),
-    },
-]
-
-
 def option_canon_content_recovery() -> None:
     """Recuperación de contenido canónico -- superficie mínima gobernada
 
-    (S0186 Unit I) para exactamente dos clases contractuales: restaurar un
+    para exactamente dos clases contractuales: restaurar un
     id ausente desde evidencia certificada (RESTORE_MISSING_SAME_ID), o
     reparar el contenido de un target vacío desde un predecessor probado
     (REPAIR_EXISTING_TARGET_FROM_PROVEN_PREDECESSOR). No es un editor
@@ -3363,16 +3326,14 @@ def option_canon_content_recovery() -> None:
 
     while True:
         print(
-            "\nRecuperación de contenido canónico (S0186 Unit I)\n"
+            "\nRecuperación de contenido canónico\n"
             "Canon: SOLO LECTURA salvo Aplicar con confirmación explícita\n\n"
-            "1) Ver hallazgos conocidos de S0186 Unit I\n"
-            "2) Construir plan desde solicitud (JSON)\n"
-            "3) Construir plan con los 2 hallazgos conocidos de S0186 Unit I\n"
-            "4) Dry-run del último plan\n"
-            "5) Preparar snapshot de rollback (requerido antes de autorizar)\n"
-            "6) Solicitar autorización para el último plan (requiere snapshot ya preparado)\n"
-            "7) Aplicar el último plan autorizado (requiere confirmación exacta)\n"
-            "8) Rollback desde un snapshot\n"
+            "1) Construir plan desde solicitud (JSON)\n"
+            "2) Dry-run del último plan\n"
+            "3) Preparar snapshot de rollback (requerido antes de autorizar)\n"
+            "4) Solicitar autorización para el último plan (requiere snapshot ya preparado)\n"
+            "5) Aplicar el último plan autorizado (requiere confirmación exacta)\n"
+            "6) Rollback desde un snapshot\n"
             "0) Volver"
         )
         choice = prompt("> ").strip()
@@ -3380,10 +3341,6 @@ def option_canon_content_recovery() -> None:
             return
 
         if choice == "1":
-            for request in _S0186_UNIT_I_KNOWN_REQUESTS:
-                print(json.dumps(request, indent=2, ensure_ascii=False))
-
-        elif choice == "2":
             request_path = prompt(f"Archivo de solicitud JSON [{as_display_path(CANON_CONTENT_RECOVERY_REQUEST)}]: ").strip()
             request_file = Path(request_path) if request_path else CANON_CONTENT_RECOVERY_REQUEST
             if not request_file.exists():
@@ -3398,27 +3355,9 @@ def option_canon_content_recovery() -> None:
             print(f"Plan {plan.plan_id} escrito en {as_display_path(CANON_CONTENT_RECOVERY_PLAN)}")
             print(f"canon_before_hash={plan.canon_before_hash} expected_canon_after_count={plan.expected_canon_after_count}")
 
-        elif choice == "3":
-            CANON_CONTENT_RECOVERY_ROOT.mkdir(parents=True, exist_ok=True)
-            CANON_CONTENT_RECOVERY_REQUEST.write_text(
-                json.dumps(_S0186_UNIT_I_KNOWN_REQUESTS, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-            )
-            try:
-                plan = canon_content_recovery._build_plan_from_request_file(
-                    CANON_CONTENT_RECOVERY_REQUEST, DEFAULT_CANON_DIR
-                )
-            except (canon_content_recovery.RecoveryPlanError, canon_content_recovery.RecoveryAuthorizationError) as exc:
-                print(f"Plan bloqueado: {exc}")
-                continue
-            canon_content_recovery.write_plan(plan, CANON_CONTENT_RECOVERY_PLAN)
-            print(f"Plan {plan.plan_id} escrito en {as_display_path(CANON_CONTENT_RECOVERY_PLAN)}")
-            print(f"canon_before_hash={plan.canon_before_hash} expected_canon_after_count={plan.expected_canon_after_count}")
-            for op in plan.operations:
-                print(f"  - {op.operation_mode} target={op.target_record_id} delta={op.expected_record_count_delta}")
-
-        elif choice == "4":
+        elif choice == "2":
             if not CANON_CONTENT_RECOVERY_PLAN.exists():
-                print("No hay plan construido todavía (opciones 2 o 3).")
+                print("No hay plan construido todavía (opción 1).")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             canon_dir_from_plan = Path(plan_dict["canon_dir"])
@@ -3438,9 +3377,9 @@ def option_canon_content_recovery() -> None:
             CANON_CONTENT_RECOVERY_DRYRUN_REPORT.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print(json.dumps(report, indent=2, ensure_ascii=False))
 
-        elif choice == "5":
+        elif choice == "3":
             if not CANON_CONTENT_RECOVERY_PLAN.exists():
-                print("No hay plan construido todavía (opciones 2 o 3).")
+                print("No hay plan construido todavía (opción 1).")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             operations = [canon_content_recovery.RecoveryOperation(**{**op, "recovered_record": {}}) for op in plan_dict["operations"]]
@@ -3455,12 +3394,12 @@ def option_canon_content_recovery() -> None:
                 f"(hash={canon_content_recovery.sha256_path(manifest_path)}). Canon no fue modificado."
             )
 
-        elif choice == "6":
+        elif choice == "4":
             if not CANON_CONTENT_RECOVERY_PLAN.exists():
-                print("No hay plan construido todavía (opciones 2 o 3).")
+                print("No hay plan construido todavía (opción 1).")
                 continue
             if not CANON_CONTENT_RECOVERY_SNAPSHOT_MANIFEST.exists():
-                print("Se requiere un snapshot de rollback ya preparado (opción 5) antes de autorizar.")
+                print("Se requiere un snapshot de rollback ya preparado (opción 3) antes de autorizar.")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             operations = [canon_content_recovery.RecoveryOperation(**{**op, "recovered_record": {}}) for op in plan_dict["operations"]]
@@ -3484,9 +3423,9 @@ def option_canon_content_recovery() -> None:
             )
             print(f"Autorización {authorization['authorization_id']} creada y vinculada al plan {plan.plan_id}.")
 
-        elif choice == "7":
+        elif choice == "5":
             if not CANON_CONTENT_RECOVERY_PLAN.exists() or not CANON_CONTENT_RECOVERY_AUTHORIZATION.exists():
-                print("Se requiere un plan y una autorización previos (opciones 2/3 y 6).")
+                print("Se requiere un plan y una autorización previos (opciones 1 y 4).")
                 continue
             plan_dict = json.loads(CANON_CONTENT_RECOVERY_PLAN.read_text(encoding="utf-8"))
             canon_dir_from_plan = Path(plan_dict["canon_dir"])
@@ -3514,7 +3453,7 @@ def option_canon_content_recovery() -> None:
             CANON_CONTENT_RECOVERY_RECEIPT.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             print(json.dumps(receipt, indent=2, ensure_ascii=False))
 
-        elif choice == "8":
+        elif choice == "6":
             snapshot_path = prompt("Ruta a rollback_manifest.json: ").strip()
             if not snapshot_path:
                 print("Cancelado.")
