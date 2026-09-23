@@ -198,12 +198,23 @@ struct RoleContractEvaluation {
 
 /// Clasifica lineas canonicas o candidatas sin modificar el canon.
 pub fn audit_canonical_lines(repo_root: &Path, input_path: &Path) -> CanonicalLineGateReport {
+    audit_canonical_lines_in_workspace(repo_root, &repo_root.join("data"), input_path)
+}
+
+/// Como [`audit_canonical_lines`], con la raíz física del workspace suministrada
+/// explícitamente (P7-C): el role contract y la capa `ai` se leen bajo
+/// `workspace_root/out/local`, no bajo `repo_root/data`.
+pub fn audit_canonical_lines_in_workspace(
+    repo_root: &Path,
+    workspace_root: &Path,
+    input_path: &Path,
+) -> CanonicalLineGateReport {
     let root = repo_root;
     let input = resolve_quality_path(root, input_path);
     let mut source_files = collect_canonical_input_files(&input);
     source_files.sort();
-    let role_contract = load_role_contract_index(root);
-    let ai_role_map = load_ai_role_map(root);
+    let role_contract = load_role_contract_index(workspace_root);
+    let ai_role_map = load_ai_role_map(workspace_root);
 
     let mut report = CanonicalLineGateReport {
         verdict: CanonicalLineVerdict::CanonLineOk,
@@ -712,9 +723,16 @@ fn rejected_line_item(
     }
 }
 
-fn load_role_contract_index(root: &Path) -> RoleContractIndex {
-    let path = root.join(ROLE_CONTRACT_REL_PATH);
-    let contract_ref = display_quality_path(root, &path);
+fn load_role_contract_index(workspace_root: &Path) -> RoleContractIndex {
+    // ROLE_CONTRACT_REL_PATH is a stored LOGICAL locator ("data/out/local/...");
+    // the physical file lives under the explicit workspace root. The report keeps
+    // the logical locator as contract_ref (LOGICAL_LOCATOR != PHYSICAL_PATH).
+    let path = workspace_root.join(
+        ROLE_CONTRACT_REL_PATH
+            .strip_prefix("data/")
+            .unwrap_or(ROLE_CONTRACT_REL_PATH),
+    );
+    let contract_ref = ROLE_CONTRACT_REL_PATH.to_string();
     let content = match std::fs::read_to_string(&path) {
         Ok(content) => content,
         Err(err) => {
@@ -921,8 +939,8 @@ fn evaluate_role_contract(contract: &RoleContractIndex, role: &str) -> RoleContr
     }
 }
 
-fn load_ai_role_map(root: &Path) -> BTreeMap<String, String> {
-    let ai_dir = root.join("data/out/local/ai");
+fn load_ai_role_map(workspace_root: &Path) -> BTreeMap<String, String> {
+    let ai_dir = workspace_root.join("out/local/ai");
     let mut paths = match std::fs::read_dir(&ai_dir) {
         Ok(entries) => entries
             .filter_map(Result::ok)

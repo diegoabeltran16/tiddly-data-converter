@@ -31,7 +31,7 @@ pub mod report;
 
 use std::path::{Path, PathBuf};
 
-pub use canon_quality::{audit_canonical_lines, inspect_deep_nodes};
+pub use canon_quality::{audit_canonical_lines, audit_canonical_lines_in_workspace, inspect_deep_nodes};
 pub use error::DoctorError;
 pub use report::{
     CanonQualityDebtSummary, CanonicalLineCounts, CanonicalLineGateReport, CanonicalLineIssue,
@@ -191,6 +191,13 @@ pub fn audit(raw_path: &Path) -> Result<DoctorReport, DoctorError> {
 /// superficies de entrada, canon, reverse, sesiones y derivados conserven su
 /// autoridad declarada antes de operar el menú local.
 pub fn audit_perimeter(repo_root: &Path) -> PerimeterReport {
+    audit_perimeter_in_workspace(repo_root, &default_workspace_root(repo_root))
+}
+
+/// Como [`audit_perimeter`], con la raíz física del workspace (`out/`, `tmp/`)
+/// suministrada explícitamente por el llamador. `repo_root` conserva código,
+/// `data/in`, README y wrapper.
+pub fn audit_perimeter_in_workspace(repo_root: &Path, workspace_root: &Path) -> PerimeterReport {
     let root = repo_root;
     let mut checks: Vec<PerimeterCheck> = Vec::new();
 
@@ -211,33 +218,33 @@ pub fn audit_perimeter(repo_root: &Path) -> PerimeterReport {
         "superficie auxiliar de arranque, no semilla madre",
     );
     check_working_html_surfaces(root, &mut checks);
-    push_path_check(
+    push_locator_path_check(
         &mut checks,
-        root,
+        workspace_root,
         "sessions-staging-exists",
         "data/out/local/sessions",
         ExpectedPathKind::Dir,
         "staging operativo de sesiones (subzona durable bajo data/out/local/)",
     );
-    push_path_check(
+    push_locator_path_check(
         &mut checks,
-        root,
+        workspace_root,
         "canon-local-exists",
         "data/out/local",
         ExpectedPathKind::Dir,
         "canon local oficial",
     );
-    push_path_check(
+    push_locator_path_check(
         &mut checks,
-        root,
+        workspace_root,
         "reverse-html-projection-exists",
         "data/out/local/reverse_html",
         ExpectedPathKind::Dir,
         "reverse_html es proyección no autoritativa",
     );
-    push_path_check(
+    push_locator_path_check(
         &mut checks,
-        root,
+        workspace_root,
         "tmp-workspace-exists",
         "data/tmp",
         ExpectedPathKind::Dir,
@@ -283,9 +290,9 @@ pub fn audit_perimeter(repo_root: &Path) -> PerimeterReport {
         );
     }
 
-    check_canon_shards(root, &mut checks);
-    check_policy_bundle(root, &mut checks);
-    check_derived_registry(root, &mut checks);
+    check_canon_shards(workspace_root, &mut checks);
+    check_policy_bundle(workspace_root, &mut checks);
+    check_derived_registry(workspace_root, &mut checks);
     check_readme_single_operator(root, &mut checks);
 
     let errors = checks
@@ -353,6 +360,36 @@ pub fn audit_reconstruction_plan_with_artifacts(
     requires_backup: bool,
     requires_hash_report: bool,
 ) -> ReconstructionPlanReport {
+    audit_reconstruction_plan_in_workspace(
+        repo_root,
+        &default_workspace_root(repo_root),
+        source_html_path,
+        source_role,
+        reconstruction_mode,
+        output_target,
+        input_jsonl_path,
+        reconstruction_run_dir,
+        requires_backup,
+        requires_hash_report,
+    )
+}
+
+/// Como [`audit_reconstruction_plan_with_artifacts`], con la raíz física del
+/// workspace suministrada explícitamente (P7-C): `data/in` sigue siendo del
+/// repositorio; `out/local` y `tmp` viven bajo `workspace_root`.
+#[allow(clippy::too_many_arguments)]
+pub fn audit_reconstruction_plan_in_workspace(
+    repo_root: &Path,
+    workspace_root: &Path,
+    source_html_path: &Path,
+    source_role: ReconstructionSourceRole,
+    reconstruction_mode: ReconstructionMode,
+    output_target: &Path,
+    input_jsonl_path: Option<&Path>,
+    reconstruction_run_dir: Option<&Path>,
+    requires_backup: bool,
+    requires_hash_report: bool,
+) -> ReconstructionPlanReport {
     let root = repo_root;
     let mut checks: Vec<PerimeterCheck> = Vec::new();
     let source = resolve_plan_path(root, source_html_path);
@@ -360,13 +397,16 @@ pub fn audit_reconstruction_plan_with_artifacts(
     let input_jsonl = input_jsonl_path.map(|path| resolve_plan_path(root, path));
     let run_dir = reconstruction_run_dir.map(|path| resolve_plan_path(root, path));
     let data_in = root.join("data/in");
-    let data_tmp = root.join("data/tmp");
-    let html_export_dir = root.join("data/tmp/html_export");
-    let reconstruction_dir = root.join("data/tmp/reconstruction");
-    let canon_dir = root.join("data/out/local");
-    let reverse_html_dir = root.join("data/out/local/reverse_html");
+    let data_tmp = workspace_path(workspace_root, "data/tmp");
+    let html_export_dir = workspace_path(workspace_root, "data/tmp/html_export");
+    let reconstruction_dir = workspace_path(workspace_root, "data/tmp/reconstruction");
+    let canon_dir = workspace_path(workspace_root, "data/out/local");
+    let reverse_html_dir = workspace_path(workspace_root, "data/out/local/reverse_html");
 
     check_source_html(root, &source, &source_role, &mut checks);
+    if reconstruction_mode == ReconstructionMode::ReverseProjection {
+        check_reverse_source_store(&source, &mut checks);
+    }
     check_reconstruction_target(
         &target,
         &data_tmp,
@@ -614,11 +654,25 @@ pub fn audit_reconstruction_rollback(
     repo_root: &Path,
     report_path: &Path,
 ) -> ReconstructionRollbackReport {
+    audit_reconstruction_rollback_in_workspace(
+        repo_root,
+        &default_workspace_root(repo_root),
+        report_path,
+    )
+}
+
+/// Como [`audit_reconstruction_rollback`], con la raíz física del workspace
+/// suministrada explícitamente (P7-C).
+pub fn audit_reconstruction_rollback_in_workspace(
+    repo_root: &Path,
+    workspace_root: &Path,
+    report_path: &Path,
+) -> ReconstructionRollbackReport {
     let root = repo_root;
     let mut checks: Vec<PerimeterCheck> = Vec::new();
     let report = resolve_plan_path(root, report_path);
-    let reconstruction_dir = root.join("data/tmp/reconstruction");
-    let canon_dir = root.join("data/out/local");
+    let reconstruction_dir = workspace_path(workspace_root, "data/tmp/reconstruction");
+    let canon_dir = workspace_path(workspace_root, "data/out/local");
 
     if path_has_parent_component(report_path) {
         push_error(
@@ -1071,6 +1125,45 @@ enum ExpectedPathKind {
     Dir,
 }
 
+/// Maps a stored logical locator (`data/out/local/...`, `data/tmp/...`) to the
+/// physical path under an explicitly supplied workspace root.
+///
+/// Mirrors `path_governance` (Python), which owns the authority: Rust never
+/// discovers the workspace itself, the caller passes it (P7-C).
+fn workspace_path(workspace_root: &Path, locator: &str) -> PathBuf {
+    workspace_root.join(locator.strip_prefix("data/").unwrap_or(locator))
+}
+
+/// Default workspace for callers that do not pass one: the repo-layout
+/// workspace (`<repo_root>/data`), i.e. the legacy behaviour.
+fn default_workspace_root(repo_root: &Path) -> PathBuf {
+    repo_root.join("data")
+}
+
+fn push_locator_path_check(
+    checks: &mut Vec<PerimeterCheck>,
+    workspace_root: &Path,
+    check_id: &str,
+    locator: &str,
+    expected: ExpectedPathKind,
+    role: &str,
+) {
+    let path = workspace_path(workspace_root, locator);
+    let ok = match expected {
+        ExpectedPathKind::File => path.is_file(),
+        ExpectedPathKind::Dir => path.is_dir(),
+    };
+    if ok {
+        push_ok(checks, check_id, &format!("{}: {}", locator, role));
+    } else {
+        push_error(
+            checks,
+            check_id,
+            &format!("falta {} requerido para {}", locator, role),
+        );
+    }
+}
+
 fn push_path_check(
     checks: &mut Vec<PerimeterCheck>,
     root: &Path,
@@ -1154,6 +1247,97 @@ fn check_working_html_surfaces(root: &Path, checks: &mut Vec<PerimeterCheck>) {
                 working.join(", ")
             ),
         );
+    }
+}
+
+/// Bloques `tiddlywiki-tiddler-store` reconocibles en un HTML, con la MISMA forma
+/// que exige el bridge Go (`adapter_real_html.go`: `<script class="tiddlywiki-tiddler-store"
+/// type="application/json">[ ... ]</script>`). Devuelve el texto del array JSON de cada bloque.
+fn tiddler_store_blocks(html: &str) -> Vec<&str> {
+    let mut blocks = Vec::new();
+    let mut from = 0;
+    while let Some(rel) = html[from..].find("<script") {
+        let after = from + rel + "<script".len();
+        from = after;
+        let rest = &html[after..];
+        let r1 = rest.trim_start();
+        if r1.len() == rest.len() {
+            continue;
+        }
+        let Some(r2) = r1.strip_prefix("class=\"tiddlywiki-tiddler-store\"") else {
+            continue;
+        };
+        let r3 = r2.trim_start();
+        if r3.len() == r2.len() {
+            continue;
+        }
+        let Some(r4) = r3.strip_prefix("type=\"application/json\"") else {
+            continue;
+        };
+        let Some(r5) = r4.trim_start().strip_prefix('>') else {
+            continue;
+        };
+        let body = r5.trim_start();
+        if !body.starts_with('[') {
+            continue;
+        }
+        if let Some(end) = body.find("</script>") {
+            let array = body[..end].trim_end();
+            if array.ends_with(']') {
+                blocks.push(array);
+            }
+        }
+    }
+    blocks
+}
+
+/// Precondición estructural de `reverse_projection` (P7-C-R1): la fuente HTML debe
+/// contener exactamente un `tiddlywiki-tiddler-store` cuyo contenido sea un array JSON.
+///
+/// Límite documentado: NO valida la forma de cada tiddler ni títulos duplicados (eso lo
+/// hace el bridge Go al parsear); solo evita autorizar un reverse contra una superficie
+/// que no es un TiddlyWiki reversible.
+fn check_reverse_source_store(source: &Path, checks: &mut Vec<PerimeterCheck>) {
+    const CHECK_ID: &str = "plan-reverse-source-store";
+    if !source.is_file() {
+        // plan-source-html-exists ya reporta el error.
+        return;
+    }
+    let html = match std::fs::read_to_string(source) {
+        Ok(html) => html,
+        Err(err) => {
+            push_error(
+                checks,
+                CHECK_ID,
+                &format!("no se pudo leer la fuente HTML para verificar el tiddlywiki-tiddler-store: {}", err),
+            );
+            return;
+        }
+    };
+    let blocks = tiddler_store_blocks(&html);
+    match blocks.len() {
+        0 => push_error(
+            checks,
+            CHECK_ID,
+            "la fuente HTML no contiene un tiddlywiki-tiddler-store reconocible; no es una superficie reversible",
+        ),
+        1 => match serde_json::from_str::<Vec<serde_json::Value>>(blocks[0]) {
+            Ok(items) => push_ok(
+                checks,
+                CHECK_ID,
+                &format!("la fuente HTML contiene un tiddlywiki-tiddler-store parseable ({} tiddlers)", items.len()),
+            ),
+            Err(err) => push_error(
+                checks,
+                CHECK_ID,
+                &format!("el tiddlywiki-tiddler-store de la fuente HTML no es un array JSON parseable: {}", err),
+            ),
+        },
+        n => push_error(
+            checks,
+            CHECK_ID,
+            &format!("la fuente HTML contiene {} tiddlywiki-tiddler-store; reverse exige exactamente 1", n),
+        ),
     }
 }
 
@@ -1598,8 +1782,8 @@ fn path_has_parent_component(path: &Path) -> bool {
         .any(|component| matches!(component, std::path::Component::ParentDir))
 }
 
-fn check_canon_shards(root: &Path, checks: &mut Vec<PerimeterCheck>) {
-    let canon_dir = root.join("data/out/local");
+fn check_canon_shards(workspace_root: &Path, checks: &mut Vec<PerimeterCheck>) {
+    let canon_dir = workspace_path(workspace_root, "data/out/local");
     let mut shard_numbers: Vec<u32> = Vec::new();
     let entries = match std::fs::read_dir(&canon_dir) {
         Ok(entries) => entries,
@@ -1660,8 +1844,11 @@ fn shard_number(file_name: &str) -> Option<u32> {
         .ok()
 }
 
-fn check_policy_bundle(root: &Path, checks: &mut Vec<PerimeterCheck>) {
-    let path = root.join("data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json");
+fn check_policy_bundle(workspace_root: &Path, checks: &mut Vec<PerimeterCheck>) {
+    let path = workspace_path(
+        workspace_root,
+        "data/out/local/sessions/00_contratos/policy/canon_policy_bundle.json",
+    );
     let value = match read_json_object(&path) {
         Ok(value) => value,
         Err(message) => {
@@ -1767,8 +1954,11 @@ fn check_policy_bundle(root: &Path, checks: &mut Vec<PerimeterCheck>) {
     }
 }
 
-fn check_derived_registry(root: &Path, checks: &mut Vec<PerimeterCheck>) {
-    let path = root.join("data/out/local/sessions/00_contratos/projections/derived_layers_registry.json");
+fn check_derived_registry(workspace_root: &Path, checks: &mut Vec<PerimeterCheck>) {
+    let path = workspace_path(
+        workspace_root,
+        "data/out/local/sessions/00_contratos/projections/derived_layers_registry.json",
+    );
     let value = match read_json_object(&path) {
         Ok(value) => value,
         Err(message) => {
