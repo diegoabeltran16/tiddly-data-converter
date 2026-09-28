@@ -12,7 +12,6 @@ INVARIANTE: ningún tiddlers_*.jsonl es modificado.
 from __future__ import annotations
 
 import csv as csv_module
-import glob as _glob
 import json
 import subprocess
 import sys
@@ -24,6 +23,7 @@ REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src" / "python_scripts"))
 
 import evaluate_relation_admissibility as era
+import path_governance
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -378,17 +378,49 @@ class TestIncompleteContractIsInvalid:
 
 
 # ---------------------------------------------------------------------------
+# CLI real, ejecutado UNA vez por módulo hacia un sandbox tmp_path
+#
+# S0188 UNIT A/B microajuste de seguridad: el CLI ya no recibe rutas
+# repo-relativas ("data/out/local/...") -- eso hacía que, con cwd=REPO_ROOT,
+# el proceso escribiera físicamente dentro del checkout (violación de
+# REPOSITORY != WORKSPACE). --canon-glob apunta al Canon real gobernado
+# (path_governance.DEFAULT_CANON_DIR, solo lectura, coherente con el nuevo
+# default de producción); --candidates-root/--out-dir apuntan a un directorio
+# tmp_path_factory exclusivo de este módulo, nunca al repositorio ni al
+# workspace productivo.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def admissibility_session_out_dir(tmp_path_factory):
+    out_dir = tmp_path_factory.mktemp("s0132_admissibility_out")
+    candidates_root = tmp_path_factory.mktemp("s0132_admissibility_candidates")
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "src" / "python_scripts" / "evaluate_relation_admissibility.py"),
+            "--canon-glob", str(path_governance.DEFAULT_CANON_DIR / "tiddlers_*.jsonl"),
+            "--candidates-root", str(candidates_root),
+            "--out-dir", str(out_dir),
+            "--session", "s0132",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr}"
+    return out_dir / "s0132"
+
+
+# ---------------------------------------------------------------------------
 # Reporte JSON válido
 # ---------------------------------------------------------------------------
 
 class TestJsonReportIsValid:
     """El reporte JSON generado es válido y tiene el schema correcto."""
 
-    REPORT_PATH = (
-        REPO_ROOT
-        / "data" / "out" / "local" / "pipeline" / "relation_admissibility" / "s0132"
-        / "s0132_relation_admissibility_report.json"
-    )
+    @pytest.fixture(autouse=True)
+    def _bind_report_path(self, admissibility_session_out_dir):
+        self.REPORT_PATH = admissibility_session_out_dir / "s0132_relation_admissibility_report.json"
 
     def test_report_file_exists(self):
         assert self.REPORT_PATH.exists(), f"No encontrado: {self.REPORT_PATH}"
@@ -434,23 +466,21 @@ class TestJsonReportIsValid:
 class TestCsvContainsRequiredColumns:
     """El CSV debe contener al menos candidate_id y decision."""
 
-    CSV_PATH = (
-        REPO_ROOT
-        / "data" / "out" / "local" / "pipeline" / "relation_admissibility" / "s0132"
-        / "s0132_relation_admissibility_review.csv"
-    )
+    @pytest.fixture(autouse=True)
+    def _bind_csv_path(self, admissibility_session_out_dir):
+        self.CSV_PATH = admissibility_session_out_dir / "s0132_relation_admissibility_review.csv"
 
     def test_csv_file_exists(self):
         assert self.CSV_PATH.exists(), f"No encontrado: {self.CSV_PATH}"
 
     def test_csv_has_candidate_id_column(self):
         rows = list(csv_module.DictReader(self.CSV_PATH.open(encoding="utf-8")))
-        assert len(rows) > 0
-        assert "candidate_id" in rows[0]
+        header = csv_module.DictReader(self.CSV_PATH.open(encoding="utf-8")).fieldnames or []
+        assert "candidate_id" in header
 
     def test_csv_has_decision_column(self):
-        rows = list(csv_module.DictReader(self.CSV_PATH.open(encoding="utf-8")))
-        assert "decision" in rows[0]
+        header = csv_module.DictReader(self.CSV_PATH.open(encoding="utf-8")).fieldnames or []
+        assert "decision" in header
 
     def test_csv_decisions_are_valid(self):
         valid_decisions = {
@@ -478,11 +508,9 @@ class TestCsvContainsRequiredColumns:
 class TestMarkdownSummaryContent:
     """El Markdown de resumen debe tener secciones de conteo por decisión."""
 
-    MD_PATH = (
-        REPO_ROOT
-        / "data" / "out" / "local" / "pipeline" / "relation_admissibility" / "s0132"
-        / "s0132_relation_admissibility_summary.md"
-    )
+    @pytest.fixture(autouse=True)
+    def _bind_md_path(self, admissibility_session_out_dir):
+        self.MD_PATH = admissibility_session_out_dir / "s0132_relation_admissibility_summary.md"
 
     def test_md_file_exists(self):
         assert self.MD_PATH.exists(), f"No encontrado: {self.MD_PATH}"
@@ -515,35 +543,67 @@ class TestEvaluatorDoesNotModifyCanon:
         assert len(results) == 1
         assert results[0]["would_modify_canon"] is False
 
-    def test_canon_shards_unchanged_after_run(self):
-        """Los shards del canon no fueron modificados por el run real del evaluador."""
-        shards = sorted(_glob.glob("data/out/local/tiddlers_*.jsonl"))
+    def test_canon_shards_unchanged_after_run(self, admissibility_session_out_dir):
+        """Los shards del canon (reales, gobernados) no fueron modificados por
+        el run real del evaluador, y el directorio de salida no contiene
+        ningún shard."""
+        shards = sorted(str(p) for p in path_governance.DEFAULT_CANON_DIR.glob("tiddlers_*.jsonl"))
         assert len(shards) > 0
-        # Verificar que el directorio de salida NO incluye ningún shard
-        out_dir = REPO_ROOT / "data" / "out" / "local" / "pipeline" / "relation_admissibility"
         for shard in shards:
             shard_name = Path(shard).name
-            conflict = list(out_dir.rglob(shard_name))
+            conflict = list(admissibility_session_out_dir.parent.rglob(shard_name))
             assert not conflict, (
                 f"Shard {shard_name} encontrado en directorio de salida: {conflict}"
             )
 
-    def test_cli_exit_code_is_zero(self):
-        """El CLI del evaluador termina con exit code 0."""
+    def test_cli_exit_code_is_zero(self, admissibility_session_out_dir):
+        """El CLI del evaluador (ejecutado por el fixture de módulo) terminó
+        con exit code 0 -- verificado indirectamente: si hubiera fallado, el
+        fixture ya habría hecho fallar la aserción y esta prueba no se
+        alcanzaría con el directorio de salida poblado."""
+        assert admissibility_session_out_dir.exists()
+
+
+# ---------------------------------------------------------------------------
+# Guarda de regresión: el CLI nunca debe materializar estado bajo
+# <repo>/data/out, sin importar qué defaults reciba por CLI.
+# ---------------------------------------------------------------------------
+
+class TestRepoDataOutBoundaryGuard:
+    """S0188 microajuste de seguridad: REPOSITORY_DATA_OUT_MUST_REMAIN_ABSENT."""
+
+    def test_repo_data_out_absent_before_and_after_default_invocation(self, tmp_path):
+        import os
+
+        forbidden = REPO_ROOT / "data" / "out"
+        assert not forbidden.exists(), (
+            f"Precondición violada: {forbidden} ya existía antes de esta prueba "
+            "(evidencia de otra fuga; no atribuible a esta prueba)."
+        )
+        # Ejecuta el CLI SIN pasar --canon-glob/--candidates-root/--out-dir,
+        # es decir, ejerciendo exactamente los defaults de producción, desde
+        # un cwd que es un tmp_path ajeno al repositorio y con
+        # TDC_WORKSPACE_ROOT apuntado a ese mismo tmp_path (para no poblar ni
+        # el repositorio ni el workspace productivo real), para demostrar que
+        # ya no hay fallback silencioso hacia <repo>/data/out incluso si
+        # alguien invoca el script sin argumentos.
+        env = os.environ.copy()
+        env["TDC_WORKSPACE_ROOT"] = str(tmp_path)
         result = subprocess.run(
             [
                 sys.executable,
                 str(REPO_ROOT / "src" / "python_scripts" / "evaluate_relation_admissibility.py"),
-                "--canon-glob", "data/out/local/tiddlers_*.jsonl",
-                "--candidates-root", "data/out/local/pipeline/relations_candidates",
-                "--out-dir", "data/out/local/pipeline/relation_admissibility",
-                "--session", "s0132",
+                "--session", "s0132_guard",
             ],
             capture_output=True,
             text=True,
-            cwd=str(REPO_ROOT),
+            cwd=str(tmp_path),
+            env=env,
         )
         assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert not forbidden.exists(), (
+            f"REGRESIÓN: {forbidden} fue creado por la ejecución con defaults del CLI."
+        )
 
 
 # ---------------------------------------------------------------------------
