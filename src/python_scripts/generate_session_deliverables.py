@@ -76,6 +76,11 @@ CANONICAL_STATUS = "delivered"
 
 SESSION_ID_RE = re.compile(r"^(m\d+)-s(\d{4}[a-z]?)$")
 
+# S0188 Unit B ("PRESERVE HISTORY / SIMPLIFY FORWARD"): current, module-less
+# session_id shape, authorized for sessions produced going forward. S0001-S0187
+# are never migrated and keep matching SESSION_ID_RE above, read-only.
+CURRENT_SESSION_ID_RE = re.compile(r"^s(\d{4}[a-z]?)$")
+
 # Title prefix per artifact family.
 # Format: "{heading} {emoji(s)} {Label} [de sesión] {NNNN} = {topic}"
 # The detalles family omits "de sesión" — it's just "Sesión NNNN".
@@ -101,9 +106,13 @@ FAMILY_DIR: dict[str, tuple[str, str]] = {
 }
 
 # Required fields in every .md.json file, in canonical order.
+# S0188 Unit B: "module" is no longer unconditionally required here -- it is
+# required exactly when session_id is a legacy (mXX-sNNNN) identity, and
+# forbidden when session_id is a current (sNNNN) identity. See the dedicated
+# legacy/current/hybrid check in validate_deliverable_file below (rule 7).
 REQUIRED_FIELDS: tuple[str, ...] = (
     "title", "type", "created", "modified",
-    "session_id", "module", "session", "status",
+    "session_id", "session", "status",
     "canonical_slug", "tags", "text",
 )
 
@@ -152,8 +161,8 @@ def _tw_now() -> str:
 
 def build_deliverable(
     family: str,
-    session_id: str,     # e.g. "m04-s0129"
-    module: str,         # e.g. "m04"
+    session_id: str,     # e.g. "m04-s0129" (legacy) or "s0188" (current)
+    module: str | None,  # e.g. "m04" (legacy); None for current (module-less)
     session_num: str,    # e.g. "0129"
     session_tag: str,    # e.g. "S0129"
     topic: str,          # human-readable topic, e.g. "nombre de la sesión"
@@ -189,21 +198,33 @@ def build_deliverable(
     }
     family_tag = family_tag_map[family]
 
-    tags = ["sesion", family_tag, module, session_tag.lower()] + extra_tags
+    base_tags = ["sesion", family_tag]
+    if module:
+        base_tags.append(module)
+    tags = base_tags + [session_tag.lower()] + extra_tags
 
-    return {
+    payload: dict[str, Any] = {
         "title": title,
         "type": CANONICAL_TYPE,
         "created": timestamp,
         "modified": timestamp,
         "session_id": session_id,
-        "module": module,
         "session": session_tag,
         "status": CANONICAL_STATUS,
         "canonical_slug": canonical_slug,
         "tags": tags,
         "text": f"## {prefix} {session_num} = {topic}\n\n<!-- Completar contenido aquí -->\n",
     }
+    if module:
+        # Legacy shape: "module" sits right after "session_id", before
+        # "session" -- preserve REQUIRED_FIELDS' historical field order.
+        ordered: dict[str, Any] = {}
+        for key, value in payload.items():
+            ordered[key] = value
+            if key == "session_id":
+                ordered["module"] = module
+        payload = ordered
+    return payload
 
 
 # ── Schema validation ─────────────────────────────────────────────────────────
@@ -279,11 +300,35 @@ def validate_deliverable_file(path: Path) -> list[SchemaError]:
         errors.append(SchemaError(path, "session",
             f"invalid session tag: {session!r} — expected 'S0129' format (S + 4 digits)"))
 
-    # 7. session_id must be "mXX-sNNNN" format
+    # 7. session_id must be either the legacy "mXX-sNNNN" shape (S0001-S0187
+    #    and any artifact still produced that way) or the current, module-less
+    #    "sNNNN" shape (S0188 Unit B). "module" must be present and match the
+    #    legacy shape's mXX group, or absent entirely for the current shape --
+    #    any other combination is a rejected hybrid (never silently accepted).
     session_id = str(data.get("session_id", ""))
-    if session_id and not re.match(r"^m\d+-s\d{4}[a-z]?$", session_id):
+    has_module = "module" in data
+    module_value = str(data.get("module", ""))
+    legacy_match = SESSION_ID_RE.match(session_id) if session_id else None
+    current_match = CURRENT_SESSION_ID_RE.match(session_id) if session_id else None
+
+    if session_id and not legacy_match and not current_match:
         errors.append(SchemaError(path, "session_id",
-            f"invalid session_id: {session_id!r} — expected 'm04-s0129' format"))
+            f"invalid session_id: {session_id!r} — expected legacy 'm04-s0129' "
+            f"or current 's0188' format"))
+    elif legacy_match:
+        expected_module = legacy_match.group(1)
+        if not has_module:
+            errors.append(SchemaError(path, "module",
+                f"required for legacy session_id {session_id!r} (expected {expected_module!r})"))
+        elif module_value != expected_module:
+            errors.append(SchemaError(path, "module",
+                f"HYBRID: {module_value!r} does not match session_id {session_id!r} "
+                f"(expected {expected_module!r})"))
+    elif current_match:
+        if has_module:
+            errors.append(SchemaError(path, "module",
+                f"HYBRID: current session_id {session_id!r} must not carry 'module' "
+                f"(got {module_value!r}) — current sessions omit the field entirely"))
 
     # 8. tags must be a list
     tags = data.get("tags")
@@ -314,12 +359,18 @@ def _forbidden_hint(field: str) -> str:
 def _cmd_generate(args: argparse.Namespace) -> int:
     session_id: str = args.session_id.strip()
     m = SESSION_ID_RE.match(session_id)
-    if not m:
-        print(f"ERROR: --session-id must match 'mXX-sNNNN' (e.g. 'm04-s0129'), got: {session_id!r}",
+    current_m = None if m else CURRENT_SESSION_ID_RE.match(session_id)
+    if not m and not current_m:
+        print(f"ERROR: --session-id must match legacy 'mXX-sNNNN' (e.g. 'm04-s0129') "
+              f"or current 'sNNNN' (e.g. 's0188'), got: {session_id!r}",
               file=sys.stderr)
         return 1
-    module = m.group(1)
-    session_num = m.group(2)
+    if m:
+        module: str | None = m.group(1)
+        session_num = m.group(2)
+    else:
+        module = None
+        session_num = current_m.group(1)
     session_tag = f"S{session_num}"   # e.g. "S0129"
 
     topic: str = args.topic.strip()
@@ -395,7 +446,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     print("  3. Run session_sync with an explicit scope and filter, for example:")
     print(
         f"     python3 src/python_scripts/session_sync.py scan --scope missing "
-        f"--filter-type session_id --filter-value {session_id.split('-', 2)[0]}-{session_id.split('-', 2)[1]}"
+        f"--filter-type session_id --filter-value {session_id}"
     )
     return 0
 
@@ -484,7 +535,8 @@ def main() -> int:
     # generate
     gen = sub.add_parser("generate", help="Generate 7 deliverable files for a new session.")
     gen.add_argument("--session-id", required=True,
-                     help="Session ID in mXX-sNNNN format (e.g. m04-s0129)")
+                     help="Session ID in legacy 'mXX-sNNNN' (e.g. m04-s0129) "
+                          "or current 'sNNNN' (e.g. s0188) format")
     gen.add_argument("--topic", required=True,
                      help="Human-readable topic for the session (used in titles and slug)")
     gen.add_argument("--tags", default="",
