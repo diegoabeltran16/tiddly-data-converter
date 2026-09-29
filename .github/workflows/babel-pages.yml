@@ -1,0 +1,59 @@
+name: Babel — GitHub Pages
+
+# Babel is a derived static surface: index.html and babel/0_pgs-index/ are generated at
+# build time from the files under babel/ and are never committed. No dependencies.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "babel/**"
+      - "ux/assets/**"
+      - "tools/build_babel.py"
+      - ".github/workflows/babel-pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: "Babel · build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Generate index.html (stdlib Python already on the runner)
+        run: python3 tools/build_babel.py
+      - name: Validate generated index.html
+        run: |
+          test -s index.html
+          python3 tools/build_babel.py --check
+          ! grep -Eiq '<script|https?://' index.html
+          [ ! -d babel/0_pgs-index ] || ! grep -rEiq '<script|https?://' babel/0_pgs-index
+      - name: Stage static site (surfaces, mascot, flags, HTML artifacts only)
+        run: |
+          mkdir -p _site/ux/assets/flags
+          cp "ux/assets/Open eyes.PNG" _site/ux/assets/
+          cp "ux/assets/open eye.png" _site/ux/assets/
+          cp ux/assets/flags/*.svg _site/ux/assets/flags/
+          rsync -rt --prune-empty-dirs --exclude='/0_pgs-index/' --include='*/' --include='*.html' --exclude='*' babel/ _site/babel/
+          python3 tools/build_babel.py --site _site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    name: "Babel · deploy"
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
