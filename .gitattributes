@@ -1,3 +1,4 @@
 export/s33-export-log.jsonl linguist-generated=true
 export/s33-functional-tiddlers.jsonl linguist-generated=true
-out/tiddlers.jsonl filter=lfs diff=lfs merge=lfs -text
+babel/**/*.html -whitespace
+
