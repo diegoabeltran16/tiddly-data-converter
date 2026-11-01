@@ -1,0 +1,2 @@
+Carpeta donde van ubicadas las referencias del documento , de tipo
+Articulos, libros, etc

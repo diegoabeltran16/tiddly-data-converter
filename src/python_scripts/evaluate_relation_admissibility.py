@@ -8,11 +8,13 @@ evidencia diseñada en S0131 y produce un reporte operativo por candidato.
 
 NO modifica canon, NO admite relaciones, NO escribe en tiddlers_*.jsonl.
 
-CLI:
+CLI (los tres primeros flags son opcionales; por defecto resuelven contra el
+workspace gobernado por path_governance -- WORKSPACE_ROOT/out/local/... --, no
+contra el checkout del repositorio):
     python3 src/python_scripts/evaluate_relation_admissibility.py \\
-      --canon-glob "data/out/local/tiddlers_*.jsonl" \\
-      --candidates-root "data/out/local/pipeline/relations_candidates" \\
-      --out-dir "data/out/local/pipeline/relation_admissibility" \\
+      --canon-glob "<workspace>/out/local/tiddlers_*.jsonl" \\
+      --candidates-root "<workspace>/out/local/pipeline/relations_candidates" \\
+      --out-dir "<workspace>/out/local/pipeline/relation_admissibility" \\
       --session "s0132"
 """
 
@@ -31,6 +33,15 @@ from typing import Any
 # ---------------------------------------------------------------------------
 _SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(_SCRIPT_DIR))
+
+# S0188 UNIT A/B microajuste de seguridad: los defaults de este CLI eran
+# literales relativos ("data/out/local/...") resueltos contra el cwd de
+# ejecución, no contra el workspace gobernado -- en un checkout con
+# workspace_root externalizado esto hace que el CLI lea/escriba silenciosamente
+# dentro del propio repositorio (REPOSITORY != WORKSPACE, data/README.md).
+# Se usan ahora los defaults gobernados por path_governance, igual que el
+# resto de scripts ya migrados en S0187 Unit D.
+from path_governance import DEFAULT_CANON_DIR, DEFAULT_LOCAL_OUT_DIR  # noqa: E402
 
 from relation_candidate_contract import (
     ALLOWED_RELATION_TYPES,
@@ -598,17 +609,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--canon-glob",
-        default="data/out/local/tiddlers_*.jsonl",
+        default=str(DEFAULT_CANON_DIR / "tiddlers_*.jsonl"),
         help="Glob para los shards del canon",
     )
     parser.add_argument(
         "--candidates-root",
-        default="data/out/local/pipeline/relations_candidates",
+        default=str(DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relations_candidates"),
         help="Directorio raíz del staging de candidatos",
     )
     parser.add_argument(
         "--out-dir",
-        default="data/out/local/pipeline/relation_admissibility",
+        default=str(DEFAULT_LOCAL_OUT_DIR / "pipeline" / "relation_admissibility"),
         help="Directorio de salida para los reportes",
     )
     parser.add_argument(

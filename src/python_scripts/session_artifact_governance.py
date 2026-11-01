@@ -101,8 +101,14 @@ FAMILY_BY_RELATIVE_ROOT: dict[tuple[str, ...], dict[str, Any]] = {
     },
 }
 
-# Matches standard session IDs: mXX-sNNN-slug  (e.g. m04-s0121-contrato-...)
+# Matches standard (legacy) session IDs: mXX-sNNN-slug (e.g. m04-s0121-contrato-...)
 SESSION_RE = re.compile(r"^(m\d+)-s([0-9]+[a-z]?)-(.+)$")
+
+# S0188 Unit B: matches the simplified (current) session IDs authorized by
+# "PRESERVE HISTORY / SIMPLIFY FORWARD" -- sNNN-slug, with no module/mXX
+# prefix (e.g. s0188-contrato-...). S0001-S0187 keep using SESSION_RE above;
+# this pattern only ever matches artifacts produced going forward.
+CURRENT_SESSION_RE = re.compile(r"^s([0-9]+[a-z]?)-(.+)$")
 
 FAMILY_LABELS: dict[str, str] = {
     "contrato_de_sesion": "Contrato de sesión",
@@ -185,31 +191,45 @@ def extract_session_id(path: Path) -> str:
 def parse_session_parts(session_id: str) -> tuple[str, str, str]:
     """Parse a session ID into (milestone, number, slug).
 
+    Tries the legacy ``mXX-sNNN-slug`` shape first (S0001-S0187 and any
+    artifact still produced that way), then the current, module-less
+    ``sNNN-slug`` shape (S0188 Unit B, "PRESERVE HISTORY / SIMPLIFY FORWARD").
     Returns (``""``, ``""``, session_id) for non-standard IDs such as thematic
-    diagnostic filenames that do not follow the mXX-sNNN-slug convention.
-    This is intentional: thematic diagnostics keep their own identity.
+    diagnostic filenames that follow neither convention. This is intentional:
+    thematic diagnostics keep their own identity.
     """
     match = SESSION_RE.match(session_id)
-    if not match:
-        return "", "", session_id
-    milestone, number, slug = match.groups()
-    if slug.startswith("session-"):
-        slug = slug[len("session-") :]
-    return milestone, number, slug
+    if match:
+        milestone, number, slug = match.groups()
+        if slug.startswith("session-"):
+            slug = slug[len("session-") :]
+        return milestone, number, slug
+    match = CURRENT_SESSION_RE.match(session_id)
+    if match:
+        number, slug = match.groups()
+        if slug.startswith("session-"):
+            slug = slug[len("session-") :]
+        return "", number, slug
+    return "", "", session_id
 
 
 def build_session_tags(session_id: str, artifact_family: str) -> list[str]:
     """Generate canonical tags for a session artifact candidate.
 
-    For standard sessions the first tag is ``session:mXX-sNNN``.
-    For non-standard IDs (thematic diagnostics, micro-ciclo names, etc.)
-    the tag is ``session:<full-session-id>``.
+    For legacy sessions the first tag is ``session:mXX-sNNN`` plus a
+    ``milestone:mXX`` tag. For current (module-less) sessions -- S0188
+    Unit B -- the first tag is ``session:sNNN``, with no ``milestone:`` tag,
+    so siblings of the same session still share one grouping tag. For
+    non-standard IDs (thematic diagnostics, micro-ciclo names, etc.) the tag
+    remains ``session:<full-session-id>``.
     """
     milestone, number, _slug = parse_session_parts(session_id)
     tags: list[str] = []
     if milestone and number:
         tags.append(f"session:{milestone}-s{number}")
         tags.append(f"milestone:{milestone}")
+    elif number:
+        tags.append(f"session:s{number}")
     else:
         tags.append(f"session:{session_id}")
     tags.extend([f"artifact:{artifact_family}", "status:candidate", "layer:session"])

@@ -1,0 +1,51 @@
+name: Babel — GitHub Pages
+
+# Babel is a derived static surface. The builder selects Git-visible source,
+# copies the required assets, and generates the complete Pages staging tree.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "babel/**"
+      - "ux/assets/**"
+      - "tools/build_babel.py"
+      - ".github/workflows/babel-pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: "Babel · build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and stage publishable Babel files
+        run: python3 tools/build_babel.py --site _site
+      - name: Validate staged site
+        run: |
+          test -s _site/index.html
+          python3 tools/build_babel.py --site _site --check
+          ! grep -Eiq '<script|https?://' _site/index.html
+          [ ! -d _site/babel/0_pgs-index ] || ! grep -rEiq '<script|https?://' _site/babel/0_pgs-index
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    name: "Babel · deploy"
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
