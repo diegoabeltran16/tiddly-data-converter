@@ -1,7 +1,7 @@
 name: Babel — GitHub Pages
 
-# Babel is a derived static surface: index.html and babel/0_pgs-index/ are generated at
-# build time from the files under babel/ and are never committed. No dependencies.
+# Babel is a derived static surface. The builder selects Git-visible source,
+# copies the required assets, and generates the complete Pages staging tree.
 on:
   push:
     branches: [main]
@@ -24,22 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Generate index.html (stdlib Python already on the runner)
-        run: python3 tools/build_babel.py
-      - name: Validate generated index.html
+      - name: Build and stage publishable Babel files
+        run: python3 tools/build_babel.py --site _site
+      - name: Validate staged site
         run: |
-          test -s index.html
-          python3 tools/build_babel.py --check
-          ! grep -Eiq '<script|https?://' index.html
-          [ ! -d babel/0_pgs-index ] || ! grep -rEiq '<script|https?://' babel/0_pgs-index
-      - name: Stage static site (surfaces, mascot, flags, HTML artifacts only)
-        run: |
-          mkdir -p _site/ux/assets/flags
-          cp "ux/assets/Open eyes.PNG" _site/ux/assets/
-          cp "ux/assets/open eye.png" _site/ux/assets/
-          cp ux/assets/flags/*.svg _site/ux/assets/flags/
-          rsync -rt --prune-empty-dirs --exclude='/0_pgs-index/' --include='*/' --include='*.html' --exclude='*' babel/ _site/babel/
-          python3 tools/build_babel.py --site _site
+          test -s _site/index.html
+          python3 tools/build_babel.py --site _site --check
+          ! grep -Eiq '<script|https?://' _site/index.html
+          [ ! -d _site/babel/0_pgs-index ] || ! grep -rEiq '<script|https?://' _site/babel/0_pgs-index
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

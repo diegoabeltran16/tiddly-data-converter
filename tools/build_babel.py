@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """TDC Babel -- static surface generator (build-time only, stdlib only).
 
-    filesystem -> discovery -> Babel model -> render -> index.html + babel/0_pgs-index/
+    Git-visible files -> discovery -> Babel model -> render -> index.html + babel/0_pgs-index/
 
 Babel is a derived, non-authoritative navigation surface. It works only with
 file names and paths under babel/: it never opens, parses or modifies the
@@ -11,12 +11,14 @@ Surfaces (identical in local and staging builds, only the location differs):
     index.html                 language selector
     babel/0_pgs-index/<code>/index.html   filesystem view, only for languages with >1 html
 
-Babel writes ONLY <root>/index.html and <root>/babel/0_pgs-index/**; babel/<lang>/** is human-owned.
+Babel writes ONLY <root>/index.html and <root>/babel/0_pgs-index/** in local mode.
+With --site, it copies Git-visible HTML and required local assets, then writes
+the same derived navigation into the staging directory.
 
 Usage:
     python3 tools/build_babel.py            # write surfaces under <root>
     python3 tools/build_babel.py --check    # fail if any surface is stale (writes nothing)
-    python3 tools/build_babel.py --site DIR # write the same surfaces under DIR (staging)
+    python3 tools/build_babel.py --site DIR # build the complete publishable site under DIR
     python3 tools/build_babel.py --root DIR # use another repository root
 """
 
@@ -26,6 +28,8 @@ import argparse
 import html
 import os
 import re
+import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -100,7 +104,21 @@ def _favicon_href(prefix: str) -> str:
     return prefix + quote(FAVICON, safe="/")
 
 
-# --- Discovery adapter (filesystem -> model). Names/paths only. ------------
+# --- Discovery adapter (Git-visible paths -> model). Names/paths only. -----
+
+def _git_publishable_paths(root: Path) -> tuple[str, ...]:
+    """Return paths Git considers present and not ignored under babel/."""
+    command = [
+        "git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", f"{BABEL_DIR}/"
+    ]
+    try:
+        result = subprocess.run(command, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    except OSError as exc:
+        raise BuildError(f"cannot run Git source discovery: {exc}") from exc
+    if result.returncode:
+        reason = os.fsdecode(result.stderr).strip() or f"exit {result.returncode}"
+        raise BuildError(f"Git source discovery failed under {root}: {reason}")
+    return tuple(os.fsdecode(path) for path in result.stdout.split(b"\0") if path)
 
 def discover(root: Path) -> list[Language]:
     babel = root / BABEL_DIR
@@ -108,40 +126,48 @@ def discover(root: Path) -> list[Language]:
         raise BuildError(f"{BABEL_DIR}/ does not exist or is not a directory: {babel}")
     real_babel = babel.resolve()
 
+    by_language: dict[str, list[Artifact]] = {}
+    for rel in _git_publishable_paths(root):
+        rel_path = Path(rel)
+        parts = rel_path.parts
+        if rel_path.is_absolute() or ".." in parts or len(parts) < 3 or parts[0] != BABEL_DIR:
+            continue
+        lang_code = parts[1]
+        if lang_code.startswith(".") or lang_code in RESERVED_BABEL_DIRS:
+            continue
+        if any(part.startswith(".") for part in parts[2:-1]) or not parts[-1].lower().endswith(".html"):
+            continue
+        path = root / rel_path
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            path.resolve().relative_to(real_babel)
+        except ValueError as exc:
+            raise BuildError(f"path escapes {BABEL_DIR}/: {path}") from exc
+        lang_dir = babel / lang_code
+        artifact = Artifact(path.relative_to(lang_dir).as_posix())
+        by_language.setdefault(lang_code, []).append(artifact)
+
     languages = []
-    try:
-        entries = sorted(os.scandir(babel), key=lambda e: e.name)
-    except OSError as exc:
-        raise BuildError(f"cannot inspect {babel}: {exc}") from exc
-    for entry in entries:
-        if entry.name.startswith(".") or entry.name in RESERVED_BABEL_DIRS:
-            continue
-        if entry.is_symlink() or not entry.is_dir(follow_symlinks=False):
-            continue
-        artifacts = _scan_language(Path(entry.path), real_babel)
-        name, visible, flags = PRESENTATION.get(entry.name, (entry.name, entry.name.upper(), ()))
-        languages.append(Language(entry.name, name, visible, flags, artifacts))
+    for code, found in by_language.items():
+        artifacts = tuple(sorted(set(found), key=lambda a: (a.rel.casefold(), a.rel)))
+        name, visible, flags = PRESENTATION.get(code, (code, code.upper(), ()))
+        languages.append(Language(code, name, visible, flags, artifacts))
 
     known = list(PRESENTATION)
     languages.sort(key=lambda l: (known.index(l.code) if l.code in known else len(known), l.code))
     return languages
 
 
-def _scan_language(lang_dir: Path, real_babel: Path) -> tuple[Artifact, ...]:
-    found = []
-    # followlinks=False + skipping symlinked files: nothing outside babel/ is reachable.
-    for dirpath, dirnames, filenames in os.walk(lang_dir, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
-        for fname in filenames:
-            path = Path(dirpath) / fname
-            if not fname.lower().endswith(".html") or path.is_symlink() or not path.is_file():
-                continue
-            try:
-                path.resolve().relative_to(real_babel)
-            except ValueError as exc:
-                raise BuildError(f"path escapes {BABEL_DIR}/: {path}") from exc
-            found.append(Artifact(path.relative_to(lang_dir).as_posix()))
-    return tuple(sorted(found, key=lambda a: (a.rel.casefold(), a.rel)))
+def _site_input_paths(languages: list[Language]) -> tuple[str, ...]:
+    html_paths = {
+        f"{BABEL_DIR}/{lang.code}/{artifact.rel}"
+        for lang in languages
+        for artifact in lang.artifacts
+    }
+    assets = {MASCOT, FAVICON}
+    assets.update(f"{FLAGS_DIR}/{flag}.svg" for lang in languages for flag in lang.flags)
+    return tuple(sorted(html_paths | assets))
 
 
 # --- HTML renderer adapter (model -> text) ---------------------------------
@@ -468,6 +494,70 @@ def _write(base: Path, surfaces: dict[str, str], stale: list[Path]) -> None:
         derived.rmdir()
 
 
+def _site_target(base: Path, rel: str) -> Path:
+    """Create a safe parent chain for one file inside the staging boundary."""
+    relative = Path(rel)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise BuildError(f"refusing to stage an unsafe path: {rel}")
+    current = base
+    for part in relative.parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            raise BuildError(f"refusing to stage through symlink: {current}")
+        if current.exists() and not current.is_dir():
+            raise BuildError(f"staging parent is not a directory: {current}")
+        current.mkdir(exist_ok=True)
+    target = base / relative
+    if target.is_symlink():
+        raise BuildError(f"refusing to overwrite staging symlink: {target}")
+    if target.exists() and not target.is_file():
+        raise BuildError(f"staging target is not a regular file: {target}")
+    return target
+
+
+def _stage_inputs(root: Path, base: Path, paths: tuple[str, ...]) -> None:
+    """Copy only the already-discovered HTML and required local assets."""
+    base.mkdir(parents=True, exist_ok=True)
+    if base.is_symlink() or not base.is_dir():
+        raise BuildError(f"staging target is not a plain directory: {base}")
+    for rel in paths:
+        source = root / rel
+        if source.is_symlink() or not source.is_file():
+            raise BuildError(f"staging input is missing or invalid: {rel}")
+        target = _site_target(base, rel)
+        shutil.copyfile(source, target)
+
+
+def _verify_site_inputs(root: Path, base: Path, paths: tuple[str, ...]) -> None:
+    for rel in paths:
+        source = root / rel
+        target = base / rel
+        if (source.is_symlink() or not source.is_file() or target.is_symlink()
+                or not target.is_file() or source.read_bytes() != target.read_bytes()):
+            raise BuildError(f"staged input is missing or differs from its source: {rel}")
+
+
+def _verify_site_tree(base: Path, expected: set[str]) -> None:
+    """Reject extra files so a reused staging directory cannot leak stale material."""
+    if base.is_symlink() or not base.is_dir():
+        raise BuildError(f"staging target is not a plain directory: {base}")
+    actual = set()
+    for path in base.rglob("*"):
+        if path.is_symlink():
+            raise BuildError(f"symlink in staging tree: {path.relative_to(base).as_posix()}")
+        if path.is_file():
+            actual.add(path.relative_to(base).as_posix())
+    extra = sorted(actual - expected)
+    missing = sorted(expected - actual)
+    if extra or missing:
+        details = []
+        if extra:
+            details.append("unexpected files: " + ", ".join(extra))
+        if missing:
+            details.append("missing files: " + ", ".join(missing))
+        raise BuildError("staging contents differ from the publishable manifest: " + "; ".join(details))
+
+
 def _verify_written(base: Path, surfaces: dict[str, str], stale: list[Path]) -> None:
     problems = [f"{rel} is missing or stale" for rel, page in surfaces.items()
                 if not (base / rel).is_file() or (base / rel).read_text(encoding="utf-8") != page]
@@ -482,23 +572,35 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument("--check", action="store_true", help="write nothing; fail if any surface is stale")
-    parser.add_argument("--site", type=Path, help="write the same surfaces under this staging dir instead of <root>")
+    parser.add_argument("--site", type=Path, help="stage the complete publishable site under DIR")
     args = parser.parse_args(argv)
     root = args.root.resolve()
+    if args.site and args.site.is_symlink():
+        print(f"build_babel: error: --site must not be a symlink: {args.site}", file=sys.stderr)
+        return 1
     base = args.site.resolve() if args.site else root
 
     try:
         _guard_base(root, base)
+        if args.site and base == root:
+            raise BuildError("--site must be a separate staging directory, not --root")
         languages = discover(root)
         before = _snapshot(languages, root)
         surfaces = render_surfaces(languages)
         validate(root, languages, surfaces)
+        site_inputs = _site_input_paths(languages) if args.site else ()
         stale = _stale_derived(base, {l.code for l in languages if len(l.artifacts) > 1})
         if args.check:
+            if args.site:
+                _verify_site_inputs(root, base, site_inputs)
             _verify_written(base, surfaces, stale)
         else:
+            if args.site:
+                _stage_inputs(root, base, site_inputs)
             _write(base, surfaces, stale)
         check_links(base, surfaces)
+        if args.site:
+            _verify_site_tree(base, set(site_inputs) | set(surfaces))
         if _snapshot(languages, root) != before:
             raise BuildError("an artifact under babel/ changed during the build")
     except (BuildError, OSError) as exc:
@@ -509,6 +611,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"build_babel: {l.code}: {len(l.artifacts)} html")
     verb = "checked" if args.check else "wrote"
     print(f"build_babel: {verb} {', '.join(sorted(surfaces))}" + (f" (removed {len(stale)} obsolete)" if stale and not args.check else ""))
+    if args.site:
+        print(f"build_babel: {'validated' if args.check else 'staged'} {len(set(site_inputs) | set(surfaces))} files in {base}")
     return 0
 
 
