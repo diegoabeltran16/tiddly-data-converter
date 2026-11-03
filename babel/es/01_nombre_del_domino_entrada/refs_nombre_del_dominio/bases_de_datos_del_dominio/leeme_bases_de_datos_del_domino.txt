@@ -1,0 +1,5 @@
+Esta carpeta contiene bases de datos utilizadas como fuentes o referencias del dominio.
+
+Pueden incluir archivos SQLite, DuckDB, exportaciones de otras bases de datos u otros formatos equivalentes.
+
+Estas bases representan insumos de origen. No deben confundirse con bases de datos generadas posteriormente por TDC como Canon, derivados, índices, caché o artefactos temporales.
