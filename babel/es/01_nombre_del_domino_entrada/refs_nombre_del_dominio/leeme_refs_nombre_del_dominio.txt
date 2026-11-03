@@ -1,0 +1,7 @@
+Carpeta donde van ubicadas las referencias del documento , de tipo
+Articulos, libros, etc
+Esta carpeta contiene las fuentes y referencias utilizadas para construir o estudiar este dominio.
+
+Puede incluir documentos, datasets, bases de datos, imágenes, archivos estructurados u otros materiales de origen.
+
+Las referencias funcionan como evidencia o insumo del dominio. No deben confundirse con los artefactos producidos posteriormente por TDC.

@@ -1,0 +1,7 @@
+Esta carpeta contiene comandos útiles para trabajar con este dominio.
+
+Aquí pueden guardarse instrucciones de terminal, comandos de Git, TDC u otras herramientas necesarias para preparar, revisar, transformar o validar los archivos del dominio.
+
+Los comandos deben ser reproducibles, claros y estar relacionados directamente con este dominio.
+
+formato .org y markdown
